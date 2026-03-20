@@ -981,6 +981,20 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
 
 <div id="debug-banner">&#128295; Modalit&agrave; Debug &ndash; account admin attivo <button onclick="AuthModule.logout()" style="margin-left:12px;padding:2px 10px;border-radius:6px;border:1px solid #000;background:transparent;cursor:pointer;font-size:.75rem">Logout</button></div>
 
+<div id="diag-box" style="position:fixed;bottom:0;left:0;right:0;background:#000;color:#0f0;font-family:monospace;font-size:11px;padding:8px 12px;z-index:99999;max-height:120px;overflow-y:auto;display:none"></div>
+<script>
+window._diag = function(msg) {
+  var b = document.getElementById('diag-box');
+  if(!b) return;
+  b.style.display = 'block';
+  b.innerHTML += '<div>[' + new Date().toLocaleTimeString() + '] ' + msg + '</div>';
+  b.scrollTop = b.scrollHeight;
+};
+window.onerror = function(msg, src, line) {
+  window._diag('JS ERROR: ' + msg + ' (line ' + line + ')');
+};
+</script>
+
 <div id="auth-overlay" style="display:flex">
 
   <div id="auth-card">
@@ -1048,11 +1062,15 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
       </div>
 
       <button class="btn btn-p" style="width:100%;padding:14px;font-size:15px;font-weight:700;border-radius:14px"
-
-        onclick="AuthModule.login(document.getElementById('auth-email').value,document.getElementById('auth-pass').value)">
-
+        onclick="
+          window._diag('Click Accedi');
+          window._diag('AuthModule: ' + (typeof AuthModule));
+          window._diag('_fbAuth: ' + (typeof window._fbAuth));
+          window._diag('FirebaseModule: ' + (typeof window.FirebaseModule));
+          if(typeof AuthModule === 'undefined') { window._diag('ERRORE: AuthModule non definito!'); return; }
+          AuthModule.login(document.getElementById('auth-email').value, document.getElementById('auth-pass').value);
+        ">
         &#128274; Accedi
-
       </button>
 
 
@@ -3061,12 +3079,15 @@ window.addEventListener("DOMContentLoaded",function(){
   // â”€â”€ Auth & Sync init â”€â”€
   // Aspetta FirebaseModule prima di inizializzare AuthModule
   function _initAuth() {
+    if(window._diag) window._diag('_initAuth: AuthModule=' + (typeof AuthModule) + ' _fbAuth=' + (typeof window._fbAuth));
     if(typeof AuthModule !== "undefined") AuthModule.init();
     initPWA();
   }
   if(window.FirebaseModule) {
+    if(window._diag) window._diag('FirebaseModule gia pronto');
     _initAuth();
   } else {
+    if(window._diag) window._diag('attendo firebase-ready...');
     window.addEventListener('firebase-ready', _initAuth, { once: true });
     setTimeout(function() { if(typeof AuthModule !== "undefined") _initAuth(); }, 8000);
   }
@@ -8336,7 +8357,7 @@ var AuthModule = (function() {
     // â”€â”€ Login â”€â”€
 
     login: async function(email, pass) {
-
+      if(window._diag) window._diag('login() chiamato email=' + email + ' _fbAuth=' + (typeof window._fbAuth) + ' FM=' + (typeof window.FirebaseModule));
       _clearAuthError('auth-login-err');
 
 
@@ -8396,9 +8417,11 @@ var AuthModule = (function() {
       try {
 
         var fbAuth = window._fbAuth;
-        if (!fbAuth) { _showAuthError('auth-login-err', 'Errore: Firebase non pronto. Ricarica la pagina.'); return; }
+        if (!fbAuth) { _showAuthError('auth-login-err', 'Errore: Firebase non pronto. Ricarica la pagina.'); if(window._diag) window._diag('STOP: _fbAuth undefined'); return; }
+        if(window._diag) window._diag('step1: fbAuth ok, chiamo signIn...');
         _showAuthError('auth-login-err', 'Connessione in corso...');
         var cred = await window._fbSignIn(fbAuth, email, pass);
+        if(window._diag) window._diag('step2: signIn ok uid=' + cred.user.uid);
         var fbUser = cred.user;
         _showAuthError('auth-login-err', 'Caricamento profilo...');
         var profile = await window.FirebaseModule.getUserProfile(fbUser.uid);
@@ -8431,6 +8454,7 @@ var AuthModule = (function() {
           : fbErr.code === 'auth/too-many-requests' ? 'Troppi tentativi. Riprova tra qualche minuto.'
           : fbErr.code === 'auth/network-request-failed' ? 'Errore di rete. Controlla la connessione.'
           : (fbErr.code ? fbErr.code : fbErr.message);
+        if(window._diag) window._diag('CATCH: ' + (fbErr.code || fbErr.message));
         _showAuthError('auth-login-err', msg); return;
 
       }
@@ -9100,6 +9124,7 @@ window.FirebaseModule = {
 // â”€â”€ Notifica app che FirebaseModule e' pronto â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 window.dispatchEvent(new CustomEvent('firebase-ready'));
 console.log('[Firebase] FirebaseModule pronto.');
+if(window._diag) window._diag('firebase-ready dispatched, _fbAuth=' + (typeof window._fbAuth));
 </script>
 
 <!-- MODAL EASTER EGG -->
