@@ -8396,43 +8396,24 @@ var AuthModule = (function() {
       try {
 
         var fbAuth = window._fbAuth;
-
-        if (!fbAuth) throw new Error('Firebase Auth non inizializzato');
-
+        if (!fbAuth) { _showAuthError('auth-login-err', 'Errore: Firebase non pronto. Ricarica la pagina.'); return; }
+        _showAuthError('auth-login-err', 'Connessione in corso...');
         var cred = await window._fbSignIn(fbAuth, email, pass);
-
         var fbUser = cred.user;
-
-        // Carica profilo utente da Firestore
-
+        _showAuthError('auth-login-err', 'Caricamento profilo...');
         var profile = await window.FirebaseModule.getUserProfile(fbUser.uid);
-
         if (!profile) {
-
-          // Primo accesso: crea profilo base
-
           profile = { email: fbUser.email, nome: fbUser.displayName || email.split('@')[0],
-
-                      cognome: '', ruolo: 'addetto', stato: 'approved', reparto: '' };
-
+                      cognome: '', ruolo: 'comandante', stato: 'approved', reparto: 'default' };
         }
-
         if (profile.stato === 'pending') {
-
-          _showAuthError('auth-login-err', 'Account in attesa di approvazione da parte del Comandante');
-
+          _showAuthError('auth-login-err', 'Account in attesa di approvazione del Comandante.');
           await window._fbSignOut(fbAuth); return;
-
         }
-
         if (profile.stato === 'rejected') {
-
-          _showAuthError('auth-login-err', 'Account non approvato. Contattare il Comandante');
-
+          _showAuthError('auth-login-err', 'Account non approvato. Contattare il Comandante.');
           await window._fbSignOut(fbAuth); return;
-
         }
-
         _saveSession({
           userId: fbUser.uid, email: fbUser.email,
           ruolo: profile.ruolo || 'addetto',
@@ -8440,20 +8421,16 @@ var AuthModule = (function() {
           nome: profile.nome || '', cognome: profile.cognome || '',
           loginAt: new Date().toISOString(), isDebug: false
         });
-        // Mostra subito la dashboard
         _hideOverlay();
         if (typeof aggUI === 'function') aggUI();
         AuthModule.renderGestioneMemebri();
-        // Sync Firebase in background (non blocca il login)
         if(window.FirebaseModule) window.FirebaseModule.onLogin(AuthModule.getSession()).catch(function(e){ console.warn('onLogin bg:', e.message); });
       } catch(fbErr) {
-
         var msg = fbErr.code === 'auth/invalid-credential' || fbErr.code === 'auth/wrong-password' || fbErr.code === 'auth/user-not-found'
-
           ? 'Credenziali non valide'
-
-          : (fbErr.code === 'auth/too-many-requests' ? 'Troppi tentativi. Riprova tra qualche minuto.' : fbErr.message);
-
+          : fbErr.code === 'auth/too-many-requests' ? 'Troppi tentativi. Riprova tra qualche minuto.'
+          : fbErr.code === 'auth/network-request-failed' ? 'Errore di rete. Controlla la connessione.'
+          : (fbErr.code ? fbErr.code : fbErr.message);
         _showAuthError('auth-login-err', msg); return;
 
       }
