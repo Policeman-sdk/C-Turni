@@ -3048,8 +3048,17 @@ window.addEventListener("DOMContentLoaded",function(){
   var me=lsG("ct_me",null);
   initNotifiche();
   // â”€â”€ Auth & Sync init â”€â”€
-  if(typeof AuthModule!=="undefined")AuthModule.init();
-  initPWA();
+  // Aspetta FirebaseModule prima di inizializzare AuthModule
+  function _initAuth() {
+    if(typeof AuthModule !== "undefined") AuthModule.init();
+    initPWA();
+  }
+  if(window.FirebaseModule) {
+    _initAuth();
+  } else {
+    window.addEventListener('firebase-ready', _initAuth, { once: true });
+    setTimeout(function() { if(typeof AuthModule !== "undefined") _initAuth(); }, 8000);
+  }
   scheduleNotifMattutina();
   caricaTema();
   aggiornaBadgeNotif();
@@ -9042,15 +9051,16 @@ window.FirebaseModule = {
   // â”€â”€ Carica profilo utente da Firestore â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   getUserProfile: async function(uid) {
-
     try {
-
       var snap = await window._fbGetDoc(window._fbDoc(db, 'utenti', uid));
-
-      return snap.exists() ? snap.data() : null;
-
+      if(snap.exists()) return snap.data();
+      var rep = _reparto();
+      if(rep) {
+        var snap2 = await window._fbGetDoc(window._fbDoc(db, 'reparti', rep, 'utenti', uid));
+        if(snap2.exists()) return snap2.data();
+      }
+      return null;
     } catch(e) { console.warn('getUserProfile:', e.message); return null; }
-
   },
 
 
@@ -9162,3 +9172,4 @@ console.log('[Firebase] FirebaseModule pronto.');
   </div>
 </div></body>
 </html>
+
