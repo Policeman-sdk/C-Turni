@@ -9030,11 +9030,12 @@ window.FirebaseModule = {
 
   getUserProfile: async function(uid) {
     try {
-      var snap = await window._fbGetDoc(window._fbDoc(db, 'utenti', uid));
+      var _to = function() { return new Promise(function(_,r){ setTimeout(function(){ r(new Error('timeout')); }, 5000); }); };
+      var snap = await Promise.race([ window._fbGetDoc(window._fbDoc(db, 'utenti', uid)), _to() ]);
       if(snap.exists()) return snap.data();
       var rep = _reparto();
       if(rep) {
-        var snap2 = await window._fbGetDoc(window._fbDoc(db, 'reparti', rep, 'utenti', uid));
+        var snap2 = await Promise.race([ window._fbGetDoc(window._fbDoc(db, 'reparti', rep, 'utenti', uid)), _to() ]);
         if(snap2.exists()) return snap2.data();
       }
       return null;
