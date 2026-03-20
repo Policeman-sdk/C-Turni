@@ -1117,6 +1117,16 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
 
       </div>
 
+      <div class="fg" style="margin-bottom:14px">
+        <label>Tipo Reparto</label>
+        <input type="hidden" id="reg-tipo" value="ter">
+        <div style="display:flex;background:var(--bg2);border-radius:10px;padding:3px;gap:3px;border:1px solid var(--border)">
+          <div onclick="selezionaTipoReparto('reg-tipo','ter',this)" class="trep-pill" style="flex:1;text-align:center;padding:10px 4px;border-radius:7px;font-size:12px;font-weight:800;background:var(--blue);color:#fff;cursor:pointer;transition:all .2s">Territoriale</div>
+          <div onclick="selezionaTipoReparto('reg-tipo','for',this)" class="trep-pill" style="flex:1;text-align:center;padding:10px 4px;border-radius:7px;font-size:12px;font-weight:600;background:transparent;color:var(--txt);cursor:pointer;transition:all .2s">Forestale</div>
+          <div onclick="selezionaTipoReparto('reg-tipo','spe',this)" class="trep-pill" style="flex:1;text-align:center;padding:10px 4px;border-radius:7px;font-size:12px;font-weight:600;background:transparent;color:var(--txt);cursor:pointer;transition:all .2s">Speciale</div>
+        </div>
+      </div>
+
       <div class="g2" style="margin-bottom:16px">
 
         <div class="fg" style="margin-bottom:0">
@@ -1201,7 +1211,8 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
 
           grado:document.getElementById('reg-grado').value,
 
-          ruolo:document.getElementById('reg-ruolo').value
+          ruolo:document.getElementById('reg-ruolo').value,
+          tipo:document.getElementById('reg-tipo').value
 
         })">
 
@@ -8501,25 +8512,7 @@ var AuthModule = (function() {
 
 
 
-      if(window.FirebaseModule)await window.FirebaseModule.syncUsers();
-
-
-
-      var users = _getUsers();
-
-      if (users.find(function(u) { return u.email.toLowerCase() === email.toLowerCase(); })) {
-
-        _showAuthError('auth-reg-err', 'Email già registrata'); return;
-
-      }
-
-
-
-
-
-      // â”€â”€ Firebase createUserWithEmailAndPassword â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-      try {
+            try {
 
         var fbAuth = window._fbAuth;
 
@@ -8551,7 +8544,7 @@ var AuthModule = (function() {
 
           uid: fbUid, email: email, nome: nome, cognome: cognome,
 
-          ruolo: ruolo, grado: (dati.grado||''), stato: stato, reparto: reparto,
+          ruolo: ruolo, grado: (grado||''), tipo: (dati.tipo||'ter'), stato: stato, reparto: reparto,
 
           registratoIl: new Date().toISOString()
 
