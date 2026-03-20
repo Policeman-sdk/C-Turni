@@ -8434,21 +8434,18 @@ var AuthModule = (function() {
         }
 
         _saveSession({
-
           userId: fbUser.uid, email: fbUser.email,
-
           ruolo: profile.ruolo || 'addetto',
-
           reparto: profile.reparto || '',
-
           nome: profile.nome || '', cognome: profile.cognome || '',
-
           loginAt: new Date().toISOString(), isDebug: false
-
         });
-
-        if(window.FirebaseModule) await window.FirebaseModule.onLogin(AuthModule.getSession());
-
+        // Mostra subito la dashboard
+        _hideOverlay();
+        if (typeof aggUI === 'function') aggUI();
+        AuthModule.renderGestioneMemebri();
+        // Sync Firebase in background (non blocca il login)
+        if(window.FirebaseModule) window.FirebaseModule.onLogin(AuthModule.getSession()).catch(function(e){ console.warn('onLogin bg:', e.message); });
       } catch(fbErr) {
 
         var msg = fbErr.code === 'auth/invalid-credential' || fbErr.code === 'auth/wrong-password' || fbErr.code === 'auth/user-not-found'
@@ -8460,23 +8457,8 @@ var AuthModule = (function() {
         _showAuthError('auth-login-err', msg); return;
 
       }
-      _hideOverlay();
-
-
-      // Sincronizza ct_me con i dati della sessione Firebase
-      var _sess = getSession();
-      if (_sess) {
-        var _Uf = lsG('ct_u', []);
-        var _mef = _Uf.find(function(x){ return x.email === _sess.email || x.id === 1; });
-        if (_mef) { lsS('ct_me', _mef); }
-      }
-      if (typeof aggUI === 'function') aggUI();
-
-      AuthModule.renderGestioneMemebri();
 
     },
-
-
 
     // â”€â”€ Register â”€â”€
 
@@ -8495,6 +8477,8 @@ var AuthModule = (function() {
       var reparto = (dati.reparto || '').trim();
 
       var ruolo = dati.ruolo || 'addetto';
+      var grado = (dati.grado || '').trim();
+      var tipo  = (dati.tipo  || 'ter').trim();
 
 
 
@@ -8544,7 +8528,7 @@ var AuthModule = (function() {
 
           uid: fbUid, email: email, nome: nome, cognome: cognome,
 
-          ruolo: ruolo, grado: (grado||''), tipo: (dati.tipo||'ter'), stato: stato, reparto: reparto,
+          ruolo: ruolo, grado: grado, tipo: tipo, stato: stato, reparto: reparto,
 
           registratoIl: new Date().toISOString()
 
