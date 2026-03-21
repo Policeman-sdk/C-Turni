@@ -3363,9 +3363,19 @@ window.addEventListener("DOMContentLoaded",function(){
   // Aspetta FirebaseModule prima di inizializzare AuthModule
   function _initAuth() {
     if(typeof AuthModule !== "undefined") AuthModule.init();
-    // Aggiorna UI subito se gi loggato (evita dashboard vuota al refresh)
+    // Renderizza subito con dati localStorage (evita dashboard vuota al refresh)
     var _me = lsG("ct_me", null);
-    if(_me) { aggUI(); aggiornaWidget(); if(typeof renderWidgetProssimo==="function") renderWidgetProssimo(_me); }
+    if(_me) {
+      // Segna sync pending finché Firebase non completa (evita "Riposo" prematuro)
+      window._widgetSyncPending = true;
+      aggUI();
+      aggiornaWidget();
+      if(typeof renderWidgetProssimo === "function") renderWidgetProssimo(_me);
+      if(typeof renderWidgetMeteo    === "function") renderWidgetMeteo(_me);
+      if(typeof renderTurni          === "function") renderTurni();
+      if(typeof renderOggi           === "function") renderOggi();
+      if(typeof stats                === "function") stats();
+    }
     initPWA();
   }
   if(window.FirebaseModule) {
@@ -3777,23 +3787,35 @@ var _codiceToTipo={
   "FEST":"fest","104":"104","LS":"ls","937":"937"
 };
 // ── Helper: riconosce se un turno appartiene all'utente loggato ──
-// Controlla pid numerico, uid Firebase, ct_my_pid, e pnome case-insensitive
+// Controlla pid numerico, uid Firebase, ct_my_pid, e pnome token-based case-insensitive
 function _isMyTurno(t, me) {
   if(!t || !me) return false;
-  var myPid = localStorage.getItem('ct_my_pid');
-  // Match per id/uid
+  var myPid = me.myPid || localStorage.getItem('ct_my_pid');
+  // Match per id/uid/pid salvato
   if(t.pid == me.id || t.pid === me.uid || (myPid && t.pid == myPid)) return true;
-  // Match per pnome (case-insensitive, gestisce COGNOME NOME e Nome Cognome)
+  // Match per pnome: tokenizza e verifica che tutti i token di nome+cognome siano presenti in pnome
   if(t.pnome && (me.nome || me.cognome)) {
-    var pn = (t.pnome || '').toLowerCase().replace(/\s+/g,' ').trim();
-    var n  = (me.nome    || '').toLowerCase().trim();
-    var c  = (me.cognome || '').toLowerCase().trim();
-    var varianti = [
-      (n+' '+c).trim(), (c+' '+n).trim(), n, c
-    ].filter(function(v){ return v.length > 1; });
-    if(varianti.some(function(v){ return pn === v || pn.indexOf(v) !== -1 || v.indexOf(pn) !== -1; })) {
-      // Salva il pid per i prossimi confronti
-      localStorage.setItem('ct_my_pid', String(t.pid));
+    var pnTokens = (t.pnome || '').toLowerCase().replace(/[^a-z\u00c0-\u024f\s]/gi,'').split(/\s+/).filter(function(x){ return x.length > 1; });
+    var n = (me.nome    || '').toLowerCase().trim();
+    var c = (me.cognome || '').toLowerCase().trim();
+    // Costruisce i token dell'utente (nome e cognome separati)
+    var myTokens = [n, c].filter(function(x){ return x.length > 1; });
+    // Match: tutti i token dell'utente devono essere presenti nei token del pnome
+    if(myTokens.length > 0 && myTokens.every(function(mt){
+      return pnTokens.some(function(pt){ return pt === mt || pt.indexOf(mt) !== -1 || mt.indexOf(pt) !== -1; });
+    })) {
+      // Salva il pid per i prossimi confronti (localStorage + Firebase profilo)
+      var pidStr = String(t.pid);
+      localStorage.setItem('ct_my_pid', pidStr);
+      if(!me.myPid || me.myPid !== pidStr) {
+        me.myPid = pidStr;
+        localStorage.setItem('ct_me', JSON.stringify(me));
+        // Persiste su Firebase in background
+        var _sess = (typeof lsG === 'function') ? lsG('ct_session', null) : null;
+        if(_sess && _sess.userId && window.FirebaseModule) {
+          window.FirebaseModule.saveUserProfile(_sess.userId, me, me.reparto).catch(function(){});
+        }
+      }
       return true;
     }
   }
@@ -3860,11 +3882,20 @@ function aggiornaWidget(){
   }else{
     w.style.display="block";
     if(inner) inner.style.background="linear-gradient(135deg,#1a3a6e 0%,#0a1628 100%)";
-    document.getElementById("w-ico").innerHTML="&#128564;";
-    document.getElementById("w-bg-ico").innerHTML="&#128564;";
-    document.getElementById("w-tipo").textContent="Riposo";
-    document.getElementById("w-orario").textContent="Nessun turno assegnato";
-    document.getElementById("w-codice").textContent="";
+    // Se la sync Firebase è ancora in corso, non mostrare "Riposo" prematuramente
+    if(window._widgetSyncPending) {
+      document.getElementById("w-ico").innerHTML="&#8987;";
+      document.getElementById("w-bg-ico").innerHTML="&#8987;";
+      document.getElementById("w-tipo").textContent="Sincronizzazione...";
+      document.getElementById("w-orario").textContent="Caricamento turni in corso";
+      document.getElementById("w-codice").textContent="";
+    } else {
+      document.getElementById("w-ico").innerHTML="&#128564;";
+      document.getElementById("w-bg-ico").innerHTML="&#128564;";
+      document.getElementById("w-tipo").textContent="Riposo";
+      document.getElementById("w-orario").textContent="Nessun turno assegnato";
+      document.getElementById("w-codice").textContent="";
+    }
   }
 
   // Colleghi in servizio oggi (escludi me stesso)
@@ -10042,6 +10073,23 @@ window.FirebaseModule = {
   onSessionRestore: async function(session) {
     if(!session || session.isDebug) return;
     var rep = session.reparto.toLowerCase().replace(/\s+/g,'_');
+    // Mostra banner "Sincronizzazione in corso..."
+    var _showSyncBanner = function(msg) {
+      var b = document.getElementById('sync-banner');
+      if(!b) {
+        b = document.createElement('div');
+        b.id = 'sync-banner';
+        b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99998;background:rgba(91,159,255,.95);color:#fff;font-size:12px;font-weight:700;text-align:center;padding:8px;letter-spacing:.5px;transition:opacity .3s';
+        document.body.appendChild(b);
+      }
+      b.textContent = msg; b.style.opacity = '1'; b.style.display = 'block';
+    };
+    var _hideSyncBanner = function() {
+      var b = document.getElementById('sync-banner');
+      if(b){ b.style.opacity='0'; setTimeout(function(){ b.style.display='none'; }, 400); }
+    };
+    _showSyncBanner('⟳ Sincronizzazione dati...');
+    window._widgetSyncPending = true;
     try {
       // Carica dati iniziali (nuovo device: localStorage vuoto)
       var turniSnap = await getDocs(collection(db, 'reparti', rep, 'turni'));
@@ -10058,6 +10106,8 @@ window.FirebaseModule = {
       if(profSnap.exists()) {
         var prof = profSnap.data();
         localStorage.setItem('ct_me', JSON.stringify(prof));
+        // Ripristina myPid (collegamento Excel → utente)
+        if(prof.myPid) localStorage.setItem('ct_my_pid', String(prof.myPid));
         // Ripristina città meteo dal profilo
         if(prof.meteoCitta) lsS('ct_meteo_citta', prof.meteoCitta);
         // Ripristina tema
@@ -10079,15 +10129,28 @@ window.FirebaseModule = {
           lsS('ct_u', _U2);
         }
         if(prof.ct_recuperi) lsS('ct_recuperi', prof.ct_recuperi);
-        if(typeof window.aggUI === 'function') window.aggUI();
       }
 
       await this.syncUsers();
-      if(typeof window.renderTurni === 'function') window.renderTurni();
-      if(typeof window.renderOggi  === 'function') window.renderOggi();
-      if(typeof window.stats       === 'function') window.stats();
+
+      // Ri-renderizza tutto con i dati aggiornati da Firebase
+      var me = lsG('ct_me', null);
+      if(typeof window.aggUI          === 'function') window.aggUI();
+      if(typeof window.renderTurni    === 'function') window.renderTurni();
+      if(typeof window.renderOggi     === 'function') window.renderOggi();
+      if(typeof window.stats          === 'function') window.stats();
       if(typeof window.aggiornaWidget === 'function') window.aggiornaWidget();
-    } catch(e) { console.warn('onSessionRestore load:', e.message); }
+      if(me && typeof window.renderWidgetProssimo === 'function') window.renderWidgetProssimo(me);
+      if(me && typeof window.renderWidgetMeteo    === 'function') window.renderWidgetMeteo(me);
+      if(typeof window.renderTodo     === 'function') window.renderTodo();
+      if(typeof window.renderRecuperi === 'function') window.renderRecuperi();
+      window._widgetSyncPending = false;
+      _hideSyncBanner();
+    } catch(e) {
+      console.warn('onSessionRestore load:', e.message);
+      window._widgetSyncPending = false;
+      _hideSyncBanner();
+    }
     _startListeners(rep);
   },
 
