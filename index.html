@@ -1841,12 +1841,7 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
       </div>
       <!-- END TESSERINO NUOVO -->
 <h1 class="ptit">Dashboard</h1><p class="psub">Panoramica generale</p>
-          <div class="sgrid">
-          <div class="sc"><div class="sc-ico">&#128101;</div><div class="sc-val" id="st-p">0</div><div class="sc-lbl">Personale</div></div>
-          <div class="sc"><div class="sc-ico">&#128197;</div><div class="sc-val" id="st-t">0</div><div class="sc-lbl">Turni Tot.</div></div>
-          <div class="sc"><div class="sc-ico">&#127769;</div><div class="sc-val" id="st-n">0</div><div class="sc-lbl">Notti</div></div>
-          <div class="sc"><div class="sc-ico">&#127958;</div><div class="sc-val" id="st-f">0</div><div class="sc-lbl">Ferie</div></div>
-        </div>
+
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;margin-top:14px">
   <h3 style="font-size:14px;font-weight:700;margin:0">Azioni Rapide</h3>
   <button onclick="toggleAzioniRapide(this)" id="btn-toggle-ar" style="background:none;border:none;color:var(--txt2);font-size:11px;cursor:pointer;appearance:none;-webkit-appearance:none;appearance:none;padding:4px 8px;border-radius:8px;background:var(--bg2)">? Nascondi</button>
@@ -2279,18 +2274,8 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
                   </div>
                 </div>
                 <div class="g2">
-                  <div class="fg" style="margin-bottom:10px"><label>Reparto / Sede</label>
-                    <input type="text" class="fc" id="pf-rep" placeholder="Es. Quaregna..."></div>
-                  <div class="fg" style="margin-bottom:10px"><label>Tipo</label>
-                    <input type="hidden" id="pf-tipo" value="ter">
-                    <div style="display:flex;background:var(--card2);border-radius:12px;padding:4px;gap:4px;border:1px solid var(--border)">
-                      <div onclick="selezionaTipoReparto('pf-tipo','ter',this)" class="trep-pill" style="flex:1;text-align:center;padding:10px 4px;border-radius:8px;font-size:12px;font-weight:800;background:var(--blue);color:#fff;cursor:pointer;transition:all .2s">Territoriale</div>
-                      <div onclick="selezionaTipoReparto('pf-tipo','for',this)" class="trep-pill" style="flex:1;text-align:center;padding:10px 4px;border-radius:8px;font-size:12px;font-weight:600;background:transparent;color:var(--txt);cursor:pointer;transition:all .2s">Forestale</div>
-                      <div onclick="selezionaTipoReparto('pf-tipo','spe',this)" class="trep-pill" style="flex:1;text-align:center;padding:10px 4px;border-radius:8px;font-size:12px;font-weight:600;background:transparent;color:var(--txt);cursor:pointer;transition:all .2s">Speciale</div>
-                    </div>
-                  </div>
-                  <div class="fg" style="margin-bottom:10px"><label>Nucleo / Specialit</label>
-                    <input type="text" class="fc" id="pf-nuc" placeholder="Es. NORM..."></div>
+                  <div class="fg" style="margin-bottom:10px"><label>Reparto (ID Firebase)</label>
+                    <input type="text" class="fc" id="pf-rep" readonly style="opacity:.55;cursor:default;background:var(--bg2)" placeholder="—"></div>
                   <div class="fg" style="margin-bottom:10px">
                     <label>Grado attuale: <span id="pf-gr-txt" style="color:var(--blue)"></span></label>
                     <img id="pf-gr-prev" src="" style="height:28px;margin-top:4px;display:none">
@@ -2304,7 +2289,6 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
                 <div id="pf-ok" class="smsg">&#10003; Salvato!</div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap">
                   <button class="btn btn-p btn-sm" style="width:auto" onclick="salvaImp()">&#128190; Salva modifiche</button>
-                  <button class="btn btn-sm" style="width:auto;background:rgba(200,16,46,.1);color:var(--red);border:1px solid rgba(200,16,46,.25)" onclick="AuthModule.logout()">&#128682; Logout</button>
                 </div>
               </div>
               <!-- PASSWORD -->
@@ -2457,13 +2441,22 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
           </div>
           <!-- WIDGET DASHBOARD -->
           <div style="border-top:1px solid var(--border)">
-            <div class="imp-row tap" onclick="toggleImpSec('sec-widget','arr-wdg')" style="cursor:pointer">
+            <div class="imp-row tap" onclick="toggleImpSec('sec-widget','arr-wdg');caricaImpostazioniMeteo();" style="cursor:pointer">
               <div class="imp-row-ico" style="background:rgba(41,121,255,.12)">&#128202;</div>
               <div class="imp-row-body"><div class="imp-row-title">Widget Dashboard</div><div class="imp-row-sub">Attiva o disattiva i widget visibili</div></div>
               <div class="imp-row-right" id="arr-wdg">&#8250;</div>
             </div>
             <div id="sec-widget" class="imp-sub">
               <div style="padding:4px 0 8px;font-size:11px;color:var(--txt2)">&#128161; Attiva o disattiva i widget visibili in Dashboard</div>
+              <!-- Città meteo -->
+              <div style="padding:8px 0 12px;border-bottom:1px solid var(--border);margin-bottom:8px">
+                <div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:6px">&#127781; Città meteo</div>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <input type="text" class="fc" id="imp-meteo-citta" placeholder="Es. Roma, Milano, Varazze..." style="flex:1;font-size:13px" oninput="aggiornaPreviewMeteo(this.value)">
+                  <button class="btn btn-p btn-sm" onclick="salvaMeteoCity()" style="width:auto;flex-shrink:0">&#128190; Salva</button>
+                </div>
+                <div id="imp-meteo-preview" style="font-size:11px;color:var(--txt3);margin-top:4px"></div>
+              </div>
               <div id="dash-widget-toggles"></div>
             </div>
           </div>
@@ -2870,6 +2863,17 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
               </div>
             </div>
           </div>
+
+        <!-- LOGOUT -->
+        <div class="imp-section">
+          <div style="border-radius:14px;overflow:hidden;border:1px solid rgba(200,16,46,.25)">
+            <div class="imp-row" onclick="AuthModule.logout()" style="cursor:pointer">
+              <div class="imp-row-ico" style="background:rgba(200,16,46,.12)">&#128682;</div>
+              <div class="imp-row-body"><div class="imp-row-title" style="color:var(--red)">Logout</div><div class="imp-row-sub">Esci dall'account</div></div>
+              <div style="color:var(--red);font-size:18px">&#8250;</div>
+            </div>
+          </div>
+        </div>
 
         <!-- ═══ GESTIONE MEMBRI (solo Comandante) ═══ -->
         <div id="gestione-membri-section" class="imp-section" style="display:none">
@@ -3403,7 +3407,7 @@ function controllaNotifiche(){
   var oggi=now.toISOString().slice(0,10);
   var notif=lsG("ct_notif_sent",[]);
   T.filter(function(t){
-    return t.pid===me.id&&t.data===oggi&&(OPERATIVI[t.tipo]||t.codice==="1515");
+    return _isMyTurno(t,me)&&t.data===oggi&&(OPERATIVI[t.tipo]||t.codice==="1515");
   }).forEach(function(t){
     var orStr=ORI[t.tipo]||"06:00";
     var parts=orStr.split(":");
@@ -3480,7 +3484,8 @@ function aggiungiRimanenzaAnnoUtente(){
   lsS("ct_p",P);
   caricaPoolLicenzeMe();
   caricaSaldoFerie();
-  toast("? Rimanenza "+anno+": "+giorni+" giorni salvata","ok");
+  _syncFerieFirebase();
+  toast("✓ Rimanenza "+anno+": "+giorni+" giorni salvata","ok");
 }
 function rimuoviRimanenzaAnno(pid,anno){
   if(!confirm("Rimuovere rimanenza anno "+anno+"?"))return;
@@ -3497,6 +3502,7 @@ function rimuoviRimanenzaAnno(pid,anno){
   lsS("ct_p",P);
   caricaPoolLicenzeMe();
   caricaSaldoFerie();
+  _syncFerieFirebase();
   toast("&#127958; Rimanenza "+anno+" eliminata","ok");
 }
 function caricaPoolLicenzeMe(){
@@ -3770,6 +3776,30 @@ var _codiceToTipo={
   "L":"ferie","LICSTU":"licenza","ESAME":"esame","CORSO":"corso",
   "FEST":"fest","104":"104","LS":"ls","937":"937"
 };
+// ── Helper: riconosce se un turno appartiene all'utente loggato ──
+// Controlla pid numerico, uid Firebase, ct_my_pid, e pnome case-insensitive
+function _isMyTurno(t, me) {
+  if(!t || !me) return false;
+  var myPid = localStorage.getItem('ct_my_pid');
+  // Match per id/uid
+  if(t.pid == me.id || t.pid === me.uid || (myPid && t.pid == myPid)) return true;
+  // Match per pnome (case-insensitive, gestisce COGNOME NOME e Nome Cognome)
+  if(t.pnome && (me.nome || me.cognome)) {
+    var pn = (t.pnome || '').toLowerCase().replace(/\s+/g,' ').trim();
+    var n  = (me.nome    || '').toLowerCase().trim();
+    var c  = (me.cognome || '').toLowerCase().trim();
+    var varianti = [
+      (n+' '+c).trim(), (c+' '+n).trim(), n, c
+    ].filter(function(v){ return v.length > 1; });
+    if(varianti.some(function(v){ return pn === v || pn.indexOf(v) !== -1 || v.indexOf(pn) !== -1; })) {
+      // Salva il pid per i prossimi confronti
+      localStorage.setItem('ct_my_pid', String(t.pid));
+      return true;
+    }
+  }
+  return false;
+}
+
 function aggiornaWidget(){
   var me=lsG("ct_me",null);
   var w=document.getElementById("widget-oggi");
@@ -3778,8 +3808,7 @@ function aggiornaWidget(){
   var T=lsG("ct_t",[]);
   var mioTurno=null;
   for(var i=0;i<T.length;i++){
-    // Confronto sia per id numerico che per uid Firebase (stringa)
-    if((T[i].pid==me.id||T[i].pid===me.uid)&&T[i].data===oggi){mioTurno=T[i];break;}
+    if(_isMyTurno(T[i],me)&&T[i].data===oggi){mioTurno=T[i];break;}
   }  var inner=document.getElementById("w-inner");
 
   // Popola sempre avatar e nome utente
@@ -3965,7 +3994,7 @@ function scheduleNotifMattutina(){
     var me=lsG("ct_me",null);if(!me)return;
     var oggi=new Date().toISOString().slice(0,10);
     var T=lsG("ct_t",[]);
-    var t=null;for(var i=0;i<T.length;i++){if(T[i].pid===me.id&&T[i].data===oggi){t=T[i];break;}}
+    var t=null;for(var i=0;i<T.length;i++){if(_isMyTurno(T[i],me)&&T[i].data===oggi){t=T[i];break;}}
     if(t){
       var titoliN={mattina:"&#9728; Mattina",pomeriggio:"&#9728; Pomeriggio",notte:"&#127769; Notte"};
       var titoloT=titoliN[t.tipo];
@@ -4506,6 +4535,23 @@ function resetAll(tipo){
 
 
 
+function _syncFerieFirebase(){
+  var me=lsG("ct_me",null); if(!me) return;
+  // Aggiorna licenzePool da ct_u se disponibile
+  var U=lsG("ct_u",[]); var u=U.find(function(x){return x.id===me.id||x.uid===me.uid;});
+  if(u&&u.licenzePool) me.licenzePool=u.licenzePool;
+  me.recuperiExtra=(lsG("ct_recuperi",[])).filter(function(r){return !r.usato;}).length;
+  me.ct_recuperi=lsG("ct_recuperi",[]);
+  lsS("ct_me",me);
+  if(window.FirebaseModule){
+    var sess=lsG("ct_session",null);
+    if(sess&&sess.userId){
+      window.FirebaseModule.saveUserProfile(sess.userId,me,me.reparto).catch(function(){});
+      window.FirebaseModule.savePersonale().catch(function(){});
+    }
+  }
+}
+
 function renderRecuperi(){
   var el=document.getElementById("rec-list");
   var nEl=document.getElementById("rec-extra-n");
@@ -4543,6 +4589,7 @@ function toggleRecupero(idx,cb){
   if(REC[idx])REC[idx].usato=cb.checked;
   lsS("ct_recuperi",REC);
   renderRecuperi();
+  _syncFerieFirebase();
   toast(cb.checked?"&#10003; Recupero marcato come usufruito":"Recupero riattivato","ok");
 }
 function delRecuperi(){
@@ -4555,6 +4602,7 @@ function delRecuperi(){
   var me=lsG("ct_me",null);
   if(me){me.recuperiExtra=lsG("ct_recuperi",[]).length;lsS("ct_me",me);}
   renderRecuperi();
+  _syncFerieFirebase();
   toast("&#128465; "+da_cancellare+" recupero/i eliminato/i","ok");
 }
 
@@ -5006,6 +5054,14 @@ function prevTema(t){
 function salvaTema(){
   if(_temaPending===null)return;
   lsS("ct_tema", _temaPending);
+  // Salva tema su Firebase nel profilo utente
+  var _tme=lsG("ct_me",null);
+  if(_tme){ _tme.tema=_temaPending; lsS("ct_me",_tme);
+    if(window.FirebaseModule){
+      var _ts=lsG("ct_session",null);
+      if(_ts&&_ts.userId) window.FirebaseModule.saveUserProfile(_ts.userId,_tme,_tme.reparto).catch(function(){});
+    }
+  }
   var btn=document.getElementById("btn-salva-tema");
   if(btn){btn.style.opacity=".5";btn.style.pointerEvents="none";}
   var cfg=_TEMI_CFG[_temaPending]||_TEMI_CFG[""];
@@ -6520,27 +6576,26 @@ function parseSheet(rows, sn) {
     // ── Matching utente loggato ──────────────────────────────
 
     if(loggedFullName && loggedUid){
-
       var excelName = nR.toLowerCase().replace(/\s+/g,' ').trim();
-
-      var sessionName = loggedFullName.replace(/\s+/g,' ').trim();
-
-      // Confronto flessibile: contiene o  contenuto
-
-      if(excelName === sessionName ||
-
-         excelName.indexOf(sessionName) !== -1 ||
-
-         sessionName.indexOf(excelName) !== -1){
-
+      // Costruisci tutte le varianti del nome loggato per match robusto
+      var _sess2 = null; try { _sess2 = JSON.parse(localStorage.getItem('ct_session')||'null'); } catch(e){}
+      var _me2 = null; try { _me2 = JSON.parse(localStorage.getItem('ct_me')||'null'); } catch(e){}
+      var _n2 = ((_sess2&&_sess2.nome)||(_me2&&_me2.nome)||'').toLowerCase().trim();
+      var _c2 = ((_sess2&&_sess2.cognome)||(_me2&&_me2.cognome)||'').toLowerCase().trim();
+      var varianti = [
+        loggedFullName.replace(/\s+/g,' ').trim(),  // cognome nome (da session)
+        (_n2+' '+_c2).replace(/\s+/g,' ').trim(),   // nome cognome
+        (_c2+' '+_n2).replace(/\s+/g,' ').trim(),   // cognome nome
+        _n2, _c2                                     // solo nome o solo cognome
+      ].filter(function(v){ return v.length > 1; });
+      var matched = varianti.some(function(v){
+        return excelName === v || excelName.indexOf(v) !== -1 || v.indexOf(excelName) !== -1;
+      });
+      if(matched){
         localStorage.setItem('ct_my_pid', String(persona.id));
-
         localStorage.setItem('ct_my_uid', loggedUid);
-
         if(window.FirebaseModule) window.FirebaseModule.linkPersonaToUser(loggedUid, persona.id, nR);
-
       }
-
     }
 
 
@@ -7129,7 +7184,7 @@ function salvaProfilo(){
   var pw=document.getElementById('pf-pw').value;
   var errEl=document.getElementById('pf-err');
   errEl.classList.remove('on');
-  if(!nome){errEl.textContent='Il nome non pu essere vuoto';errEl.classList.add('on');return;}
+  if(!nome){errEl.textContent='Il nome non può essere vuoto';errEl.classList.add('on');return;}
   me.nome=nome;me.reparto=rep;me.nucleo=nuc;me.grado=grado;
   if(pw)me.pw=pw;
   var fEl=document.getElementById('pf-ava-file');
@@ -7138,11 +7193,22 @@ function salvaProfilo(){
     var U=lsG('ct_u',[]);
     for(var i=0;i<U.length;i++){if(U[i].id===me.id){U[i]=me;break;}}
     lsS('ct_u',U);
+    // Salva su Firebase (foto inclusa)
+    if(window.FirebaseModule){
+      var session=lsG('ct_session',null);
+      var uid=session&&session.userId?session.userId:null;
+      if(uid){
+        window.FirebaseModule.saveUserProfile(uid,me,me.reparto).catch(function(e){console.warn('salvaProfilo Firebase:',e.message);});
+        window.FirebaseModule.savePersonale().catch(function(e){console.warn('savePersonale:',e.message);});
+      }
+    }
     aggUI();
     closeM('m-profilo');
-    toast('Profilo aggiornato \u2713','ok');
+    toast('Profilo aggiornato ✓','ok');
   };
-  if(fEl&&fEl.files[0])comprImg(fEl.files[0],function(d){me.ava=d;fine();});else fine();
+  if(fEl&&fEl.files[0])comprImg(fEl.files[0],function(d){me.ava=d;fine();});
+  else if(window._tempAva){me.ava=window._tempAva;window._tempAva=null;fine();}
+  else fine();
 }
 /* ============================================================
    MEGA-PATCH JS  c_turni_v3.1.0
@@ -7366,7 +7432,9 @@ function renderWidgetProssimo(me) {
   if (!el) return;
   var oggi = new Date().toISOString().slice(0,10);
   var T = lsG('ct_t', []);
-  var futuri = T.filter(function(t){ return (t.pid === me.id || t.pid === me.uid || String(t.pid) === String(me.id)) && t.data > oggi && !['riposo','ferie','recupero'].includes(t.tipo); });
+  var futuri = T.filter(function(t){
+    return _isMyTurno(t, me) && t.data > oggi && !['riposo','ferie','recupero'].includes(t.tipo);
+  });
   futuri.sort(function(a,b){ return a.data > b.data ? 1 : -1; });
   var wp = document.getElementById('wp-tipo');
   var wd = document.getElementById('wp-data');
@@ -7391,10 +7459,17 @@ function renderWidgetProssimo(me) {
 /* ---------- WIDGET METEO ---------- */
 var _meteoCache = null;
 function renderWidgetMeteo(me){
-  var reparto=(me.reparto||'').toLowerCase().trim();
-  var SKIP=['stazione','compagnia','reparto','nucleo','distaccamento','comando','gruppo','sezione','centro','di','della','del','dei'];
-  var parole=reparto.split(/[\s,]+/).filter(function(p){return p.length>2&&SKIP.indexOf(p)<0;});
-  var query=parole[0]||reparto.split(' ')[0]||'roma';
+  // Usa città configurata dall'utente, altrimenti deriva dal reparto
+  var cittaCustom = lsG('ct_meteo_citta', null);
+  var query;
+  if(cittaCustom && cittaCustom.trim()) {
+    query = cittaCustom.trim().toLowerCase();
+  } else {
+    var reparto=(me.reparto||'').toLowerCase().trim();
+    var SKIP=['stazione','compagnia','reparto','nucleo','distaccamento','comando','gruppo','sezione','centro','di','della','del','dei'];
+    var parole=reparto.split(/[\s,]+/).filter(function(p){return p.length>2&&SKIP.indexOf(p)<0;});
+    query=parole[0]||reparto.split(' ')[0]||'roma';
+  }
 
   var cacheKey='ct_meteo_'+query;
   var cached=lsG(cacheKey,null);
@@ -7430,10 +7505,50 @@ function _aggiornaUIMeteo(data) {
   var c = data.current;
   var wc = c.weather_code;
   document.getElementById('wm-ico').innerHTML = METEO_WMO[wc] || '&#127777;';
-  document.getElementById('wm-temp').textContent = Math.round(c.temperature_2m) + 'C';
+  document.getElementById('wm-temp').textContent = Math.round(c.temperature_2m) + '°C';
   document.getElementById('wm-desc').textContent = METEO_DESC[wc] || '';
   document.getElementById('wm-umi').textContent = c.relative_humidity_2m;
   document.getElementById('wm-vento').textContent = Math.round(c.wind_speed_10m);
+}
+
+function salvaMeteoCity() {
+  var el = document.getElementById('imp-meteo-citta');
+  if(!el) return;
+  var citta = el.value.trim();
+  lsS('ct_meteo_citta', citta);
+  // Salva su Firebase nel profilo utente
+  var me = lsG('ct_me', null);
+  if(me) {
+    me.meteoCitta = citta;
+    lsS('ct_me', me);
+    if(window.FirebaseModule) {
+      var session = lsG('ct_session', null);
+      var uid = session && session.userId ? session.userId : null;
+      if(uid) {
+        window.FirebaseModule.saveUserProfile(uid, me, me.reparto).catch(function(e){ console.warn('salvaMeteoCity:', e.message); });
+        window.FirebaseModule.savePersonale().catch(function(e){});
+      }
+    }
+  }
+  // Invalida cache e ricarica meteo
+  localStorage.removeItem('ct_meteo_' + citta.toLowerCase());
+  var me2 = lsG('ct_me', null);
+  if(me2) renderWidgetMeteo(me2);
+  toast('Città meteo salvata: ' + (citta || 'automatica'), 'ok');
+}
+
+function aggiornaPreviewMeteo(val) {
+  var el = document.getElementById('imp-meteo-preview');
+  if(el) el.textContent = val ? 'Meteo per: ' + val : 'Lascia vuoto per usare il reparto';
+}
+
+function caricaImpostazioniMeteo() {
+  var citta = lsG('ct_meteo_citta', null);
+  // Prova anche da profilo Firebase
+  var me = lsG('ct_me', null);
+  if(!citta && me && me.meteoCitta) citta = me.meteoCitta;
+  var el = document.getElementById('imp-meteo-citta');
+  if(el && citta) { el.value = citta; aggiornaPreviewMeteo(citta); }
 }
 
 /* ---------- WIDGET ALERT ---------- */
@@ -9924,9 +10039,55 @@ window.FirebaseModule = {
   },
 
   // ── Chiamato da AuthModule.init() quando sessione gia' presente ─
-  onSessionRestore: function(session) {
+  onSessionRestore: async function(session) {
     if(!session || session.isDebug) return;
     var rep = session.reparto.toLowerCase().replace(/\s+/g,'_');
+    try {
+      // Carica dati iniziali (nuovo device: localStorage vuoto)
+      var turniSnap = await getDocs(collection(db, 'reparti', rep, 'turni'));
+      var turni = []; turniSnap.forEach(function(d){ turni.push(d.data()); });
+      if(turni.length > 0) localStorage.setItem('ct_t', JSON.stringify(turni));
+
+      var todoSnap = await getDocs(collection(db, 'reparti', rep, 'todo'));
+      var todo = []; todoSnap.forEach(function(d){ todo.push(d.data()); });
+      if(todo.length > 0) localStorage.setItem('ct_td', JSON.stringify(todo));
+
+      // Carica profilo utente aggiornato
+      var uid = session.userId;
+      var profSnap = await getDoc(doc(db, 'utenti', uid));
+      if(profSnap.exists()) {
+        var prof = profSnap.data();
+        localStorage.setItem('ct_me', JSON.stringify(prof));
+        // Ripristina città meteo dal profilo
+        if(prof.meteoCitta) lsS('ct_meteo_citta', prof.meteoCitta);
+        // Ripristina tema
+        if(prof.tema !== undefined) {
+          lsS('ct_tema', prof.tema);
+          if(typeof window.caricaTema === 'function') window.caricaTema();
+        }
+        // Ripristina ferie e recuperi
+        if(prof.licenzePool && prof.licenzePool.length) {
+          var _U2 = lsG('ct_u', []); var _found2 = false;
+          for(var _i2=0; _i2<_U2.length; _i2++){
+            if(_U2[_i2].id===prof.id || _U2[_i2].uid===prof.uid){
+              _U2[_i2].licenzePool = prof.licenzePool;
+              _U2[_i2].ferieRes = prof.ferieRes || prof.ferie || 30;
+              _found2 = true; break;
+            }
+          }
+          if(!_found2 && prof.id) _U2.push(prof);
+          lsS('ct_u', _U2);
+        }
+        if(prof.ct_recuperi) lsS('ct_recuperi', prof.ct_recuperi);
+        if(typeof window.aggUI === 'function') window.aggUI();
+      }
+
+      await this.syncUsers();
+      if(typeof window.renderTurni === 'function') window.renderTurni();
+      if(typeof window.renderOggi  === 'function') window.renderOggi();
+      if(typeof window.stats       === 'function') window.stats();
+      if(typeof window.aggiornaWidget === 'function') window.aggiornaWidget();
+    } catch(e) { console.warn('onSessionRestore load:', e.message); }
     _startListeners(rep);
   },
 
