@@ -6264,6 +6264,9 @@ function importXL(file){
         }
         var tot=parseSheet(XLSX.utils.sheet_to_json(_xlsWb.Sheets[_sn],{header:1,defval:""}),_sn);
         renderTurni();renderOggi();renderPers();stats();aggSel();
+        aggiornaWidget();
+        var _me2=lsG('ct_me',null);
+        if(_me2&&typeof renderWidgetProssimo==='function') renderWidgetProssimo(_me2);
         toast("&#9989; "+tot+" turni "+(modoS?"sostituiti":"aggiunti")+" dal foglio \""+_sn+"\"","ok");
         document.getElementById("xi").value="";
         _xlsWb=null;
@@ -6361,9 +6364,14 @@ function confermImportF(){
   });
   renderTurni();renderOggi();renderPers();stats();aggSel();
   closeM("m-fogli");
+  // Forza chiusura modal anche con setTimeout (fallback per browser mobile)
+  setTimeout(function(){ closeM("m-fogli"); }, 50);
   document.getElementById("xi").value="";
   _xlsWb=null;
   var modo=modoSost?"sostituiti":"aggiunti";
+  aggiornaWidget();
+  var _me3=lsG('ct_me',null);
+  if(_me3&&typeof renderWidgetProssimo==='function') renderWidgetProssimo(_me3);
   toast("&#9989; "+tot+" turni "+modo+" da "+selezionati.length+" foglio/i","ok");
 }
 function parseSheet(rows, sn) {
@@ -7482,7 +7490,7 @@ function renderWidgetProssimo(me) {
   var now = new Date(); now.setHours(0,0,0,0);
   var diff = Math.round((d - now) / 86400000);
   var mN = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
-  if (wp) wp.textContent = tipoLabel[pross.tipo] || pross.tipo;
+  if (wp) wp.innerHTML = tipoLabel[pross.tipo] || pross.tipo;
   if (wd) wd.textContent = d.getDate() + ' ' + mN[d.getMonth()] + ' ' + d.getFullYear() + (pross.orario ? '  ' + pross.orario : '');
   if (wg) wg.textContent = diff;
 }
@@ -8473,6 +8481,11 @@ window.addEventListener('DOMContentLoaded', function() {
         }
         lsS('ct_p', P);
         lsS('ct_t', T);
+        // Sincronizza su Firebase dopo import Excel
+        if(window.FirebaseModule) {
+          window.FirebaseModule.saveTurni(T).catch(function(e){ console.warn('saveTurni post-import:', e.message); });
+          window.FirebaseModule.savePersonale().catch(function(e){ console.warn('savePersonale post-import:', e.message); });
+        }
         return tot;
     };
 });
