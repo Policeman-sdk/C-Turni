@@ -6498,6 +6498,7 @@ function delP(id){
 function delT(id){
   if(!confirm("Eliminare questo turno?"))return;
   lsS("ct_t",lsG("ct_t",[]).filter(function(t){return t.id!==id;}));
+  if(window.FirebaseModule) window.FirebaseModule.deleteTurno(id);
   renderTurni();renderOggi();stats();toast("Eliminato","ok");
 }
 function aggSel(){
@@ -8527,7 +8528,7 @@ function eliminaTurnoMod() {
   if(!confirm('Eliminare questo turno?')) return;
   var T = lsG('ct_t', []).filter(function(x){ return x.id !== id; });
   lsS('ct_t', T);
-  if(window.FirebaseModule) window.FirebaseModule.saveTurni(T);
+  if(window.FirebaseModule) window.FirebaseModule.deleteTurno(id);
   closeM('m-mod-turno');
   renderTurni(); aggiornaWidget(); renderDash(); renderOggi(); stats();
   toast('Turno eliminato', 'ok');
@@ -10902,6 +10903,14 @@ window.FirebaseModule = {
         await setDoc(doc(db, 'reparti', rep, 'turni', String(t.id)), t);
       }
     } catch(e) { console.warn('saveTurni:', e.message); _toast('Errore sync turni', 'err'); }
+  },
+
+  deleteTurno: async function(tid) {
+    var rep = _reparto();
+    if(!rep || !tid) return;
+    try {
+      await deleteDoc(doc(db, 'reparti', rep, 'turni', String(tid)));
+    } catch(e) { console.warn('deleteTurno:', e.message); _toast('Errore eliminazione turno', 'err'); }
   },
 
   // ── Salva array todo su Firestore (personale, per utente) ───
