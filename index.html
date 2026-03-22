@@ -2,9 +2,9 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>C-TURNI v3.2.0</title>
+<title>C-TURNI v3.3.0</title>
 <link rel="manifest" id="pwa-manifest">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1149,47 +1149,66 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
 
       </div>
 
-      <div class="fg" style="margin-bottom:10px">
-        <label>Tipo Struttura *</label>
-        <select class="fc" id="reg-tipo-struttura" onchange="aggiornaRepartoId()">
-          <option value="">-- Seleziona --</option>
-          <option value="stazione">Stazione</option>
-          <option value="nucleo">Nucleo</option>
-          <option value="compagnia">Compagnia</option>
-          <option value="distaccamento">Distaccamento</option>
-          <option value="tenenza">Tenenza</option>
-          <option value="gruppo">Gruppo</option>
-          <option value="legione">Legione</option>
-        </select>
+      <!-- STEP 2: scelta modalità (nascosto inizialmente) -->
+      <div id="reg-step2" style="display:none">
+        <div style="font-size:13px;font-weight:700;color:var(--txt);margin-bottom:12px;text-align:center">Come vuoi usare C-Turni?</div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">
+          <div id="reg-card-privato" onclick="regScegliModalita('privato')" style="padding:16px;border-radius:14px;border:2px solid var(--border);cursor:pointer;transition:all .2s;background:var(--bg2)">
+            <div style="font-size:22px;margin-bottom:6px">&#128100;</div>
+            <div style="font-size:14px;font-weight:800;color:var(--txt);margin-bottom:4px">Solo per me</div>
+            <div style="font-size:12px;color:var(--txt2);line-height:1.5">Gestisci i tuoi turni in privato. Potrai unirti al tuo reparto in qualsiasi momento.</div>
+          </div>
+          <div id="reg-card-reparto" onclick="regScegliModalita('reparto')" style="padding:16px;border-radius:14px;border:2px solid var(--border);cursor:pointer;transition:all .2s;background:var(--bg2)">
+            <div style="font-size:22px;margin-bottom:6px">&#127968;</div>
+            <div style="font-size:14px;font-weight:800;color:var(--txt);margin-bottom:4px">Unisciti a un Reparto</div>
+            <div style="font-size:12px;color:var(--txt2);line-height:1.5">Connettiti con i colleghi, condividi i turni e le assenze.</div>
+          </div>
+        </div>
+        <!-- Campi reparto (visibili solo se sceglie "reparto") -->
+        <div id="reg-campi-reparto" style="display:none">
+          <div class="fg" style="margin-bottom:10px">
+            <label>Tipo Struttura *</label>
+            <select class="fc" id="reg-tipo-struttura" onchange="aggiornaRepartoId()">
+              <option value="">-- Seleziona --</option>
+              <option value="stazione">Stazione</option>
+              <option value="nucleo">Nucleo</option>
+              <option value="compagnia">Compagnia</option>
+              <option value="distaccamento">Distaccamento</option>
+              <option value="tenenza">Tenenza</option>
+              <option value="gruppo">Gruppo</option>
+              <option value="legione">Legione</option>
+            </select>
+          </div>
+          <div class="fg" style="margin-bottom:10px">
+            <label>Specialità *</label>
+            <select class="fc" id="reg-specialita" onchange="aggiornaRepartoId()">
+              <option value="">-- Seleziona --</option>
+              <option value="territoriale">Territoriale</option>
+              <option value="forestale">Forestale</option>
+              <option value="radiomobile">Radiomobile</option>
+              <option value="norm">N.O.R.M.</option>
+              <option value="sis">S.I.S.</option>
+              <option value="cacciatori">Cacciatori</option>
+              <option value="paracadutisti">Paracadutisti</option>
+              <option value="ros">R.O.S.</option>
+              <option value="gis">G.I.S.</option>
+              <option value="noe">N.O.E.</option>
+              <option value="nas">N.A.S.</option>
+              <option value="nit">N.I.T.</option>
+            </select>
+          </div>
+          <div class="fg" style="margin-bottom:10px">
+            <label>Sede / Città *</label>
+            <input type="text" class="fc" id="reg-sede" placeholder="Es. Varazze" oninput="aggiornaRepartoId()">
+          </div>
+          <div style="margin-bottom:10px;padding:8px 12px;background:rgba(41,121,255,.07);border-radius:10px;border:1px solid rgba(41,121,255,.15)">
+            <div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">ID Reparto generato</div>
+            <div id="reg-reparto-preview" style="font-size:13px;font-weight:700;color:var(--blue);font-family:monospace">—</div>
+            <input type="hidden" id="reg-reparto" value="">
+          </div>
+          <div id="reg-reparto-hint" style="display:none;margin-bottom:10px;padding:9px 12px;border-radius:10px;border:1px solid;font-size:12px;line-height:1.5;transition:all .3s"></div>
+        </div>
       </div>
-      <div class="fg" style="margin-bottom:10px">
-        <label>Specialità *</label>
-        <select class="fc" id="reg-specialita" onchange="aggiornaRepartoId()">
-          <option value="">-- Seleziona --</option>
-          <option value="territoriale">Territoriale</option>
-          <option value="forestale">Forestale</option>
-          <option value="radiomobile">Radiomobile</option>
-          <option value="norm">N.O.R.M.</option>
-          <option value="sis">S.I.S.</option>
-          <option value="cacciatori">Cacciatori</option>
-          <option value="paracadutisti">Paracadutisti</option>
-          <option value="ros">R.O.S.</option>
-          <option value="gis">G.I.S.</option>
-          <option value="noe">N.O.E.</option>
-          <option value="nas">N.A.S.</option>
-          <option value="nit">N.I.T.</option>
-        </select>
-      </div>
-      <div class="fg" style="margin-bottom:10px">
-        <label>Sede / Città *</label>
-        <input type="text" class="fc" id="reg-sede" placeholder="Es. Varazze" oninput="aggiornaRepartoId()">
-      </div>
-      <div style="margin-bottom:10px;padding:8px 12px;background:rgba(41,121,255,.07);border-radius:10px;border:1px solid rgba(41,121,255,.15)">
-        <div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">ID Reparto generato</div>
-        <div id="reg-reparto-preview" style="font-size:13px;font-weight:700;color:var(--blue);font-family:monospace">—</div>
-        <input type="hidden" id="reg-reparto" value="">
-      </div>
-      <div id="reg-reparto-hint" style="display:none;margin-bottom:10px;padding:9px 12px;border-radius:10px;border:1px solid;font-size:12px;line-height:1.5;transition:all .3s"></div>
 
       <div class="g2" style="margin-bottom:16px">
 
@@ -1255,29 +1274,14 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
 
       </div>
 
-      <button class="btn btn-p" style="width:100%;padding:14px;font-size:15px;font-weight:700;border-radius:14px"
+      <button class="btn btn-p" style="width:100%;padding:14px;font-size:15px;font-weight:700;border-radius:14px" id="reg-btn-avanza"
+        onclick="regAvanzaStep2()">
+        Continua &#8250;
+      </button>
 
-        onclick="AuthModule.register({
-
-          nome:document.getElementById('reg-nome').value,
-
-          cognome:document.getElementById('reg-cognome').value,
-
-          email:document.getElementById('reg-email').value,
-
-          password:document.getElementById('reg-pass').value,
-
-          reparto:document.getElementById('reg-reparto').value,
-
-          grado:document.getElementById('reg-grado').value,
-
-          ruolo:'addetto',
-          tipo:document.getElementById('reg-tipo-struttura').value
-
-        })">
-
+      <button class="btn btn-p" style="width:100%;padding:14px;font-size:15px;font-weight:700;border-radius:14px;display:none" id="reg-btn-crea"
+        onclick="regConferma()">
         &#10004; Crea Account
-
       </button>
 
     </div>
@@ -2192,6 +2196,67 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
           </div>
         </div>
 
+        <!-- SEZIONE STATO REPARTO -->
+        <div class="imp-section" id="sec-stato-reparto">
+          <div class="imp-section-title">&#127968; Stato Reparto</div>
+          <div style="border-radius:14px;border:1px solid var(--border);overflow:hidden">
+            <div style="padding:14px">
+              <div id="stato-reparto-info" style="font-size:13px;color:var(--txt2);margin-bottom:12px;line-height:1.6">Caricamento...</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button id="btn-unisciti-reparto" class="btn btn-p btn-sm" style="width:auto;display:none" onclick="apriUnitiReparto()">&#127968; Unisciti a un Reparto</button>
+                <button id="btn-scollegati-reparto" class="btn btn-sm" style="width:auto;display:none;background:rgba(200,16,46,.1);color:var(--red);border-color:rgba(200,16,46,.3)" onclick="scollegaReparto()">&#128683; Scollegati dal Reparto</button>
+              </div>
+            </div>
+            <!-- Form unisciti (nascosto) -->
+            <div id="uniti-reparto-form" style="display:none;border-top:1px solid var(--border);padding:14px">
+              <div style="font-size:12px;color:var(--txt2);margin-bottom:10px;line-height:1.5">Inserisci i dati del reparto a cui vuoi unirti o che vuoi creare.</div>
+              <div class="fg" style="margin-bottom:10px">
+                <label>Tipo Struttura</label>
+                <select class="fc" id="uniti-tipo" onchange="aggiornaUnitiId()">
+                  <option value="">-- Seleziona --</option>
+                  <option value="stazione">Stazione</option>
+                  <option value="nucleo">Nucleo</option>
+                  <option value="compagnia">Compagnia</option>
+                  <option value="distaccamento">Distaccamento</option>
+                  <option value="tenenza">Tenenza</option>
+                  <option value="gruppo">Gruppo</option>
+                  <option value="legione">Legione</option>
+                </select>
+              </div>
+              <div class="fg" style="margin-bottom:10px">
+                <label>Specialità</label>
+                <select class="fc" id="uniti-spec" onchange="aggiornaUnitiId()">
+                  <option value="">-- Seleziona --</option>
+                  <option value="territoriale">Territoriale</option>
+                  <option value="forestale">Forestale</option>
+                  <option value="radiomobile">Radiomobile</option>
+                  <option value="norm">N.O.R.M.</option>
+                  <option value="sis">S.I.S.</option>
+                  <option value="cacciatori">Cacciatori</option>
+                  <option value="paracadutisti">Paracadutisti</option>
+                  <option value="ros">R.O.S.</option>
+                  <option value="gis">G.I.S.</option>
+                  <option value="noe">N.O.E.</option>
+                  <option value="nas">N.A.S.</option>
+                  <option value="nit">N.I.T.</option>
+                </select>
+              </div>
+              <div class="fg" style="margin-bottom:10px">
+                <label>Sede / Città</label>
+                <input type="text" class="fc" id="uniti-sede" placeholder="Es. Varazze" oninput="aggiornaUnitiId()">
+              </div>
+              <div style="margin-bottom:12px;padding:8px 12px;background:rgba(41,121,255,.07);border-radius:10px;border:1px solid rgba(41,121,255,.15)">
+                <div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">ID Reparto</div>
+                <div id="uniti-reparto-preview" style="font-size:13px;font-weight:700;color:var(--blue);font-family:monospace">—</div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button class="btn btn-p btn-sm" style="width:auto" onclick="confermaUnitiReparto()">&#10004; Conferma</button>
+                <button class="btn btn-sm" style="width:auto" onclick="chiudiUnitiReparto()">Annulla</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- SEZIONE TRASFERIMENTO -->
         <div class="imp-section" id="sec-trasferimento" style="display:none">
           <div class="imp-section-title">&#128664; Trasferimento Reparto</div>
@@ -2606,7 +2671,7 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
 
 
         <div class="imp-section">
-          <div class="imp-section-title">&#8505;&#65039; Info <span style="float:right;font-size:10px;font-weight:400;color:var(--txt2)">v3.2.0</span></div>
+          <div class="imp-section-title">&#8505;&#65039; Info <span style="float:right;font-size:10px;font-weight:400;color:var(--txt2)">v3.3.0</span></div>
           <div style="border-radius:14px;border:1px solid var(--border);overflow:hidden">
             <div class="imp-row"><div class="imp-row-ico" style="background:rgba(41,121,255,.12)">&#128196;</div>
               <div class="imp-row-body"><div class="imp-row-title">Formato</div><div class="imp-row-sub">Scarica &#8594; apri con Google Chrome</div></div></div>
@@ -2617,7 +2682,7 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
               <div class="imp-row-ico" style="background:rgba(212,175,55,.12)">&#127381;</div>
               <div class="imp-row-body">
                 <div class="imp-row-title">Versione</div>
-                <div class="imp-row-sub" id="egg-hint">C-Turni v3.2.0</div>
+                <div class="imp-row-sub" id="egg-hint">C-Turni v3.3.0</div>
               </div>
               <div style="font-size:18px;color:var(--txt3)" id="egg-dots">&#8226;&#8226;&#8226;</div>
             </div>
@@ -2639,29 +2704,42 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
               <div id="sec-changelog" style="max-height:0;overflow:hidden;transition:max-height .35s ease">
                 <div style="padding:14px;border-top:1px solid var(--border);font-size:12px;color:var(--txt2)">
 
-                  <!-- v3.2.0 ATTUALE -->
+                  <!-- v3.3.0 ATTUALE -->
                   <div style="margin-bottom:14px">
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-                      <span style="font-weight:800;color:var(--teal)">v3.2.0</span>
+                      <span style="font-weight:800;color:var(--teal)">v3.3.0</span>
                       <span style="font-size:10px;background:rgba(41,121,255,.15);color:var(--blue);padding:1px 7px;border-radius:20px">&#9679; Attuale</span>
                       <span style="font-size:10px;color:var(--txt3)">Mar 2026</span>
                     </div>
                     <div style="padding-left:10px;border-left:2px solid var(--teal);display:flex;flex-direction:column;gap:3px">
+                      <div>&#128100; Modalit&agrave; Personale: usa l'app senza reparto (privato_{uid})</div>
+                      <div>&#127968; Unisciti / Scollegati dal Reparto in qualsiasi momento</div>
+                      <div>&#128260; Turni con categoria_evento (servizio / personale)</div>
+                      <div>&#127968; Al cambio reparto: turni servizio eliminati, ferie/licenze migrano</div>
+                      <div>&#128197; Import Excel: popup Sostituisci / Aggiungi (no confirm())</div>
+                      <div>&#9200; Widget data corretta a mezzanotte (data locale, non UTC)</div>
+                      <div>&#128172; WhatsApp: match turni corretto con _isMyTurno</div>
+                      <div>&#9989; Todo e Agenda personali (per utente, non per reparto)</div>
+                      <div>&#128683; No zoom su mobile (viewport user-scalable=no)</div>
+                    </div>
+                  </div>
+
+                  <!-- v3.2.0 -->
+                  <div style="margin-bottom:14px">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                      <span style="font-weight:800;color:var(--txt)">v3.2.0</span>
+                      <span style="font-size:10px;color:var(--txt3)">Mar 2026</span>
+                    </div>
+                    <div style="padding-left:10px;border-left:2px solid var(--border2);display:flex;flex-direction:column;gap:3px">
                       <div>&#128101; Sistema Firebase completo: registrazione, login, approvazione</div>
                       <div>&#128640; Logica pioniere: primo iscritto diventa Comandante automaticamente</div>
                       <div>&#9203; Schermata &ldquo;In attesa di approvazione&rdquo; per utenti pending</div>
                       <div>&#128081; Ruolo Vice Comandante: stessi poteri del Comandante</div>
                       <div>&#128664; Trasferimento reparto con reset stato a pending</div>
                       <div>&#128101; Gestione Membri: approva/rifiuta con aggiornamento Firebase real-time</div>
-                      <div>&#128081; Trasferimento comando tra membri del reparto</div>
-                      <div>&#128205; Form registrazione: 3 campi (Tipo, Specialit&agrave;, Sede) generano ID reparto</div>
-                      <div>&#9989; Suggerimento reparti esistenti durante la registrazione</div>
-                      <div>&#8592; Tasto Indietro in Personale e Gestione Membri</div>
-                      <div>&#9200; Orari Turni collassabili in accordion</div>
                       <div>&#128274; Security Rules Firestore: isolamento dati per reparto</div>
                       <div>&#128260; Aggiornamento ruolo in tempo reale via onSnapshot</div>
                       <div>&#128276; FCM: notifiche push reali anche con app chiusa (Android/Chrome)</div>
-                      <div>&#128640; Trasferimento reparto: legge del pioniere (primo = Comandante)</div>
                     </div>
                   </div>
 
@@ -2677,11 +2755,6 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
                       <div>&#128101; Sezione Gestione Reparto in Impostazioni</div>
                       <div>&#128683; Eliminata pagina Indennit&agrave; dalla navigazione</div>
                       <div>&#128172; Bottone condividi WhatsApp spostato nel Calendario</div>
-                      <div>&#128682; Logout spostato solo in Impostazioni</div>
-                      <div>&#128100; Fix nome/cognome: separazione corretta da email</div>
-                      <div>&#128202; Fix widget &ldquo;Il tuo turno oggi&rdquo;: associazione utente corretta</div>
-                      <div>&#128683; Rimossa sidebar laterale</div>
-                      <div>&#9998; Guide aggiornate con funzioni nuove</div>
                     </div>
                   </div>
 
@@ -3313,7 +3386,148 @@ var GR={
 // ---- LS HELPERS ----
 function lsG(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
 function lsS(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true;}catch(e){if(e.name==='QuotaExceededError'||e.code===22){if(typeof toast==='function')toast('Spazio esaurito: riduci la foto','err');}return false;}}
+// Helper data locale (evita sfasamento UTC a mezzanotte)
+function _oggi(){var d=new Date();return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);}
 
+// ---- MODALITÀ PERSONALE ----
+function _isPrivato(reparto){ return !reparto || reparto.startsWith('privato_'); }
+
+// Tipi turno "personale" (seguono l'utente al cambio reparto)
+var _TIPI_PERSONALE = ['riposo','ferie','recupero','licenza','permesso','937','104','ls','fest'];
+
+function regAvanzaStep2(){
+  var nome = document.getElementById('reg-nome').value.trim();
+  var cogn = document.getElementById('reg-cognome').value.trim();
+  var email = document.getElementById('reg-email').value.trim();
+  var pass = document.getElementById('reg-pass').value;
+  var err = document.getElementById('auth-reg-err');
+  if(!nome||!cogn||!email||!pass){ if(err){err.textContent='Compila tutti i campi obbligatori.';err.style.display='block';} return; }
+  if(err) err.style.display='none';
+  document.getElementById('reg-step2').style.display='block';
+  document.getElementById('reg-btn-avanza').style.display='none';
+  document.getElementById('reg-btn-crea').style.display='block';
+}
+
+function regScegliModalita(m){
+  var cp = document.getElementById('reg-card-privato');
+  var cr = document.getElementById('reg-card-reparto');
+  var cf = document.getElementById('reg-campi-reparto');
+  if(cp) cp.style.border = m==='privato' ? '2px solid var(--blue)' : '2px solid var(--border)';
+  if(cr) cr.style.border = m==='reparto' ? '2px solid var(--blue)' : '2px solid var(--border)';
+  if(cf) cf.style.display = m==='reparto' ? 'block' : 'none';
+  window._regModalita = m;
+}
+
+function regConferma(){
+  var modalita = window._regModalita || 'privato';
+  var reparto = modalita === 'reparto' ? (document.getElementById('reg-reparto') ? document.getElementById('reg-reparto').value : '') : '';
+  AuthModule.register({
+    nome: document.getElementById('reg-nome').value,
+    cognome: document.getElementById('reg-cognome').value,
+    email: document.getElementById('reg-email').value,
+    password: document.getElementById('reg-pass').value,
+    reparto: reparto,
+    grado: document.getElementById('reg-grado').value,
+    ruolo: 'addetto',
+    tipo: modalita === 'reparto' ? (document.getElementById('reg-tipo-struttura') ? document.getElementById('reg-tipo-struttura').value : '') : '',
+    modalita: modalita
+  });
+}
+
+function aggiornaStatoReparto(){
+  var me = lsG('ct_me', null);
+  var info = document.getElementById('stato-reparto-info');
+  var btnU = document.getElementById('btn-unisciti-reparto');
+  var btnS = document.getElementById('btn-scollegati-reparto');
+  if(!me || !info) return;
+  var rep = me.reparto || '';
+  if(_isPrivato(rep)){
+    info.innerHTML = '&#128100; Sei in <strong>Modalità Personale</strong>. I tuoi turni sono privati.';
+    if(btnU){ btnU.style.display='inline-flex'; }
+    if(btnS){ btnS.style.display='none'; }
+  } else {
+    info.innerHTML = '&#127968; Sei nel reparto: <strong style="color:var(--blue)">' + rep + '</strong>';
+    if(btnU){ btnU.style.display='none'; }
+    if(btnS){ btnS.style.display='inline-flex'; }
+  }
+}
+
+function apriUnitiReparto(){
+  var f = document.getElementById('uniti-reparto-form');
+  if(f) f.style.display='block';
+  var btnU = document.getElementById('btn-unisciti-reparto');
+  if(btnU) btnU.style.display='none';
+}
+
+function chiudiUnitiReparto(){
+  var f = document.getElementById('uniti-reparto-form');
+  if(f) f.style.display='none';
+  aggiornaStatoReparto();
+}
+
+function aggiornaUnitiId(){
+  var t = (document.getElementById('uniti-tipo')||{}).value||'';
+  var s = (document.getElementById('uniti-spec')||{}).value||'';
+  var c = ((document.getElementById('uniti-sede')||{}).value||'').trim().toLowerCase().replace(/\s+/g,'_');
+  var id = [t,s,c].filter(Boolean).join('_');
+  var prev = document.getElementById('uniti-reparto-preview');
+  if(prev) prev.textContent = id || '—';
+}
+
+function confermaUnitiReparto(){
+  var t = (document.getElementById('uniti-tipo')||{}).value||'';
+  var s = (document.getElementById('uniti-spec')||{}).value||'';
+  var c = ((document.getElementById('uniti-sede')||{}).value||'').trim().toLowerCase().replace(/\s+/g,'_');
+  var id = [t,s,c].filter(Boolean).join('_');
+  if(!id){ toast('Compila tutti i campi reparto','err'); return; }
+  var me = lsG('ct_me', null);
+  if(!me){ toast('Sessione non trovata','err'); return; }
+  var vecchioRep = me.reparto || '';
+  me.reparto = id;
+  me.ruolo = 'addetto';
+  me.stato = 'pending';
+  lsS('ct_me', me);
+  if(window.FirebaseModule){
+    window.FirebaseModule.migraTurniPersonali(vecchioRep, id, me.uid || me.id).then(function(){
+      window.FirebaseModule.savePersonale();
+      toast('Richiesta inviata. In attesa di approvazione.','ok');
+      chiudiUnitiReparto();
+      aggiornaStatoReparto();
+    }).catch(function(e){ toast('Errore: '+e.message,'err'); });
+  } else {
+    window.FirebaseModule && window.FirebaseModule.savePersonale();
+    toast('Richiesta inviata.','ok');
+    chiudiUnitiReparto();
+    aggiornaStatoReparto();
+  }
+}
+
+function scollegaReparto(){
+  var me = lsG('ct_me', null);
+  if(!me) return;
+  var rep = me.reparto || '';
+  if(_isPrivato(rep)){ toast('Sei già in modalità personale','ok'); return; }
+  if(!confirm('Vuoi davvero uscire dal reparto "'+rep+'"? I tuoi turni di servizio futuri verranno rimossi dal reparto. Le ferie e licenze rimarranno.')){ return; }
+  var uid = me.uid || me.id;
+  var vecchioRep = rep;
+  me.reparto = 'privato_' + uid;
+  me.ruolo = 'addetto';
+  me.stato = 'attivo';
+  lsS('ct_me', me);
+  if(window.FirebaseModule){
+    window.FirebaseModule.eliminaTurniServizioReparto(vecchioRep, uid).then(function(){
+      window.FirebaseModule.migraTurniPersonali(vecchioRep, 'privato_'+uid, uid).then(function(){
+        window.FirebaseModule.savePersonale();
+        toast('Scollegato dal reparto. Ora sei in modalità personale.','ok');
+        aggiornaStatoReparto();
+        if(typeof aggUI==='function') aggUI();
+      });
+    }).catch(function(e){ toast('Errore: '+e.message,'err'); });
+  } else {
+    toast('Scollegato.','ok');
+    aggiornaStatoReparto();
+  }
+}
 // ---- COMPRIMI IMMAGINE ----
 function comprImg(file,cb){
   var TARGET=150;
@@ -3414,7 +3628,7 @@ function controllaNotifiche(){
   var OPERATIVI={"mattina":true,"pomeriggio":true};
   var ORI={mattina:"06:00",pomeriggio:"14:00",notte:"22:00"};
   var now=new Date();
-  var oggi=now.toISOString().slice(0,10);
+  var oggi=now.getFullYear()+'-'+('0'+(now.getMonth()+1)).slice(-2)+'-'+('0'+now.getDate()).slice(-2);
   var notif=lsG("ct_notif_sent",[]);
   T.filter(function(t){
     return _isMyTurno(t,me)&&t.data===oggi&&(OPERATIVI[t.tipo]||t.codice==="1515");
@@ -3826,7 +4040,8 @@ function aggiornaWidget(){
   var me=lsG("ct_me",null);
   var w=document.getElementById("widget-oggi");
   if(!me||!w)return;
-  var oggi=new Date().toISOString().slice(0,10);
+  var _now=new Date();
+  var oggi=_now.getFullYear()+'-'+('0'+(_now.getMonth()+1)).slice(-2)+'-'+('0'+_now.getDate()).slice(-2);
   var T=lsG("ct_t",[]);
   var mioTurno=null;
   for(var i=0;i<T.length;i++){
@@ -4145,7 +4360,12 @@ function toggleTodo(id){
   for(var i=0;i<TD.length;i++){if(TD[i].id===id){TD[i].done=!TD[i].done;break;}}
   lsS("ct_td",TD);renderTodo();
 }
-function delTodo(id){var TD=lsG("ct_td",[]).filter(function(x){return x.id!==id;});lsS("ct_td",TD);renderTodo();}
+function delTodo(id){
+  var TD=lsG("ct_td",[]).filter(function(x){return x.id!==id;});
+  lsS("ct_td",TD);
+  if(window.FirebaseModule) window.FirebaseModule.deleteTodo(id).catch(function(){});
+  renderTodo();
+}
 function filtraTodo(f){
   _tdFiltro=f;
   ["tutti","oggi","alta","done"].forEach(function(k){
@@ -4501,11 +4721,17 @@ function salvaAgenda(){
     notif:parseInt(document.getElementById("ag-notif").value)||0};
   var AG=lsG("ct_ag",[]);AG.push(item);AG.sort(function(a,b){return a.data>b.data?1:-1;});lsS("ct_ag",AG);
   if(item.notif>0)schedulaNotifAgenda(item);
+  if(window.FirebaseModule) window.FirebaseModule.saveAgenda(AG).catch(function(){});
   closeM("m-agenda");renderAgenda();
   ["ag-tit","ag-data","ag-ora","ag-luogo","ag-note"].forEach(function(id){var e=document.getElementById(id);if(e)e.value="";});
   toast("Appuntamento salvato","ok");
 }
-function delAgenda(id){lsS("ct_ag",lsG("ct_ag",[]).filter(function(x){return x.id!==id;}));renderAgenda();}
+function delAgenda(id){
+  var AG = lsG("ct_ag",[]).filter(function(x){return x.id!==id;});
+  lsS("ct_ag", AG);
+  if(window.FirebaseModule) window.FirebaseModule.deleteAgenda(id).catch(function(){});
+  renderAgenda();
+}
 function renderAgenda(){
   var el=document.getElementById("agenda-list");if(!el)return;
   var AG=lsG("ct_ag",[]).filter(function(x){return x.data>=new Date().toISOString().slice(0,10);});
@@ -4978,7 +5204,7 @@ function eggTap(){
   else if(_eggTaps===2){if(hint)hint.textContent="Un altro...";if(dots)dots.innerHTML="&#9679;&#9679;&#8226;";}
   else if(_eggTaps>=3){
     _eggTaps=0;
-    if(hint)hint.textContent="C-Turni v3.2.0";
+    if(hint)hint.textContent="C-Turni v3.3.0";
     var tema=lsG("ct_tema","")||"";
     var isFor=tema==="forestale"||tema==="forestale-light";
     // auto: verde forestale o bianco CC
@@ -5030,7 +5256,7 @@ function eggTap(){
   }
   _eggTimer=setTimeout(function(){
     _eggTaps=0;
-    if(hint)hint.textContent="C-Turni v3.2.0";
+    if(hint)hint.textContent="C-Turni v3.3.0";
     if(dots)dots.innerHTML="&#8226;&#8226;&#8226;";
   },2000);
 }
@@ -5561,6 +5787,8 @@ function aggUI(){
     if(typeof renderDash === 'function') renderDash();
     // Aggiorna orari preset
     if(typeof renderOrariPreset === 'function') renderOrariPreset();
+    // Aggiorna stato reparto in impostazioni
+    if(typeof aggiornaStatoReparto === 'function') aggiornaStatoReparto();
 
   }catch(e){
     console.warn("aggUI err", e);
@@ -5657,7 +5885,7 @@ function stats(){
 
 // ---- RENDER TABELLE ----
 function renderOggi(){
-  var oggi=new Date().toISOString().slice(0,10);
+  var oggi=_oggi();
   var T=lsG("ct_t",[]).filter(function(t){return t.data===oggi;});
   var tb=document.getElementById("tb-oggi");
   if(!T.length){tb.innerHTML="<tr><td colspan=\"4\" class=\"empty\">Nessun turno oggi</td></tr>";return;}
@@ -5734,8 +5962,9 @@ function salvaTurno(){
   var T=lsG("ct_t",[]);
   var _codEl=document.getElementById("mt-turno-codice");
   var _cod=_codEl&&_codEl.value?_codEl.value:null;
+  var _catEv = ['riposo','ferie','recupero','licenza','permesso','937','104','ls','fest'].indexOf(tp) !== -1 ? 'personale' : 'servizio';
   var _nt = {id:Date.now(),pid:pid,pnome:p.nome,data:dt,tipo:tp,
-    orario:_orario,note:document.getElementById("mt-note").value,codice:_cod};
+    orario:_orario,note:document.getElementById("mt-note").value,codice:_cod,categoria_evento:_catEv};
   // push gestito dopo
   if(tp==="ferie"||tp==="licenza"){
     var _Pf=lsG("ct_p",[]);
@@ -6189,7 +6418,7 @@ function condividiTurniWA() {
     var ds = giorno.toISOString().slice(0, 10);
     var turno = null;
     for(var j = 0; j < T.length; j++) {
-      if(T[j].pid === me.id && T[j].data === ds) { turno = T[j]; break; }
+      if(_isMyTurno(T[j], me) && T[j].data === ds) { turno = T[j]; break; }
     }
     var gLabel = gN[giorno.getDay()] + " " + ("0"+giorno.getDate()).slice(-2) + " " + mN[giorno.getMonth()];
     var tLabel = turno ? (tipoLabel[turno.tipo] || turno.tipo) : "&#128164; Riposo";
@@ -6221,58 +6450,7 @@ function importXL(file){
     try{
       _xlsWb=XLSX.read(e.target.result,{type:"array"});
       var fogli=_xlsWb.SheetNames;
-      // Se c' un solo foglio, importa direttamente senza modale
-      if(fogli.length===1){
-        var _sn=fogli[0];
-        var modoS=confirm(
-          "Come vuoi importare il foglio \""+_sn+"\"?\n\n"+
-          "OK = SOSTITUISCI i turni esistenti del mese\n"+
-          "ANNULLA = AGGIUNGI ai turni gi presenti"
-        );
-        if(modoS){
-          var rows0=XLSX.utils.sheet_to_json(_xlsWb.Sheets[_sn],{header:1,defval:""});
-          var _a=new Date().getFullYear(),_m=null;
-          var _mM={"gen":0,"gennaio":0,"jan":0,"january":0,
-    "feb":1,"febbraio":1,"february":1,
-    "mar":2,"marzo":2,"march":2,
-    "apr":3,"aprile":3,"april":3,
-    "mag":4,"maggio":4,"may":4,
-    "giu":5,"giugno":5,"jun":5,"june":5,
-    "lug":6,"luglio":6,"jul":6,"july":6,
-    "ago":7,"agosto":7,"aug":7,"august":7,
-    "set":8,"settembre":8,"sep":8,"september":8,
-    "ott":9,"ottobre":9,"oct":9,"october":9,
-    "nov":10,"novembre":10,"november":10,
-    "dic":11,"dicembre":11,"dec":11,"december":11,
-    "01":0,"02":1,"03":2,"04":3,"05":4,"06":5,
-    "07":6,"08":7,"09":8,"10":9,"11":10,"12":11};
-          // Rilevamento mese da nome foglio: split per token + indexOf
-(function(){
-  var _tokens=_sn.toLowerCase().replace(/[-_/\\.,]/g," ").split(/\s+/);
-  Object.keys(_mM).forEach(function(k){
-    if(_m!==null)return;
-    _tokens.forEach(function(tok){if(tok===k||tok.indexOf(k)===0)_m=_mM[k];});
-  });
-  // fallback indexOf sull'intero nome
-  if(_m===null)Object.keys(_mM).forEach(function(k){if(_sn.toLowerCase().indexOf(k)!==-1)_m=_mM[k];});
-})();
-          for(var _i=0;_i<Math.min(8,rows0.length);_i++){rows0[_i].forEach(function(c){var n=parseInt(c);if(!isNaN(n)&&n>2000&&n<2100)_a=n;if(!isNaN(n)&&n>=1&&n<=12&&_m===null)_m=n-1;});}
-          if(_m===null)_m=new Date().getMonth();
-          var _prefix=_a+"-"+("0"+(_m+1)).slice(-2);
-          var _T=lsG("ct_t",[]).filter(function(t){return t.data.substring(0,7)!==_prefix;});
-          lsS("ct_t",_T);
-        }
-        var tot=parseSheet(XLSX.utils.sheet_to_json(_xlsWb.Sheets[_sn],{header:1,defval:""}),_sn);
-        renderTurni();renderOggi();renderPers();stats();aggSel();
-        aggiornaWidget();
-        var _me2=lsG('ct_me',null);
-        if(_me2&&typeof renderWidgetProssimo==='function') renderWidgetProssimo(_me2);
-        toast("&#9989; "+tot+" turni "+(modoS?"sostituiti":"aggiunti")+" dal foglio \""+_sn+"\"","ok");
-        document.getElementById("xi").value="";
-        _xlsWb=null;
-        return;
-      }
-      // Pi fogli: mostra modale selezione
+      // Mostra sempre il modal selezione (1 o più fogli)
       var lista=document.getElementById("fogli-lista");
       lista.innerHTML=fogli.map(function(sn,i){
         var rows=XLSX.utils.sheet_to_json(_xlsWb.Sheets[sn],{header:1,defval:""});
@@ -6283,10 +6461,10 @@ function importXL(file){
             '<div style="font-weight:700;font-size:13px">&#128196; '+sn+'</div>'+
             '<div style="font-size:10px;color:var(--txt2)">'+nRighe+' righe dati</div>'+
           '</div>'+
-          '<span style="font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(41,121,255,.15);color:var(--blue)">Foglio '+( i+1)+'</span>'+
+          '<span style="font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(41,121,255,.15);color:var(--blue)">Foglio '+(i+1)+'</span>'+
         '</label>';
       }).join("");
-      openM("m-fogli"); // Ora usa il motore z-index corretto!
+      openM("m-fogli");
     }catch(ex){toast("Errore lettura file: "+ex.message,"err");}
   };
   r.readAsArrayBuffer(file);
@@ -6296,19 +6474,13 @@ function toggleTuttiF(){
   var tuttiOn=Array.from(boxes).every(function(b){return b.checked;});
   boxes.forEach(function(b){b.checked=!tuttiOn;});
 }
-function confermImportF(){
+function confermImportF(modoSost){
   if(!_xlsWb){closeM("m-fogli");return;}
   var boxes=document.querySelectorAll("#fogli-lista input[type=checkbox]");
   var selezionati=Array.from(boxes).filter(function(b){return b.checked;}).map(function(b){return b.getAttribute("data-foglio");});
   if(!selezionati.length){toast("Seleziona almeno un foglio","err");return;}
-  // Chiedi modalit import
-  var modoSost=confirm(
-    "Come vuoi importare i turni?\n\n"+
-    "OK = SOSTITUISCI\n"+
-    "Elimina i turni gi presenti per i mesi importati e inserisce i nuovi.\n\n"+
-    "ANNULLA = AGGIUNGI\n"+
-    "Aggiunge i nuovi turni senza eliminare quelli esistenti."
-  );
+  // Chiudi subito il modal
+  closeM("m-fogli");
   // Se sostituisce: calcola le date che verranno importate e rimuovi i turni esistenti
   if(modoSost){
     var dateDaRimuovere={};
@@ -7469,7 +7641,7 @@ function renderDash() {
 function renderWidgetProssimo(me) {
   var el = document.getElementById('widget-prossimo');
   if (!el) return;
-  var oggi = new Date().toISOString().slice(0,10);
+  var oggi = _oggi();
   var T = lsG('ct_t', []);
   var futuri = T.filter(function(t){
     return _isMyTurno(t, me) && t.data > oggi && !['riposo','ferie','recupero'].includes(t.tipo);
@@ -8096,7 +8268,7 @@ function toggleAzioniRapide(btn) {
   if (!wrap) return;
   var nascosto = wrap.style.display === 'none';
   wrap.style.display = nascosto ? '' : 'none';
-  btn.textContent = nascosto ? '? Nascondi' : '? Mostra';
+  btn.textContent = nascosto ? '\u25BC Nascondi' : '\u25B6 Mostra';
   lsS('ct_ar_hidden', !nascosto);
 }
 
@@ -8106,7 +8278,7 @@ function toggleAzioniRapide(btn) {
       var wrap = document.getElementById('agrid-wrap');
       var btn = document.getElementById('btn-toggle-ar');
       if (wrap) wrap.style.display = 'none';
-      if (btn) btn.textContent = '? Mostra';
+      if (btn) btn.textContent = '\u25B6 Mostra';
     }
   });
 })();
@@ -8279,11 +8451,14 @@ function guidaApri(id) {
 <div style="font-size:12px;color:var(--txt2);margin-bottom:12px">
 Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ignorati.
 </div>
-<div id="fogli-lista" style="display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto;margin-bottom:14px"></div>
+<div id="fogli-lista" style="display:flex;flex-direction:column;gap:8px;max-height:260px;overflow-y:auto;margin-bottom:14px"></div>
+<button class="btn" style="width:100%;font-size:12px;background:var(--bg2);margin-bottom:10px" onclick="toggleTuttiF()">&#9745; Tutti / Nessuno</button>
+<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--txt2);margin-bottom:8px">Modalit&#224; importazione</div>
 <div style="display:flex;gap:8px">
-<button class="btn" style="flex:1;font-size:12px;background:var(--bg2)" onclick="toggleTuttiF()">&#9745; Tutti / Nessuno</button>
-<button class="btn btn-p" style="flex:1;font-size:12px" onclick="confermImportF()">&#9989; Importa selezionati</button>
+  <button class="btn" style="flex:1;font-size:12px;background:rgba(200,16,46,.1);color:var(--red);border-color:rgba(200,16,46,.3)" onclick="confermImportF(true)">&#128465; Sostituisci mese</button>
+  <button class="btn btn-p" style="flex:1;font-size:12px" onclick="confermImportF(false)">&#10133; Aggiungi</button>
 </div>
+<div style="font-size:10px;color:var(--txt3);margin-top:8px;line-height:1.5"><strong>Sostituisci</strong>: elimina i turni esistenti del mese e inserisce i nuovi.<br><strong>Aggiungi</strong>: aggiunge senza eliminare quelli esistenti.</div>
 </div>
 </div>
 </div>
@@ -8474,7 +8649,8 @@ window.addEventListener('DOMContentLoaded', function() {
                 var ds  = anno + '-' + pad(mese + 1) + '-' + pad(colD[col]);
                 var dup = T.some(function(t) { return t.pid === persona.id && t.data === ds; });
                 if (!dup) {
-                    T.push({id: Date.now() + Math.floor(Math.random() * 99999), pid: persona.id, pnome: persona.nome, data: ds, tipo: tipo, orario: oM[tipo] || tipo, note: '', codice: raw});
+                    var _catEv = ['riposo','ferie','recupero','licenza','permesso','937','104','ls','fest'].indexOf(tipo) !== -1 ? 'personale' : 'servizio';
+                    T.push({id: Date.now() + Math.floor(Math.random() * 99999), pid: persona.id, pnome: persona.nome, data: ds, tipo: tipo, orario: oM[tipo] || tipo, note: '', codice: raw, categoria_evento: _catEv});
                     tot++;
                 }
             });
@@ -9566,13 +9742,17 @@ var AuthModule = (function() {
       var ruolo = dati.ruolo || 'addetto';
       var grado = (dati.grado || '').trim();
       var tipo  = (dati.tipo  || 'ter').trim();
+      var modalita = dati.modalita || 'reparto';
 
 
 
-      if (!nome || !cognome || !email || !pass || !reparto) {
+      if (!nome || !cognome || !email || !pass) {
 
         _showAuthError('auth-reg-err', 'Compila tutti i campi'); return;
 
+      }
+      if (modalita === 'reparto' && !reparto) {
+        _showAuthError('auth-reg-err', 'Seleziona il reparto o scegli "Solo per me"'); return;
       }
 
       if (!_validateEmail(email)) {
@@ -9593,22 +9773,27 @@ var AuthModule = (function() {
 
         var fbUid = regCred.user.uid;
 
-
+        // Reparto finale: privato se modalità personale
+        var repartoFinale = (modalita === 'privato' || !reparto) ? ('privato_' + fbUid) : reparto;
 
         // Determina stato e ruolo: logica pioniere
-        // Se nessun comandante approvato esiste → primo iscritto diventa comandante approved
-        var existingUsers = await window.FirebaseModule.getUsersByReparto(reparto);
+        var ruoloFinale = 'addetto';
+        var stato = 'approved';
+        if (!_isPrivato(repartoFinale)) {
+          // Se nessun comandante approvato esiste → primo iscritto diventa comandante approved
+          var existingUsers = await window.FirebaseModule.getUsersByReparto(repartoFinale);
 
-        var hasCmdApproved = existingUsers.some(function(u) {
+          var hasCmdApproved = existingUsers.some(function(u) {
 
-          return u.ruolo === 'comandante' && u.stato === 'approved';
+            return u.ruolo === 'comandante' && u.stato === 'approved';
 
-        });
+          });
 
-        // Pioniere: nessun utente nel reparto → comandante approved
-        var isPioniere = existingUsers.length === 0 || !hasCmdApproved;
-        var ruoloFinale = isPioniere ? 'comandante' : 'addetto';
-        var stato = isPioniere ? 'approved' : 'pending';
+          // Pioniere: nessun utente nel reparto → comandante approved
+          var isPioniere = existingUsers.length === 0 || !hasCmdApproved;
+          ruoloFinale = isPioniere ? 'comandante' : 'addetto';
+          stato = isPioniere ? 'approved' : 'pending';
+        }
 
 
 
@@ -9618,13 +9803,13 @@ var AuthModule = (function() {
 
           uid: fbUid, email: email, nome: nome, cognome: cognome,
 
-          ruolo: ruoloFinale, grado: grado, tipo: tipo, stato: stato, reparto: reparto,
+          ruolo: ruoloFinale, grado: grado, tipo: tipo, stato: stato, reparto: repartoFinale,
 
           registratoIl: new Date().toISOString()
 
         };
 
-        await window.FirebaseModule.saveUserProfile(fbUid, newProfile, reparto);
+        await window.FirebaseModule.saveUserProfile(fbUid, newProfile, repartoFinale);
 
 
 
@@ -9688,9 +9873,7 @@ var AuthModule = (function() {
     renderGestioneMembri: function() { AuthModule.renderGestioneMemebri(); },
     renderGestioneMemebri: function() {
 
-      var container = document.getElementById('gestione-membri-section');
-      var contentDiv = document.getElementById('gestione-membri-content');
-
+      var container = document.getElementById('pg-membri-wrap') || document.getElementById('gestione-membri-section');
       if (!container) return;
 
       var session = getSession();
@@ -9699,7 +9882,7 @@ var AuthModule = (function() {
       var hasAccess = ruoloMe === 'comandante' || ruoloMe === 'vice';
 
       if (!session || !hasAccess) {
-        container.style.display = 'none';
+        container.innerHTML = '<p style="color:var(--txt2);font-size:13px;text-align:center;padding:32px">Solo il Comandante o il Vice possono gestire i membri.</p>';
         return;
       }
 
@@ -9759,7 +9942,7 @@ var AuthModule = (function() {
         });
       }
 
-      if(contentDiv)contentDiv.innerHTML=html;
+      if(container) container.innerHTML = html;
 
     },
 
@@ -9910,7 +10093,7 @@ import { initializeApp }          from "https://www.gstatic.com/firebasejs/11.8.
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
          signOut, onAuthStateChanged }
                                   from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
-import { getFirestore, doc, collection, setDoc, getDoc, getDocs,
+import { getFirestore, doc, collection, setDoc, getDoc, getDocs, deleteDoc,
          onSnapshot, query, where, serverTimestamp }
                                   from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
 import { getMessaging, getToken, onMessage }
@@ -10085,7 +10268,9 @@ window.FirebaseModule = {
   // ── Chiamato da AuthModule.init() quando sessione gia' presente ─
   onSessionRestore: async function(session) {
     if(!session || session.isDebug) return;
-    var rep = session.reparto.toLowerCase().replace(/\s+/g,'_');
+    var repartoRaw = session.reparto || ('privato_' + session.userId);
+    var rep = repartoRaw.toLowerCase().replace(/\s+/g,'_');
+    var isPrivato = !repartoRaw || repartoRaw.startsWith('privato_');
     // Mostra banner "Sincronizzazione in corso..."
     var _showSyncBanner = function(msg) {
       var b = document.getElementById('sync-banner');
@@ -10105,13 +10290,19 @@ window.FirebaseModule = {
     window._widgetSyncPending = true;
     try {
       // Carica dati iniziali (nuovo device: localStorage vuoto)
-      var turniSnap = await getDocs(collection(db, 'reparti', rep, 'turni'));
-      var turni = []; turniSnap.forEach(function(d){ turni.push(d.data()); });
-      if(turni.length > 0) localStorage.setItem('ct_t', JSON.stringify(turni));
+      if(!isPrivato) {
+        var turniSnap = await getDocs(collection(db, 'reparti', rep, 'turni'));
+        var turni = []; turniSnap.forEach(function(d){ turni.push(d.data()); });
+        if(turni.length > 0) localStorage.setItem('ct_t', JSON.stringify(turni));
+      }
 
-      var todoSnap = await getDocs(collection(db, 'reparti', rep, 'todo'));
+      var todoSnap = await getDocs(collection(db, 'utenti', uid, 'todo'));
       var todo = []; todoSnap.forEach(function(d){ todo.push(d.data()); });
       if(todo.length > 0) localStorage.setItem('ct_td', JSON.stringify(todo));
+
+      var agendaSnap = await getDocs(collection(db, 'utenti', uid, 'agenda'));
+      var agenda = []; agendaSnap.forEach(function(d){ agenda.push(d.data()); });
+      if(agenda.length > 0) localStorage.setItem('ct_ag', JSON.stringify(agenda));
 
       // Carica profilo utente aggiornato
       var uid = session.userId;
@@ -10194,18 +10385,50 @@ window.FirebaseModule = {
     } catch(e) { console.warn('saveTurni:', e.message); _toast('Errore sync turni', 'err'); }
   },
 
-  // ── Salva array todo su Firestore ───────────────────────────
+  // ── Salva array todo su Firestore (personale, per utente) ───
   saveTodo: async function(todoArr) {
-    var rep = _reparto();
-    if(!rep || !todoArr) return;
+    var session = JSON.parse(localStorage.getItem('ct_session') || 'null');
+    var uid = session && session.userId;
+    if(!uid || !todoArr) return;
     try {
       var arr = typeof todoArr === 'string' ? JSON.parse(todoArr) : todoArr;
       for(var i=0; i<arr.length; i++) {
         var t = arr[i];
         if(!t.id) continue;
-        await setDoc(doc(db, 'reparti', rep, 'todo', String(t.id)), t);
+        await setDoc(doc(db, 'utenti', uid, 'todo', String(t.id)), t);
       }
     } catch(e) { console.warn('saveTodo:', e.message); _toast('Errore sync todo', 'err'); }
+  },
+
+  // ── Salva array agenda su Firestore (personale, per utente) ─
+  saveAgenda: async function(agArr) {
+    var session = JSON.parse(localStorage.getItem('ct_session') || 'null');
+    var uid = session && session.userId;
+    if(!uid || !agArr) return;
+    try {
+      var arr = typeof agArr === 'string' ? JSON.parse(agArr) : agArr;
+      for(var i=0; i<arr.length; i++) {
+        var a = arr[i];
+        if(!a.id) continue;
+        await setDoc(doc(db, 'utenti', uid, 'agenda', String(a.id)), a);
+      }
+    } catch(e) { console.warn('saveAgenda:', e.message); }
+  },
+
+  // ── Elimina documento todo da Firestore ─────────────────────
+  deleteTodo: async function(id) {
+    var session = JSON.parse(localStorage.getItem('ct_session') || 'null');
+    var uid = session && session.userId;
+    if(!uid) return;
+    try { await deleteDoc(doc(db, 'utenti', uid, 'todo', String(id))); } catch(e) { console.warn('deleteTodo:', e.message); }
+  },
+
+  // ── Elimina documento agenda da Firestore ───────────────────
+  deleteAgenda: async function(id) {
+    var session = JSON.parse(localStorage.getItem('ct_session') || 'null');
+    var uid = session && session.userId;
+    if(!uid) return;
+    try { await deleteDoc(doc(db, 'utenti', uid, 'agenda', String(id))); } catch(e) { console.warn('deleteAgenda:', e.message); }
   },
 
   // ── Salva profilo personale (ct_me) su Firestore ────────────
@@ -10248,6 +10471,68 @@ window.FirebaseModule = {
         await setDoc(doc(db, 'reparti', rep, 'utenti', docId), u);
       }
     } catch(e) { console.warn('saveUsers:', e.message); _toast('Errore sync utenti', 'err'); }
+  },
+
+  // ── Migra turni personali (ferie/licenze) al nuovo reparto ──
+  migraTurniPersonali: async function(vecchioReparto, nuovoReparto, uid) {
+    try {
+      var oggi = (function(){var d=new Date();return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);})();
+      var T = JSON.parse(localStorage.getItem('ct_t') || '[]');
+      var nuovoRep = (nuovoReparto||'').toLowerCase().replace(/\s+/g,'_');
+      var _tipiPers = ['riposo','ferie','recupero','licenza','permesso','937','104','ls','fest'];
+      var personali = T.filter(function(t){
+        // Fallback per turni vecchi senza categoria_evento: usa il tipo
+        var isPersonale = t.categoria_evento === 'personale' ||
+          (!t.categoria_evento && _tipiPers.indexOf(t.tipo) !== -1);
+        return isPersonale && t.data >= oggi &&
+               (!uid || String(t.pid) === String(uid) || t.uid === uid);
+      });
+      for(var i=0; i<personali.length; i++){
+        var t = personali[i];
+        t.reparto_id = nuovoReparto;
+        if(nuovoRep && !nuovoRep.startsWith('privato_')) {
+          await setDoc(doc(db, 'reparti', nuovoRep, 'turni', String(t.id)), t);
+        }
+      }
+      // Aggiorna localStorage
+      T.forEach(function(t){
+        if(t.categoria_evento==='personale'&&t.data>=oggi&&(!uid||String(t.pid)===String(uid)||t.uid===uid))
+          t.reparto_id=nuovoReparto;
+      });
+      localStorage.setItem('ct_t', JSON.stringify(T));
+    } catch(e){ console.warn('migraTurniPersonali:', e.message); }
+  },
+
+  // ── Elimina turni di servizio di un utente da un reparto ────
+  eliminaTurniServizioReparto: async function(reparto, uid) {
+    try {
+      var oggi = (function(){var d=new Date();return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);})();
+      var rep = (reparto||'').toLowerCase().replace(/\s+/g,'_');
+      var _tipiPers = ['riposo','ferie','recupero','licenza','permesso','937','104','ls','fest'];
+      var _isServizio = function(t){ return t.categoria_evento === 'servizio' || (!t.categoria_evento && _tipiPers.indexOf(t.tipo) === -1); };
+      if(rep && !rep.startsWith('privato_')) {
+        var snap = await getDocs(collection(db, 'reparti', rep, 'turni'));
+        var batch = [];
+        snap.forEach(function(d){
+          var t = d.data();
+          if(_isServizio(t) && t.data >= oggi) {
+            if(!uid || String(t.pid) === String(uid) || t.uid === uid) {
+              batch.push(deleteDoc(doc(db, 'reparti', rep, 'turni', d.id)));
+            }
+          }
+        });
+        await Promise.all(batch);
+      }
+      // Aggiorna localStorage
+      var T = JSON.parse(localStorage.getItem('ct_t') || '[]');
+      T = T.filter(function(t){
+        if(_isServizio(t) && t.data >= oggi) {
+          if(!uid || String(t.pid) === String(uid) || t.uid === uid) return false;
+        }
+        return true;
+      });
+      localStorage.setItem('ct_t', JSON.stringify(T));
+    } catch(e){ console.warn('eliminaTurniServizioReparto:', e.message); }
   },
 
   // ── Chiamato da AuthModule.logout ───────────────────────────
@@ -10414,7 +10699,7 @@ console.log('[Firebase] FirebaseModule pronto.');
     <!-- Motto -->
     <div id="egg-motto" style="text-align:center;font-size:11px;color:rgba(255,255,255,.6);font-style:italic;padding:0 20px 10px">&#171;Nei Secoli Fedele&#187;</div>
     <!-- Versione -->
-    <div style="text-align:center;font-size:10px;color:rgba(212,175,55,.7);padding-bottom:14px;letter-spacing:2px">C-TURNI v3.2.0</div>
+    <div style="text-align:center;font-size:10px;color:rgba(212,175,55,.7);padding-bottom:14px;letter-spacing:2px">C-TURNI v3.3.0</div>
     <div class="mfoo" style="background:rgba(0,0,0,.3);border-top:1px solid rgba(212,175,55,.2)">
       <button class="btn btn-g btn-sm" onclick="closeM('m-egg');document.body.style.overflow=''" style="width:100%">&#10005; Chiudi</button>
     </div>
