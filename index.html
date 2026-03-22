@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>C-TURNI v3.3.3</title>
+<title>C-TURNI v3.4.0</title>
 <link rel="manifest" id="pwa-manifest">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -890,6 +890,10 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
 .wdg-mv-btn{background:var(--bg);border:1px solid var(--border);border-radius:6px;width:24px;height:24px;font-size:11px;cursor:pointer;appearance:none;-webkit-appearance:none;appearance:none;color:var(--txt2);display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0}
 .wdg-mv-btn:active{background:var(--bg2)}
 
+/* Bollino verificato */
+.badge-verificato{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:#2979ff;color:#fff;font-size:9px;font-weight:900;vertical-align:middle;margin-left:4px;flex-shrink:0;line-height:1}
+.badge-placeholder{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:rgba(255,159,67,.25);color:var(--orange);font-size:9px;font-weight:900;vertical-align:middle;margin-left:4px;flex-shrink:0;line-height:1}
+
 /* === WIDGET ANIMAZIONI TURNO === */
 @keyframes wdg-pulse-warm{0%,100%{box-shadow:0 0 0 0 rgba(230,81,0,.5)}50%{box-shadow:0 0 0 12px rgba(230,81,0,0)}}
 @keyframes wdg-pulse-warm-slow{0%,100%{box-shadow:0 0 0 0 rgba(230,81,0,.4)}50%{box-shadow:0 0 0 14px rgba(230,81,0,0)}}
@@ -1664,7 +1668,7 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
   <nav id="bottom-nav" aria-label="Navigazione principale">
     <div class="bn-items">
       <button class="bn-item on" id="bn-dash" onclick="vaiBN('dash',0)" aria-label="Dashboard">
-        <div class="bn-ico-wrap"><div class="bn-ico">&#128202;</div></div>
+        <div class="bn-ico-wrap"><div class="bn-ico">&#127968;</div></div>
         <span class="bn-label">Home</span>
       </button>
       <button class="bn-item" id="bn-cal" onclick="vaiBN('cal',1)" aria-label="Calendario">
@@ -1862,10 +1866,6 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
   <div class="ac" onclick="openM('m-turno')">
     <div class="ac-ico" style="background:rgba(41,121,255,.15);color:var(--blue)">&#10133;</div>
     <div><div class="ac-t">Nuovo Turno</div><div class="ac-s">Assegna un turno manuale</div></div>
-  </div>
-  <div class="ac" onclick="openM('m-persona')">
-    <div class="ac-ico" style="background:rgba(0,200,83,.15);color:var(--green)">&#128100;</div>
-    <div><div class="ac-t">Aggiungi Persona</div><div class="ac-s">Nuovo membro personale</div></div>
   </div>
   <div class="ac" onclick="document.getElementById('xi').click()">
     <div class="ac-ico" style="background:rgba(0,188,212,.15);color:var(--teal)">&#128229;</div>
@@ -2721,7 +2721,7 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
 
 
         <div class="imp-section">
-          <div class="imp-section-title">&#8505;&#65039; Info <span style="float:right;font-size:10px;font-weight:400;color:var(--txt2)">v3.3.3</span></div>
+          <div class="imp-section-title">&#8505;&#65039; Info <span style="float:right;font-size:10px;font-weight:400;color:var(--txt2)">v3.4.0</span></div>
           <div style="border-radius:14px;border:1px solid var(--border);overflow:hidden">
             <div class="imp-row"><div class="imp-row-ico" style="background:rgba(41,121,255,.12)">&#128196;</div>
               <div class="imp-row-body"><div class="imp-row-title">Formato</div><div class="imp-row-sub">Scarica &#8594; apri con Google Chrome</div></div></div>
@@ -2732,7 +2732,7 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
               <div class="imp-row-ico" style="background:rgba(212,175,55,.12)">&#127381;</div>
               <div class="imp-row-body">
                 <div class="imp-row-title">Versione</div>
-                <div class="imp-row-sub" id="egg-hint">C-Turni v3.3.3</div>
+                <div class="imp-row-sub" id="egg-hint">C-Turni v3.4.0</div>
               </div>
               <div style="font-size:18px;color:var(--txt3)" id="egg-dots">&#8226;&#8226;&#8226;</div>
             </div>
@@ -2754,21 +2754,37 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
               <div id="sec-changelog" style="max-height:0;overflow:hidden;transition:max-height .35s ease">
                 <div style="padding:14px;border-top:1px solid var(--border);font-size:12px;color:var(--txt2)">
 
-                  <!-- v3.3.3 ATTUALE -->
+                  <!-- v3.4.0 ATTUALE -->
                   <div style="margin-bottom:14px">
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-                      <span style="font-weight:800;color:var(--teal)">v3.3.3</span>
+                      <span style="font-weight:800;color:var(--teal)">v3.4.0</span>
                       <span style="font-size:10px;background:rgba(41,121,255,.15);color:var(--blue);padding:1px 7px;border-radius:20px">&#9679; Attuale</span>
                       <span style="font-size:10px;color:var(--txt3)">Mar 2026</span>
                     </div>
                     <div style="padding-left:10px;border-left:2px solid var(--teal);display:flex;flex-direction:column;gap:3px">
+                      <div>&#127968; Nuova icona app: stella dorata su sfondo navy, scritta CT</div>
+                      <div>&#128241; Banner installazione PWA sempre visibile (iOS + Android)</div>
+                      <div>&#128276; Notifiche: richiesta permesso solo su gesto utente, tasto Test</div>
+                      <div>&#9200; Avviso pre-turno rispetta l'anticipo configurato (30min/1h/2h)</div>
+                      <div>&#128100; Profili placeholder dall'Excel: collegati all'utente alla registrazione</div>
+                      <div>&#10003; Bollino verificato/non registrato accanto al nome in lista e picker</div>
+                      <div>&#128203; Import Excel: nessuna creazione utente fantasma, stop su legenda</div>
+                      <div>&#128465; Rimosso "Aggiungi Persona" manuale dalle Azioni Rapide</div>
+                    </div>
+                  </div>
+
+                  <!-- v3.3.3 -->
+                  <div style="margin-bottom:14px">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                      <span style="font-weight:800;color:var(--txt)">v3.3.3</span>
+                      <span style="font-size:10px;color:var(--txt3)">Mar 2026</span>
+                    </div>
+                    <div style="padding-left:10px;border-left:2px solid var(--border2);display:flex;flex-direction:column;gap:3px">
                       <div>&#128203; Widget "Turni di Oggi" ora spostabile e nascondibile dal pannello Organizza</div>
                       <div>&#9881; Tutti i widget della dashboard sono configurabili (ordine e visibilità)</div>
                       <div>&#128260; Nuovi widget aggiunti automaticamente per utenti già registrati</div>
                     </div>
                   </div>
-
-                  <!-- v3.3.2 -->
                   <div style="margin-bottom:14px">
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
                       <span style="font-weight:800;color:var(--txt)">v3.3.2</span>
@@ -3523,6 +3539,44 @@ function regConferma(){
     tipo: modalita === 'reparto' ? (document.getElementById('reg-specialita') ? document.getElementById('reg-specialita').value : '') : '',
     modalita: modalita
   });
+}
+
+// Collega un placeholder Excel all'utente appena registrato.
+// Cerca in ct_p un profilo con uid===null il cui nome corrisponde a nome+cognome
+// nelle varianti più comuni (cognome nome / nome cognome).
+function _collegaPlaceholder(nome, cognome, uid, reparto) {
+  try {
+    var P = lsG('ct_p', []);
+    var varianti = [
+      (cognome + ' ' + nome).toLowerCase().trim(),
+      (nome + ' ' + cognome).toLowerCase().trim(),
+      cognome.toLowerCase().trim(),
+      nome.toLowerCase().trim()
+    ].filter(function(v){ return v.length > 1; });
+
+    var found = false;
+    P = P.map(function(p) {
+      if (p.uid) return p; // già collegato
+      var pn = (p.nome || '').toLowerCase().trim();
+      var match = varianti.some(function(v) {
+        return pn === v || pn.indexOf(v) !== -1 || v.indexOf(pn) !== -1;
+      });
+      if (match && !found) {
+        found = true;
+        console.log('[C-Turni] Placeholder collegato:', p.nome, '→ uid', uid);
+        return Object.assign({}, p, { uid: uid, reparto: reparto });
+      }
+      return p;
+    });
+
+    if (found) {
+      lsS('ct_p', P);
+      localStorage.setItem('ct_my_pid', String(P.find(function(p){ return p.uid === uid; }).id));
+      if (window.FirebaseModule) {
+        window.FirebaseModule.savePersona().catch(function(){});
+      }
+    }
+  } catch(e) { console.warn('_collegaPlaceholder:', e.message); }
 }
 
 function aggiornaStatoReparto(){
@@ -5495,7 +5549,7 @@ function eggTap(){
   else if(_eggTaps===2){if(hint)hint.textContent="Un altro...";if(dots)dots.innerHTML="&#9679;&#9679;&#8226;";}
   else if(_eggTaps>=3){
     _eggTaps=0;
-    if(hint)hint.textContent="C-Turni v3.3.3";
+    if(hint)hint.textContent="C-Turni v3.4.0";
     var tema=lsG("ct_tema","")||"";
     var isFor=tema==="forestale"||tema==="forestale-light";
     // auto: verde forestale o bianco CC
@@ -5547,7 +5601,7 @@ function eggTap(){
   }
   _eggTimer=setTimeout(function(){
     _eggTaps=0;
-    if(hint)hint.textContent="C-Turni v3.3.3";
+    if(hint)hint.textContent="C-Turni v3.4.0";
     if(dots)dots.innerHTML="&#8226;&#8226;&#8226;";
   },2000);
 }
@@ -6087,7 +6141,7 @@ function aggUI(){
 }
 
 // ---- NOVITÀ VERSIONE ----
-var _APP_VERSION = '3.3.3';
+var _APP_VERSION = '3.4.0';
 function _checkNovita(){
   var vLetta = localStorage.getItem('ct_novita_v');
   if(vLetta !== _APP_VERSION){
@@ -6212,6 +6266,16 @@ function renderTurni(){
       "<td><button class=\"btn btn-d btn-xs\" onclick=\"delT("+t.id+")\">"+"&#128465;</button></td></tr>";
   }).join("");
 }
+// Bollino verificato/placeholder accanto al nome
+function _badgeP(p){
+  if(!p) return '';
+  if(p.uid && !p.placeholder) return '<span class="badge-verificato" title="Registrato su C-Turni">&#10003;</span>';
+  if(p.placeholder && !p.uid) return '<span class="badge-placeholder" title="Non ancora registrato">&#9711;</span>';
+  // placeholder con uid = appena collegato
+  if(p.placeholder && p.uid) return '<span class="badge-verificato" title="Registrato su C-Turni">&#10003;</span>';
+  return '';
+}
+
 function renderPers(){
   var tb=document.getElementById("tb-pers");
   var P=lsG("ct_p",[]);
@@ -6231,9 +6295,12 @@ function renderPers(){
     var si=g.svg?"<img src=\""+g.svg+"\" style=\"width:50px;height:30px;object-fit:contain\">":"";
     var fr=(p.ferieRes!==undefined?p.ferieRes:30);
     var frC=fr>10?"var(--teal)":fr>0?"var(--gold)":"var(--red)";
-    return "<tr><td><strong>"+p.nome+"</strong></td><td style=\"font-size:11px\">"+g.nome+"</td>"+
+    var statoLabel = p.placeholder && !p.uid
+      ? '<span class="sb" style="background:rgba(255,159,67,.15);color:var(--orange)">&#9711; Non registrato</span>'
+      : '<span class="sb ok">Attivo</span>';
+    return "<tr><td><strong>"+p.nome+"</strong>"+_badgeP(p)+"</td><td style=\"font-size:11px\">"+g.nome+"</td>"+
       "<td>"+si+"</td><td style=\"font-size:11px\">"+(p.reparto||"")+"</td>"+
-      "<td><span class=\"sb ok\">Attivo</span></td><td>"+tc+"</td>"+
+      "<td>"+statoLabel+"</td><td>"+tc+"</td>"+
       "<td style=\"font-weight:800;color:"+frC+"\">"+fr+"</td>"+
       "<td><button class=\"btn btn-d btn-xs\" onclick=\"delP("+p.id+")\">&#128465;</button></td></tr>";
   }).join("");
@@ -6330,7 +6397,7 @@ function aggSel(){
     var svg=GR[p.grado]?GR[p.grado].svg:"";
     return '<div class="pers-card" onclick="selezionaPersona(\''+p.id+'\',\''+p.nome.replace(/'/g,"\\'")+'\')" style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:center;cursor:pointer;transition:background .2s" onmouseover="this.style.background=\'var(--card2)\'" onmouseout="this.style.background=\'transparent\'">'+
       (svg?'<img src="'+svg+'" style="height:32px;width:50px;object-fit:contain;flex-shrink:0">':'<div style="width:50px;height:32px;display:flex;align-items:center;justify-content:center;font-size:22px">&#128100;</div>')+
-      '<div style="flex:1;min-width:0"><div style="font-weight:700;color:var(--txt);font-size:14px">'+p.nome+'</div><div style="font-size:12px;color:var(--txt2)">'+gn+'</div></div>'+
+      '<div style="flex:1;min-width:0"><div style="font-weight:700;color:var(--txt);font-size:14px">'+p.nome+_badgeP(p)+'</div><div style="font-size:12px;color:var(--txt2)">'+gn+'</div></div>'+
     '</div>';
   }).join("");
 }
@@ -7072,18 +7139,17 @@ function parseSheet(rows, sn) {
     // Salta voci legenda (es. "M = Mattina", "P = Pomeriggio")
     if(/^[A-Z]{1,3}\s*=/.test(nR) || /^[A-Z]{1,3}\s*=/.test(colB)) continue;
 
+    // Salta se il nome contiene "legenda"
+    if(nR.toLowerCase().indexOf('legenda') !== -1 || colA.toLowerCase().indexOf('legenda') !== -1) break;
 
 
-    // Trova o crea persona
 
+    // Trova persona — se non esiste crea un placeholder (uid: null)
+    // Verrà collegato all'utente reale al momento della registrazione
     var persona = P.find(function(x){ return x.nome.toLowerCase() === nR.toLowerCase(); }) || null;
-
     if(!persona){
-
-      persona = {id: Date.now()+Math.floor(Math.random()*9999), nome: nR, grado: _pg.grado, reparto: '', ferieRes: 30};
-
+      persona = {id: Date.now()+Math.floor(Math.random()*9999), nome: nR, grado: _pg.grado, reparto: '', ferieRes: 30, uid: null, placeholder: true};
       P.push(persona);
-
     }
 
 
@@ -8945,14 +9011,21 @@ window.addEventListener('DOMContentLoaded', function() {
             var r  = rows[i];
             var nR = String(r[idxNome]  || '').trim();
             var gR = String(r[idxGrado] || '').trim();
+
+            // A. Stop su legenda
+            if(nR.toLowerCase().indexOf('legenda') !== -1 || gR.toLowerCase().indexOf('legenda') !== -1) break;
+
+            // B. Salta righe vuote o troppo corte
             if (!nR || nR.length < 3) continue;
             if (_COD[nR.toUpperCase()]) continue;
 
             var _pgPre = typeof parseGradoNome === 'function' ? parseGradoNome(gR, nR) : {grado: gR, nome: nR};
             nR = _pgPre.nome;
+
+            // C. Crea placeholder se non trovata — verrà collegato all'uid reale alla registrazione
             var persona = P.find(function(x) { return x.nome.toLowerCase() === nR.toLowerCase(); }) || null;
             if (!persona) {
-                persona = {id: Date.now() + Math.floor(Math.random() * 9999), nome: nR, grado: _pgPre.grado, reparto: '', ferieRes: 30};
+                persona = {id: Date.now() + Math.floor(Math.random() * 9999), nome: nR, grado: _pgPre.grado, reparto: '', ferieRes: 30, uid: null, placeholder: true};
                 P.push(persona);
             }
             Object.keys(colD).forEach(function(col) {
@@ -9042,7 +9115,11 @@ function popolaSelectPersone() {
     var P = lsG('ct_p', []);
     var cur = document.getElementById('mt-pers').value;
     sel.innerHTML = '<option value="">Scegli collega...</option>' +
-        P.map(function(p){ return '<option value="'+p.id+'"'+(p.id==cur?' selected':'')+'>'+p.nome+(p.grado?' ('+p.grado+')':'')+' </option>'; }).join('');
+        P.map(function(p){
+            var verificato = (p.uid) ? ' ✓' : (p.placeholder ? ' ○' : '');
+            var label = p.nome + (p.grado ? ' (' + p.grado + ')' : '') + verificato;
+            return '<option value="' + p.id + '"' + (p.id == cur ? ' selected' : '') + '>' + label + '</option>';
+        }).join('');
     sel.onchange = function(){ document.getElementById('mt-pers').value = this.value; };
 }
 
@@ -10125,6 +10202,9 @@ var AuthModule = (function() {
 
         await window.FirebaseModule.saveUserProfile(fbUid, newProfile, repartoFinale);
 
+        // Collega placeholder Excel: cerca in ct_p un profilo con stesso nome e uid null
+        _collegaPlaceholder(nome, cognome, fbUid, repartoFinale);
+
 
 
         // Aggiorna anche ct_users locale
@@ -11020,13 +11100,17 @@ console.log('[Firebase] FirebaseModule pronto.');
   <div class="mbox" style="max-width:400px">
     <div class="mhan"></div>
     <div class="mhd">
-      <div class="mtit">&#127381; Novità in C-TURNI v3.3.3</div>
+      <div class="mtit">&#127381; Novità in C-TURNI v3.4.0</div>
     </div>
     <div class="mbod" style="padding:14px;max-height:60vh;overflow-y:auto">
-      <div style="font-size:13px;color:var(--txt2);margin-bottom:14px;line-height:1.6">Benvenuto nell'aggiornamento! Ecco le principali novità:</div>
-      <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--txt)">
-        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#128203;</span><div><strong>Widget "Turni di Oggi" gestibile</strong><br><span style="font-size:12px;color:var(--txt2)">Ora puoi spostare, nascondere e riordinare il widget Turni di Oggi dal pannello Organizza.</span></div></div>
-        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#9881;</span><div><strong>Nuovi widget nel pannello Organizza</strong><br><span style="font-size:12px;color:var(--txt2)">Tutti i widget della dashboard sono ora visibili e configurabili, inclusi quelli aggiunti di recente.</span></div></div>
+      <div style="font-size:13px;color:var(--txt2);margin-bottom:14px;line-height:1.6">Benvenuto nell'aggiornamento! Ecco le principali novità di questa versione:</div>
+      <div style="display:flex;flex-direction:column;gap:10px;font-size:13px;color:var(--txt)">
+        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#127968;</span><div><strong>Nuova icona app</strong><br><span style="font-size:12px;color:var(--txt2)">Stella dorata su sfondo navy con scritta CT — rimuovi e reinstalla la webapp per vederla.</span></div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#128241;</span><div><strong>Installa C-Turni</strong><br><span style="font-size:12px;color:var(--txt2)">Il banner di installazione ora appare sempre, con istruzioni per iOS e Android.</span></div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#128276;</span><div><strong>Notifiche migliorate</strong><br><span style="font-size:12px;color:var(--txt2)">Permesso richiesto solo su tuo gesto, tasto "Testa" nelle impostazioni, anticipo pre-turno rispettato.</span></div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#10003;</span><div><strong>Bollino verificato</strong><br><span style="font-size:12px;color:var(--txt2)">Accanto ad ogni nome vedi se il collega è registrato su C-Turni (✓ blu) o solo importato dall'Excel (○ arancione).</span></div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#128100;</span><div><strong>Collegamento automatico Excel → Account</strong><br><span style="font-size:12px;color:var(--txt2)">I turni importati dall'Excel vengono collegati automaticamente al collega quando si registra su C-Turni.</span></div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#128203;</span><div><strong>Import Excel più pulito</strong><br><span style="font-size:12px;color:var(--txt2)">Nessun utente fantasma creato, stop automatico sulla legenda del foglio.</span></div></div>
       </div>
     </div>
     <div class="mfoo">
@@ -11052,7 +11136,7 @@ console.log('[Firebase] FirebaseModule pronto.');
     <!-- Motto -->
     <div id="egg-motto" style="text-align:center;font-size:11px;color:rgba(255,255,255,.6);font-style:italic;padding:0 20px 10px">&#171;Nei Secoli Fedele&#187;</div>
     <!-- Versione -->
-    <div style="text-align:center;font-size:10px;color:rgba(212,175,55,.7);padding-bottom:14px;letter-spacing:2px">C-TURNI v3.3.3</div>
+    <div style="text-align:center;font-size:10px;color:rgba(212,175,55,.7);padding-bottom:14px;letter-spacing:2px">C-TURNI v3.4.0</div>
     <div class="mfoo" style="background:rgba(0,0,0,.3);border-top:1px solid rgba(212,175,55,.2)">
       <button class="btn btn-g btn-sm" onclick="closeM('m-egg');document.body.style.overflow=''" style="width:100%">&#10005; Chiudi</button>
     </div>
