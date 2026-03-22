@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="C-Turni">
 <meta name="theme-color" content="#0d1b2a" id="theme-color-meta">
-<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230d1b2a'/><text y='.9em' font-size='80' x='10'>&#128197;</text></svg>">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230d1b2a'/%3E%3Cpolygon points='50,12 56,32 76,32 60,44 66,64 50,52 34,64 40,44 24,32 44,32' fill='%23c8a84b'/%3E%3Ctext x='50' y='88' text-anchor='middle' font-size='28' font-weight='900' font-family='Arial,sans-serif' fill='%23ffffff' letter-spacing='2'%3ECT%3C/text%3E%3C/svg%3E">
 <script>
 // -- PWA MANIFEST INLINE --
 (function(){
@@ -22,8 +22,8 @@
     orientation:"portrait",
     background_color:"#0d1b2a",theme_color:"#0d1b2a",
     icons:[
-      {src:"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='40' fill='%230d1b2a'/><text y='.85em' font-size='140' x='16'>&#128197;</text></svg>",sizes:"192x192",type:"image/svg+xml"},
-      {src:"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%230d1b2a'/><text y='.85em' font-size='380' x='40'>&#128197;</text></svg>",sizes:"512x512",type:"image/svg+xml"}
+      {src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%230d1b2a'/%3E%3Cpolygon points='96,22 108,62 148,62 116,86 128,126 96,102 64,126 76,86 44,62 84,62' fill='%23c8a84b'/%3E%3Ctext x='96' y='175' text-anchor='middle' font-size='54' font-weight='900' font-family='Arial,sans-serif' fill='%23ffffff' letter-spacing='4'%3ECT%3C/text%3E%3C/svg%3E",sizes:"192x192",type:"image/svg+xml"},
+      {src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%230d1b2a'/%3E%3Cpolygon points='256,58 282,164 394,164 306,228 332,334 256,270 180,334 206,228 118,164 230,164' fill='%23c8a84b'/%3E%3Ctext x='256' y='468' text-anchor='middle' font-size='144' font-weight='900' font-family='Arial,sans-serif' fill='%23ffffff' letter-spacing='10'%3ECT%3C/text%3E%3C/svg%3E",sizes:"512x512",type:"image/svg+xml"}
     ]
   };
   var blob=new Blob([JSON.stringify(manifest)],{type:"application/json"});
@@ -1689,13 +1689,19 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
   
     <!-- PWA Install Banner -->
     <div id="pwa-install-banner">
-      <div style="font-size:32px">&#128241;</div>
-      <div style="flex:1">
-        <div style="font-weight:700;font-size:13px">Installa C-Turni</div>
-        <div style="font-size:11px;opacity:.7">Aggiungi alla schermata home</div>
+      <div style="width:40px;height:40px;border-radius:10px;background:#0d1b2a;border:1px solid rgba(200,168,75,.4);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">
+        <svg viewBox="0 0 100 100" width="40" height="40" xmlns="http://www.w3.org/2000/svg">
+          <rect width="100" height="100" rx="22" fill="#0d1b2a"/>
+          <polygon points="50,12 56,32 76,32 60,44 66,64 50,52 34,64 40,44 24,32 44,32" fill="#c8a84b"/>
+          <text x="50" y="88" text-anchor="middle" font-size="28" font-weight="900" font-family="Arial,sans-serif" fill="#ffffff" letter-spacing="2">CT</text>
+        </svg>
       </div>
-      <button onclick="pwaInstall()" style="background:var(--blue);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;appearance:none;-webkit-appearance:none;appearance:none">Installa</button>
-      <button onclick="document.getElementById('pwa-install-banner').classList.remove('on')" style="background:none;border:none;color:rgba(255,255,255,.5);font-size:18px;cursor:pointer;padding:4px;appearance:none;-webkit-appearance:none;appearance:none">&#10005;</button>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:13px">Installa C-Turni</div>
+        <div style="font-size:11px;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Accesso rapido dalla schermata home</div>
+      </div>
+      <button onclick="pwaInstall()" style="background:var(--blue);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;appearance:none;-webkit-appearance:none;white-space:nowrap">Installa</button>
+      <button onclick="localStorage.setItem('ct_pwa_dismissed','1');document.getElementById('pwa-install-banner').classList.remove('on')" style="background:none;border:none;color:rgba(255,255,255,.5);font-size:18px;cursor:pointer;padding:4px;appearance:none;-webkit-appearance:none;flex-shrink:0">&#10005;</button>
     </div>
 
     <!-- Modal istruzioni installazione PWA -->
@@ -2610,6 +2616,11 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
                 <div class="imp-row-ico" style="background:rgba(212,175,55,.12)">&#127941;</div>
                 <div class="imp-row-body"><div class="imp-row-title">Turno festivo rilevato</div><div class="imp-row-sub">Quando guadagni un recupero</div></div>
                 <button class="imp-toggle" id="tog-notif-festivi" onclick="toggleNotifPref('festivi',this)"></button>
+              </div>
+              <div class="imp-row" style="border-top:1px solid var(--border)">
+                <div class="imp-row-ico" style="background:rgba(100,100,100,.12)">&#128203;</div>
+                <div class="imp-row-body"><div class="imp-row-title">Notifica di test</div><div class="imp-row-sub">Verifica che le notifiche funzionino</div></div>
+                <button class="btn btn-sm" style="width:auto;font-size:11px" onclick="inviaNotifTest()">Testa</button>
               </div>
             </div>
           </div>
@@ -3786,32 +3797,34 @@ function swTab(t){
 // ---- NOTIFICHE PRE-TURNO ----
 function initNotifiche(){
   if(!("Notification" in window))return;
-  Notification.requestPermission();
+  // NON richiedere permesso automaticamente — solo aggiorna lo stato UI
+  aggNotifStatus();
   controllaNotifiche();
   setInterval(controllaNotifiche,60000);
 }
 function controllaNotifiche(){
   if(Notification.permission!=="granted")return;
   var me=lsG("ct_me",null);if(!me)return;
+  var prefs=lsG("ct_notif_prefs",{mattina:true,todo:true,agenda:true,festivi:true});
+  var preMin=lsG("ct_notif_pre",60);
+  if(preMin<=0)return;
   var T=lsG("ct_t",[]);
-  var OPERATIVI={"mattina":true,"pomeriggio":true};
   var ORI={mattina:"06:00",pomeriggio:"14:00",notte:"22:00"};
   var now=new Date();
   var oggi=now.getFullYear()+'-'+('0'+(now.getMonth()+1)).slice(-2)+'-'+('0'+now.getDate()).slice(-2);
   var notif=lsG("ct_notif_sent",[]);
-  T.filter(function(t){
-    return _isMyTurno(t,me)&&t.data===oggi&&(OPERATIVI[t.tipo]||t.codice==="1515");
-  }).forEach(function(t){
-    var orStr=ORI[t.tipo]||"06:00";
+  T.filter(function(t){return _isMyTurno(t,me)&&t.data===oggi;}).forEach(function(t){
+    var orStr=(t.orario&&t.orario.split('-')[0].trim())||ORI[t.tipo]||"06:00";
     var parts=orStr.split(":");
     var turnoTime=new Date();turnoTime.setHours(parseInt(parts[0]),parseInt(parts[1]),0,0);
     var diff=(turnoTime-now)/60000;
-    if(diff>0&&diff<=65&&notif.indexOf(t.id)===-1){
-      new Notification("C-Turni  Turno tra "+Math.round(diff)+" min",{
-        body:"Turno "+(t.codice||t.tipo).toUpperCase()+" alle "+orStr,
+    var notifId=t.id+'_pre'+preMin;
+    if(diff>0&&diff<=(preMin+5)&&notif.indexOf(notifId)===-1){
+      new Notification("\u23F0 C-Turni \u2014 Turno tra "+Math.round(diff)+" min",{
+        body:"Turno "+(t.codice||t.tipo||'').toUpperCase()+" alle "+orStr,
         icon:""
       });
-      notif.push(t.id);lsS("ct_notif_sent",notif);
+      notif.push(notifId);lsS("ct_notif_sent",notif);
     }
   });
 }
@@ -4316,9 +4329,9 @@ function initPWA(){
     background_color:"#0a1628",
     theme_color:"#0a1628",
     orientation:"portrait",
-    icons:[{src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='32' fill='%230a1628'/%3E%3Ctext x='96' y='130' text-anchor='middle' font-size='110' font-family='Arial'%3E%F0%9F%93%85%3C/text%3E%3C/svg%3E",
+    icons:[{src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%230a1628'/%3E%3Cpolygon points='96,22 108,62 148,62 116,86 128,126 96,102 64,126 76,86 44,62 84,62' fill='%23c8a84b'/%3E%3Ctext x='96' y='175' text-anchor='middle' font-size='54' font-weight='900' font-family='Arial,sans-serif' fill='%23ffffff' letter-spacing='4'%3ECT%3C/text%3E%3C/svg%3E",
       sizes:"192x192",type:"image/svg+xml"},
-      {src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='%230a1628'/%3E%3Ctext x='256' y='350' text-anchor='middle' font-size='300' font-family='Arial'%3E%F0%9F%93%85%3C/text%3E%3C/svg%3E",
+      {src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%230a1628'/%3E%3Cpolygon points='256,58 282,164 394,164 306,228 332,334 256,270 180,334 206,228 118,164 230,164' fill='%23c8a84b'/%3E%3Ctext x='256' y='468' text-anchor='middle' font-size='144' font-weight='900' font-family='Arial,sans-serif' fill='%23ffffff' letter-spacing='10'%3ECT%3C/text%3E%3C/svg%3E",
       sizes:"512x512",type:"image/svg+xml"}]};
   var blob=new Blob([JSON.stringify(manifest)],{type:"application/json"});
   var url=URL.createObjectURL(blob);
@@ -4337,13 +4350,28 @@ function initPWA(){
   });
   // iOS Safari: mostra banner manuale
   var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
-  var isStandalone=window.navigator.standalone;
-  if(isIOS&&!isStandalone){
-    var b=document.getElementById("pwa-install-banner");
-    if(b){
-      var btnInst = b.querySelector("button[onclick='pwaInstall()']");
-      if(btnInst) btnInst.textContent="Come installare";
-      b.classList.add("on");
+  var isStandalone=window.navigator.standalone||window.matchMedia('(display-mode: standalone)').matches;
+  var _pwaDismissed=localStorage.getItem('ct_pwa_dismissed');
+  if(!isStandalone&&!_pwaDismissed){
+    if(isIOS){
+      var b=document.getElementById("pwa-install-banner");
+      if(b){
+        var btnInst=b.querySelector("button[onclick='pwaInstall()']");
+        if(btnInst)btnInst.textContent="Come installare";
+        b.classList.add("on");
+      }
+    } else {
+      // Android/Desktop: se beforeinstallprompt non scatta entro 3s, mostra banner manuale
+      setTimeout(function(){
+        if(!_pwaPrompt&&!isStandalone&&!localStorage.getItem('ct_pwa_dismissed')){
+          var b=document.getElementById("pwa-install-banner");
+          if(b&&!b.classList.contains("on")){
+            var btnInst=b.querySelector("button[onclick='pwaInstall()']");
+            if(btnInst)btnInst.textContent="Come installare";
+            b.classList.add("on");
+          }
+        }
+      },3000);
     }
   }
 }
@@ -4799,11 +4827,25 @@ function aggNotifStatus(){
 }
 function toggleNotifMaster(){
   if(!("Notification" in window)){toast("Non supportato","err");return;}
-  if(Notification.permission==="granted"){toast("Per revocare usa le impostazioni browser","info");return;}
+  if(Notification.permission==="granted"){toast("Per revocare usa le impostazioni del browser","info");return;}
+  if(Notification.permission==="denied"){toast("&#9940; Notifiche bloccate — sblocca nelle impostazioni del browser","err");return;}
   Notification.requestPermission().then(function(r){
     aggNotifStatus();
-    if(r==="granted"){toast("? Notifiche abilitate!","ok");scheduleAllTodoNotif();lsG("ct_ag",[]).forEach(function(a){if(a.notif>0)schedulaNotifAgenda(a);});}
-    else toast("Notifiche bloccate","err");
+    if(r==="granted"){
+      toast("&#128276; Notifiche abilitate!","ok");
+      scheduleAllTodoNotif();
+      lsG("ct_ag",[]).forEach(function(a){if(a.notif>0)schedulaNotifAgenda(a);});
+      scheduleNotifMattutina();
+      // Notifica di test immediata
+      setTimeout(function(){
+        new Notification("&#128276; C-Turni — Notifiche attive",{
+          body:"Riceverai avvisi per turni, to-do e appuntamenti.",
+          icon:""
+        });
+      },500);
+    } else {
+      toast("Notifiche bloccate","err");
+    }
   });
 }
 function toggleNotifPref(key,btn){
@@ -4815,6 +4857,18 @@ function toggleNotifPref(key,btn){
 function setPreturno(min){
   lsS("ct_notif_pre",min);aggNotifStatus();toggleImpSec("sec-preturno","arr-pre");
   toast(min>0?"&#9200; "+(min>=60?(min/60)+"h":""+min+"min")+" prima":"&#128277; Pre-turno off","ok");
+}
+
+function inviaNotifTest(){
+  if(!("Notification" in window)||Notification.permission!=="granted"){
+    toast("&#9940; Abilita prima le notifiche","err");return;
+  }
+  var me=lsG("ct_me",null);
+  new Notification("&#128276; C-Turni — Test notifica",{
+    body:"Ciao "+(me?me.nome:"!")+" — le notifiche funzionano correttamente.",
+    icon:""
+  });
+  toast("&#128276; Notifica inviata","ok");
 }
 
 // ---- FESTIVIT ----
@@ -4852,7 +4906,11 @@ function schedulaNotifTodo(item){
   var prefs=lsG("ct_notif_prefs",{todo:true});if(prefs.todo===false)return;
   if(!("Notification" in window)||Notification.permission!=="granted"||!item.data)return;
   var dt=new Date(item.data+"T08:00:00"),ms=dt-Date.now();if(ms<=0)return;
-  setTimeout(function(){new Notification("? C-Turni  "+item.tit,{body:(item.prio==="alta"?"&#128308; Alta priorit\n":"")+(item.note||"Promemoria di oggi")});},Math.min(ms,2147483647));
+  setTimeout(function(){
+    new Notification("\u2705 C-Turni \u2014 "+item.tit,{
+      body:(item.prio==="alta"?"\uD83D\uDD34 Alta priorit\u00E0\n":"")+(item.note||"Promemoria di oggi")
+    });
+  },Math.min(ms,2147483647));
 }
 function scheduleAllTodoNotif(){lsG("ct_td",[]).forEach(function(t){if(!t.done)schedulaNotifTodo(t);});}
 function salvaTodo(){
