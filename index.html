@@ -4912,52 +4912,66 @@ function cambiaPwd(){
 // ---- RESET ----
 function resetAll(tipo){
   if(!confirm("&#9888; Sei sicuro? Operazione irreversibile."))return;
+
+  var sess = lsG("ct_session", null);
+  var uid = sess && sess.userId;
+  var me = lsG("ct_me", null);
+  var rep = (me && me.reparto) ? me.reparto.toLowerCase().replace(/\s+/g,'_') : null;
+  var isPrivato = !rep || rep.startsWith('privato_');
+
   if(tipo==="t"){
     lsS("ct_t",[]);
-    // Elimina anche da Firebase
-    if(window.FirebaseModule){
-      var rep=_reparto?_reparto():null;
-      if(rep){
-        (async function(){
-          try{
-            var snap=await getDocs(collection(db,'reparti',rep,'turni'));
-            var batch=[];
-            snap.forEach(function(d){batch.push(deleteDoc(doc(db,'reparti',rep,'turni',d.id)));});
-            await Promise.all(batch);
-          }catch(e){console.warn('resetAll turni Firebase:',e.message);}
-        })();
-      }
-    }
-    toast("Turni eliminati","ok");
-  } else {
-    // Reset totale: elimina tutto da Firebase poi localStorage
-    if(window.FirebaseModule){
-      var sess=lsG("ct_session",null);
-      var uid=sess&&sess.userId;
-      var rep=_reparto?_reparto():null;
+    if(window.FirebaseModule && rep && !isPrivato){
       (async function(){
         try{
-          if(rep){
+          var snap=await getDocs(collection(db,'reparti',rep,'turni'));
+          var batch=[];
+          snap.forEach(function(d){batch.push(deleteDoc(doc(db,'reparti',rep,'turni',d.id)));});
+          await Promise.all(batch);
+        }catch(e){console.warn('resetAll turni Firebase:',e.message);}
+      })();
+    }
+    toast("Turni eliminati","ok");
+    if(typeof renderTurni==='function') renderTurni();
+    if(typeof renderOggi==='function') renderOggi();
+    if(typeof stats==='function') stats();
+  } else {
+    // Reset totale: Firebase + localStorage + logout
+    var _doReset = function(){
+      Object.keys(localStorage).filter(function(x){return x.startsWith("ct_");}).forEach(function(x){localStorage.removeItem(x);});
+      toast("Reset completato. Disconnessione in corso...","ok");
+      setTimeout(function(){location.reload();},1200);
+    };
+
+    if(window.FirebaseModule){
+      (async function(){
+        try{
+          // 1. Elimina turni del reparto
+          if(rep && !isPrivato){
             var snap=await getDocs(collection(db,'reparti',rep,'turni'));
-            var b=[];snap.forEach(function(d){b.push(deleteDoc(doc(db,'reparti',rep,'turni',d.id)));});
+            var b=[];
+            snap.forEach(function(d){b.push(deleteDoc(doc(db,'reparti',rep,'turni',d.id)));});
             await Promise.all(b);
           }
+          // 2. Elimina todo e agenda personali
           if(uid){
+            var b2=[];
             var s2=await getDocs(collection(db,'utenti',uid,'todo'));
-            var b2=[];s2.forEach(function(d){b2.push(deleteDoc(doc(db,'utenti',uid,'todo',d.id)));});
+            s2.forEach(function(d){b2.push(deleteDoc(doc(db,'utenti',uid,'todo',d.id)));});
             var s3=await getDocs(collection(db,'utenti',uid,'agenda'));
             s3.forEach(function(d){b2.push(deleteDoc(doc(db,'utenti',uid,'agenda',d.id)));});
             await Promise.all(b2);
           }
         }catch(e){console.warn('resetAll Firebase:',e.message);}
-        Object.keys(localStorage).filter(function(x){return x.startsWith("ct_");}).forEach(function(x){localStorage.removeItem(x);});
-        toast("Reset completato","ok");
-        setTimeout(function(){location.reload();},1500);
+        // 3. Logout da Firebase Auth
+        try{
+          var fbAuth = window._fbAuth;
+          if(fbAuth && window._fbSignOut) await window._fbSignOut(fbAuth);
+        }catch(e){console.warn('resetAll signOut:',e.message);}
+        _doReset();
       })();
     } else {
-      Object.keys(localStorage).filter(function(x){return x.startsWith("ct_");}).forEach(function(x){localStorage.removeItem(x);});
-      toast("Reset completato","ok");
-      setTimeout(function(){location.reload();},1500);
+      _doReset();
     }
   }
 }
