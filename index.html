@@ -3256,6 +3256,7 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
     <div class="fg" style="margin-bottom:0"><label>Note</label><input type="text" class="fc app-fc" id="mmt-note" placeholder="Note..."></div>
   </div>
   <div class="mfoo">
+    <button class="btn btn-d btn-sm" onclick="eliminaTurnoMod()" style="width:auto">&#128465; Elimina</button>
     <button class="btn btn-g btn-sm" onclick="closeM('m-mod-turno')">Annulla</button>
     <button class="btn btn-p btn-sm" onclick="salvaModTurno()" style="width:auto">&#128190; Salva</button>
   </div>
@@ -8514,9 +8515,22 @@ function salvaModTurno() {
     }
   }
   lsS('ct_t', T);
+  if(window.FirebaseModule) window.FirebaseModule.saveTurni(T);
   closeM('m-mod-turno');
-  renderTurni(); aggiornaWidget(); renderDash();
+  renderTurni(); aggiornaWidget(); renderDash(); renderOggi();
   toast('Turno aggiornato', 'ok');
+}
+
+function eliminaTurnoMod() {
+  var id = parseInt(document.getElementById('mmt-id').value);
+  if(!id) return;
+  if(!confirm('Eliminare questo turno?')) return;
+  var T = lsG('ct_t', []).filter(function(x){ return x.id !== id; });
+  lsS('ct_t', T);
+  if(window.FirebaseModule) window.FirebaseModule.saveTurni(T);
+  closeM('m-mod-turno');
+  renderTurni(); aggiornaWidget(); renderDash(); renderOggi(); stats();
+  toast('Turno eliminato', 'ok');
 }
 
 /* ---------- FESTIVIT SOPPRESSE ---------- */
@@ -9289,34 +9303,19 @@ function apriModificaTurnoGiorno(tid) {
     var t=T.find(function(x){return x.id===tid;});
     if(!t)return;
     closeM("m-giorno");
-    // Popola m-turno in modalit modifica
-    popolaSelectPersone();
-    var pSel=document.getElementById("mt-pers-sel");
-    var pHid=document.getElementById("mt-pers");
-    if(pHid)pHid.value=t.pid;
-    if(pSel){pSel.value=t.pid;}
-    var dtInp=document.getElementById("mt-data");
-    if(dtInp)dtInp.value=t.data;
-    var tipoSel=document.getElementById("mt-tipo");
-    if(tipoSel)tipoSel.value=t.tipo;
-    var codEl=document.getElementById("mt-turno-codice");
-    if(codEl)codEl.value=t.codice||"";
-    // Orari
-    var ini=document.getElementById("mt-ora-in"),fin=document.getElementById("mt-ora-fi");
-    if(ini&&fin&&t.orario&&t.orario.indexOf("-")>0){
-        var parts=t.orario.split("-");ini.value=parts[0];fin.value=parts[1];
-    } else { if(ini)ini.value="";if(fin)fin.value=""; }
-    var noteEl=document.getElementById("mt-note");
-    if(noteEl)noteEl.value=t.note||"";
-    // Evidenzia bottone preset corrispondente
-    document.querySelectorAll(".btn-turno-r").forEach(function(b){b.classList.remove("sel");});
-    if(t.codice){document.querySelectorAll(".btn-turno-r").forEach(function(b){
-        if(b.textContent.trim()===t.codice)b.classList.add("sel");
-    });}
-    // Salva id per sovrascrittura
-    document.getElementById("mt-edit-id")&&(document.getElementById("mt-edit-id").value=tid);
-    document.getElementById("m-turno").querySelector(".mtit").innerHTML="&#9998; Modifica Turno";
-    openM("m-turno");
+    document.getElementById('mmt-id').value = tid;
+    document.getElementById('mmt-tipo').value = t.tipo || 'mattina';
+    document.getElementById('mmt-orario').value = t.orario && t.orario.indexOf('-')>0 ? t.orario : '';
+    document.getElementById('mmt-note').value = t.note || '';
+    // Aggiorna titolo con nome persona e data
+    var P=lsG("ct_p",[]);
+    var p=P.find(function(x){return x.id===t.pid;});
+    var nomeTit = p ? p.nome : (t.pnome||'');
+    var mN=["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
+    var dParts = t.data ? t.data.split('-') : [];
+    var dataTit = dParts.length===3 ? dParts[2]+' '+mN[parseInt(dParts[1])-1] : t.data;
+    document.querySelector('#m-mod-turno .mtit').innerHTML = '&#9998; ' + nomeTit + ' &mdash; ' + dataTit;
+    openM('m-mod-turno');
 }
 
 function aggOraNativaDaTipo(tipo) {
