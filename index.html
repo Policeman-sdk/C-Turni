@@ -127,6 +127,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   display:flex;align-items:center;gap:9px;font-size:12px;font-weight:700;pointer-events:all;transition:opacity .3s}
 .noti.ok{border-left-color:var(--green)}.noti.err{border-left-color:var(--red)}.noti.warn{border-left-color:var(--gold)}
 @keyframes nIn{from{transform:translateX(120%);opacity:0}to{transform:none;opacity:1}}
+@keyframes fadeInUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 .pg{display:none;min-height:100vh}.pgflex{display:none;min-height:100vh;align-items:center;justify-content:center}
 .pg.on{display:block}.pgflex.on{display:flex}
 .fg{margin-bottom:14px}
@@ -6182,16 +6183,25 @@ function aggUI(){
 // ---- NOVITÀ VERSIONE ----
 var _APP_VERSION = '3.4.1';
 function _checkNovita(){
-  var vLetta = localStorage.getItem('ct_novita_v2');
+  var vLetta = localStorage.getItem('ct_novita_v3');
   var giaMostrato = sessionStorage.getItem('ct_novita_shown');
-  // Mostra se: versione nuova (mai vista) e non già mostrato in questa sessione
   if(vLetta !== _APP_VERSION && !giaMostrato){
     sessionStorage.setItem('ct_novita_shown','1');
-    setTimeout(function(){ openM('m-novita'); }, 1500);
+    setTimeout(function(){
+      // Mostra toast cliccabile invece del modal
+      var t = document.createElement('div');
+      t.id = 'toast-novita';
+      t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--navy),#1a2f4a);border:1px solid var(--gold);border-radius:16px;padding:14px 18px;z-index:99999;max-width:320px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.5);cursor:pointer;animation:fadeInUp .4s ease';
+      t.innerHTML = '<div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px">\uD83C\uDF81</span><div style="flex:1"><div style="font-weight:700;color:var(--gold);font-size:13px">Aggiornamento v3.4.1</div><div style="font-size:12px;color:var(--txt2);margin-top:2px">Bollino verificato, fix import Excel, reset dati migliorato e altro.</div></div><button onclick="document.getElementById(\'toast-novita\').remove();localStorage.setItem(\'ct_novita_v3\',\''+_APP_VERSION+'\')" style="background:none;border:none;color:var(--txt2);font-size:18px;cursor:pointer;padding:0;line-height:1">&times;</button></div><div style="margin-top:8px;font-size:11px;color:var(--txt2);text-align:center">Tocca per i dettagli</div>';
+      t.onclick = function(e){ if(e.target.tagName==='BUTTON') return; localStorage.setItem('ct_novita_v3',_APP_VERSION); t.remove(); openM('m-novita'); };
+      document.body.appendChild(t);
+      // Auto-chiudi dopo 8 secondi
+      setTimeout(function(){ if(document.getElementById('toast-novita')){ localStorage.setItem('ct_novita_v3',_APP_VERSION); document.getElementById('toast-novita').remove(); } }, 8000);
+    }, 1500);
   }
 }
 function chiudiNovita(){
-  localStorage.setItem('ct_novita_v2', _APP_VERSION);
+  localStorage.setItem('ct_novita_v3', _APP_VERSION);
   closeM('m-novita');
 }
 
@@ -6883,15 +6893,15 @@ function condividiTurniWA() {
   var mN = ["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
   var gN = ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
   var tipoLabel = {
-    mattina:"&#127749; Mattina (06-14)", ml:"&#127749; Mattina Lunga (06-16)",
-    pomeriggio:"&#9728; Pomeriggio (14-22)", pl:"&#9728; Pomeriggio Lungo (14-24)",
-    notte:"&#127769; Notte (22-06)", riposo:"&#128164; Riposo",
-    recupero:"&#128260; Recupero", ferie:"&#127958; Ferie",
-    permesso:"&#128336; Permesso", corso:"&#127891; Corso", licenza:"&#128218; Licenza"
+    mattina:"\uD83C\uDF05 Mattina (06-14)", ml:"\uD83C\uDF05 Mattina Lunga (06-16)",
+    pomeriggio:"\u2600\uFE0F Pomeriggio (14-22)", pl:"\u2600\uFE0F Pomeriggio Lungo (14-24)",
+    notte:"\uD83C\uDF19 Notte (22-06)", riposo:"\uD83D\uDCA4 Riposo",
+    recupero:"\uD83D\uDD04 Recupero", ferie:"\uD83C\uDFD6\uFE0F Ferie",
+    permesso:"\uD83D\uDD50 Permesso", corso:"\uD83C\uDF93 Corso", licenza:"\uD83D\uDCDA Licenza"
   };
 
   var righe = [];
-  righe.push("&#128197; *Turni " + me.nome + " " + me.cognome + "*");
+  righe.push("\uD83D\uDCC5 *Turni " + me.nome + " " + me.cognome + "*");
   righe.push("Settimana " + ("0"+lun.getDate()).slice(-2) + "/" + ("0"+(lun.getMonth()+1)).slice(-2) +
              "  " + (function(){ var d=new Date(lun); d.setDate(d.getDate()+6); return ("0"+d.getDate()).slice(-2)+"/"+("0"+(d.getMonth()+1)).slice(-2); })());
   righe.push("-----------------");
@@ -6905,7 +6915,7 @@ function condividiTurniWA() {
       if(_isMyTurno(T[j], me) && T[j].data === ds) { turno = T[j]; break; }
     }
     var gLabel = gN[giorno.getDay()] + " " + ("0"+giorno.getDate()).slice(-2) + " " + mN[giorno.getMonth()];
-    var tLabel = turno ? (tipoLabel[turno.tipo] || turno.tipo) : "&#128164; Riposo";
+    var tLabel = turno ? (tipoLabel[turno.tipo] || turno.tipo) : "\uD83D\uDCA4 Riposo";
     if(turno && turno.orario && turno.orario !== "Riposo") tLabel += " (" + turno.orario + ")";
     righe.push("*" + gLabel + "*: " + tLabel);
   }
