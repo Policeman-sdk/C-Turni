@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>C-TURNI v3.4.0</title>
+<title>C-TURNI v3.4.1</title>
 <link rel="manifest" id="pwa-manifest">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -2721,7 +2721,7 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
 
 
         <div class="imp-section">
-          <div class="imp-section-title">&#8505;&#65039; Info <span style="float:right;font-size:10px;font-weight:400;color:var(--txt2)">v3.4.0</span></div>
+          <div class="imp-section-title">&#8505;&#65039; Info <span style="float:right;font-size:10px;font-weight:400;color:var(--txt2)">v3.4.1</span></div>
           <div style="border-radius:14px;border:1px solid var(--border);overflow:hidden">
             <div class="imp-row"><div class="imp-row-ico" style="background:rgba(41,121,255,.12)">&#128196;</div>
               <div class="imp-row-body"><div class="imp-row-title">Formato</div><div class="imp-row-sub">Scarica &#8594; apri con Google Chrome</div></div></div>
@@ -2732,7 +2732,7 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
               <div class="imp-row-ico" style="background:rgba(212,175,55,.12)">&#127381;</div>
               <div class="imp-row-body">
                 <div class="imp-row-title">Versione</div>
-                <div class="imp-row-sub" id="egg-hint">C-Turni v3.4.0</div>
+                <div class="imp-row-sub" id="egg-hint">C-Turni v3.4.1</div>
               </div>
               <div style="font-size:18px;color:var(--txt3)" id="egg-dots">&#8226;&#8226;&#8226;</div>
             </div>
@@ -2754,22 +2754,35 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
               <div id="sec-changelog" style="max-height:0;overflow:hidden;transition:max-height .35s ease">
                 <div style="padding:14px;border-top:1px solid var(--border);font-size:12px;color:var(--txt2)">
 
-                  <!-- v3.4.0 ATTUALE -->
+                  <!-- v3.4.1 ATTUALE -->
                   <div style="margin-bottom:14px">
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-                      <span style="font-weight:800;color:var(--teal)">v3.4.0</span>
+                      <span style="font-weight:800;color:var(--teal)">v3.4.1</span>
                       <span style="font-size:10px;background:rgba(41,121,255,.15);color:var(--blue);padding:1px 7px;border-radius:20px">&#9679; Attuale</span>
                       <span style="font-size:10px;color:var(--txt3)">Mar 2026</span>
                     </div>
                     <div style="padding-left:10px;border-left:2px solid var(--teal);display:flex;flex-direction:column;gap:3px">
+                      <div>&#128197; Popup giorno: ordine per grado (dal pi&ugrave; alto al pi&ugrave; basso)</div>
+                      <div>&#128100; Popup giorno: SVG grado sempre visibile, icona fallback se assente</div>
+                      <div>&#128465; Reset "Turni + Persone": ferma i listener prima di cancellare, poi ricarica</div>
+                      <div>&#10003; Bollino verificato: funziona anche per utenti registrati senza campo uid in ct_p</div>
+                      <div>&#127381; Popup novit&agrave;: ora appare correttamente ad ogni aggiornamento versione</div>
+                    </div>
+                  </div>
+
+                  <!-- v3.4.0 -->
+                  <div style="margin-bottom:14px">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                      <span style="font-weight:800;color:var(--txt)">v3.4.0</span>
+                      <span style="font-size:10px;color:var(--txt3)">Mar 2026</span>
+                    </div>
+                    <div style="padding-left:10px;border-left:2px solid var(--border2);display:flex;flex-direction:column;gap:3px">
                       <div>&#127968; Nuova icona app: stella dorata su sfondo navy, scritta CT</div>
                       <div>&#128241; Banner installazione PWA sempre visibile (iOS + Android)</div>
                       <div>&#128276; Notifiche: richiesta permesso solo su gesto utente, tasto Test</div>
-                      <div>&#9200; Avviso pre-turno rispetta l'anticipo configurato (30min/1h/2h)</div>
                       <div>&#128100; Profili placeholder dall'Excel: collegati all'utente alla registrazione</div>
-                      <div>&#10003; Bollino verificato/non registrato accanto al nome in lista e picker</div>
+                      <div>&#10003; Bollino verificato/non registrato accanto al nome</div>
                       <div>&#128203; Import Excel: nessuna creazione utente fantasma, stop su legenda</div>
-                      <div>&#128465; Rimosso "Aggiungi Persona" manuale dalle Azioni Rapide</div>
                     </div>
                   </div>
 
@@ -3491,7 +3504,9 @@ var GR={
   "Gen.":{nome:"Generale",col:"#b8860b",svg:"data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2060%2036%22%3E%3Crect%20x%3D%221%22%20y%3D%221%22%20width%3D%2258%22%20height%3D%2234%22%20rx%3D%224%22%20fill%3D%22%230e1f3a%22%20stroke%3D%22%23d4af37%22%20stroke-width%3D%221.5%22/%3E%3Crect%20x%3D%225%22%20y%3D%2225%22%20width%3D%2250%22%20height%3D%223%22%20rx%3D%221.5%22%20fill%3D%22%23d4af37%22/%3E%3Cpolygon%20points%3D%2230.0%2C6.0%2031.8%2C10.6%2036.7%2C10.8%2032.9%2C13.9%2034.1%2C18.7%2030.0%2C16.0%2025.9%2C18.7%2027.1%2C13.9%2023.3%2C10.8%2028.2%2C10.6%22%20fill%3D%22%23cc1020%22/%3E%3Cpolygon%20points%3D%2230.0%2C6.0%2031.8%2C10.6%2036.7%2C10.8%2032.9%2C13.9%2034.1%2C18.7%2030.0%2C16.0%2025.9%2C18.7%2027.1%2C13.9%2023.3%2C10.8%2028.2%2C10.6%22%20fill%3D%22none%22%20stroke%3D%22%23d4af37%22%20stroke-width%3D%22.8%22/%3E%3C/svg%3E"}
 };
 
-// ---- LS HELPERS ----
+// Ordine gerarchico gradi (0 = più alto)
+var _GRADO_ORDER = {"Gen.":0,"Col.":1,"Ten.Col.":2,"Magg.":3,"Cap.":4,"Ten.":5,"S.Ten.":6,"Luog.":7,"Mar.Magg.":8,"Mar.Cap.":9,"Mar.Ord.":10,"Mar.":11,"Brig.Ca.":12,"Brig.":13,"V.Brig.":14,"App.Sc.":15,"App.":16,"Car.Sc.":17,"Car.":18};
+function _gradoPrio(grado){ return _GRADO_ORDER.hasOwnProperty(grado) ? _GRADO_ORDER[grado] : 99; }
 function lsG(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
 function lsS(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true;}catch(e){if(e.name==='QuotaExceededError'||e.code===22){if(typeof toast==='function')toast('Spazio esaurito: riduci la foto','err');}return false;}}
 // Helper data locale (evita sfasamento UTC a mezzanotte)
@@ -3822,9 +3837,9 @@ window.addEventListener("DOMContentLoaded",function(){
       if(typeof renderTurni          === "function") renderTurni();
       if(typeof renderOggi           === "function") renderOggi();
       if(typeof stats                === "function") stats();
-      // Mostra banner novità se versione aggiornata
-      if(typeof _checkNovita === 'function') _checkNovita();
     }
+    // Mostra popup novità sempre (loggato o no)
+    if(typeof _checkNovita === 'function') _checkNovita();
     initPWA();
   }
   if(window.FirebaseModule) {
@@ -5076,13 +5091,17 @@ function resetAll(tipo){
   var isPrivato = !rep || rep.startsWith('privato_');
 
   if(tipo==="t" || tipo==="tp"){
-    // Cancella turni localStorage
+    // Ferma i listener real-time per evitare che ricarichino subito i dati
+    if(typeof _stopListeners === 'function') _stopListeners();
+
+    // Cancella localStorage
     lsS("ct_t",[]);
-    // Se tp: cancella anche persone placeholder (uid===null) e tutte le persone importate
     if(tipo==="tp"){
       lsS("ct_p",[]);
+      localStorage.removeItem('ct_my_pid');
     }
-    // Cancella turni su Firebase
+
+    // Cancella su Firebase poi ricarica la pagina
     if(window.FirebaseModule && rep && !isPrivato){
       (async function(){
         try{
@@ -5090,7 +5109,6 @@ function resetAll(tipo){
           var batch=[];
           snap.forEach(function(d){batch.push(deleteDoc(doc(db,'reparti',rep,'turni',d.id)));});
           await Promise.all(batch);
-          // Se tp: cancella anche persone su Firebase
           if(tipo==="tp"){
             var snapP=await getDocs(collection(db,'reparti',rep,'persone'));
             var batchP=[];
@@ -5098,15 +5116,19 @@ function resetAll(tipo){
             await Promise.all(batchP);
           }
         }catch(e){console.warn('resetAll Firebase:',e.message);}
+        var msg = tipo==="tp" ? "Turni e persone eliminati" : "Turni eliminati";
+        toast(msg,"ok");
+        setTimeout(function(){ location.reload(); }, 1000);
       })();
+    } else {
+      var msg = tipo==="tp" ? "Turni e persone eliminati" : "Turni eliminati";
+      toast(msg,"ok");
+      if(typeof renderTurni==='function') renderTurni();
+      if(typeof renderOggi==='function') renderOggi();
+      if(typeof renderPers==='function') renderPers();
+      if(typeof stats==='function') stats();
+      if(typeof aggiornaWidget==='function') aggiornaWidget();
     }
-    var msg = tipo==="tp" ? "Turni e persone eliminati" : "Turni eliminati";
-    toast(msg,"ok");
-    if(typeof renderTurni==='function') renderTurni();
-    if(typeof renderOggi==='function') renderOggi();
-    if(typeof renderPers==='function') renderPers();
-    if(typeof stats==='function') stats();
-    if(typeof aggiornaWidget==='function') aggiornaWidget();
   } else {
     // Reset totale: Firebase + localStorage + logout
     var _doReset = function(){
@@ -5566,7 +5588,7 @@ function eggTap(){
   else if(_eggTaps===2){if(hint)hint.textContent="Un altro...";if(dots)dots.innerHTML="&#9679;&#9679;&#8226;";}
   else if(_eggTaps>=3){
     _eggTaps=0;
-    if(hint)hint.textContent="C-Turni v3.4.0";
+    if(hint)hint.textContent="C-Turni v3.4.1";
     var tema=lsG("ct_tema","")||"";
     var isFor=tema==="forestale"||tema==="forestale-light";
     // auto: verde forestale o bianco CC
@@ -5618,7 +5640,7 @@ function eggTap(){
   }
   _eggTimer=setTimeout(function(){
     _eggTaps=0;
-    if(hint)hint.textContent="C-Turni v3.4.0";
+    if(hint)hint.textContent="C-Turni v3.4.1";
     if(dots)dots.innerHTML="&#8226;&#8226;&#8226;";
   },2000);
 }
@@ -6158,15 +6180,18 @@ function aggUI(){
 }
 
 // ---- NOVITÀ VERSIONE ----
-var _APP_VERSION = '3.4.0';
+var _APP_VERSION = '3.4.1';
 function _checkNovita(){
-  var vLetta = localStorage.getItem('ct_novita_v');
-  if(vLetta !== _APP_VERSION){
-    setTimeout(function(){ openM('m-novita'); }, 1200);
+  var vLetta = localStorage.getItem('ct_novita_v2');
+  var giaMostrato = sessionStorage.getItem('ct_novita_shown');
+  // Mostra se: versione nuova (mai vista) e non già mostrato in questa sessione
+  if(vLetta !== _APP_VERSION && !giaMostrato){
+    sessionStorage.setItem('ct_novita_shown','1');
+    setTimeout(function(){ openM('m-novita'); }, 1500);
   }
 }
 function chiudiNovita(){
-  localStorage.setItem('ct_novita_v', _APP_VERSION);
+  localStorage.setItem('ct_novita_v2', _APP_VERSION);
   closeM('m-novita');
 }
 
@@ -6496,19 +6521,31 @@ function mostraGiorno(ds){
   var tit=d.getDate()+" "+mN[d.getMonth()]+" "+d.getFullYear();
   var T=lsG("ct_t",[]).filter(function(t){return t.data===ds;});
   var P=lsG("ct_p",[]);
+
+  // Ordina per grado (dal più alto al più basso)
+  T.sort(function(a,b){
+    var pa=P.find(function(x){return x.id===a.pid;});
+    var pb=P.find(function(x){return x.id===b.pid;});
+    var ga=pa?pa.grado:''; var gb=pb?pb.grado:'';
+    return _gradoPrio(ga) - _gradoPrio(gb);
+  });
+
   var body="";
   if(!T.length){
     body="<div style=\"text-align:center;color:var(--txt2);padding:20px;font-size:12px\">Nessun turno in questo giorno</div>";
   }else{
     T.forEach(function(t){
       var p=P.find(function(x){return x.id===t.pid;});
-      var gn=p&&GR[p.grado]?GR[p.grado].nome:(p?p.grado:"");
-      var gi=p&&GR[p.grado]?GR[p.grado].svg:"";
+      // Grado: prima dalla persona, poi dal turno stesso
+      var gradoKey = (p&&p.grado) ? p.grado : '';
+      var gn = gradoKey && GR[gradoKey] ? GR[gradoKey].nome : (gradoKey || '');
+      var gi = gradoKey && GR[gradoKey] ? GR[gradoKey].svg : '';
       var _sigla=t.codice||(t.tipo?t.tipo.substring(0,2).toUpperCase():"");
       var _orStr=t.orario&&t.orario.indexOf("-")>0?t.orario:"";
       body+="<div class=\"day-item\" style=\"cursor:pointer\" onclick=\"apriModificaTurnoGiorno("+t.id+")\">";
-      if(gi)body+="<img src=\""+gi+"\" style=\"width:44px;height:28px;object-fit:contain;border-radius:4px\">";
-      body+="<div style=\"flex:1\"><div style=\"font-weight:700;font-size:13px\">"+t.pnome+"</div>";
+      if(gi) body+="<img src=\""+gi+"\" style=\"width:44px;height:28px;object-fit:contain;border-radius:4px;flex-shrink:0\">";
+      else   body+="<div style=\"width:44px;height:28px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0\">&#128100;</div>";
+      body+="<div style=\"flex:1;min-width:0\"><div style=\"font-weight:700;font-size:13px\">"+t.pnome+"</div>";
       body+="<div style=\"font-size:10px;color:var(--txt2)\">"+gn+"</div></div>";
       body+=tbdg(t.tipo,_sigla);
       if(_orStr)body+="<div style=\"font-size:11px;font-weight:700;color:var(--txt);margin-left:6px;white-space:nowrap\">"+_orStr+"</div>";
@@ -11127,17 +11164,17 @@ console.log('[Firebase] FirebaseModule pronto.');
   <div class="mbox" style="max-width:400px">
     <div class="mhan"></div>
     <div class="mhd">
-      <div class="mtit">&#127381; Novità in C-TURNI v3.4.0</div>
+      <div class="mtit">&#127381; Novità in C-TURNI v3.4.1</div>
     </div>
     <div class="mbod" style="padding:14px;max-height:60vh;overflow-y:auto">
       <div style="font-size:13px;color:var(--txt2);margin-bottom:14px;line-height:1.6">Benvenuto nell'aggiornamento! Ecco le principali novità di questa versione:</div>
       <div style="display:flex;flex-direction:column;gap:10px;font-size:13px;color:var(--txt)">
-        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#127968;</span><div><strong>Nuova icona app</strong><br><span style="font-size:12px;color:var(--txt2)">Stella dorata su sfondo navy con scritta CT — rimuovi e reinstalla la webapp per vederla.</span></div></div>
-        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#128241;</span><div><strong>Installa C-Turni</strong><br><span style="font-size:12px;color:var(--txt2)">Il banner di installazione ora appare sempre, con istruzioni per iOS e Android.</span></div></div>
-        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#128276;</span><div><strong>Notifiche migliorate</strong><br><span style="font-size:12px;color:var(--txt2)">Permesso richiesto solo su tuo gesto, tasto "Testa" nelle impostazioni, anticipo pre-turno rispettato.</span></div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#128465;</span><div><strong>Reset dati migliorato</strong><br><span style="font-size:12px;color:var(--txt2)">Nuovo tasto "Turni + Persone (Excel)" che cancella tutto sia in locale che su Firebase, senza residui.</span></div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#128197;</span><div><strong>Popup giorno con gradi</strong><br><span style="font-size:12px;color:var(--txt2)">Nel dettaglio del giorno i colleghi sono ordinati per grado e mostrano l'icona SVG del grado.</span></div></div>
         <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#10003;</span><div><strong>Bollino verificato</strong><br><span style="font-size:12px;color:var(--txt2)">Accanto ad ogni nome vedi se il collega è registrato su C-Turni (✓ blu) o solo importato dall'Excel (○ arancione).</span></div></div>
         <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#128100;</span><div><strong>Collegamento automatico Excel → Account</strong><br><span style="font-size:12px;color:var(--txt2)">I turni importati dall'Excel vengono collegati automaticamente al collega quando si registra su C-Turni.</span></div></div>
         <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#128203;</span><div><strong>Import Excel più pulito</strong><br><span style="font-size:12px;color:var(--txt2)">Nessun utente fantasma creato, stop automatico sulla legenda del foglio.</span></div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#128276;</span><div><strong>Notifiche migliorate</strong><br><span style="font-size:12px;color:var(--txt2)">Permesso richiesto solo su tuo gesto, tasto "Testa" nelle impostazioni, anticipo pre-turno rispettato.</span></div></div>
       </div>
     </div>
     <div class="mfoo">
@@ -11163,7 +11200,7 @@ console.log('[Firebase] FirebaseModule pronto.');
     <!-- Motto -->
     <div id="egg-motto" style="text-align:center;font-size:11px;color:rgba(255,255,255,.6);font-style:italic;padding:0 20px 10px">&#171;Nei Secoli Fedele&#187;</div>
     <!-- Versione -->
-    <div style="text-align:center;font-size:10px;color:rgba(212,175,55,.7);padding-bottom:14px;letter-spacing:2px">C-TURNI v3.4.0</div>
+    <div style="text-align:center;font-size:10px;color:rgba(212,175,55,.7);padding-bottom:14px;letter-spacing:2px">C-TURNI v3.4.1</div>
     <div class="mfoo" style="background:rgba(0,0,0,.3);border-top:1px solid rgba(212,175,55,.2)">
       <button class="btn btn-g btn-sm" onclick="closeM('m-egg');document.body.style.overflow=''" style="width:100%">&#10005; Chiudi</button>
     </div>
