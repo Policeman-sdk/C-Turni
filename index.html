@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>C-TURNI v3.3.0</title>
+<title>C-TURNI v3.3.1</title>
 <link rel="manifest" id="pwa-manifest">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -949,6 +949,8 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
   box-shadow:0 12px 48px rgba(0,0,0,.7),0 0 0 1px rgba(91,159,255,.1);
 
   animation:authIn .35s cubic-bezier(.4,0,.2,1);
+
+  max-height:92vh;overflow-y:auto;
 
 }
 
@@ -2708,7 +2710,7 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
 
 
         <div class="imp-section">
-          <div class="imp-section-title">&#8505;&#65039; Info <span style="float:right;font-size:10px;font-weight:400;color:var(--txt2)">v3.3.0</span></div>
+          <div class="imp-section-title">&#8505;&#65039; Info <span style="float:right;font-size:10px;font-weight:400;color:var(--txt2)">v3.3.1</span></div>
           <div style="border-radius:14px;border:1px solid var(--border);overflow:hidden">
             <div class="imp-row"><div class="imp-row-ico" style="background:rgba(41,121,255,.12)">&#128196;</div>
               <div class="imp-row-body"><div class="imp-row-title">Formato</div><div class="imp-row-sub">Scarica &#8594; apri con Google Chrome</div></div></div>
@@ -2719,7 +2721,7 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
               <div class="imp-row-ico" style="background:rgba(212,175,55,.12)">&#127381;</div>
               <div class="imp-row-body">
                 <div class="imp-row-title">Versione</div>
-                <div class="imp-row-sub" id="egg-hint">C-Turni v3.3.0</div>
+                <div class="imp-row-sub" id="egg-hint">C-Turni v3.3.1</div>
               </div>
               <div style="font-size:18px;color:var(--txt3)" id="egg-dots">&#8226;&#8226;&#8226;</div>
             </div>
@@ -2741,14 +2743,29 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
               <div id="sec-changelog" style="max-height:0;overflow:hidden;transition:max-height .35s ease">
                 <div style="padding:14px;border-top:1px solid var(--border);font-size:12px;color:var(--txt2)">
 
-                  <!-- v3.3.0 ATTUALE -->
+                  <!-- v3.3.1 ATTUALE -->
                   <div style="margin-bottom:14px">
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-                      <span style="font-weight:800;color:var(--teal)">v3.3.0</span>
+                      <span style="font-weight:800;color:var(--teal)">v3.3.1</span>
                       <span style="font-size:10px;background:rgba(41,121,255,.15);color:var(--blue);padding:1px 7px;border-radius:20px">&#9679; Attuale</span>
                       <span style="font-size:10px;color:var(--txt3)">Mar 2026</span>
                     </div>
                     <div style="padding-left:10px;border-left:2px solid var(--teal);display:flex;flex-direction:column;gap:3px">
+                      <div>&#128197; Import Excel: "Sostituisci mese" elimina correttamente anche da Firebase</div>
+                      <div>&#128081; Gestione Comando spostata nella sezione Personale</div>
+                      <div>&#128465; Reset totale: disconnette da Firebase Auth e pulisce il cloud</div>
+                      <div>&#127381; Banner novit&agrave; al primo accesso dopo aggiornamento</div>
+                      <div>&#128274; Form registrazione scrollabile su schermi piccoli</div>
+                    </div>
+                  </div>
+
+                  <!-- v3.3.0 -->
+                  <div style="margin-bottom:14px">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                      <span style="font-weight:800;color:var(--txt)">v3.3.0</span>
+                      <span style="font-size:10px;color:var(--txt3)">Mar 2026</span>
+                    </div>
+                    <div style="padding-left:10px;border-left:2px solid var(--border2);display:flex;flex-direction:column;gap:3px">
                       <div>&#128100; Modalit&agrave; Personale: usa l'app senza reparto (privato_{uid})</div>
                       <div>&#127968; Unisciti / Scollegati dal Reparto in qualsiasi momento</div>
                       <div>&#128260; Turni con categoria_evento (servizio / personale)</div>
@@ -5390,7 +5407,7 @@ function eggTap(){
   else if(_eggTaps===2){if(hint)hint.textContent="Un altro...";if(dots)dots.innerHTML="&#9679;&#9679;&#8226;";}
   else if(_eggTaps>=3){
     _eggTaps=0;
-    if(hint)hint.textContent="C-Turni v3.3.0";
+    if(hint)hint.textContent="C-Turni v3.3.1";
     var tema=lsG("ct_tema","")||"";
     var isFor=tema==="forestale"||tema==="forestale-light";
     // auto: verde forestale o bianco CC
@@ -5442,7 +5459,7 @@ function eggTap(){
   }
   _eggTimer=setTimeout(function(){
     _eggTaps=0;
-    if(hint)hint.textContent="C-Turni v3.3.0";
+    if(hint)hint.textContent="C-Turni v3.3.1";
     if(dots)dots.innerHTML="&#8226;&#8226;&#8226;";
   },2000);
 }
@@ -5982,7 +5999,7 @@ function aggUI(){
 }
 
 // ---- NOVITÀ VERSIONE ----
-var _APP_VERSION = '3.3.0';
+var _APP_VERSION = '3.3.1';
 function _checkNovita(){
   var vLetta = localStorage.getItem('ct_novita_v');
   if(vLetta !== _APP_VERSION){
@@ -10904,7 +10921,7 @@ console.log('[Firebase] FirebaseModule pronto.');
   <div class="mbox" style="max-width:400px">
     <div class="mhan"></div>
     <div class="mhd">
-      <div class="mtit">&#127381; Novità in C-TURNI v3.3.0</div>
+      <div class="mtit">&#127381; Novità in C-TURNI v3.3.1</div>
     </div>
     <div class="mbod" style="padding:14px;max-height:60vh;overflow-y:auto">
       <div style="font-size:13px;color:var(--txt2);margin-bottom:14px;line-height:1.6">Benvenuto nell'aggiornamento! Ecco le principali novità:</div>
@@ -10939,7 +10956,7 @@ console.log('[Firebase] FirebaseModule pronto.');
     <!-- Motto -->
     <div id="egg-motto" style="text-align:center;font-size:11px;color:rgba(255,255,255,.6);font-style:italic;padding:0 20px 10px">&#171;Nei Secoli Fedele&#187;</div>
     <!-- Versione -->
-    <div style="text-align:center;font-size:10px;color:rgba(212,175,55,.7);padding-bottom:14px;letter-spacing:2px">C-TURNI v3.3.0</div>
+    <div style="text-align:center;font-size:10px;color:rgba(212,175,55,.7);padding-bottom:14px;letter-spacing:2px">C-TURNI v3.3.1</div>
     <div class="mfoo" style="background:rgba(0,0,0,.3);border-top:1px solid rgba(212,175,55,.2)">
       <button class="btn btn-g btn-sm" onclick="closeM('m-egg');document.body.style.overflow=''" style="width:100%">&#10005; Chiudi</button>
     </div>
