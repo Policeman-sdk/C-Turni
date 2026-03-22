@@ -3037,9 +3037,10 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
             </div>
             <div id="sec-danger" class="imp-sub">
               <div style="font-size:12px;color:var(--txt2);margin-bottom:12px">&#9888; Irreversibile.</div>
-              <div class="g2">
-                <button class="btn btn-sm" style="background:rgba(200,16,46,.15);color:var(--red);border-color:rgba(200,16,46,.3);width:auto" onclick="resetAll('t')">&#128465; Solo turni</button>
-                <button class="btn btn-sm" style="background:rgba(200,16,46,.15);color:var(--red);border-color:rgba(200,16,46,.3);width:auto" onclick="resetAll('all')">&#9888; Reset totale</button>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <button class="btn btn-sm" style="background:rgba(200,16,46,.15);color:var(--red);border-color:rgba(200,16,46,.3);width:100%" onclick="resetAll('t')">&#128465; Solo turni</button>
+                <button class="btn btn-sm" style="background:rgba(200,16,46,.15);color:var(--red);border-color:rgba(200,16,46,.3);width:100%" onclick="resetAll('tp')">&#128465; Turni + Persone (Excel)</button>
+                <button class="btn btn-sm" style="background:rgba(200,16,46,.15);color:var(--red);border-color:rgba(200,16,46,.3);width:100%" onclick="resetAll('all')">&#9888; Reset totale</button>
               </div>
             </div>
           </div>
@@ -5074,8 +5075,14 @@ function resetAll(tipo){
   var rep = (me && me.reparto) ? me.reparto.toLowerCase().replace(/\s+/g,'_') : null;
   var isPrivato = !rep || rep.startsWith('privato_');
 
-  if(tipo==="t"){
+  if(tipo==="t" || tipo==="tp"){
+    // Cancella turni localStorage
     lsS("ct_t",[]);
+    // Se tp: cancella anche persone placeholder (uid===null) e tutte le persone importate
+    if(tipo==="tp"){
+      lsS("ct_p",[]);
+    }
+    // Cancella turni su Firebase
     if(window.FirebaseModule && rep && !isPrivato){
       (async function(){
         try{
@@ -5083,13 +5090,23 @@ function resetAll(tipo){
           var batch=[];
           snap.forEach(function(d){batch.push(deleteDoc(doc(db,'reparti',rep,'turni',d.id)));});
           await Promise.all(batch);
-        }catch(e){console.warn('resetAll turni Firebase:',e.message);}
+          // Se tp: cancella anche persone su Firebase
+          if(tipo==="tp"){
+            var snapP=await getDocs(collection(db,'reparti',rep,'persone'));
+            var batchP=[];
+            snapP.forEach(function(d){batchP.push(deleteDoc(doc(db,'reparti',rep,'persone',d.id)));});
+            await Promise.all(batchP);
+          }
+        }catch(e){console.warn('resetAll Firebase:',e.message);}
       })();
     }
-    toast("Turni eliminati","ok");
+    var msg = tipo==="tp" ? "Turni e persone eliminati" : "Turni eliminati";
+    toast(msg,"ok");
     if(typeof renderTurni==='function') renderTurni();
     if(typeof renderOggi==='function') renderOggi();
+    if(typeof renderPers==='function') renderPers();
     if(typeof stats==='function') stats();
+    if(typeof aggiornaWidget==='function') aggiornaWidget();
   } else {
     // Reset totale: Firebase + localStorage + logout
     var _doReset = function(){
@@ -6267,12 +6284,22 @@ function renderTurni(){
   }).join("");
 }
 // Bollino verificato/placeholder accanto al nome
+// Un profilo è "verificato" se: ha uid proprio, oppure esiste in ct_u con stesso nome
 function _badgeP(p){
   if(!p) return '';
-  if(p.uid && !p.placeholder) return '<span class="badge-verificato" title="Registrato su C-Turni">&#10003;</span>';
-  if(p.placeholder && !p.uid) return '<span class="badge-placeholder" title="Non ancora registrato">&#9711;</span>';
-  // placeholder con uid = appena collegato
-  if(p.placeholder && p.uid) return '<span class="badge-verificato" title="Registrato su C-Turni">&#10003;</span>';
+  // Ha uid diretto → verificato
+  if(p.uid) return '<span class="badge-verificato" title="Registrato su C-Turni">&#10003;</span>';
+  // È un placeholder senza uid → non registrato
+  if(p.placeholder) return '<span class="badge-placeholder" title="Non ancora registrato su C-Turni">&#9711;</span>';
+  // Cerca in ct_u per nome (utenti registrati via Firebase)
+  var U = lsG('ct_u', []);
+  var pn = (p.nome||'').toLowerCase().trim();
+  var found = U.some(function(u){
+    var un = ((u.cognome||'')+' '+(u.nome||'')).toLowerCase().trim();
+    var un2 = ((u.nome||'')+' '+(u.cognome||'')).toLowerCase().trim();
+    return un === pn || un2 === pn || (u.nome||'').toLowerCase().trim() === pn;
+  });
+  if(found) return '<span class="badge-verificato" title="Registrato su C-Turni">&#10003;</span>';
   return '';
 }
 
