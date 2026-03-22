@@ -2059,6 +2059,43 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
       <div id="pag-pers" class="pag">
         <button onclick="vaiBN('imp',3)" style="display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--blue);font-size:14px;font-weight:600;cursor:pointer;padding:0 0 10px;appearance:none;-webkit-appearance:none">&#8592; Indietro</button>
         <h1 class="ptit">Personale</h1><p class="psub">Gestisci il personale del reparto</p>
+
+        <!-- STATO COMANDO (solo Comandante/Vice) -->
+        <div id="sec-stato-comando" style="display:none;margin-bottom:14px">
+          <div style="border-radius:14px;border:1px solid var(--border);overflow:hidden">
+            <div style="padding:12px 14px;background:rgba(41,121,255,.06);border-bottom:1px solid var(--border)">
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--txt2);margin-bottom:8px">&#128081; Gestione Comando</div>
+              <div id="stato-comando-info" style="font-size:13px;color:var(--txt2);margin-bottom:10px"></div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button id="btn-passa-comando" class="btn btn-sm" style="width:auto;font-size:12px" onclick="apriPassaComando()">&#128081; Passa il Comando</button>
+                <button id="btn-promuovi-vice" class="btn btn-sm" style="width:auto;font-size:12px" onclick="apriPromuoviVice()">&#11088; Promuovi Vice</button>
+                <button id="btn-degrada-vice" class="btn btn-sm" style="width:auto;font-size:12px;display:none;background:rgba(200,16,46,.1);color:var(--red);border-color:rgba(200,16,46,.3)" onclick="degradaVice()">&#128683; Rimuovi Vice</button>
+              </div>
+            </div>
+            <!-- Form passa comando -->
+            <div id="form-passa-comando" style="display:none;padding:12px 14px;border-top:1px solid var(--border)">
+              <div style="font-size:12px;color:var(--txt2);margin-bottom:8px">Seleziona il membro a cui trasferire il comando:</div>
+              <select class="fc" id="sel-nuovo-comandante" style="margin-bottom:10px">
+                <option value="">-- Seleziona membro --</option>
+              </select>
+              <div style="display:flex;gap:8px">
+                <button class="btn btn-p btn-sm" style="width:auto" onclick="confermaPassaComando()">&#10004; Conferma</button>
+                <button class="btn btn-sm" style="width:auto" onclick="document.getElementById('form-passa-comando').style.display='none'">Annulla</button>
+              </div>
+            </div>
+            <!-- Form promuovi vice -->
+            <div id="form-promuovi-vice" style="display:none;padding:12px 14px;border-top:1px solid var(--border)">
+              <div style="font-size:12px;color:var(--txt2);margin-bottom:8px">Seleziona il membro da promuovere a Vice Comandante:</div>
+              <select class="fc" id="sel-nuovo-vice" style="margin-bottom:10px">
+                <option value="">-- Seleziona membro --</option>
+              </select>
+              <div style="display:flex;gap:8px">
+                <button class="btn btn-p btn-sm" style="width:auto" onclick="confermaPromuoviVice()">&#10004; Conferma</button>
+                <button class="btn btn-sm" style="width:auto" onclick="document.getElementById('form-promuovi-vice').style.display='none'">Annulla</button>
+              </div>
+            </div>
+          </div>
+        </div>
         <div class="twrap">
           <div class="th2"><div class="ttit">Personale</div>
             <div class="tact">
@@ -3528,6 +3565,93 @@ function scollegaReparto(){
     aggiornaStatoReparto();
   }
 }
+
+// ---- GESTIONE COMANDO ----
+function _renderStatoComando(){
+  var me = lsG('ct_me', null);
+  var sec = document.getElementById('sec-stato-comando');
+  if(!sec || !me) return;
+  var isCom = me.ruolo === 'comandante';
+  var isVice = me.ruolo === 'vice';
+  if(!isCom && !isVice){ sec.style.display='none'; return; }
+  sec.style.display='block';
+  var info = document.getElementById('stato-comando-info');
+  if(info) info.innerHTML = isCom ? '&#128081; Sei il <strong>Comandante</strong> del reparto.' : '&#11088; Sei il <strong>Vice Comandante</strong> del reparto.';
+  var btnPassa = document.getElementById('btn-passa-comando');
+  var btnPromuovi = document.getElementById('btn-promuovi-vice');
+  var btnDegrada = document.getElementById('btn-degrada-vice');
+  if(btnPassa) btnPassa.style.display = isCom ? 'inline-flex' : 'none';
+  if(btnPromuovi) btnPromuovi.style.display = isCom ? 'inline-flex' : 'none';
+  // Mostra "Rimuovi Vice" solo se esiste già un vice
+  var U = lsG('ct_u', []);
+  var hasVice = U.some(function(u){ return u.ruolo==='vice' && u.stato==='approved'; });
+  if(btnDegrada) btnDegrada.style.display = (isCom && hasVice) ? 'inline-flex' : 'none';
+}
+
+function _popolaSelectMembri(selId, escludiRuoli){
+  var sel = document.getElementById(selId);
+  if(!sel) return;
+  var me = lsG('ct_me', null);
+  var U = lsG('ct_u', []).filter(function(u){
+    return u.stato==='approved' && (!me || (u.uid||u.id)!==(me.uid||me.id)) &&
+           (!escludiRuoli || escludiRuoli.indexOf(u.ruolo)===-1);
+  });
+  sel.innerHTML = '<option value="">-- Seleziona membro --</option>';
+  U.forEach(function(u){
+    var opt = document.createElement('option');
+    opt.value = u.uid || u.id;
+    opt.textContent = (u.nome||'') + ' ' + (u.cognome||'') + ' (' + (u.grado||'') + ')';
+    sel.appendChild(opt);
+  });
+}
+
+function apriPassaComando(){
+  _popolaSelectMembri('sel-nuovo-comandante', ['comandante']);
+  document.getElementById('form-passa-comando').style.display='block';
+  document.getElementById('form-promuovi-vice').style.display='none';
+}
+
+function apriPromuoviVice(){
+  _popolaSelectMembri('sel-nuovo-vice', ['comandante','vice']);
+  document.getElementById('form-promuovi-vice').style.display='block';
+  document.getElementById('form-passa-comando').style.display='none';
+}
+
+function confermaPassaComando(){
+  var uid = document.getElementById('sel-nuovo-comandante').value;
+  if(!uid){ toast('Seleziona un membro','err'); return; }
+  if(!confirm('Sei sicuro di voler trasferire il comando? Diventerai un Addetto.')){ return; }
+  AuthModule._cambiaRuolo(uid, 'comandante').then(function(){
+    var me = lsG('ct_me', null);
+    if(me){ me.ruolo='addetto'; lsS('ct_me',me); }
+    document.getElementById('form-passa-comando').style.display='none';
+    toast('Comando trasferito','ok');
+    _renderStatoComando();
+    if(typeof aggUI==='function') aggUI();
+  }).catch(function(e){ toast('Errore: '+e.message,'err'); });
+}
+
+function confermaPromuoviVice(){
+  var uid = document.getElementById('sel-nuovo-vice').value;
+  if(!uid){ toast('Seleziona un membro','err'); return; }
+  AuthModule._cambiaRuolo(uid, 'vice').then(function(){
+    document.getElementById('form-promuovi-vice').style.display='none';
+    toast('Membro promosso a Vice Comandante','ok');
+    _renderStatoComando();
+  }).catch(function(e){ toast('Errore: '+e.message,'err'); });
+}
+
+function degradaVice(){
+  var U = lsG('ct_u', []);
+  var vice = U.find(function(u){ return u.ruolo==='vice' && u.stato==='approved'; });
+  if(!vice){ toast('Nessun Vice trovato','err'); return; }
+  if(!confirm('Rimuovere il ruolo di Vice Comandante a '+(vice.nome||'')+' '+(vice.cognome||'')+' ?')){ return; }
+  var uid = vice.uid || vice.id;
+  AuthModule._cambiaRuolo(uid, 'addetto').then(function(){
+    toast('Vice rimosso','ok');
+    _renderStatoComando();
+  }).catch(function(e){ toast('Errore: '+e.message,'err'); });
+}
 // ---- COMPRIMI IMMAGINE ----
 function comprImg(file,cb){
   var TARGET=150;
@@ -3589,6 +3713,8 @@ window.addEventListener("DOMContentLoaded",function(){
       if(typeof renderTurni          === "function") renderTurni();
       if(typeof renderOggi           === "function") renderOggi();
       if(typeof stats                === "function") stats();
+      // Mostra banner novità se versione aggiornata
+      if(typeof _checkNovita === 'function') _checkNovita();
     }
     initPWA();
   }
@@ -4786,8 +4912,54 @@ function cambiaPwd(){
 // ---- RESET ----
 function resetAll(tipo){
   if(!confirm("&#9888; Sei sicuro? Operazione irreversibile."))return;
-  if(tipo==="t"){lsS("ct_t",[]);toast("Turni eliminati","ok");}
-  else{Object.keys(localStorage).filter(function(x){return x.startsWith("ct_");}).forEach(function(x){localStorage.removeItem(x);});toast("Reset completato","ok");setTimeout(function(){location.reload();},1500);}
+  if(tipo==="t"){
+    lsS("ct_t",[]);
+    // Elimina anche da Firebase
+    if(window.FirebaseModule){
+      var rep=_reparto?_reparto():null;
+      if(rep){
+        (async function(){
+          try{
+            var snap=await getDocs(collection(db,'reparti',rep,'turni'));
+            var batch=[];
+            snap.forEach(function(d){batch.push(deleteDoc(doc(db,'reparti',rep,'turni',d.id)));});
+            await Promise.all(batch);
+          }catch(e){console.warn('resetAll turni Firebase:',e.message);}
+        })();
+      }
+    }
+    toast("Turni eliminati","ok");
+  } else {
+    // Reset totale: elimina tutto da Firebase poi localStorage
+    if(window.FirebaseModule){
+      var sess=lsG("ct_session",null);
+      var uid=sess&&sess.userId;
+      var rep=_reparto?_reparto():null;
+      (async function(){
+        try{
+          if(rep){
+            var snap=await getDocs(collection(db,'reparti',rep,'turni'));
+            var b=[];snap.forEach(function(d){b.push(deleteDoc(doc(db,'reparti',rep,'turni',d.id)));});
+            await Promise.all(b);
+          }
+          if(uid){
+            var s2=await getDocs(collection(db,'utenti',uid,'todo'));
+            var b2=[];s2.forEach(function(d){b2.push(deleteDoc(doc(db,'utenti',uid,'todo',d.id)));});
+            var s3=await getDocs(collection(db,'utenti',uid,'agenda'));
+            s3.forEach(function(d){b2.push(deleteDoc(doc(db,'utenti',uid,'agenda',d.id)));});
+            await Promise.all(b2);
+          }
+        }catch(e){console.warn('resetAll Firebase:',e.message);}
+        Object.keys(localStorage).filter(function(x){return x.startsWith("ct_");}).forEach(function(x){localStorage.removeItem(x);});
+        toast("Reset completato","ok");
+        setTimeout(function(){location.reload();},1500);
+      })();
+    } else {
+      Object.keys(localStorage).filter(function(x){return x.startsWith("ct_");}).forEach(function(x){localStorage.removeItem(x);});
+      toast("Reset completato","ok");
+      setTimeout(function(){location.reload();},1500);
+    }
+  }
 }
 
 
@@ -5795,6 +5967,19 @@ function aggUI(){
   }
 }
 
+// ---- NOVITÀ VERSIONE ----
+var _APP_VERSION = '3.3.0';
+function _checkNovita(){
+  var vLetta = localStorage.getItem('ct_novita_v');
+  if(vLetta !== _APP_VERSION){
+    setTimeout(function(){ openM('m-novita'); }, 1200);
+  }
+}
+function chiudiNovita(){
+  localStorage.setItem('ct_novita_v', _APP_VERSION);
+  closeM('m-novita');
+}
+
 // ---- SALVA PROFILO ----
 function salvaProfilo(){
   var u=lsG("ct_me",null);if(!u)return;
@@ -6479,11 +6664,13 @@ function confermImportF(modoSost){
   var boxes=document.querySelectorAll("#fogli-lista input[type=checkbox]");
   var selezionati=Array.from(boxes).filter(function(b){return b.checked;}).map(function(b){return b.getAttribute("data-foglio");});
   if(!selezionati.length){toast("Seleziona almeno un foglio","err");return;}
-  // Chiudi subito il modal
+
+  // Chiudi modal immediatamente
   closeM("m-fogli");
-  // Se sostituisce: calcola le date che verranno importate e rimuovi i turni esistenti
+  setTimeout(function(){ closeM("m-fogli"); }, 80);
+
+  var dateDaRimuovere={};
   if(modoSost){
-    var dateDaRimuovere={};
     selezionati.forEach(function(sn){
       var rows=XLSX.utils.sheet_to_json(_xlsWb.Sheets[sn],{header:1,defval:""});
       var anno=new Date().getFullYear(),mese=null;
@@ -6502,13 +6689,13 @@ function confermImportF(modoSost){
     "01":0,"02":1,"03":2,"04":3,"05":4,"06":5,
     "07":6,"08":7,"09":8,"10":9,"11":10,"12":11};
       (function(){
-  var _tok=sn.toLowerCase().replace(/[-_/\\.,]/g," ").split(/\s+/);
-  Object.keys(mM).forEach(function(k){
-    if(mese!==null)return;
-    _tok.forEach(function(t){if(t===k||t.indexOf(k)===0)mese=mM[k];});
-  });
-  if(mese===null)Object.keys(mM).forEach(function(k){if(sn.toLowerCase().indexOf(k)!==-1)mese=mM[k];});
-})();
+        var _tok=sn.toLowerCase().replace(/[-_/\\.,]/g," ").split(/\s+/);
+        Object.keys(mM).forEach(function(k){
+          if(mese!==null)return;
+          _tok.forEach(function(t){if(t===k||t.indexOf(k)===0)mese=mM[k];});
+        });
+        if(mese===null)Object.keys(mM).forEach(function(k){if(sn.toLowerCase().indexOf(k)!==-1)mese=mM[k];});
+      })();
       for(var i=0;i<Math.min(8,rows.length);i++){
         rows[i].forEach(function(cel){
           var n=parseInt(cel);
@@ -6517,33 +6704,31 @@ function confermImportF(modoSost){
         });
       }
       if(mese===null)mese=new Date().getMonth();
-      // Segna il mese/anno da pulire
       dateDaRimuovere[anno+"-"+("0"+(mese+1)).slice(-2)]=true;
     });
-    // Rimuovi tutti i turni dei mesi selezionati
+
+    // Rimuovi dal localStorage
     var T=lsG("ct_t",[]);
-    T=T.filter(function(t){
-      var prefix=t.data.substring(0,7); // YYYY-MM
-      return !dateDaRimuovere[prefix];
-    });
+    T=T.filter(function(t){ return !dateDaRimuovere[t.data.substring(0,7)]; });
     lsS("ct_t",T);
-    var nMesi=Object.keys(dateDaRimuovere).length;
-    toast("&#128465; Turni di "+nMesi+" mese/i rimossi  importazione in corso...","ok");
+
+    // Rimuovi da Firebase (async, non blocca)
+    if(window.FirebaseModule && window.FirebaseModule.deleteTurniMesi) {
+      window.FirebaseModule.deleteTurniMesi(Object.keys(dateDaRimuovere)).catch(function(e){ console.warn('deleteTurniMesi:', e.message); });
+    }
   }
+
   var tot=0;
   selezionati.forEach(function(sn){
     tot+=parseSheet(XLSX.utils.sheet_to_json(_xlsWb.Sheets[sn],{header:1,defval:""}),sn);
   });
-  renderTurni();renderOggi();renderPers();stats();aggSel();
-  closeM("m-fogli");
-  // Forza chiusura modal anche con setTimeout (fallback per browser mobile)
-  setTimeout(function(){ closeM("m-fogli"); }, 50);
+
   document.getElementById("xi").value="";
   _xlsWb=null;
-  var modo=modoSost?"sostituiti":"aggiunti";
-  aggiornaWidget();
+  renderTurni();renderOggi();renderPers();stats();aggSel();aggiornaWidget();
   var _me3=lsG('ct_me',null);
   if(_me3&&typeof renderWidgetProssimo==='function') renderWidgetProssimo(_me3);
+  var modo=modoSost?"sostituiti":"aggiunti";
   toast("&#9989; "+tot+" turni "+modo+" da "+selezionati.length+" foglio/i","ok");
 }
 function parseSheet(rows, sn) {
@@ -7174,6 +7359,7 @@ function vai(pg, btn) {
   var el = document.getElementById("pag-"+pg);
   if(el){ el.classList.add("on", dir); }
   chiMenu();
+  if(pg==="pers"){ renderPers(); if(typeof _renderStatoComando==='function') _renderStatoComando(); }
   if(pg==="cal") { renderCal(); renderTodo(); renderAgenda(); }
   if(pg==="rep") renderRep();
   if(pg==="straord") { renderStraord(); }
@@ -10473,6 +10659,23 @@ window.FirebaseModule = {
     } catch(e) { console.warn('saveUsers:', e.message); _toast('Errore sync utenti', 'err'); }
   },
 
+  // ── Elimina turni di mesi specifici da Firebase (usato da import Excel Sostituisci) ──
+  deleteTurniMesi: async function(mesiArr) {
+    try {
+      var rep = _reparto();
+      if(!rep) return;
+      var snap = await getDocs(collection(db, 'reparti', rep, 'turni'));
+      var batch = [];
+      snap.forEach(function(d){
+        var t = d.data();
+        if(t.data && mesiArr.indexOf(t.data.substring(0,7)) !== -1) {
+          batch.push(deleteDoc(doc(db, 'reparti', rep, 'turni', d.id)));
+        }
+      });
+      await Promise.all(batch);
+    } catch(e){ console.warn('deleteTurniMesi:', e.message); }
+  },
+
   // ── Migra turni personali (ferie/licenze) al nuovo reparto ──
   migraTurniPersonali: async function(vecchioReparto, nuovoReparto, uid) {
     try {
@@ -10681,6 +10884,29 @@ window.FirebaseModule = {
 window.dispatchEvent(new CustomEvent('firebase-ready'));
 console.log('[Firebase] FirebaseModule pronto.');
 </script>
+
+<!-- MODAL NOVITÀ VERSIONE -->
+<div id="m-novita" class="modal" style="z-index:19999">
+  <div class="mbox" style="max-width:400px">
+    <div class="mhan"></div>
+    <div class="mhd">
+      <div class="mtit">&#127381; Novità in C-TURNI v3.3.0</div>
+    </div>
+    <div class="mbod" style="padding:14px;max-height:60vh;overflow-y:auto">
+      <div style="font-size:13px;color:var(--txt2);margin-bottom:14px;line-height:1.6">Benvenuto nell'aggiornamento! Ecco le principali novità:</div>
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--txt)">
+        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#128100;</span><div><strong>Modalità Personale</strong><br><span style="font-size:12px;color:var(--txt2)">Usa l'app senza reparto. Unisciti o scollegati in qualsiasi momento dalle Impostazioni.</span></div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#127968;</span><div><strong>Ferie seguono il militare</strong><br><span style="font-size:12px;color:var(--txt2)">Al cambio reparto i turni di servizio vengono rimossi, ferie e licenze migrano con te.</span></div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#128081;</span><div><strong>Gestione Comando in Personale</strong><br><span style="font-size:12px;color:var(--txt2)">Passa il comando, promuovi/rimuovi il Vice direttamente dalla sezione Personale.</span></div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#128197;</span><div><strong>Import Excel migliorato</strong><br><span style="font-size:12px;color:var(--txt2)">"Sostituisci mese" ora elimina correttamente anche da Firebase prima di importare.</span></div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#128465;</span><div><strong>Reset dati collegato a Firebase</strong><br><span style="font-size:12px;color:var(--txt2)">Elimina tutti i dati ora pulisce anche il cloud, non solo il dispositivo.</span></div></div>
+      </div>
+    </div>
+    <div class="mfoo">
+      <button class="btn btn-p" style="width:100%" onclick="chiudiNovita()">&#10004; Ho capito</button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL EASTER EGG -->
 <div id="m-egg" class="modal" style="z-index:200000!important">
