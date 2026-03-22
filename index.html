@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>C-TURNI v3.3.2</title>
+<title>C-TURNI v3.3.3</title>
 <link rel="manifest" id="pwa-manifest">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -2710,7 +2710,7 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
 
 
         <div class="imp-section">
-          <div class="imp-section-title">&#8505;&#65039; Info <span style="float:right;font-size:10px;font-weight:400;color:var(--txt2)">v3.3.2</span></div>
+          <div class="imp-section-title">&#8505;&#65039; Info <span style="float:right;font-size:10px;font-weight:400;color:var(--txt2)">v3.3.3</span></div>
           <div style="border-radius:14px;border:1px solid var(--border);overflow:hidden">
             <div class="imp-row"><div class="imp-row-ico" style="background:rgba(41,121,255,.12)">&#128196;</div>
               <div class="imp-row-body"><div class="imp-row-title">Formato</div><div class="imp-row-sub">Scarica &#8594; apri con Google Chrome</div></div></div>
@@ -2721,7 +2721,7 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
               <div class="imp-row-ico" style="background:rgba(212,175,55,.12)">&#127381;</div>
               <div class="imp-row-body">
                 <div class="imp-row-title">Versione</div>
-                <div class="imp-row-sub" id="egg-hint">C-Turni v3.3.2</div>
+                <div class="imp-row-sub" id="egg-hint">C-Turni v3.3.3</div>
               </div>
               <div style="font-size:18px;color:var(--txt3)" id="egg-dots">&#8226;&#8226;&#8226;</div>
             </div>
@@ -2743,14 +2743,27 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
               <div id="sec-changelog" style="max-height:0;overflow:hidden;transition:max-height .35s ease">
                 <div style="padding:14px;border-top:1px solid var(--border);font-size:12px;color:var(--txt2)">
 
-                  <!-- v3.3.2 ATTUALE -->
+                  <!-- v3.3.3 ATTUALE -->
                   <div style="margin-bottom:14px">
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-                      <span style="font-weight:800;color:var(--teal)">v3.3.2</span>
+                      <span style="font-weight:800;color:var(--teal)">v3.3.3</span>
                       <span style="font-size:10px;background:rgba(41,121,255,.15);color:var(--blue);padding:1px 7px;border-radius:20px">&#9679; Attuale</span>
                       <span style="font-size:10px;color:var(--txt3)">Mar 2026</span>
                     </div>
                     <div style="padding-left:10px;border-left:2px solid var(--teal);display:flex;flex-direction:column;gap:3px">
+                      <div>&#128203; Widget "Turni di Oggi" ora spostabile e nascondibile dal pannello Organizza</div>
+                      <div>&#9881; Tutti i widget della dashboard sono configurabili (ordine e visibilità)</div>
+                      <div>&#128260; Nuovi widget aggiunti automaticamente per utenti già registrati</div>
+                    </div>
+                  </div>
+
+                  <!-- v3.3.2 -->
+                  <div style="margin-bottom:14px">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                      <span style="font-weight:800;color:var(--txt)">v3.3.2</span>
+                      <span style="font-size:10px;color:var(--txt3)">Mar 2026</span>
+                    </div>
+                    <div style="padding-left:10px;border-left:2px solid var(--border2);display:flex;flex-direction:column;gap:3px">
                       <div>&#8593;&#8595; Fix frecce widget (prossimo turno, meteo, alert)</div>
                       <div>&#127968; Fix specialit&agrave; reparto: ora mostra Forestale/Radiomobile correttamente</div>
                       <div>&#128465; Reset totale: elimina account Firebase Auth (ri-registrazione possibile)</div>
@@ -5424,7 +5437,7 @@ function eggTap(){
   else if(_eggTaps===2){if(hint)hint.textContent="Un altro...";if(dots)dots.innerHTML="&#9679;&#9679;&#8226;";}
   else if(_eggTaps>=3){
     _eggTaps=0;
-    if(hint)hint.textContent="C-Turni v3.3.2";
+    if(hint)hint.textContent="C-Turni v3.3.3";
     var tema=lsG("ct_tema","")||"";
     var isFor=tema==="forestale"||tema==="forestale-light";
     // auto: verde forestale o bianco CC
@@ -5476,7 +5489,7 @@ function eggTap(){
   }
   _eggTimer=setTimeout(function(){
     _eggTaps=0;
-    if(hint)hint.textContent="C-Turni v3.3.2";
+    if(hint)hint.textContent="C-Turni v3.3.3";
     if(dots)dots.innerHTML="&#8226;&#8226;&#8226;";
   },2000);
 }
@@ -6016,7 +6029,7 @@ function aggUI(){
 }
 
 // ---- NOVITÀ VERSIONE ----
-var _APP_VERSION = '3.3.2';
+var _APP_VERSION = '3.3.3';
 function _checkNovita(){
   var vLetta = localStorage.getItem('ct_novita_v');
   if(vLetta !== _APP_VERSION){
@@ -7696,13 +7709,14 @@ var METEO_DESC = {
 
 /* ---------- WIDGET CONF ---------- */
 var WIDGET_DEF = {
-  turno:    { label: "&#9728; Turno oggi",      default: true },
-  prossimo: { label: "&#9200; Prossimo turno",  default: true },
-  meteo:    { label: "&#127781; Meteo reparto", default: true },
-  alert:    { label: "&#128680; Alert",         default: true },
-  scadenze: { label: "&#128197; Scadenze",      default: true },
-  agenda:   { label: "&#128467; Agenda oggi",   default: true },
-  todo:     { label: "&#9989; To-Do",           default: true }
+  turno:       { label: "&#9728; Turno oggi",      default: true },
+  prossimo:    { label: "&#9200; Prossimo turno",  default: true },
+  'turni-oggi':{ label: "&#128203; Turni di Oggi", default: true },
+  meteo:       { label: "&#127781; Meteo reparto", default: true },
+  alert:       { label: "&#128680; Alert",         default: true },
+  scadenze:    { label: "&#128197; Scadenze",      default: true },
+  agenda:      { label: "&#128467; Agenda oggi",   default: true },
+  todo:        { label: "&#9989; To-Do",           default: true }
 };
 
 function getWidgetCfg() {
@@ -7712,16 +7726,24 @@ function getWidgetCfg() {
     Object.keys(WIDGET_DEF).forEach(function(k){ def[k] = WIDGET_DEF[k].default; });
     return def;
   }
+  // Aggiungi chiavi nuove con valore default
+  Object.keys(WIDGET_DEF).forEach(function(k){ if (!(k in saved)) saved[k] = WIDGET_DEF[k].default; });
   return saved;
 }
 
 var WIDGET_ID_MAP = {
-  turno:"widget-oggi", prossimo:"widget-prossimo", meteo:"widget-meteo",
-  alert:"widget-alert", scadenze:"widget-scadenze", agenda:"widget-agenda", todo:"widget-todo"
+  turno:"widget-oggi", prossimo:"widget-prossimo", 'turni-oggi':"widget-turni-oggi",
+  meteo:"widget-meteo", alert:"widget-alert", scadenze:"widget-scadenze",
+  agenda:"widget-agenda", todo:"widget-todo"
 };
 
 function getWidgetOrder() {
-  return lsG('ct_dash_order', Object.keys(WIDGET_DEF));
+  var saved = lsG('ct_dash_order', null);
+  var allKeys = Object.keys(WIDGET_DEF);
+  if (!saved) return allKeys;
+  // Aggiungi chiavi nuove non ancora presenti nell'ordine salvato
+  allKeys.forEach(function(k) { if (saved.indexOf(k) < 0) saved.push(k); });
+  return saved;
 }
 
 function saveWidgetOrder(order) {
@@ -7855,9 +7877,9 @@ function renderDash() {
   if (cfg.agenda)   renderWidgetAgenda();
   if (cfg.todo)     renderWidgetTodo();
   var map = {
-    turno:"widget-oggi", prossimo:"widget-prossimo", meteo:"widget-meteo",
-    alert:"widget-alert", scadenze:"widget-scadenze", agenda:"widget-agenda",
-    todo:"widget-todo"
+    turno:"widget-oggi", prossimo:"widget-prossimo", 'turni-oggi':"widget-turni-oggi",
+    meteo:"widget-meteo", alert:"widget-alert", scadenze:"widget-scadenze",
+    agenda:"widget-agenda", todo:"widget-todo"
   };
   Object.keys(map).forEach(function(k) {
     var el = document.getElementById(map[k]);
@@ -10940,15 +10962,13 @@ console.log('[Firebase] FirebaseModule pronto.');
   <div class="mbox" style="max-width:400px">
     <div class="mhan"></div>
     <div class="mhd">
-      <div class="mtit">&#127381; Novità in C-TURNI v3.3.2</div>
+      <div class="mtit">&#127381; Novità in C-TURNI v3.3.3</div>
     </div>
     <div class="mbod" style="padding:14px;max-height:60vh;overflow-y:auto">
       <div style="font-size:13px;color:var(--txt2);margin-bottom:14px;line-height:1.6">Benvenuto nell'aggiornamento! Ecco le principali novità:</div>
       <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--txt)">
-        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#8593;&#8595;</span><div><strong>Fix frecce widget</strong><br><span style="font-size:12px;color:var(--txt2)">I bottoni di spostamento su prossimo turno, meteo e alert ora mostrano le frecce corrette.</span></div></div>
-        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#127968;</span><div><strong>Fix specialità reparto</strong><br><span style="font-size:12px;color:var(--txt2)">Il profilo ora mostra correttamente Forestale, Radiomobile ecc. invece di "Territoriale".</span></div></div>
-        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#128465;</span><div><strong>Reset totale migliorato</strong><br><span style="font-size:12px;color:var(--txt2)">Elimina anche l'account Firebase Auth: puoi ri-registrarti con la stessa email.</span></div></div>
-        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#128274;</span><div><strong>Registrazione scrollabile</strong><br><span style="font-size:12px;color:var(--txt2)">Il form di iscrizione ora è scrollabile su schermi piccoli, il tasto "Crea Account" è sempre visibile.</span></div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#128203;</span><div><strong>Widget "Turni di Oggi" gestibile</strong><br><span style="font-size:12px;color:var(--txt2)">Ora puoi spostare, nascondere e riordinare il widget Turni di Oggi dal pannello Organizza.</span></div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#9881;</span><div><strong>Nuovi widget nel pannello Organizza</strong><br><span style="font-size:12px;color:var(--txt2)">Tutti i widget della dashboard sono ora visibili e configurabili, inclusi quelli aggiunti di recente.</span></div></div>
       </div>
     </div>
     <div class="mfoo">
@@ -10974,7 +10994,7 @@ console.log('[Firebase] FirebaseModule pronto.');
     <!-- Motto -->
     <div id="egg-motto" style="text-align:center;font-size:11px;color:rgba(255,255,255,.6);font-style:italic;padding:0 20px 10px">&#171;Nei Secoli Fedele&#187;</div>
     <!-- Versione -->
-    <div style="text-align:center;font-size:10px;color:rgba(212,175,55,.7);padding-bottom:14px;letter-spacing:2px">C-TURNI v3.3.2</div>
+    <div style="text-align:center;font-size:10px;color:rgba(212,175,55,.7);padding-bottom:14px;letter-spacing:2px">C-TURNI v3.3.3</div>
     <div class="mfoo" style="background:rgba(0,0,0,.3);border-top:1px solid rgba(212,175,55,.2)">
       <button class="btn btn-g btn-sm" onclick="closeM('m-egg');document.body.style.overflow=''" style="width:100%">&#10005; Chiudi</button>
     </div>
