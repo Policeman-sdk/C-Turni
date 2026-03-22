@@ -6309,26 +6309,74 @@ function renderTurni(){
   }).join("");
 }
 // Bollino verificato/placeholder accanto al nome
-// Un profilo è "verificato" se: ha uid proprio, oppure esiste in ct_u con stesso nome
+// Un profilo è "verificato" se: ha uid proprio, oppure è l'utente loggato (ct_my_pid), oppure esiste in ct_u con stesso nome
 function _badgeP(p){
   if(!p) return '';
   // Ha uid diretto → verificato
   if(p.uid) return '<span class="badge-verificato" title="Registrato su C-Turni">&#10003;</span>';
-  // È un placeholder senza uid → non registrato
-  if(p.placeholder) return '<span class="badge-placeholder" title="Non ancora registrato su C-Turni">&#9711;</span>';
-  // Cerca in ct_u per nome (utenti registrati via Firebase)
+  // È l'utente loggato (match per pid salvato)
+  var myPid = localStorage.getItem('ct_my_pid');
+  if(myPid && String(p.id) === String(myPid)){
+    return '<span class="badge-verificato" title="Registrato su C-Turni">&#10003;</span>';
+  }
+  // Cerca in ct_u per nome — match robusto case-insensitive
   var U = lsG('ct_u', []);
   var pn = (p.nome||'').toLowerCase().trim();
+  // Normalizza: rimuove spazi multipli
+  pn = pn.replace(/\s+/g,' ');
   var found = U.some(function(u){
-    var un = ((u.cognome||'')+' '+(u.nome||'')).toLowerCase().trim();
-    var un2 = ((u.nome||'')+' '+(u.cognome||'')).toLowerCase().trim();
-    return un === pn || un2 === pn || (u.nome||'').toLowerCase().trim() === pn;
+    var c = (u.cognome||'').toLowerCase().trim();
+    var n = (u.nome||'').toLowerCase().trim();
+    // Tutte le combinazioni possibili
+    var varianti = [
+      (c+' '+n).replace(/\s+/g,' ').trim(),
+      (n+' '+c).replace(/\s+/g,' ').trim(),
+      c, n
+    ].filter(function(v){ return v.length > 1; });
+    return varianti.some(function(v){ return v === pn; });
   });
   if(found) return '<span class="badge-verificato" title="Registrato su C-Turni">&#10003;</span>';
-  return '';
+  // È un placeholder senza uid → non registrato
+  if(p.placeholder) return '<span class="badge-placeholder" title="Non ancora registrato su C-Turni">&#9711;</span>';
+  // Profilo importato senza corrispondenza → non registrato
+  return '<span class="badge-placeholder" title="Non ancora registrato su C-Turni">&#9711;</span>';
+}
+
+// Sincronizza ct_my_pid: se l'utente è loggato ma ct_my_pid non è impostato,
+// cerca in ct_p un profilo con nome corrispondente a ct_me
+function _syncMyPid(){
+  try {
+    var myPid = localStorage.getItem('ct_my_pid');
+    var me = lsG('ct_me', null);
+    if(!me) return;
+    var uid = me.uid || me.id;
+    // Se ct_my_pid è già impostato, verifica che esista ancora in ct_p
+    var P = lsG('ct_p', []);
+    if(myPid){
+      var exists = P.some(function(p){ return String(p.id) === String(myPid); });
+      if(exists) return; // già ok
+    }
+    // Cerca per uid diretto
+    var byUid = P.find(function(p){ return p.uid && (p.uid === uid || p.uid === me.uid); });
+    if(byUid){ localStorage.setItem('ct_my_pid', String(byUid.id)); return; }
+    // Cerca per nome+cognome (match robusto)
+    var n = (me.nome||'').toLowerCase().trim();
+    var c = (me.cognome||'').toLowerCase().trim();
+    var varianti = [
+      (c+' '+n).replace(/\s+/g,' ').trim(),
+      (n+' '+c).replace(/\s+/g,' ').trim(),
+      c, n
+    ].filter(function(v){ return v.length > 1; });
+    var byNome = P.find(function(p){
+      var pn = (p.nome||'').toLowerCase().trim().replace(/\s+/g,' ');
+      return varianti.some(function(v){ return v === pn || pn === v; });
+    });
+    if(byNome){ localStorage.setItem('ct_my_pid', String(byNome.id)); }
+  } catch(e){ console.warn('_syncMyPid:', e); }
 }
 
 function renderPers(){
+  _syncMyPid();
   var tb=document.getElementById("tb-pers");
   var P=lsG("ct_p",[]);
   // Filtra voci legenda o placeholder (non utenti reali)
@@ -6347,9 +6395,10 @@ function renderPers(){
     var si=g.svg?"<img src=\""+g.svg+"\" style=\"width:50px;height:30px;object-fit:contain\">":"";
     var fr=(p.ferieRes!==undefined?p.ferieRes:30);
     var frC=fr>10?"var(--teal)":fr>0?"var(--gold)":"var(--red)";
-    var statoLabel = p.placeholder && !p.uid
-      ? '<span class="sb" style="background:rgba(255,159,67,.15);color:var(--orange)">&#9711; Non registrato</span>'
-      : '<span class="sb ok">Attivo</span>';
+    var _isVerif = p.uid || String(p.id) === String(localStorage.getItem('ct_my_pid'));
+    var statoLabel = _isVerif
+      ? '<span class="sb ok">Attivo</span>'
+      : '<span class="sb" style="background:rgba(255,159,67,.15);color:var(--orange)">&#9711; Non registrato</span>';
     return "<tr><td><strong>"+p.nome+"</strong>"+_badgeP(p)+"</td><td style=\"font-size:11px\">"+g.nome+"</td>"+
       "<td>"+si+"</td><td style=\"font-size:11px\">"+(p.reparto||"")+"</td>"+
       "<td>"+statoLabel+"</td><td>"+tc+"</td>"+
@@ -8056,6 +8105,7 @@ function initDopDrag() {
 function renderDash() {
   var me = lsG("ct_me", null);
   if (!me) return;
+  _syncMyPid();
   var cfg = getWidgetCfg();
   aggiornaWidget();
   if (cfg.prossimo) renderWidgetProssimo(me);
