@@ -2235,12 +2235,20 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
             <button class="btn btn-sm" style="width:auto" id="tf-done" onclick="filtraTodo('done')">&#10003; Fatti</button>
           </div>
           <div id="todo-list"><div style="text-align:center;color:var(--txt2);padding:40px">Nessun promemoria</div></div>
+          <div id="todo-condivisi-wrap" style="display:none;margin-top:16px">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--txt2);margin-bottom:8px">&#128101; Dal reparto</div>
+            <div id="todo-condivisi-list"></div>
+          </div>
         </div>
 
         <!-- Pannello Agenda -->
         <div id="cal-panel-agenda" style="display:none">
           <button class="btn btn-p btn-sm" style="width:auto;margin-bottom:12px" onclick="openM('m-agenda')">&#43; Nuovo appuntamento</button>
           <div id="agenda-list"><div style="text-align:center;color:var(--txt2);padding:40px">Nessun appuntamento</div></div>
+          <div id="agenda-condivisa-wrap" style="display:none;margin-top:16px">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--txt2);margin-bottom:8px">&#128101; Dal reparto</div>
+            <div id="agenda-condivisa-list"></div>
+          </div>
         </div>
       </div>
 
@@ -2315,7 +2323,7 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
         <h1 class="ptit">&#9881; Impostazioni</h1><p class="psub">Account, notifiche e configurazione</p>
 
         <!-- ACCESSO RAPIDO PERSONALE + GESTIONE NUCLEO -->
-        <div class="imp-section">
+        <div class="imp-section" id="sec-gestione-reparto">
           <div class="imp-section-title">&#128101; Gestione Reparto</div>
           <div style="border-radius:14px;border:1px solid var(--border);overflow:hidden">
             <div class="imp-row tap" onclick="vai('pers',{classList:{add:function(){},remove:function(){}}})">
@@ -2690,6 +2698,10 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
                   <button class="btn btn-sm notif-pre-btn" data-min="30" style="width:auto" onclick="setPreturno(30)">30 min</button>
                   <button class="btn btn-sm notif-pre-btn" data-min="60" style="width:auto" onclick="setPreturno(60)">1 ora</button>
                   <button class="btn btn-sm notif-pre-btn" data-min="120" style="width:auto" onclick="setPreturno(120)">2 ore</button>
+                  <button class="btn btn-sm notif-pre-btn" data-min="180" style="width:auto" onclick="setPreturno(180)">3 ore</button>
+                  <button class="btn btn-sm notif-pre-btn" data-min="360" style="width:auto" onclick="setPreturno(360)">6 ore</button>
+                  <button class="btn btn-sm notif-pre-btn" data-min="720" style="width:auto" onclick="setPreturno(720)">12 ore</button>
+                  <button class="btn btn-sm notif-pre-btn" data-min="1440" style="width:auto" onclick="setPreturno(1440)">24 ore</button>
                   <button class="btn btn-sm notif-pre-btn" data-min="0" style="width:auto" onclick="setPreturno(0)">Disabilitato</button>
                 </div>
               </div>
@@ -3251,6 +3263,10 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
         <option value="6">Ogni Sabato</option>
         <option value="0">Ogni Domenica</option>
       </select></div>
+    <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(66,133,244,.08);border:1px solid rgba(66,133,244,.25);border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;color:var(--blue)">
+      <input type="checkbox" id="td-condividi" style="width:18px;height:18px;accent-color:var(--blue);cursor:pointer">
+      &#128101; Condividi con il reparto
+    </label>
   </div></div>
   <div class="mfoo">
     <button class="btn btn-g btn-sm" onclick="closeM('m-todo')">Annulla</button>
@@ -3285,6 +3301,10 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
         <option value="120">2 ore prima</option>
         <option value="1440">1 giorno prima</option>
       </select></div>
+    <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(66,133,244,.08);border:1px solid rgba(66,133,244,.25);border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;color:var(--blue)">
+      <input type="checkbox" id="ag-condividi" style="width:18px;height:18px;accent-color:var(--blue);cursor:pointer">
+      &#128101; Condividi con il reparto
+    </label>
   </div></div>
   <div class="mfoo">
     <button class="btn btn-g btn-sm" onclick="closeM('m-agenda')">Annulla</button>
@@ -3708,6 +3728,8 @@ function _fallbackCopyInvite(link){
 })();
 
 function _applyJoinParam(repartoId){
+  // Segna che questa registrazione viene da un invito — forza addetto+pending
+  window._joinInviteReparto = repartoId;
   // Mostra overlay registrazione
   if(typeof AuthModule !== 'undefined' && AuthModule.showRegister) AuthModule.showRegister();
   // Nascondi scelta privato/reparto e precompila
@@ -3719,13 +3741,16 @@ function _applyJoinParam(repartoId){
     var cardRep  = document.getElementById('reg-card-reparto');
     if(cardPriv) cardPriv.style.display = 'none';
     if(cardRep)  cardRep.style.display  = 'none';
+    // Nascondi anche i campi di selezione reparto (già precompilato)
+    var campiSel = document.getElementById('reg-reparto-sel-wrap');
+    if(campiSel) campiSel.style.display = 'none';
     var campi = document.getElementById('reg-campi-reparto');
     if(campi) campi.style.display = 'block';
     window._regModalita = 'reparto';
-    // Precompila l'ID reparto
+    // Precompila l'ID reparto (bloccato, non modificabile)
     var repInput = document.getElementById('reg-reparto');
     var repPrev  = document.getElementById('reg-reparto-preview');
-    if(repInput) repInput.value = repartoId;
+    if(repInput){ repInput.value = repartoId; repInput.readOnly = true; }
     if(repPrev)  repPrev.textContent = repartoId;
     // Mostra banner
     var banner = document.getElementById('reg-invite-banner');
@@ -3771,6 +3796,23 @@ function _collegaPlaceholder(nome, cognome, uid, reparto) {
     if (found) {
       lsS('ct_p', P);
       localStorage.setItem('ct_my_pid', String(P.find(function(p){ return p.uid === uid; }).id));
+      if (window.FirebaseModule) {
+        window.FirebaseModule.savePersona().catch(function(){});
+      }
+    } else {
+      // Nessun placeholder trovato → crea nuova voce in ct_p per questo utente
+      var nuovaPersona = {
+        id: Date.now(),
+        nome: (cognome + ' ' + nome).trim(),
+        grado: '',
+        reparto: reparto || '',
+        uid: uid,
+        ferieRes: 30,
+        stato: 'pending'
+      };
+      P.push(nuovaPersona);
+      lsS('ct_p', P);
+      localStorage.setItem('ct_my_pid', String(nuovaPersona.id));
       if (window.FirebaseModule) {
         window.FirebaseModule.savePersona().catch(function(){});
       }
@@ -4058,28 +4100,36 @@ function initNotifiche(){
 function controllaNotifiche(){
   if(Notification.permission!=="granted")return;
   var me=lsG("ct_me",null);if(!me)return;
-  var prefs=lsG("ct_notif_prefs",{mattina:true,todo:true,agenda:true,festivi:true});
+  var prefs=lsG("ct_notif_prefs",{mattina:true,todo:true,agenda:true,festivi:true,preturno:true});
+  if(prefs.preturno===false)return;
   var preMin=lsG("ct_notif_pre",60);
   if(preMin<=0)return;
   var T=lsG("ct_t",[]);
   var ORI={mattina:"06:00",pomeriggio:"14:00",notte:"22:00"};
   var now=new Date();
-  var oggi=now.getFullYear()+'-'+('0'+(now.getMonth()+1)).slice(-2)+'-'+('0'+now.getDate()).slice(-2);
   var notif=lsG("ct_notif_sent",[]);
-  T.filter(function(t){return _isMyTurno(t,me)&&t.data===oggi;}).forEach(function(t){
-    var orStr=(t.orario&&t.orario.split('-')[0].trim())||ORI[t.tipo]||"06:00";
-    var parts=orStr.split(":");
-    var turnoTime=new Date();turnoTime.setHours(parseInt(parts[0]),parseInt(parts[1]),0,0);
-    var diff=(turnoTime-now)/60000;
-    var notifId=t.id+'_pre'+preMin;
-    if(diff>0&&diff<=(preMin+5)&&notif.indexOf(notifId)===-1){
-      new Notification("\u23F0 C-Turni \u2014 Turno tra "+Math.round(diff)+" min",{
-        body:"Turno "+(t.codice||t.tipo||'').toUpperCase()+" alle "+orStr,
-        icon:""
-      });
-      notif.push(notifId);lsS("ct_notif_sent",notif);
-    }
-  });
+  // Controlla turni nei prossimi 2 giorni (per anticipi lunghi come 12h/24h)
+  for(var dayOff=0; dayOff<=1; dayOff++){
+    var checkDate=new Date(now);checkDate.setDate(checkDate.getDate()+dayOff);
+    var ds=checkDate.getFullYear()+'-'+('0'+(checkDate.getMonth()+1)).slice(-2)+'-'+('0'+checkDate.getDate()).slice(-2);
+    T.filter(function(t){return _isMyTurno(t,me)&&t.data===ds;}).forEach(function(t){
+      var orStr=(t.orario&&t.orario.split('-')[0].trim())||ORI[t.tipo]||"06:00";
+      var parts=orStr.split(":");
+      var turnoTime=new Date(t.data+"T"+orStr+":00");
+      var diff=(turnoTime-now)/60000;
+      var notifId=t.id+'_pre'+preMin;
+      if(diff>0&&diff<=(preMin+5)&&notif.indexOf(notifId)===-1){
+        var titoloPre="\u23F0 C-Turni \u2014 Turno tra "+(diff>=60?Math.round(diff/60)+"h":Math.round(diff)+" min");
+        var bodyPre="Turno "+(t.codice||t.tipo||'').toUpperCase()+" alle "+orStr;
+        new Notification(titoloPre,{body:bodyPre,icon:"/C-Turni/icon-192.png"});
+        // Push FCM (arriva anche con app chiusa)
+        var sess=lsG("ct_session",null);
+        if(sess&&sess.userId&&window.FirebaseModule)
+          window.FirebaseModule.schedulePush(sess.userId,titoloPre,bodyPre).catch(function(){});
+        notif.push(notifId);lsS("ct_notif_sent",notif);
+      }
+    });
+  }
 }
 
 
@@ -4682,27 +4732,32 @@ function esportaPDF(){
 // ---- NOTIFICA MATTUTINA ----
 function scheduleNotifMattutina(){
   if(!("Notification" in window)||Notification.permission!=="granted")return;
+  var prefs=lsG("ct_notif_prefs",{mattina:true});
   var now=new Date();
   var target=new Date();target.setHours(6,0,0,0);
   if(now>target)target.setDate(target.getDate()+1);
   var ms=target-now;
   setTimeout(function(){
+    scheduleNotifMattutina();
+    var prefs2=lsG("ct_notif_prefs",{mattina:true});
+    if(prefs2.mattina===false)return;
     var me=lsG("ct_me",null);if(!me)return;
     var oggi=new Date().toISOString().slice(0,10);
     var T=lsG("ct_t",[]);
     var t=null;for(var i=0;i<T.length;i++){if(_isMyTurno(T[i],me)&&T[i].data===oggi){t=T[i];break;}}
     if(t){
-      var titoliN={mattina:"&#9728; Mattina",pomeriggio:"&#9728; Pomeriggio",notte:"&#127769; Notte"};
-      var titoloT=titoliN[t.tipo];
-      if(titoloT){
-        new Notification("C-Turni  Buongiorno "+me.nome,{
-          body:"Oggi hai il turno "+titoloT+" | "+t.orario,icon:""
-        });
-      }
+      var titoliN={mattina:"☀️ Mattina",pomeriggio:"☀️ Pomeriggio",notte:"🌙 Notte"};
+      var titoloT=titoliN[t.tipo]||t.tipo;
+      var titoloMat="C-Turni — Buongiorno "+me.nome;
+      var bodyMat="Oggi hai il turno "+titoloT+" | "+(t.orario||"");
+      new Notification(titoloMat,{body:bodyMat,icon:"/C-Turni/icon-192.png"});
+      // Push FCM (arriva anche con app chiusa)
+      var sess2=lsG("ct_session",null);
+      if(sess2&&sess2.userId&&window.FirebaseModule)
+        window.FirebaseModule.schedulePush(sess2.userId,titoloMat,bodyMat).catch(function(){});
     }
-    scheduleNotifMattutina();
-  caricaFontSize();
   },Math.min(ms,2147483647));
+  caricaFontSize();
 }
 
 
@@ -4885,16 +4940,6 @@ function salvaAgenda(){
 function delAgenda(id){
   var AG=lsG("ct_ag",[]).filter(function(x){return x.x!==id;});
   lsS("ct_ag",AG.filter(function(x){return x.id!==id;}));renderAgenda();
-}
-function schedulaNotifAgenda(item){
-  if(!("Notification" in window)||Notification.permission!=="granted")return;
-  var dt=new Date(item.data+"T"+(item.ora||"08:00")+":00");
-  var ms=dt-Date.now()-(item.notif*60000);
-  if(ms<=0)return;
-  setTimeout(function(){
-    new Notification("&#128197; C-Turni  "+item.tit,{
-      body:(item.ora?"Ore "+item.ora+" | ":"")+(item.luogo||""),icon:""});
-  },Math.min(ms,2147483647));
 }
 
 
@@ -5205,7 +5250,7 @@ function aggNotifStatus(){
   var p=Notification.permission;
   if(el){if(p==="granted")el.innerHTML="&#10003; Attive";else if(p==="denied")el.innerHTML="&#9940; Bloccate &#8212; sblocca nel browser";else el.textContent="Tocca per abilitare";}
   if(tog)tog.classList.toggle("on",p==="granted");
-  var prefs=lsG("ct_notif_prefs",{mattina:true,todo:true,agenda:true,festivi:true});
+  var prefs=lsG("ct_notif_prefs",{mattina:true,todo:true,agenda:true,festivi:true,preturno:true});
   ["mattina","todo","agenda","festivi"].forEach(function(k){var t=document.getElementById("tog-notif-"+k);if(t)t.classList.toggle("on",prefs[k]!==false);});
   var pre=lsG("ct_notif_pre",60);
   var subEl=document.getElementById("sub-preturno");
@@ -5215,19 +5260,19 @@ function aggNotifStatus(){
 function toggleNotifMaster(){
   if(!("Notification" in window)){toast("Non supportato","err");return;}
   if(Notification.permission==="granted"){toast("Per revocare usa le impostazioni del browser","info");return;}
-  if(Notification.permission==="denied"){toast("&#9940; Notifiche bloccate — sblocca nelle impostazioni del browser","err");return;}
+  if(Notification.permission==="denied"){toast("🚫 Notifiche bloccate — sblocca nelle impostazioni del browser","err");return;}
   Notification.requestPermission().then(function(r){
     aggNotifStatus();
     if(r==="granted"){
-      toast("&#128276; Notifiche abilitate!","ok");
+      toast("🔔 Notifiche abilitate!","ok");
       scheduleAllTodoNotif();
       lsG("ct_ag",[]).forEach(function(a){if(a.notif>0)schedulaNotifAgenda(a);});
       scheduleNotifMattutina();
       // Notifica di test immediata
       setTimeout(function(){
-        new Notification("&#128276; C-Turni — Notifiche attive",{
+        new Notification("🔔 C-Turni — Notifiche attive",{
           body:"Riceverai avvisi per turni, to-do e appuntamenti.",
-          icon:""
+          icon:"/C-Turni/icon-192.png"
         });
       },500);
     } else {
@@ -5236,26 +5281,40 @@ function toggleNotifMaster(){
   });
 }
 function toggleNotifPref(key,btn){
-  var prefs=lsG("ct_notif_prefs",{mattina:true,todo:true,agenda:true,festivi:true});
+  var prefs=lsG("ct_notif_prefs",{mattina:true,todo:true,agenda:true,festivi:true,preturno:true});
   prefs[key]=!prefs[key];lsS("ct_notif_prefs",prefs);
   if(btn)btn.classList.toggle("on",prefs[key]);
-  toast((prefs[key]?"? ":"&#128277; ")+key+(prefs[key]?" attivo":" disattivato"),"ok");
+  _syncNotifPrefs();
+  toast((prefs[key]?"✅ ":"🔕 ")+key+(prefs[key]?" attivo":" disattivato"),"ok");
 }
 function setPreturno(min){
   lsS("ct_notif_pre",min);aggNotifStatus();toggleImpSec("sec-preturno","arr-pre");
-  toast(min>0?"&#9200; "+(min>=60?(min/60)+"h":""+min+"min")+" prima":"&#128277; Pre-turno off","ok");
+  _syncNotifPrefs();
+  toast(min>0?"⏰ "+(min>=60?(min/60)+"h":""+min+"min")+" prima":"🔕 Pre-turno off","ok");
+}
+// Salva preferenze notifiche nel profilo utente su Firestore
+function _syncNotifPrefs(){
+  if(!window.FirebaseModule) return;
+  var sess=lsG("ct_session",null);
+  if(!sess||!sess.userId) return;
+  var me=lsG("ct_me",null);
+  if(!me) return;
+  me.notif_prefs=lsG("ct_notif_prefs",{});
+  me.notif_pre=lsG("ct_notif_pre",60);
+  lsS("ct_me",me);
+  window.FirebaseModule.saveUserProfile(sess.userId,me,me.reparto).catch(function(){});
 }
 
 function inviaNotifTest(){
   if(!("Notification" in window)||Notification.permission!=="granted"){
-    toast("&#9940; Abilita prima le notifiche","err");return;
+    toast("🚫 Abilita prima le notifiche","err");return;
   }
   var me=lsG("ct_me",null);
-  new Notification("&#128276; C-Turni — Test notifica",{
+  new Notification("🔔 C-Turni — Test notifica",{
     body:"Ciao "+(me?me.nome:"!")+" — le notifiche funzionano correttamente.",
-    icon:""
+    icon:"/C-Turni/icon-192.png"
   });
-  toast("&#128276; Notifica inviata","ok");
+  toast("🔔 Notifica inviata","ok");
 }
 
 // ---- FESTIVIT ----
@@ -5295,7 +5354,8 @@ function schedulaNotifTodo(item){
   var dt=new Date(item.data+"T08:00:00"),ms=dt-Date.now();if(ms<=0)return;
   setTimeout(function(){
     new Notification("\u2705 C-Turni \u2014 "+item.tit,{
-      body:(item.prio==="alta"?"\uD83D\uDD34 Alta priorit\u00E0\n":"")+(item.note||"Promemoria di oggi")
+      body:(item.prio==="alta"?"\uD83D\uDD34 Alta priorit\u00E0\n":"")+(item.note||"Promemoria di oggi"),
+      icon:"/C-Turni/icon-192.png"
     });
   },Math.min(ms,2147483647));
 }
@@ -5309,13 +5369,20 @@ function salvaTodo(){
   var item={id:Date.now(),tit:tit,note:document.getElementById("td-note").value.trim(),
     prio:document.getElementById("td-prio").value,data:document.getElementById("td-data").value||"",
     ora:ora,ricor:document.getElementById("td-ricor").value||"",done:false};
+  var condividi = document.getElementById('td-condividi') && document.getElementById('td-condividi').checked;
+  if(condividi){
+    var me=lsG('ct_me',null);
+    item.condiviso=true; item.autore=(me?(me.nome||'')+(me.cognome?' '+me.cognome:''):'').trim(); item.autoreUid=me?me.uid:'';
+    if(window.FirebaseModule) window.FirebaseModule.saveTodoCondiviso(item).catch(function(){});
+  }
   var TD=lsG("ct_td",[]);TD.push(item);lsS("ct_td",TD);
   if(window.FirebaseModule)window.FirebaseModule.saveTodo(TD);
   schedulaNotifTodo(item);
   if(ora&&item.data)_schedulaNotifPrecisa("\u23F0 To-Do: "+tit,item.data,ora);
   closeM("m-todo");renderTodo();
+  var chk=document.getElementById('td-condividi');if(chk)chk.checked=false;
   ["td-tit","td-note","td-data","td-ora"].forEach(function(id){var e=document.getElementById(id);if(e)e.value="";});
-  toast("Promemoria salvato","ok");
+  toast(condividi?"Promemoria condiviso con il reparto":"Promemoria salvato","ok");
 }
 
 // ---- AGENDA ----
@@ -5324,7 +5391,7 @@ function schedulaNotifAgenda(item){
   if(!("Notification" in window)||Notification.permission!=="granted")return;
   var dt=new Date(item.data+"T"+(item.ora||"08:00")+":00"),ms=dt-Date.now()-(item.notif*60000);
   if(ms<=0)return;
-  setTimeout(function(){new Notification("&#128197; C-Turni  "+item.tit,{body:(item.ora?"Ore "+item.ora+" | ":"")+(item.luogo||"")});},Math.min(ms,2147483647));
+  setTimeout(function(){new Notification("📅 C-Turni — "+item.tit,{body:(item.ora?"Ore "+item.ora+" | ":"")+(item.luogo||""),icon:"/C-Turni/icon-192.png"});},Math.min(ms,2147483647));
 }
 function salvaAgenda(){
   var tit=document.getElementById("ag-tit").value.trim(),dt=document.getElementById("ag-data").value;
@@ -5333,12 +5400,19 @@ function salvaAgenda(){
   var item={id:Date.now(),tit:tit,data:dt,ora:document.getElementById("ag-ora").value||"",
     luogo:document.getElementById("ag-luogo").value.trim()||"",note:document.getElementById("ag-note").value.trim()||"",
     notif:parseInt(document.getElementById("ag-notif").value)||0};
+  var condividi = document.getElementById('ag-condividi') && document.getElementById('ag-condividi').checked;
+  if(condividi){
+    var me=lsG('ct_me',null);
+    item.condiviso=true; item.autore=(me?(me.nome||'')+(me.cognome?' '+me.cognome:''):'').trim(); item.autoreUid=me?me.uid:'';
+    if(window.FirebaseModule) window.FirebaseModule.saveAgendaCondivisa(item).catch(function(){});
+  }
   var AG=lsG("ct_ag",[]);AG.push(item);AG.sort(function(a,b){return a.data>b.data?1:-1;});lsS("ct_ag",AG);
   if(item.notif>0)schedulaNotifAgenda(item);
   if(window.FirebaseModule) window.FirebaseModule.saveAgenda(AG).catch(function(){});
   closeM("m-agenda");renderAgenda();
+  var chk=document.getElementById('ag-condividi');if(chk)chk.checked=false;
   ["ag-tit","ag-data","ag-ora","ag-luogo","ag-note"].forEach(function(id){var e=document.getElementById(id);if(e)e.value="";});
-  toast("Appuntamento salvato","ok");
+  toast(condividi?"Appuntamento condiviso con il reparto":"Appuntamento salvato","ok");
 }
 function delAgenda(id){
   var AG = lsG("ct_ag",[]).filter(function(x){return x.id!==id;});
@@ -5361,6 +5435,51 @@ function renderAgenda(){
       '<button onclick="delAgenda('+a.id+')" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:16px;appearance:none;-webkit-appearance:none">&#128465;</button>'+
       '</div></div>';
   }).join("");
+}
+
+// ---- TODO/AGENDA CONDIVISI ----
+function renderTodoCondivisi(){
+  var wrap=document.getElementById('todo-condivisi-wrap');
+  var el=document.getElementById('todo-condivisi-list');
+  if(!el)return;
+  var TD=lsG('ct_td_condivisi',[]);
+  if(!TD.length){if(wrap)wrap.style.display='none';return;}
+  if(wrap)wrap.style.display='block';
+  el.innerHTML=TD.map(function(t){
+    var scad=t.data?'<span style="font-size:10px;color:var(--txt2);margin-left:6px">&#128197; '+t.data.split('-').reverse().join('/')+'</span>':"";
+    var autore=t.autore?'<span style="font-size:10px;color:var(--txt2)"> — '+t.autore+'</span>':"";
+    var delBtn='<button onclick="delTodoCondiviso('+t.id+')" title="Elimina / Completato" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:14px;appearance:none;-webkit-appearance:none;flex-shrink:0">&#128465;</button>';
+    return '<div class="todo-item" style="opacity:'+(t.done?.5:1)+'">'
+      +'<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13px">&#128101; '+t.tit+autore+'</div>'
+      +(t.note?'<div style="font-size:11px;color:var(--txt2);margin-top:2px">'+t.note+'</div>':"")
+      +scad+'</div>'+delBtn+'</div>';
+  }).join('');
+}
+function renderAgendaCondivisa(){
+  var wrap=document.getElementById('agenda-condivisa-wrap');
+  var el=document.getElementById('agenda-condivisa-list');
+  if(!el)return;
+  var AG=lsG('ct_ag_condivisa',[]).filter(function(x){return x.data>=new Date().toISOString().slice(0,10);});
+  if(!AG.length){if(wrap)wrap.style.display='none';return;}
+  if(wrap)wrap.style.display='block';
+  var mN=["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
+  el.innerHTML=AG.map(function(a){
+    var d=new Date(a.data+"T00:00:00"),ds=d.getDate()+" "+mN[d.getMonth()]+" "+d.getFullYear();
+    var ora=a.ora?'<span style="margin-left:6px;color:var(--blue)">&#128336; '+a.ora+'</span>':"";
+    var autore=a.autore?'<span style="font-size:10px;color:var(--txt2)"> — '+a.autore+'</span>':"";
+    var delBtn='<button onclick="delAgendaCondivisa('+a.id+')" title="Elimina / Completato" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:16px;appearance:none;-webkit-appearance:none">&#128465;</button>';
+    return '<div class="ag-item"><div style="display:flex;justify-content:space-between;align-items:flex-start">'
+      +'<div><div style="font-weight:700;font-size:13px">&#128101; '+a.tit+autore+'</div>'
+      +'<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128197; '+ds+ora+'</div>'
+      +(a.luogo?'<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128205; '+a.luogo+'</div>':"")
+      +'</div>'+delBtn+'</div></div>';
+  }).join('');
+}
+function delTodoCondiviso(id){
+  if(window.FirebaseModule) window.FirebaseModule.deleteTodoCondiviso(id).catch(function(){});
+}
+function delAgendaCondivisa(id){
+  if(window.FirebaseModule) window.FirebaseModule.deleteAgendaCondivisa(id).catch(function(){});
 }
 
 // ---- FERIE ----
@@ -5665,6 +5784,11 @@ function salvaOrarioSingolo(k){
   o[k] = {in: i.value, out: u.value};
   lsS('ct_orari', o);
   aggOrarioSub(k);
+  // Sincronizza su Firebase per tutto il reparto (solo comandante/vice)
+  var me = lsG('ct_me', null);
+  if(me && (me.ruolo === 'comandante' || me.ruolo === 'vice') && window.FirebaseModule) {
+    window.FirebaseModule.saveOrariPreset(o).catch(function(){});
+  }
   // chiudi riga
   var body = document.getElementById('or-body-'+k);
   var arr = document.getElementById('or-arr-'+k);
@@ -6474,6 +6598,9 @@ function aggUI(){
     // Mostra bottone Approvazione Militari solo per comandante
     var btnNucleo = document.getElementById('btn-gestione-nucleo');
     if(btnNucleo) btnNucleo.style.display = isCom ? 'flex' : 'none';
+    // Nascondi intera sezione Gestione Reparto per gli addetti
+    var secGestRep = document.getElementById('sec-gestione-reparto');
+    if(secGestRep) secGestRep.style.display = isCom ? 'block' : 'none';
     // Mostra sezione trasferimento solo se utente approvato
     var secTrasf = document.getElementById('sec-trasferimento');
     if(secTrasf) secTrasf.style.display = (u && u.stato === 'approved') ? 'block' : 'none';
@@ -6709,6 +6836,30 @@ function renderPers(){
     if(p.tipo==="legenda") return false;
     return true;
   });
+  // Aggiungi utenti Firebase approvati che non sono già in ct_p
+  var me = lsG('ct_me', null);
+  var myRep = (me && me.reparto) ? me.reparto.toLowerCase() : '';
+  var fbUsers = lsG('ct_users', []);
+  fbUsers.forEach(function(u){
+    if(!u.uid || !u.nome) return;
+    if(u.stato === 'pending' || u.stato === 'rejected') return;
+    var uRep = (u.reparto||'').toLowerCase();
+    if(myRep && uRep !== myRep) return;
+    // Controlla se già presente in ct_p tramite uid
+    var exists = P.some(function(p){ return p.uid === u.uid; });
+    if(!exists){
+      P.push({
+        id: u.id || u.uid,
+        nome: ((u.cognome||'') + ' ' + (u.nome||'')).trim() || u.nome,
+        grado: u.grado || '',
+        reparto: u.reparto || '',
+        uid: u.uid,
+        ava: u.ava || '',
+        ferieRes: u.ferieRes || u.ferie || 30,
+        _fromFirebase: true
+      });
+    }
+  });
   if(!P.length){tb.innerHTML="<tr><td colspan=\"7\" class=\"empty\">Nessuna persona inserita</td></tr>";return;}
   var T=lsG("ct_t",[]);
   tb.innerHTML=P.map(function(p){
@@ -6721,11 +6872,12 @@ function renderPers(){
     var statoLabel = _isVerif
       ? '<span class="sb ok">Attivo</span>'
       : '<span class="sb" style="background:rgba(255,159,67,.15);color:var(--orange)">&#9711; Non registrato</span>';
+    var delBtn = p._fromFirebase ? '' : "<button class=\"btn btn-d btn-xs\" onclick=\"delP("+p.id+")\">&#128465;</button>";
     return "<tr><td><strong>"+p.nome+"</strong>"+_badgeP(p)+"</td><td style=\"font-size:11px\">"+g.nome+"</td>"+
       "<td>"+si+"</td><td style=\"font-size:11px\">"+(p.reparto||"")+"</td>"+
       "<td>"+statoLabel+"</td><td>"+tc+"</td>"+
       "<td style=\"font-weight:800;color:"+frC+"\">"+fr+"</td>"+
-      "<td><button class=\"btn btn-d btn-xs\" onclick=\"delP("+p.id+")\">&#128465;</button></td></tr>";
+      "<td>"+delBtn+"</td></tr>";
   }).join("");
 }
 
@@ -6790,7 +6942,14 @@ function salvaTurno(){
   T.push(_nt);
   lsS("ct_t",T);
   if(window.FirebaseModule)window.FirebaseModule.saveTurni(T);
-  renderTurni();renderOggi();stats();aggiornaWidget();closeM("m-turno");
+  renderTurni();renderOggi();stats();aggiornaWidget();
+  closeM("m-turno");
+  closeM("m-giorno");
+  // Se eravamo nel calendario, aggiorna la vista del giorno
+  if(_nt.data && typeof mostraGiorno === 'function') {
+    var _mgTit = document.getElementById('mg-tit');
+    if(_mgTit) { openM('m-giorno'); mostraGiorno(_nt.data); }
+  }
   checkFestivoTurno(_nt);
   notificaTurno(_nt.pnome,_nt.tipo,_nt.data);
   document.getElementById("mt-tipo").value="";document.getElementById("mt-note").value="";
@@ -6906,16 +7065,22 @@ function mostraGiorno(ds){
   if(!T.length){
     body="<div style=\"text-align:center;color:var(--txt2);padding:20px;font-size:12px\">Nessun turno in questo giorno</div>";
   }else{
+    var _fbUsers = lsG('ct_users', []);
     T.forEach(function(t){
       var p=P.find(function(x){return x.id===t.pid;});
-      // Grado: prima dalla persona, poi dal turno stesso
-      var gradoKey = (p&&p.grado) ? p.grado : '';
+      // Cerca anche in ct_users (Firebase) per ava e grado aggiornati
+      var uFb = _fbUsers.find(function(u){ return u.uid===t.uid || (p && u.uid===p.uid); });
+      // Grado: prima da Firebase, poi da ct_p, poi dal turno
+      var gradoKey = (uFb&&uFb.grado) ? uFb.grado : ((p&&p.grado) ? p.grado : '');
       var gn = gradoKey && GR[gradoKey] ? GR[gradoKey].nome : (gradoKey || '');
       var gi = gradoKey && GR[gradoKey] ? GR[gradoKey].svg : '';
+      // Foto: prima da Firebase, poi da ct_p
+      var ava = (uFb&&uFb.ava) ? uFb.ava : (p&&p.ava ? p.ava : '');
       var _sigla=t.codice||(t.tipo?t.tipo.substring(0,2).toUpperCase():"");
       var _orStr=t.orario&&t.orario.indexOf("-")>0?t.orario:"";
       body+="<div class=\"day-item\" style=\"cursor:pointer\" onclick=\"apriModificaTurnoGiorno("+t.id+")\">";
-      if(gi) body+="<img src=\""+gi+"\" style=\"width:44px;height:28px;object-fit:contain;border-radius:4px;flex-shrink:0\">";
+      if(ava) body+="<div style=\"width:44px;height:44px;border-radius:50%;background:url('"+ava+"') center/cover;flex-shrink:0\"></div>";
+      else if(gi) body+="<img src=\""+gi+"\" style=\"width:44px;height:28px;object-fit:contain;border-radius:4px;flex-shrink:0\">";
       else   body+="<div style=\"width:44px;height:28px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0\">&#128100;</div>";
       body+="<div style=\"flex:1;min-width:0\"><div style=\"font-weight:700;font-size:13px\">"+t.pnome+"</div>";
       body+="<div style=\"font-size:10px;color:var(--txt2)\">"+gn+"</div></div>";
@@ -7984,12 +8149,12 @@ function vai(pg, btn) {
   // FAB: visibile SOLO sulla dashboard — gestito qui per coprire tutti i percorsi di navigazione
   _aggFabVisibility(pg);
   if(pg==="pers"){ renderPers(); if(typeof _renderStatoComando==='function') _renderStatoComando(); }
-  if(pg==="cal") { renderCal(); renderTodo(); renderAgenda(); }
+  if(pg==="cal") { renderCal(); renderTodo(); renderAgenda(); renderTodoCondivisi(); renderAgendaCondivisa(); }
   if(pg==="rep") renderRep();
   if(pg==="straord") { renderStraord(); }
   if(pg==="imp"){ aggUI(); caricaSaldoFerie(); aggNotifStatus(); aggTemaUI(lsG("ct_tema","")||""); aggLastBackupDate(); caricaFontSize(); if(typeof GSync!=='undefined'&&GSync.ui) GSync.ui.renderPanel(); }
-  if(pg==="todo"){ renderTodo(); filtraTodo(_tdFiltro); }
-  if(pg==="agenda") renderAgenda();
+  if(pg==="todo"){ renderTodo(); filtraTodo(_tdFiltro); renderTodoCondivisi(); }
+  if(pg==="agenda") { renderAgenda(); renderAgendaCondivisa(); }
   if(pg==="membri") renderGestioneNucleo();
 }
 
@@ -8665,7 +8830,7 @@ function salvaScadenza() {
   SC.push(item);
   lsS('ct_scadenze', SC);
   // Schedula notifica browser precisa
-  if (ora) _schedulaNotifPrecisa('&#9200; Scadenza: ' + tit, data, ora);
+  if (ora) _schedulaNotifPrecisa('⏰ Scadenza: ' + tit, data, ora);
   ['sc-tit','sc-data','sc-ora','sc-note'].forEach(function(id){ var e = document.getElementById(id); if(e) e.value = ''; });
   closeM('m-scadenza');
   renderWidgetScadenze();
@@ -8785,24 +8950,20 @@ function _schedulaNotifPrecisa(titolo, data, ora) {
   var ms = dt - Date.now();
   if (ms <= 0) return;
   setTimeout(function() {
-    new Notification('&#9201; C-Turni', { body: titolo, icon: '' });
+    new Notification(titolo, { body: '⏰ Promemoria C-Turni', icon: '/C-Turni/icon-192.png' });
+    // Push FCM (arriva anche con app chiusa)
+    var sess=lsG("ct_session",null);
+    if(sess&&sess.userId&&window.FirebaseModule)
+      window.FirebaseModule.schedulePush(sess.userId,titolo,'⏰ Promemoria C-Turni').catch(function(){});
   }, Math.min(ms, 2147483647));
 }
 
 /* ---------- SALVA TODO con sveglia ---------- */
-// Estendi salvaTodo per supportare il campo ora
+// Estendi salvaTodo per supportare reset campo ora dopo salvataggio
 var _origSalvaTodo = salvaTodo;
 salvaTodo = function() {
-  // Legge l'ora prima di chiamare l'originale
   var oraEl = document.getElementById('td-ora');
-  var dataEl = document.getElementById('td-data');
-  var titEl = document.getElementById('td-tit');
-  var ora = oraEl ? oraEl.value : '';
-  var data = dataEl ? dataEl.value : '';
-  var tit = titEl ? titEl.value.trim() : '';
   _origSalvaTodo();
-  // Schedula notifica precisa se ora presente
-  if (ora && data && tit) _schedulaNotifPrecisa('? To-Do: ' + tit, data, ora);
   if (oraEl) oraEl.value = '';
 };
 
@@ -10479,7 +10640,7 @@ var AuthModule = (function() {
           var nomeFromEmail = emailParts[0] ? (emailParts[0].charAt(0).toUpperCase()+emailParts[0].slice(1)) : emailLocal;
           var cognomeFromEmail = emailParts[1] ? (emailParts[1].charAt(0).toUpperCase()+emailParts[1].slice(1)) : '';
           profile = { email: fbUser.email, nome: fbUser.displayName || nomeFromEmail,
-                      cognome: cognomeFromEmail, ruolo: 'comandante', stato: 'approved', reparto: 'default' };
+                      cognome: cognomeFromEmail, ruolo: 'addetto', stato: 'approved', reparto: 'default' };
         }
         // Fix profili vecchi: nome="emanuele.culatto" senza cognome separato
         if(profile.nome && !(profile.cognome && profile.cognome.trim())){
@@ -10596,19 +10757,26 @@ var AuthModule = (function() {
         var ruoloFinale = 'addetto';
         var stato = 'approved';
         if (!_isPrivato(repartoFinale)) {
-          // Se nessun comandante approvato esiste → primo iscritto diventa comandante approved
-          var existingUsers = await window.FirebaseModule.getUsersByReparto(repartoFinale);
+          // Se registrazione da link invito → sempre addetto+pending (il reparto ha già un comandante)
+          if (window._joinInviteReparto) {
+            ruoloFinale = 'addetto';
+            stato = 'pending';
+            window._joinInviteReparto = null; // reset flag
+          } else {
+            // Se nessun comandante approvato esiste → primo iscritto diventa comandante approved
+            var existingUsers = await window.FirebaseModule.getUsersByReparto(repartoFinale);
 
-          var hasCmdApproved = existingUsers.some(function(u) {
+            var hasCmdApproved = existingUsers.some(function(u) {
 
-            return u.ruolo === 'comandante' && u.stato === 'approved';
+              return u.ruolo === 'comandante' && u.stato === 'approved';
 
-          });
+            });
 
-          // Pioniere: nessun utente nel reparto → comandante approved
-          var isPioniere = existingUsers.length === 0 || !hasCmdApproved;
-          ruoloFinale = isPioniere ? 'comandante' : 'addetto';
-          stato = isPioniere ? 'approved' : 'pending';
+            // Pioniere: nessun utente nel reparto → comandante approved
+            var isPioniere = existingUsers.length === 0 || !hasCmdApproved;
+            ruoloFinale = isPioniere ? 'comandante' : 'addetto';
+            stato = isPioniere ? 'approved' : 'pending';
+          }
         }
 
 
@@ -11062,6 +11230,33 @@ function _startListeners(reparto) {
 
     if(typeof window.AuthModule !== 'undefined') window.AuthModule.renderGestioneMemebri();
   }, function(e){ console.warn('onSnapshot utenti:', e.message); }));
+
+  // Todo condivisi del reparto
+  var todoCondRef = collection(db, 'reparti', reparto, 'todo_condivisi');
+  _unsubscribers.push(onSnapshot(todoCondRef, function(snap) {
+    var arr = []; snap.forEach(function(d){ arr.push(d.data()); });
+    localStorage.setItem('ct_td_condivisi', JSON.stringify(arr));
+    if(typeof window.renderTodoCondivisi === 'function') window.renderTodoCondivisi();
+  }, function(e){ console.warn('onSnapshot todo_condivisi:', e.message); }));
+
+  // Agenda condivisa del reparto
+  var agCondRef = collection(db, 'reparti', reparto, 'agenda_condivisa');
+  _unsubscribers.push(onSnapshot(agCondRef, function(snap) {
+    var arr = []; snap.forEach(function(d){ arr.push(d.data()); });
+    arr.sort(function(a,b){ return a.data>b.data?1:-1; });
+    localStorage.setItem('ct_ag_condivisa', JSON.stringify(arr));
+    if(typeof window.renderAgendaCondivisa === 'function') window.renderAgendaCondivisa();
+  }, function(e){ console.warn('onSnapshot agenda_condivisa:', e.message); }));
+
+  // Orari preset del reparto (sync per tutti i membri)
+  var orariRef = doc(db, 'reparti', reparto, 'config', 'orari');
+  _unsubscribers.push(onSnapshot(orariRef, function(snap) {
+    if(snap.exists()) {
+      var orari = snap.data();
+      localStorage.setItem('ct_orari', JSON.stringify(orari));
+      if(typeof window.renderOrariPreset === 'function') window.renderOrariPreset();
+    }
+  }, function(e){ console.warn('onSnapshot orari:', e.message); }));
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -11072,30 +11267,33 @@ window.FirebaseModule = {
   // ── Chiamato da AuthModule.login() dopo _saveSession ────────
   onLogin: async function(session) {
     if(!session) return;
-    var rep = session.reparto.toLowerCase().replace(/\s+/g,'_');
+    var rep = (session.reparto||'').toLowerCase().replace(/\s+/g,'_');
     try {
+      // Ricarica profilo aggiornato da Firestore (ruolo, stato, grado, ecc.)
+      var uid = session.userId;
+      var profSnap = await getDoc(doc(db, 'utenti', uid));
+      if(profSnap.exists()) {
+        var prof = profSnap.data();
+        if(!prof.id) prof.id = prof.uid || uid;
+        prof.uid = uid;
+        localStorage.setItem('ct_me', JSON.stringify(prof));
+        if(typeof aggUI === 'function') aggUI();
+      }
       // Carica snapshot iniziale turni
-      var turniSnap = await getDocs(collection(db, 'reparti', rep, 'turni'));
-      var turni = [];
-      turniSnap.forEach(function(d){ turni.push(d.data()); });
-      if(turni.length > 0) localStorage.setItem('ct_t', JSON.stringify(turni));
-
-      // Carica snapshot iniziale todo
-      var todoSnap = await getDocs(collection(db, 'reparti', rep, 'todo'));
-      var todo = [];
-      todoSnap.forEach(function(d){ todo.push(d.data()); });
-      if(todo.length > 0) localStorage.setItem('ct_td', JSON.stringify(todo));
-
+      if(rep && !rep.startsWith('privato_')) {
+        var turniSnap = await getDocs(collection(db, 'reparti', rep, 'turni'));
+        var turni = []; turniSnap.forEach(function(d){ turni.push(d.data()); });
+        if(turni.length > 0) localStorage.setItem('ct_t', JSON.stringify(turni));
+      }
       // Carica utenti
       await this.syncUsers();
-
       _toast('Dati sincronizzati dal cloud', 'ok');
     } catch(e) {
       console.warn('FirebaseModule.onLogin:', e.message);
     }
     // Avvia listener real-time
-    _startListeners(rep);
-    // Inizializza FCM in background (2s di delay per dare tempo al SW di registrarsi)
+    if(rep) _startListeners(rep);
+    // Inizializza FCM in background
     setTimeout(function(){ window.FirebaseModule.initFCM().catch(function(e){ console.warn('initFCM:', e.message); }); }, 2000);
   },
 
@@ -11169,9 +11367,35 @@ window.FirebaseModule = {
           lsS('ct_u', _U2);
         }
         if(prof.ct_recuperi) lsS('ct_recuperi', prof.ct_recuperi);
+        // Ripristina preferenze notifiche dal profilo
+        if(prof.notif_prefs) {
+          lsS('ct_notif_prefs', prof.notif_prefs);
+        }
+        if(prof.notif_pre !== undefined) {
+          lsS('ct_notif_pre', prof.notif_pre);
+        }
       }
 
       await this.syncUsers();
+
+      // Carica orari preset del reparto
+      try {
+        var orariSnap = await getDoc(doc(db, 'reparti', rep, 'config', 'orari'));
+        if(orariSnap.exists()) {
+          localStorage.setItem('ct_orari', JSON.stringify(orariSnap.data()));
+        }
+      } catch(e) { console.warn('carica orari preset:', e.message); }
+
+      // Carica todo/agenda condivisi del reparto
+      try {
+        var tdCondSnap = await getDocs(collection(db, 'reparti', rep, 'todo_condivisi'));
+        var tdCond = []; tdCondSnap.forEach(function(d){ tdCond.push(d.data()); });
+        if(tdCond.length) localStorage.setItem('ct_td_condivisi', JSON.stringify(tdCond));
+        var agCondSnap = await getDocs(collection(db, 'reparti', rep, 'agenda_condivisa'));
+        var agCond = []; agCondSnap.forEach(function(d){ agCond.push(d.data()); });
+        agCond.sort(function(a,b){ return a.data>b.data?1:-1; });
+        if(agCond.length) localStorage.setItem('ct_ag_condivisa', JSON.stringify(agCond));
+      } catch(e) { console.warn('carica condivisi:', e.message); }
 
       // Ri-renderizza tutto con i dati aggiornati da Firebase
       var me = lsG('ct_me', null);
@@ -11183,7 +11407,11 @@ window.FirebaseModule = {
       if(me && typeof window.renderWidgetProssimo === 'function') window.renderWidgetProssimo(me);
       if(me && typeof window.renderWidgetMeteo    === 'function') window.renderWidgetMeteo(me);
       if(typeof window.renderTodo     === 'function') window.renderTodo();
+      if(typeof window.renderTodoCondivisi === 'function') window.renderTodoCondivisi();
+      if(typeof window.renderAgendaCondivisa === 'function') window.renderAgendaCondivisa();
+      if(typeof window.renderOrariPreset === 'function') window.renderOrariPreset();
       if(typeof window.renderRecuperi === 'function') window.renderRecuperi();
+      if(typeof window.aggNotifStatus === 'function') window.aggNotifStatus();
       window._widgetSyncPending = false;
       _hideSyncBanner();
     } catch(e) {
@@ -11196,6 +11424,20 @@ window.FirebaseModule = {
     setTimeout(function(){
       if(typeof window._ripristinaPagina === 'function') window._ripristinaPagina();
     }, 400);
+    // Inizializza FCM (anche dopo refresh pagina)
+    setTimeout(function(){
+      window.FirebaseModule.initFCM().catch(function(e){ console.warn('initFCM restore:', e.message); });
+    }, 2500);
+    // Rischedulazione notifiche todo/agenda + mattutina + pre-turno dopo caricamento dati Firebase
+    setTimeout(function(){
+      if(typeof window.scheduleAllTodoNotif === 'function') window.scheduleAllTodoNotif();
+      var ag = lsG('ct_ag', []);
+      ag.forEach(function(a){ if(a.notif > 0 && typeof window.schedulaNotifAgenda === 'function') window.schedulaNotifAgenda(a); });
+      // Rischedulazione notifica mattutina con dati aggiornati
+      if(typeof window.scheduleNotifMattutina === 'function') window.scheduleNotifMattutina();
+      // Controlla subito pre-turno con dati aggiornati
+      if(typeof window.controllaNotifiche === 'function') window.controllaNotifiche();
+    }, 1500);
   },
 
   // ── Sincronizza ct_users da Firestore ───────────────────────
@@ -11293,6 +11535,37 @@ window.FirebaseModule = {
     var uid = session && session.userId;
     if(!uid) return;
     try { await deleteDoc(doc(db, 'utenti', uid, 'agenda', String(id))); } catch(e) { console.warn('deleteAgenda:', e.message); }
+  },
+
+  // ── Todo condivisi con il reparto ───────────────────────────
+  saveTodoCondiviso: async function(item) {
+    var rep = _reparto();
+    if(!rep || !item || !item.id) return;
+    try { await setDoc(doc(db, 'reparti', rep, 'todo_condivisi', String(item.id)), item); } catch(e) { console.warn('saveTodoCondiviso:', e.message); }
+  },
+  deleteTodoCondiviso: async function(id) {
+    var rep = _reparto();
+    if(!rep) return;
+    try { await deleteDoc(doc(db, 'reparti', rep, 'todo_condivisi', String(id))); } catch(e) { console.warn('deleteTodoCondiviso:', e.message); }
+  },
+
+  // ── Agenda condivisa con il reparto ─────────────────────────
+  saveAgendaCondivisa: async function(item) {
+    var rep = _reparto();
+    if(!rep || !item || !item.id) return;
+    try { await setDoc(doc(db, 'reparti', rep, 'agenda_condivisa', String(item.id)), item); } catch(e) { console.warn('saveAgendaCondivisa:', e.message); }
+  },
+  deleteAgendaCondivisa: async function(id) {
+    var rep = _reparto();
+    if(!rep) return;
+    try { await deleteDoc(doc(db, 'reparti', rep, 'agenda_condivisa', String(id))); } catch(e) { console.warn('deleteAgendaCondivisa:', e.message); }
+  },
+
+  // ── Orari preset reparto ─────────────────────────────────────
+  saveOrariPreset: async function(orari) {
+    var rep = _reparto();
+    if(!rep || !orari) return;
+    try { await setDoc(doc(db, 'reparti', rep, 'config', 'orari'), orari); } catch(e) { console.warn('saveOrariPreset:', e.message); }
   },
 
   // ── Salva profilo personale (ct_me) su Firestore ────────────
