@@ -115,23 +115,128 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 .swipe-item.swiping{transition:none}
 
 /* ── 4. FAB ── */
-.fab-wrap{position:fixed;bottom:76px;right:18px;z-index:9000;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
-.fab-main{width:56px;height:56px;border-radius:50%;background:var(--blue);color:#fff;border:none;font-size:26px;cursor:pointer;
-  box-shadow:0 4px 20px rgba(41,121,255,.45);display:flex;align-items:center;justify-content:center;
-  transition:transform .4s cubic-bezier(0.2,0,0,1),background .2s,box-shadow .3s;appearance:none;-webkit-appearance:none;flex-shrink:0;
-  transform:scale(0);opacity:0}
-.fab-main.visible{transform:scale(1);opacity:1}
-.fab-main.open{transform:scale(1) rotate(45deg);background:var(--red);box-shadow:0 6px 24px rgba(229,62,62,.5)}
-.fab-items{display:flex;flex-direction:column;align-items:flex-end;gap:8px;pointer-events:none}
-.fab-items.open{pointer-events:all}
-.fab-item{display:flex;align-items:center;gap:10px;opacity:0;transform:translateY(16px) scale(.85);
-  transition:opacity .3s cubic-bezier(0.2,0,0,1),transform .35s cubic-bezier(0.2,0,0,1)}
+/* Contenitore padre flex: bottom nav + FAB sulla stessa riga */
+#bottom-bar-wrap {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 500;
+  display: flex;
+  align-items: flex-end;
+  pointer-events: none;   /* il wrapper non cattura click */
+}
+
+/* Bottom nav: occupa tutto lo spazio, si restringe quando FAB è visibile */
+#bottom-nav {
+  flex: 1 1 auto;
+  min-width: 0;
+  pointer-events: none;
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+  background: transparent;
+  transition: width .35s cubic-bezier(0.2,0,0,1);
+}
+
+/* Quando il FAB è visibile la nav lascia spazio (80px slot + 8px gap) */
+#bottom-bar-wrap.fab-active #bottom-nav {
+  padding-right: 0;
+}
+
+/* Slot FAB: larghezza fissa, non si restringe mai */
+#fab-slot {
+  flex-shrink: 0;
+  width: 0;
+  overflow: visible;
+  pointer-events: none;
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  padding-right: 12px;
+  transition: width .35s cubic-bezier(0.2,0,0,1);
+}
+#bottom-bar-wrap.fab-active #fab-slot {
+  width: 80px;
+}
+
+/* FAB wrap: posizionato dentro lo slot */
+.fab-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.fab-main {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  font-size: 26px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(41,121,255,.45);
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: all;
+  appearance: none; -webkit-appearance: none;
+  flex-shrink: 0;
+  /* parte da scale(0), compare solo su dashboard */
+  transform: scale(0);
+  opacity: 0;
+  transition: transform .4s cubic-bezier(0.2,0,0,1),
+              background .2s,
+              opacity .3s cubic-bezier(0.2,0,0,1),
+              box-shadow .3s;
+}
+.fab-main.visible {
+  transform: scale(1);
+  opacity: 1;
+  pointer-events: all;
+}
+.fab-main.open {
+  transform: scale(1) rotate(45deg);
+  background: var(--red);
+  box-shadow: 0 6px 24px rgba(229,62,62,.5);
+}
+
+.fab-items {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  pointer-events: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+}
+.fab-items.open { pointer-events: all; }
+
+.fab-item {
+  display: flex; align-items: center; gap: 10px;
+  opacity: 0;
+  transform: translateY(16px) scale(.85);
+  transition: opacity .3s cubic-bezier(0.2,0,0,1),
+              transform .35s cubic-bezier(0.2,0,0,1);
+}
 .fab-items.open .fab-item:nth-child(1){opacity:1;transform:translateY(0) scale(1);transition-delay:.05s}
 .fab-items.open .fab-item:nth-child(2){opacity:1;transform:translateY(0) scale(1);transition-delay:.1s}
 .fab-items.open .fab-item:nth-child(3){opacity:1;transform:translateY(0) scale(1);transition-delay:.15s}
-.fab-item-btn{width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 12px rgba(0,0,0,.25);appearance:none;-webkit-appearance:none;transition:transform .2s cubic-bezier(0.2,0,0,1)}
-.fab-item-btn:active{transform:scale(.88)}
-.fab-item-lbl{font-size:12px;font-weight:700;color:#fff;background:rgba(0,0,0,.55);padding:4px 10px;border-radius:20px;white-space:nowrap;backdrop-filter:blur(6px)}
+
+.fab-item-btn {
+  width: 44px; height: 44px;
+  border-radius: 50%; border: none; cursor: pointer;
+  font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 3px 12px rgba(0,0,0,.25);
+  appearance: none; -webkit-appearance: none;
+  transition: transform .2s cubic-bezier(0.2,0,0,1);
+  pointer-events: all;
+}
+.fab-item-btn:active { transform: scale(.88); }
+.fab-item-lbl {
+  font-size: 12px; font-weight: 700; color: #fff;
+  background: rgba(0,0,0,.55);
+  padding: 4px 10px; border-radius: 20px;
+  white-space: nowrap; backdrop-filter: blur(6px);
+}
 
 /* ── 5. TEMA AUTO ── */
 @media(prefers-color-scheme:dark){
@@ -1695,46 +1800,52 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
 </div>
   </header>
 
-  <!-- BOTTOM NAVIGATION BAR (sempre visibile) -->
-  <!-- FAB Floating Action Button -->
-  <div class="fab-wrap" id="fab-wrap">
-    <div class="fab-items" id="fab-items">
-      <div class="fab-item">
-        <span class="fab-item-lbl">Esporta PDF</span>
-        <button class="fab-item-btn" style="background:var(--red)" onclick="closeFab();esportaPDF()" aria-label="Esporta PDF">&#128196;</button>
-      </div>
-      <div class="fab-item">
-        <span class="fab-item-lbl">Importa Excel</span>
-        <button class="fab-item-btn" style="background:var(--teal)" onclick="closeFab();document.getElementById('xi').click()" aria-label="Importa Excel">&#128229;</button>
-      </div>
-      <div class="fab-item">
-        <span class="fab-item-lbl">Nuovo Turno</span>
-        <button class="fab-item-btn" style="background:var(--blue)" onclick="closeFab();openM('m-turno')" aria-label="Nuovo Turno">&#10133;</button>
-      </div>
-    </div>
-    <button class="fab-main" id="fab-main" onclick="toggleFab()" aria-label="Azioni rapide" aria-expanded="false">&#43;</button>
-  </div>
+  <!-- BOTTOM BAR + FAB — contenitore padre flex -->
+  <div id="bottom-bar-wrap">
 
-  <nav id="bottom-nav" aria-label="Navigazione principale">
-    <div class="bn-items">
-      <button class="bn-item on" id="bn-dash" onclick="vaiBN('dash',0)" aria-label="Dashboard">
-        <div class="bn-ico-wrap"><div class="bn-ico">&#127968;</div></div>
-        <span class="bn-label">Home</span>
-      </button>
-      <button class="bn-item" id="bn-cal" onclick="vaiBN('cal',1)" aria-label="Calendario">
-        <div class="bn-ico-wrap"><div class="bn-ico">&#128467;</div></div>
-        <span class="bn-label">Calendario</span>
-      </button>
-      <button class="bn-item" id="bn-rep" onclick="vaiBN('rep',2)" aria-label="Report">
-        <div class="bn-ico-wrap"><div class="bn-ico">&#128202;</div></div>
-        <span class="bn-label">Report</span>
-      </button>
-      <button class="bn-item" id="bn-imp" onclick="vaiBN('imp',3)" aria-label="Impostazioni">
-        <div class="bn-ico-wrap"><div class="bn-ico">&#9881;</div></div>
-        <span class="bn-label">Impostazioni</span>
-      </button>
+    <nav id="bottom-nav" aria-label="Navigazione principale">
+      <div class="bn-items">
+        <button class="bn-item on" id="bn-dash" onclick="vaiBN('dash',0)" aria-label="Dashboard">
+          <div class="bn-ico-wrap"><div class="bn-ico">&#127968;</div></div>
+          <span class="bn-label">Home</span>
+        </button>
+        <button class="bn-item" id="bn-cal" onclick="vaiBN('cal',1)" aria-label="Calendario">
+          <div class="bn-ico-wrap"><div class="bn-ico">&#128467;</div></div>
+          <span class="bn-label">Calendario</span>
+        </button>
+        <button class="bn-item" id="bn-rep" onclick="vaiBN('rep',2)" aria-label="Report">
+          <div class="bn-ico-wrap"><div class="bn-ico">&#128202;</div></div>
+          <span class="bn-label">Report</span>
+        </button>
+        <button class="bn-item" id="bn-imp" onclick="vaiBN('imp',3)" aria-label="Impostazioni">
+          <div class="bn-ico-wrap"><div class="bn-ico">&#9881;</div></div>
+          <span class="bn-label">Impostazioni</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- FAB Floating Action Button -->
+    <div id="fab-slot">
+      <div class="fab-wrap" id="fab-wrap">
+        <div class="fab-items" id="fab-items">
+          <div class="fab-item">
+            <span class="fab-item-lbl">Esporta PDF</span>
+            <button class="fab-item-btn" style="background:var(--red)" onclick="closeFab();esportaPDF()" aria-label="Esporta PDF">&#128196;</button>
+          </div>
+          <div class="fab-item">
+            <span class="fab-item-lbl">Importa Excel</span>
+            <button class="fab-item-btn" style="background:var(--teal)" onclick="closeFab();document.getElementById('xi').click()" aria-label="Importa Excel">&#128229;</button>
+          </div>
+          <div class="fab-item">
+            <span class="fab-item-lbl">Nuovo Turno</span>
+            <button class="fab-item-btn" style="background:var(--blue)" onclick="closeFab();openM('m-turno')" aria-label="Nuovo Turno">&#10133;</button>
+          </div>
+        </div>
+        <button class="fab-main" id="fab-main" onclick="toggleFab()" aria-label="Azioni rapide" aria-expanded="false">&#43;</button>
+      </div>
     </div>
-  </nav>
+
+  </div>
 
   <div class="ovl" id="ovl" onclick="chiMenu()"></div>
   <div class="body">
@@ -4990,17 +5101,20 @@ function closeFab(){
   if(items) items.classList.remove('open');
 }
 function _fabOutside(e){
-  var wrap = document.getElementById('fab-wrap');
-  if(wrap && !wrap.contains(e.target)) closeFab();
+  var slot = document.getElementById('fab-slot');
+  if(slot && !slot.contains(e.target)) closeFab();
 }
 // Nascondi FAB quando non si è sulla dashboard
 function _aggFabVisibility(pg){
-  var btn = document.getElementById('fab-main');
+  var wrap = document.getElementById('bottom-bar-wrap');
+  var btn  = document.getElementById('fab-main');
   if(!btn) return;
   if(pg === 'dash'){
     btn.classList.add('visible');
+    if(wrap) wrap.classList.add('fab-active');
   } else {
     btn.classList.remove('visible');
+    if(wrap) wrap.classList.remove('fab-active');
     closeFab();
   }
 }
