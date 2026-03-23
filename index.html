@@ -118,13 +118,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 .fab-wrap{position:fixed;bottom:76px;right:18px;z-index:9000;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
 .fab-main{width:56px;height:56px;border-radius:50%;background:var(--blue);color:#fff;border:none;font-size:26px;cursor:pointer;
   box-shadow:0 4px 20px rgba(41,121,255,.45);display:flex;align-items:center;justify-content:center;
-  transition:transform .25s var(--motion-decel),background .2s;appearance:none;-webkit-appearance:none;flex-shrink:0}
-.fab-main.open{transform:rotate(45deg);background:var(--red)}
-.fab-items{display:flex;flex-direction:column;align-items:flex-end;gap:8px;pointer-events:none;opacity:0;transform:translateY(12px);transition:opacity .2s,transform .2s var(--motion-decel)}
-.fab-items.open{pointer-events:all;opacity:1;transform:translateY(0)}
-.fab-item{display:flex;align-items:center;gap:10px}
-.fab-item-btn{width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 12px rgba(0,0,0,.25);appearance:none;-webkit-appearance:none;transition:transform .15s}
-.fab-item-btn:active{transform:scale(.92)}
+  transition:transform .4s cubic-bezier(0.2,0,0,1),background .2s,box-shadow .3s;appearance:none;-webkit-appearance:none;flex-shrink:0;
+  transform:scale(0);opacity:0}
+.fab-main.visible{transform:scale(1);opacity:1}
+.fab-main.open{transform:scale(1) rotate(45deg);background:var(--red);box-shadow:0 6px 24px rgba(229,62,62,.5)}
+.fab-items{display:flex;flex-direction:column;align-items:flex-end;gap:8px;pointer-events:none}
+.fab-items.open{pointer-events:all}
+.fab-item{display:flex;align-items:center;gap:10px;opacity:0;transform:translateY(16px) scale(.85);
+  transition:opacity .3s cubic-bezier(0.2,0,0,1),transform .35s cubic-bezier(0.2,0,0,1)}
+.fab-items.open .fab-item:nth-child(1){opacity:1;transform:translateY(0) scale(1);transition-delay:.05s}
+.fab-items.open .fab-item:nth-child(2){opacity:1;transform:translateY(0) scale(1);transition-delay:.1s}
+.fab-items.open .fab-item:nth-child(3){opacity:1;transform:translateY(0) scale(1);transition-delay:.15s}
+.fab-item-btn{width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 12px rgba(0,0,0,.25);appearance:none;-webkit-appearance:none;transition:transform .2s cubic-bezier(0.2,0,0,1)}
+.fab-item-btn:active{transform:scale(.88)}
 .fab-item-lbl{font-size:12px;font-weight:700;color:#fff;background:rgba(0,0,0,.55);padding:4px 10px;border-radius:20px;white-space:nowrap;backdrop-filter:blur(6px)}
 
 /* ── 5. TEMA AUTO ── */
@@ -1136,7 +1142,11 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
 
       <div id="auth-reg-err" class="auth-err"></div>
 
-      <div class="g2" style="margin-bottom:10px">
+      <!-- BANNER INVITO (visibile solo se ?join= presente) -->
+      <div id="reg-invite-banner" style="display:none;margin-bottom:14px;padding:12px 14px;background:rgba(41,121,255,.1);border:1px solid rgba(41,121,255,.3);border-radius:12px">
+        <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:2px">&#128279; Invito reparto</div>
+        <div style="font-size:12px;color:var(--txt2)">Stai per iscriverti al reparto: <strong id="reg-invite-rep-nome" style="color:var(--txt)">—</strong></div>
+      </div>
 
         <div class="fg" style="margin-bottom:0">
 
@@ -1898,28 +1908,6 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
       <!-- END TESSERINO NUOVO -->
 <h1 class="ptit">Dashboard</h1><p class="psub">Panoramica generale</p>
 
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;margin-top:14px">
-  <h3 style="font-size:14px;font-weight:700;margin:0">Azioni Rapide</h3>
-  <button onclick="toggleAzioniRapide(this)" id="btn-toggle-ar" style="background:none;border:none;color:var(--txt2);font-size:11px;cursor:pointer;appearance:none;-webkit-appearance:none;appearance:none;padding:4px 8px;border-radius:8px;background:var(--bg2)">? Nascondi</button>
-</div>
-<div id="agrid-wrap" class="agrid">
-  <div class="ac" onclick="openM('m-turno')">
-    <div class="ac-ico" style="background:rgba(41,121,255,.15);color:var(--blue)">&#10133;</div>
-    <div><div class="ac-t">Nuovo Turno</div><div class="ac-s">Assegna un turno manuale</div></div>
-  </div>
-  <div class="ac" onclick="document.getElementById('xi').click()">
-    <div class="ac-ico" style="background:rgba(0,188,212,.15);color:var(--teal)">&#128229;</div>
-    <div><div class="ac-t">Importa Excel</div><div class="ac-s">Carica file turni mensile</div></div>
-  </div>
-  <div class="ac" onclick="doExport()">
-    <div class="ac-ico" style="background:rgba(212,175,55,.15);color:var(--gold)">&#128202;</div>
-    <div><div class="ac-t">Esporta Excel</div><div class="ac-s">Scarica tabella turni</div></div>
-  </div>
-  <div class="ac" onclick="esportaPDF()">
-    <div class="ac-ico" style="background:rgba(200,16,46,.12);color:var(--red)">&#128196;</div>
-    <div><div class="ac-t">Esporta PDF</div><div class="ac-s">Stampa turni del mese</div></div>
-  </div>
-</div>
         <div class="iarea" onclick="document.getElementById('xi').click()"
           ondragover="event.preventDefault();this.classList.add('drag')"
           ondragleave="this.classList.remove('drag')"
@@ -2439,6 +2427,7 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
                 <div id="pf-ok" class="smsg">&#10003; Salvato!</div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap">
                   <button class="btn btn-p btn-sm" style="width:auto" onclick="salvaImp()">&#128190; Salva modifiche</button>
+                  <button class="btn btn-g btn-sm" style="width:auto" id="btn-invita-collega" onclick="invitaCollega()" title="Genera link invito per il tuo reparto">&#128279; Invita Collega</button>
                 </div>
               </div>
               <!-- PASSWORD -->
@@ -3619,7 +3608,77 @@ function regConferma(){
   });
 }
 
-// Collega un placeholder Excel all'utente appena registrato.
+// ── INVITA COLLEGA ──
+function invitaCollega(){
+  var me = lsG('ct_me', null);
+  if(!me || !me.reparto){ toast('Devi essere in un reparto per invitare colleghi','err'); return; }
+  var base = window.location.origin + window.location.pathname;
+  var link = base + '?join=' + encodeURIComponent(me.reparto);
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(link).then(function(){
+      toast('&#128279; Link copiato! Condividilo con il collega','ok');
+    }).catch(function(){ _fallbackCopyInvite(link); });
+  } else { _fallbackCopyInvite(link); }
+}
+function _fallbackCopyInvite(link){
+  var ta = document.createElement('textarea');
+  ta.value = link; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); toast('&#128279; Link copiato!','ok'); }
+  catch(e){ toast('Link: '+link,'ok'); }
+  document.body.removeChild(ta);
+}
+
+// ── LEGGI PARAMETRO ?join= ALL'AVVIO ──
+(function _checkJoinParam(){
+  try {
+    var params = new URLSearchParams(window.location.search);
+    var joinId = params.get('join');
+    if(!joinId) return;
+    window._joinRepartoId = decodeURIComponent(joinId);
+    // Mostra il form di registrazione con banner
+    document.addEventListener('DOMContentLoaded', function(){
+      _applyJoinParam(window._joinRepartoId);
+    });
+    // Fallback se DOMContentLoaded già passato
+    if(document.readyState !== 'loading') _applyJoinParam(window._joinRepartoId);
+  } catch(e){}
+})();
+
+function _applyJoinParam(repartoId){
+  // Mostra overlay registrazione
+  if(typeof AuthModule !== 'undefined' && AuthModule.showRegister) AuthModule.showRegister();
+  // Nascondi scelta privato/reparto e precompila
+  var step2 = document.getElementById('reg-step2');
+  if(step2){
+    // Forza modalità reparto senza mostrare la scelta
+    step2.style.display = 'block';
+    var cardPriv = document.getElementById('reg-card-privato');
+    var cardRep  = document.getElementById('reg-card-reparto');
+    if(cardPriv) cardPriv.style.display = 'none';
+    if(cardRep)  cardRep.style.display  = 'none';
+    var campi = document.getElementById('reg-campi-reparto');
+    if(campi) campi.style.display = 'block';
+    window._regModalita = 'reparto';
+    // Precompila l'ID reparto
+    var repInput = document.getElementById('reg-reparto');
+    var repPrev  = document.getElementById('reg-reparto-preview');
+    if(repInput) repInput.value = repartoId;
+    if(repPrev)  repPrev.textContent = repartoId;
+    // Mostra banner
+    var banner = document.getElementById('reg-invite-banner');
+    var nomeEl = document.getElementById('reg-invite-rep-nome');
+    if(banner) banner.style.display = 'block';
+    // Formatta il nome leggibile dall'ID
+    var nomeLeggibile = repartoId.replace(/_/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();});
+    if(nomeEl) nomeEl.textContent = nomeLeggibile;
+    // Nascondi il bottone "Continua" e mostra direttamente "Crea Account"
+    var btnAvanza = document.getElementById('reg-btn-avanza');
+    var btnCrea   = document.getElementById('reg-btn-crea');
+    if(btnAvanza) btnAvanza.style.display = 'none';
+    if(btnCrea)   btnCrea.style.display   = 'block';
+  }
+}
 // Cerca in ct_p un profilo con uid===null il cui nome corrisponde a nome+cognome
 // nelle varianti più comuni (cognome nome / nome cognome).
 function _collegaPlaceholder(nome, cognome, uid, reparto) {
@@ -4936,9 +4995,14 @@ function _fabOutside(e){
 }
 // Nascondi FAB quando non si è sulla dashboard
 function _aggFabVisibility(pg){
-  var fab = document.getElementById('fab-wrap');
-  if(!fab) return;
-  fab.style.display = (pg === 'dash') ? 'flex' : 'none';
+  var btn = document.getElementById('fab-main');
+  if(!btn) return;
+  if(pg === 'dash'){
+    btn.classList.add('visible');
+  } else {
+    btn.classList.remove('visible');
+    closeFab();
+  }
 }
 
 // ══════════════════════════════════════════════════════
@@ -6356,6 +6420,9 @@ function aggUI(){
     // Mostra sezione trasferimento solo se utente approvato
     var secTrasf = document.getElementById('sec-trasferimento');
     if(secTrasf) secTrasf.style.display = (u && u.stato === 'approved') ? 'block' : 'none';
+    // Tasto invita collega: visibile solo se in un reparto
+    var btnInvita = document.getElementById('btn-invita-collega');
+    if(btnInvita) btnInvita.style.display = (u && u.reparto) ? 'inline-flex' : 'none';
     // Aggiorna widget dashboard
     if(typeof renderDash === 'function') renderDash();
     // Aggiorna orari preset
