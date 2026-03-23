@@ -18,7 +18,7 @@
   var manifest={
     name:"C-Turni",short_name:"C-Turni",
     description:"Gestione turni Carabinieri",
-    start_url:"./",display:"standalone",
+    start_url:"./c_turni_v3.5.0.html",display:"standalone",
     orientation:"portrait",
     background_color:"#0d1b2a",theme_color:"#0d1b2a",
     icons:[
@@ -26,8 +26,8 @@
       {src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%230d1b2a'/%3E%3Cpolygon points='256,58 282,164 394,164 306,228 332,334 256,270 180,334 206,228 118,164 230,164' fill='%23c8a84b'/%3E%3Ctext x='256' y='468' text-anchor='middle' font-size='144' font-weight='900' font-family='Arial,sans-serif' fill='%23ffffff' letter-spacing='10'%3ECT%3C/text%3E%3C/svg%3E",sizes:"512x512",type:"image/svg+xml"}
     ]
   };
-  var blob=new Blob([JSON.stringify(manifest)],{type:"application/json"});
-  var url=URL.createObjectURL(blob);
+  var json=JSON.stringify(manifest);
+  var url="data:application/json;charset=utf-8,"+encodeURIComponent(json);
   document.getElementById("pwa-manifest").href=url;
 })();
 // -- SERVICE WORKER (firebase-messaging-sw.js nella root) --
@@ -4664,7 +4664,7 @@ function initPWA(){
   // Genera manifest dinamicamente
   var manifest={name:"C-Turni",short_name:"C-Turni",
     description:"Gestione turni Carabinieri",
-    start_url:"/C-Turni/c_turni_v3.5.0.html",
+    start_url:"./c_turni_v3.5.0.html",
     display:"standalone",
     background_color:"#0a1628",
     theme_color:"#0a1628",
@@ -4673,8 +4673,8 @@ function initPWA(){
       sizes:"192x192",type:"image/svg+xml"},
       {src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%230a1628'/%3E%3Cpolygon points='256,58 282,164 394,164 306,228 332,334 256,270 180,334 206,228 118,164 230,164' fill='%23c8a84b'/%3E%3Ctext x='256' y='468' text-anchor='middle' font-size='144' font-weight='900' font-family='Arial,sans-serif' fill='%23ffffff' letter-spacing='10'%3ECT%3C/text%3E%3C/svg%3E",
       sizes:"512x512",type:"image/svg+xml"}]};
-  var blob=new Blob([JSON.stringify(manifest)],{type:"application/json"});
-  var url=URL.createObjectURL(blob);
+  var json=JSON.stringify(manifest);
+  var url="data:application/json;charset=utf-8,"+encodeURIComponent(json);
   var link=document.getElementById("pwa-manifest-link");
   if(link)link.href=url;
   // Intercetta evento beforeinstallprompt
