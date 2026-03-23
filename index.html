@@ -5403,7 +5403,15 @@ function schedulaNotifAgenda(item){
   if(!("Notification" in window)||Notification.permission!=="granted")return;
   var dt=new Date(item.data+"T"+(item.ora||"08:00")+":00"),ms=dt-Date.now()-(item.notif*60000);
   if(ms<=0)return;
-  setTimeout(function(){new Notification("📅 C-Turni — "+item.tit,{body:(item.ora?"Ore "+item.ora+" | ":"")+(item.luogo||""),icon:"/C-Turni/icon-192.png"});},Math.min(ms,2147483647));
+  var titoloAg="📅 C-Turni — "+item.tit;
+  var bodyAg=(item.ora?"Ore "+item.ora+" | ":"")+(item.luogo||"");
+  setTimeout(function(){
+    new Notification(titoloAg,{body:bodyAg,icon:"/C-Turni/icon-192.png"});
+    // Push FCM (arriva anche con app chiusa)
+    var sess=lsG("ct_session",null);
+    if(sess&&sess.userId&&window.FirebaseModule)
+      window.FirebaseModule.schedulePush(sess.userId,titoloAg,bodyAg).catch(function(){});
+  },Math.min(ms,2147483647));
 }
 function salvaAgenda(){
   var tit=document.getElementById("ag-tit").value.trim(),dt=document.getElementById("ag-data").value;
@@ -9317,8 +9325,6 @@ aggUI = function() {
   renderDash();
   renderFestSopp();
   renderDashWidgetToggles();
-  if (tf && t) tf.value = t;
-  if (gf && g) gf.value = g;
 };
 
 
