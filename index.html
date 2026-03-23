@@ -5373,7 +5373,7 @@ function salvaTodo(){
   if(condividi){
     var me=lsG('ct_me',null);
     item.condiviso=true; item.autore=(me?(me.nome||'')+(me.cognome?' '+me.cognome:''):'').trim(); item.autoreUid=me?me.uid:'';
-    if(window.FirebaseModule) window.FirebaseModule.saveTodoCondiviso(item).catch(function(){});
+    if(window.FirebaseModule) window.FirebaseModule.saveTodoCondiviso(item).catch(function(e){ toast('Errore condivisione: '+e.message,'err'); });
   }
   var TD=lsG("ct_td",[]);TD.push(item);lsS("ct_td",TD);
   if(window.FirebaseModule)window.FirebaseModule.saveTodo(TD);
@@ -5382,7 +5382,8 @@ function salvaTodo(){
   closeM("m-todo");renderTodo();
   var chk=document.getElementById('td-condividi');if(chk)chk.checked=false;
   ["td-tit","td-note","td-data","td-ora"].forEach(function(id){var e=document.getElementById(id);if(e)e.value="";});
-  toast(condividi?"Promemoria condiviso con il reparto":"Promemoria salvato","ok");
+  var rep=_reparto?_reparto():'?';
+  toast(condividi?"✅ Condiviso nel reparto ["+rep+"]":"Promemoria salvato","ok");
 }
 
 // ---- AGENDA ----
@@ -5404,7 +5405,7 @@ function salvaAgenda(){
   if(condividi){
     var me=lsG('ct_me',null);
     item.condiviso=true; item.autore=(me?(me.nome||'')+(me.cognome?' '+me.cognome:''):'').trim(); item.autoreUid=me?me.uid:'';
-    if(window.FirebaseModule) window.FirebaseModule.saveAgendaCondivisa(item).catch(function(){});
+    if(window.FirebaseModule) window.FirebaseModule.saveAgendaCondivisa(item).catch(function(e){ toast('Errore condivisione: '+e.message,'err'); });
   }
   var AG=lsG("ct_ag",[]);AG.push(item);AG.sort(function(a,b){return a.data>b.data?1:-1;});lsS("ct_ag",AG);
   if(item.notif>0)schedulaNotifAgenda(item);
@@ -5412,7 +5413,8 @@ function salvaAgenda(){
   closeM("m-agenda");renderAgenda();
   var chk=document.getElementById('ag-condividi');if(chk)chk.checked=false;
   ["ag-tit","ag-data","ag-ora","ag-luogo","ag-note"].forEach(function(id){var e=document.getElementById(id);if(e)e.value="";});
-  toast(condividi?"Appuntamento condiviso con il reparto":"Appuntamento salvato","ok");
+  var rep2=_reparto?_reparto():'?';
+  toast(condividi?"✅ Condiviso nel reparto ["+rep2+"]":"Appuntamento salvato","ok");
 }
 function delAgenda(id){
   var AG = lsG("ct_ag",[]).filter(function(x){return x.id!==id;});
@@ -11620,8 +11622,17 @@ window.FirebaseModule = {
   // ── Todo condivisi con il reparto ───────────────────────────
   saveTodoCondiviso: async function(item) {
     var rep = _reparto();
-    if(!rep || !item || !item.id) return;
-    try { await setDoc(doc(db, 'reparti', rep, 'todo_condivisi', String(item.id)), item); } catch(e) { console.warn('saveTodoCondiviso:', e.message); }
+    if(!rep || rep.startsWith('privato_')) {
+      _toast('Devi essere in un reparto per condividere', 'err');
+      return;
+    }
+    if(!item || !item.id) return;
+    try {
+      await setDoc(doc(db, 'reparti', rep, 'todo_condivisi', String(item.id)), item);
+    } catch(e) {
+      console.warn('saveTodoCondiviso:', e.message);
+      _toast('Errore salvataggio todo condiviso: ' + e.message, 'err');
+    }
   },
   deleteTodoCondiviso: async function(id) {
     var rep = _reparto();
@@ -11632,8 +11643,17 @@ window.FirebaseModule = {
   // ── Agenda condivisa con il reparto ─────────────────────────
   saveAgendaCondivisa: async function(item) {
     var rep = _reparto();
-    if(!rep || !item || !item.id) return;
-    try { await setDoc(doc(db, 'reparti', rep, 'agenda_condivisa', String(item.id)), item); } catch(e) { console.warn('saveAgendaCondivisa:', e.message); }
+    if(!rep || rep.startsWith('privato_')) {
+      _toast('Devi essere in un reparto per condividere', 'err');
+      return;
+    }
+    if(!item || !item.id) return;
+    try {
+      await setDoc(doc(db, 'reparti', rep, 'agenda_condivisa', String(item.id)), item);
+    } catch(e) {
+      console.warn('saveAgendaCondivisa:', e.message);
+      _toast('Errore salvataggio agenda condivisa: ' + e.message, 'err');
+    }
   },
   deleteAgendaCondivisa: async function(id) {
     var rep = _reparto();
