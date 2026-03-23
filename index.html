@@ -3932,7 +3932,8 @@ function _renderStatoComando(){
   if(btnPassa) btnPassa.style.display = isCom ? 'inline-flex' : 'none';
   if(btnPromuovi) btnPromuovi.style.display = isCom ? 'inline-flex' : 'none';
   // Mostra "Rimuovi Vice" solo se esiste già un vice
-  var U = lsG('ct_u', []);
+  var U = lsG('ct_users', []);
+  if(!U.length) U = lsG('ct_u', []);
   var hasVice = U.some(function(u){ return u.ruolo==='vice' && u.stato==='approved'; });
   if(btnDegrada) btnDegrada.style.display = (isCom && hasVice) ? 'inline-flex' : 'none';
 }
@@ -3941,15 +3942,24 @@ function _popolaSelectMembri(selId, escludiRuoli){
   var sel = document.getElementById(selId);
   if(!sel) return;
   var me = lsG('ct_me', null);
-  var U = lsG('ct_u', []).filter(function(u){
-    return u.stato==='approved' && (!me || (u.uid||u.id)!==(me.uid||me.id)) &&
-           (!escludiRuoli || escludiRuoli.indexOf(u.ruolo)===-1);
+  var myRep = (me && me.reparto) ? me.reparto.toLowerCase() : '';
+  // Usa ct_users (Firebase) come fonte principale, ct_u come fallback
+  var rawU = lsG('ct_users', []);
+  if(!rawU.length) rawU = lsG('ct_u', []);
+  var U = rawU.filter(function(u){
+    if(u.stato !== 'approved') return false;
+    if(me && (u.uid||u.id) === (me.uid||me.id)) return false;
+    if(escludiRuoli && escludiRuoli.indexOf(u.ruolo) !== -1) return false;
+    // Filtra per reparto se disponibile
+    if(myRep && u.reparto && u.reparto.toLowerCase() !== myRep) return false;
+    return true;
   });
   sel.innerHTML = '<option value="">-- Seleziona membro --</option>';
   U.forEach(function(u){
     var opt = document.createElement('option');
     opt.value = u.uid || u.id;
-    opt.textContent = (u.nome||'') + ' ' + (u.cognome||'') + ' (' + (u.grado||'') + ')';
+    var nomeDisplay = ((u.cognome||'') + ' ' + (u.nome||'')).trim() || u.nome || u.email || '';
+    opt.textContent = nomeDisplay + (u.grado ? ' (' + u.grado + ')' : '');
     sel.appendChild(opt);
   });
 }
@@ -3991,7 +4001,8 @@ function confermaPromuoviVice(){
 }
 
 function degradaVice(){
-  var U = lsG('ct_u', []);
+  var U = lsG('ct_users', []);
+  if(!U.length) U = lsG('ct_u', []);
   var vice = U.find(function(u){ return u.ruolo==='vice' && u.stato==='approved'; });
   if(!vice){ toast('Nessun Vice trovato','err'); return; }
   if(!confirm('Rimuovere il ruolo di Vice Comandante a '+(vice.nome||'')+' '+(vice.cognome||'')+' ?')){ return; }
@@ -6983,6 +6994,27 @@ function delT(id){
 }
 function aggSel(){
   var P=lsG("ct_p",[]);
+  var me = lsG('ct_me', null);
+  var myRep = (me && me.reparto) ? me.reparto.toLowerCase() : '';
+  // Aggiungi utenti Firebase non presenti in ct_p
+  var fbUsers = lsG('ct_users', []);
+  fbUsers.forEach(function(u){
+    if(!u.uid || !u.nome) return;
+    if(u.stato === 'pending' || u.stato === 'rejected') return;
+    if(myRep && u.reparto && u.reparto.toLowerCase() !== myRep) return;
+    var exists = P.some(function(p){ return p.uid === u.uid; });
+    if(!exists){
+      P.push({
+        id: u.id || u.uid,
+        nome: ((u.cognome||'') + ' ' + (u.nome||'')).trim() || u.nome,
+        grado: u.grado || '',
+        reparto: u.reparto || '',
+        uid: u.uid,
+        ava: u.ava || '',
+        _fromFirebase: true
+      });
+    }
+  });
   var listEl=document.getElementById("pers-picker-list");
   if(!listEl)return;
   listEl.innerHTML=P.map(function(p){
@@ -7929,17 +7961,27 @@ function doExport(){
 
 // Carica utenti da Firebase Firestore
 async function _caricaMembriFirebase(wrap, me) {
+  // ct_users è già aggiornato in tempo reale dal listener onSnapshot
+  // Usiamo direttamente quello come fonte principale
+  var users = lsG('ct_users', []);
+  if(users.length > 0) {
+    _renderMembriWrap(wrap, me, users);
+    return;
+  }
+  // Fallback: prova a caricare da Firestore direttamente
   try {
-    var db = window._fbDb;
-    var snapshot = await window._fbGetDocs(window._fbCollection(db, 'users'));
-    var users = [];
-    snapshot.forEach(function(doc) { users.push(Object.assign({fbId: doc.id}, doc.data())); });
-    // Salva in localStorage come cache
-    lsS('ct_u', users);
+    var rep = (me && me.reparto) ? me.reparto : null;
+    if(!rep) throw new Error('reparto non disponibile');
+    var { getFirestore, collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+    var db = getFirestore();
+    var snapshot = await getDocs(collection(db, 'reparti', rep, 'utenti'));
+    users = [];
+    snapshot.forEach(function(doc) { users.push(doc.data()); });
+    localStorage.setItem('ct_users', JSON.stringify(users));
     _renderMembriWrap(wrap, me, users);
   } catch(e) {
-    console.warn('Firebase non disponibile, uso localStorage:', e);
-    var users = lsG('ct_u', []);
+    console.warn('_caricaMembriFirebase fallback ct_u:', e.message);
+    users = lsG('ct_u', []);
     _renderMembriWrap(wrap, me, users);
   }
 }
@@ -7956,15 +7998,9 @@ function renderGestioneNucleo() {
 
   if (!isCom) { wrap.innerHTML = '<p style="color:var(--txt2)">Accesso riservato al Comandante o Vice.</p>'; return; }
 
-  // Carica da Firebase se disponibile
-  if (window._fbDb && window._fbGet) {
-    wrap.innerHTML = '<div style="text-align:center;padding:40px;color:var(--txt2)">&#128260; Caricamento...</div>';
-    _caricaMembriFirebase(wrap, me);
-    return;
-  }
-  // Fallback localStorage
-  var U = lsG('ct_u', []);
-  _renderMembriWrap(wrap, me, U);
+  // Usa sempre _caricaMembriFirebase (legge ct_users già aggiornato dal listener)
+  wrap.innerHTML = '<div style="text-align:center;padding:40px;color:var(--txt2)">&#128260; Caricamento...</div>';
+  _caricaMembriFirebase(wrap, me);
 }
 
 function _renderMembriWrap(wrap, me, U) {
@@ -8053,9 +8089,9 @@ function _renderMembriWrap(wrap, me, U) {
 
     pending.forEach(function(u) {
 
-      var az = '<button class="btn btn-p btn-sm" onclick="nucleoApprova('+u.id+')">&#10003; Approva</button>'
-
-             + '<button class="btn btn-d btn-sm" onclick="nucleoNega('+u.id+')">&#10005; Nega</button>';
+      var uid = u.uid || u.id;
+      var az = '<button class="btn btn-p btn-sm" onclick="nucleoApprova(\'+uid+\')">&amp;#10003; Approva</button>'
+             + '<button class="btn btn-d btn-sm" onclick="nucleoNega(\'+uid+\')">&amp;#10005; Nega</button>';
 
       html += cardMembro(u, az);
 
@@ -8077,9 +8113,10 @@ function _renderMembriWrap(wrap, me, U) {
 
     approved.forEach(function(u) {
 
-      var az = '<button class="btn btn-sm" style="background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.3)" onclick="nucleoSospendi('+u.id+')">&#9208; Sospendi</button>'
+      var uid = u.uid || u.id;
+      var az = '<button class="btn btn-sm" style="background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.3)" onclick="nucleoSospendi(\''+uid+'\')">&#9208; Sospendi</button>'
 
-             + '<button class="btn btn-d btn-sm" onclick="nucleoRimuovi('+u.id+')">&#128465; Rimuovi</button>';
+             + '<button class="btn btn-d btn-sm" onclick="nucleoRimuovi(\''+uid+'\')">&#128465; Rimuovi</button>';
 
       html += cardMembro(u, az);
 
@@ -8097,9 +8134,10 @@ function _renderMembriWrap(wrap, me, U) {
 
     sospesi.forEach(function(u) {
 
-      var az = '<button class="btn btn-p btn-sm" onclick="nucleoApprova('+u.id+')">&#9654; Riattiva</button>'
+      var uid = u.uid || u.id;
+      var az = '<button class="btn btn-p btn-sm" onclick="nucleoApprova(\''+uid+'\')">&#9654; Riattiva</button>'
 
-             + '<button class="btn btn-d btn-sm" onclick="nucleoRimuovi('+u.id+')">&#128465; Rimuovi</button>';
+             + '<button class="btn btn-d btn-sm" onclick="nucleoRimuovi(\''+uid+'\')">&#128465; Rimuovi</button>';
 
       html += cardMembro(u, az);
 
@@ -8115,39 +8153,43 @@ function _renderMembriWrap(wrap, me, U) {
 
 
 
-function _nucleoSalva(id, stato) {
-  var U = lsG('ct_u', []);
-  var fbId = null;
-  for (var i = 0; i < U.length; i++) {
-    if (U[i].id === id) { U[i].stato = stato; fbId = U[i].fbId || null; break; }
+function _nucleoSalva(uid, stato) {
+  // Aggiorna ct_users locale
+  var U = lsG('ct_users', []);
+  for(var i = 0; i < U.length; i++) {
+    if(U[i].uid === uid || String(U[i].id) === String(uid)) {
+      U[i].stato = stato;
+      break;
+    }
   }
-  lsS('ct_u', U);
-  // Aggiorna anche su Firebase se disponibile
-  if (fbId && window._fbDb && window._fbDoc && window._fbUpdateDoc) {
-    window._fbUpdateDoc(window._fbDoc(window._fbDb, 'users', fbId), { stato: stato })
-      .catch(function(e){ console.warn('Firebase update stato fallito:', e); });
+  localStorage.setItem('ct_users', JSON.stringify(U));
+  // Aggiorna su Firestore tramite FirebaseModule
+  if(typeof window.FirebaseModule !== 'undefined') {
+    window.FirebaseModule.aggiornaStatoUtente(uid, stato).catch(function(e){
+      console.warn('nucleoSalva Firebase:', e.message);
+    });
   }
   renderGestioneNucleo();
 }
 
-function nucleoApprova(id)  { _nucleoSalva(id,'approved'); toast('Membro approvato','ok'); }
+function nucleoApprova(uid)  { _nucleoSalva(uid,'approved'); toast('Membro approvato','ok'); }
 
-function nucleoNega(id)     { _nucleoSalva(id,'rejected'); toast('Richiesta negata','err'); }
+function nucleoNega(uid)     { _nucleoSalva(uid,'rejected'); toast('Richiesta negata','err'); }
 
-function nucleoSospendi(id) { _nucleoSalva(id,'sospeso');  toast('Membro sospeso','ok'); }
+function nucleoSospendi(uid) { _nucleoSalva(uid,'sospeso');  toast('Membro sospeso','ok'); }
 
-function nucleoRimuovi(id)  {
-
-  var U = lsG('ct_u',[]);
-
-  U = U.filter(function(u){ return u.id !== id; });
-
-  lsS('ct_u',U);
-
+function nucleoRimuovi(uid)  {
+  if(!confirm('Rimuovere questo membro?')) return;
+  var U = lsG('ct_users', []);
+  U = U.filter(function(u){ return u.uid !== uid && String(u.id) !== String(uid); });
+  localStorage.setItem('ct_users', JSON.stringify(U));
+  if(typeof window.FirebaseModule !== 'undefined') {
+    window.FirebaseModule.aggiornaStatoUtente(uid, 'rejected').catch(function(e){
+      console.warn('nucleoRimuovi Firebase:', e.message);
+    });
+  }
   renderGestioneNucleo();
-
   toast('Membro rimosso','ok');
-
 }
 
 
@@ -9731,6 +9773,25 @@ function setTurnoRapido(tipo, codice, btn) {
 function popolaSelectPersone() {
     var sel = document.getElementById('mt-pers-sel'); if (!sel) return;
     var P = lsG('ct_p', []);
+    var me = lsG('ct_me', null);
+    var myRep = (me && me.reparto) ? me.reparto.toLowerCase() : '';
+    // Aggiungi utenti Firebase non presenti in ct_p
+    var fbUsers = lsG('ct_users', []);
+    fbUsers.forEach(function(u){
+        if(!u.uid || !u.nome) return;
+        if(u.stato === 'pending' || u.stato === 'rejected') return;
+        if(myRep && u.reparto && u.reparto.toLowerCase() !== myRep) return;
+        var exists = P.some(function(p){ return p.uid === u.uid; });
+        if(!exists){
+            P.push({
+                id: u.id || u.uid,
+                nome: ((u.cognome||'') + ' ' + (u.nome||'')).trim() || u.nome,
+                grado: u.grado || '',
+                uid: u.uid,
+                _fromFirebase: true
+            });
+        }
+    });
     var cur = document.getElementById('mt-pers').value;
     sel.innerHTML = '<option value="">Scegli collega...</option>' +
         P.map(function(p){
@@ -11708,6 +11769,23 @@ window.FirebaseModule = {
         await setDoc(doc(db, 'reparti', rep, 'utenti', docId), u);
       }
     } catch(e) { console.warn('saveUsers:', e.message); _toast('Errore sync utenti', 'err'); }
+  },
+
+  // ── Aggiorna stato singolo utente su Firestore ───────────────
+  aggiornaStatoUtente: async function(uid, stato) {
+    var rep = _reparto();
+    if(!rep || !uid) return;
+    try {
+      // Trova il docId corretto (uid o email_sanitized)
+      var U = JSON.parse(localStorage.getItem('ct_users') || '[]');
+      var u = U.find(function(x){ return x.uid === uid || String(x.id) === String(uid); });
+      var docId = (u && u.uid) ? u.uid : (u && u.email ? u.email.replace(/[@.]/g,'_') : uid);
+      await setDoc(doc(db, 'reparti', rep, 'utenti', docId), { stato: stato }, { merge: true });
+      // Aggiorna anche il profilo globale utente
+      if(u && u.uid) {
+        await setDoc(doc(db, 'utenti', u.uid), { stato: stato }, { merge: true });
+      }
+    } catch(e) { console.warn('aggiornaStatoUtente:', e.message); throw e; }
   },
 
   // ── Elimina turni di mesi specifici da Firebase (usato da import Excel Sostituisci) ──
