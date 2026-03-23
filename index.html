@@ -7076,8 +7076,20 @@ function mostraGiorno(ds){
     var _fbUsers = lsG('ct_users', []);
     T.forEach(function(t){
       var p=P.find(function(x){return x.id===t.pid;});
-      // Cerca anche in ct_users (Firebase) per ava e grado aggiornati
-      var uFb = _fbUsers.find(function(u){ return u.uid===t.uid || (p && u.uid===p.uid); });
+      // Cerca in ct_users per ava e grado: match per uid, oppure per nome (turni senza uid)
+      var uFb = _fbUsers.find(function(u){
+        if(u.uid && t.uid && u.uid===t.uid) return true;
+        if(p && p.uid && u.uid===p.uid) return true;
+        // Fallback: match per nome+cognome normalizzato
+        if(t.pnome && u.nome) {
+          var uNome = ((u.nome||'')+' '+(u.cognome||'')).toLowerCase().trim();
+          var uNomeInv = ((u.cognome||'')+' '+(u.nome||'')).toLowerCase().trim();
+          var tNome = (t.pnome||'').toLowerCase().trim();
+          return tNome === uNome || tNome === uNomeInv ||
+                 uNome.indexOf(tNome) !== -1 || tNome.indexOf(uNome) !== -1;
+        }
+        return false;
+      });
       // Grado: prima da Firebase, poi da ct_p, poi dal turno
       var gradoKey = (uFb&&uFb.grado) ? uFb.grado : ((p&&p.grado) ? p.grado : '');
       var gn = gradoKey && GR[gradoKey] ? GR[gradoKey].nome : (gradoKey || '');
@@ -11259,6 +11271,25 @@ function _startListeners(reparto) {
       }
     } catch(e) { console.warn('onSnapshot ruolo sync:', e.message); }
 
+    // Collega uid Firebase ai profili ct_p per nome (aggiorna foto/grado in calendario)
+    try {
+      var _P = lsG('ct_p', []);
+      var _chg = false;
+      arr.forEach(function(u) {
+        if(!u.uid || !u.nome) return;
+        var uN = ((u.nome||'')+' '+(u.cognome||'')).toLowerCase().trim();
+        var uNi = ((u.cognome||'')+' '+(u.nome||'')).toLowerCase().trim();
+        _P.forEach(function(p) {
+          if(p.uid) return;
+          var pn = (p.nome||'').toLowerCase().trim();
+          if(pn===uN||pn===uNi||uN.indexOf(pn)!==-1||pn.indexOf(uN)!==-1||uNi.indexOf(pn)!==-1){
+            p.uid=u.uid; if(u.grado&&!p.grado)p.grado=u.grado; if(u.ava&&!p.ava)p.ava=u.ava; _chg=true;
+          }
+        });
+      });
+      if(_chg) lsS('ct_p', _P);
+    } catch(e2) {}
+
     if(typeof window.AuthModule !== 'undefined') window.AuthModule.renderGestioneMemebri();
   }, function(e){ console.warn('onSnapshot utenti:', e.message); }));
 
@@ -11351,6 +11382,8 @@ window.FirebaseModule = {
     };
     _showSyncBanner('⟳ Sincronizzazione dati...');
     window._widgetSyncPending = true;
+    // Avvia subito i listener real-time — popolano il localStorage in parallelo
+    _startListeners(rep);
     try {
       // Carica dati iniziali (nuovo device: localStorage vuoto)
       if(!isPrivato) {
@@ -11450,7 +11483,6 @@ window.FirebaseModule = {
       window._widgetSyncPending = false;
       _hideSyncBanner();
     }
-    _startListeners(rep);
     // Ripristina pagina dopo che i listener hanno fatto il primo render
     setTimeout(function(){
       if(typeof window._ripristinaPagina === 'function') window._ripristinaPagina();
@@ -11479,7 +11511,34 @@ window.FirebaseModule = {
       var snap = await getDocs(collection(db, 'reparti', rep, 'utenti'));
       var arr = [];
       snap.forEach(function(d){ arr.push(d.data()); });
-      if(arr.length > 0) localStorage.setItem('ct_users', JSON.stringify(arr));
+      if(arr.length > 0) {
+        localStorage.setItem('ct_users', JSON.stringify(arr));
+        // Collega automaticamente uid Firebase ai profili ct_p per nome
+        var P = lsG('ct_p', []);
+        var changed = false;
+        arr.forEach(function(u) {
+          if(!u.uid || !u.nome) return;
+          var uNome = ((u.nome||'')+' '+(u.cognome||'')).toLowerCase().trim();
+          var uNomeInv = ((u.cognome||'')+' '+(u.nome||'')).toLowerCase().trim();
+          P.forEach(function(p) {
+            if(p.uid) return; // già collegato
+            var pn = (p.nome||'').toLowerCase().trim();
+            if(pn === uNome || pn === uNomeInv ||
+               uNome.indexOf(pn) !== -1 || pn.indexOf(uNome) !== -1 ||
+               uNomeInv.indexOf(pn) !== -1) {
+              p.uid = u.uid;
+              if(u.grado && !p.grado) p.grado = u.grado;
+              if(u.ava && !p.ava) p.ava = u.ava;
+              changed = true;
+            }
+          });
+        });
+        if(changed) {
+          lsS('ct_p', P);
+          if(typeof window.FirebaseModule !== 'undefined')
+            window.FirebaseModule.savePersona().catch(function(){});
+        }
+      }
     } catch(e) { console.warn('syncUsers:', e.message); }
   },
 
