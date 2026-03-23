@@ -115,52 +115,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 .swipe-item.swiping{transition:none}
 
 /* ── 4. FAB ── */
-/* Contenitore padre flex: bottom nav + FAB sulla stessa riga */
-#bottom-bar-wrap {
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
-  z-index: 500;
-  display: flex;
-  align-items: flex-end;
-  pointer-events: none;   /* il wrapper non cattura click */
-}
-
-/* Bottom nav: occupa tutto lo spazio, si restringe quando FAB è visibile */
-#bottom-nav {
-  flex: 1 1 auto;
-  min-width: 0;
-  pointer-events: none;
-  padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
-  background: transparent;
-  transition: width .35s cubic-bezier(0.2,0,0,1);
-}
-
-/* Quando il FAB è visibile la nav lascia spazio (80px slot + 8px gap) */
-#bottom-bar-wrap.fab-active #bottom-nav {
-  padding-right: 0;
-}
-
-/* Slot FAB: larghezza fissa, non si restringe mai */
-#fab-slot {
-  flex-shrink: 0;
-  width: 0;
-  overflow: visible;
-  pointer-events: none;
-  display: flex;
-  align-items: flex-end;
-  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
-  padding-right: 12px;
-  transition: width .35s cubic-bezier(0.2,0,0,1);
-}
-#bottom-bar-wrap.fab-active #fab-slot {
-  width: 80px;
-}
-
-/* FAB wrap: posizionato dentro lo slot */
+/* FAB: position fixed indipendente, sopra la bottom nav */
 .fab-wrap {
+  position: fixed;
+  bottom: calc(10px + 64px + 10px + env(safe-area-inset-bottom, 0px));
+  right: 16px;
+  z-index: 600;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-end;
   gap: 10px;
   pointer-events: none;
 }
@@ -175,15 +138,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   cursor: pointer;
   box-shadow: 0 4px 20px rgba(41,121,255,.45);
   display: flex; align-items: center; justify-content: center;
-  pointer-events: all;
   appearance: none; -webkit-appearance: none;
   flex-shrink: 0;
-  /* parte da scale(0), compare solo su dashboard */
   transform: scale(0);
   opacity: 0;
-  transition: transform .4s cubic-bezier(0.2,0,0,1),
+  pointer-events: none;
+  transition: transform .4s cubic-bezier(0.34,1.56,0.64,1),
+              opacity .25s ease,
               background .2s,
-              opacity .3s cubic-bezier(0.2,0,0,1),
               box-shadow .3s;
 }
 .fab-main.visible {
@@ -192,7 +154,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   pointer-events: all;
 }
 .fab-main.open {
-  transform: scale(1) rotate(45deg);
+  transform: scale(1) rotate(45deg) !important;
   background: var(--red);
   box-shadow: 0 6px 24px rgba(229,62,62,.5);
 }
@@ -203,9 +165,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   align-items: flex-end;
   gap: 8px;
   pointer-events: none;
-  position: absolute;
-  bottom: calc(100% + 8px);
-  right: 0;
 }
 .fab-items.open { pointer-events: all; }
 
@@ -236,6 +195,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   background: rgba(0,0,0,.55);
   padding: 4px 10px; border-radius: 20px;
   white-space: nowrap; backdrop-filter: blur(6px);
+}
+
+/* Bottom nav: quando FAB è visibile, la pill si sposta a sinistra con calc() */
+#bottom-nav.fab-active {
+  padding-right: calc(56px + 28px);
+}
+#bottom-nav {
+  transition: padding-right .35s cubic-bezier(0.2,0,0,1);
 }
 
 /* ── 5. TEMA AUTO ── */
@@ -1482,6 +1449,7 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
   padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
   background: transparent;
   pointer-events: none;
+  transition: padding-right .35s cubic-bezier(0.2,0,0,1);
 }
 /* Pill container */
 #bottom-nav .bn-items {
@@ -1800,7 +1768,7 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
 </div>
   </header>
 
-  <!-- BOTTOM BAR + FAB — contenitore padre flex -->
+  <!-- BOTTOM BAR + FAB -->
   <div id="bottom-bar-wrap">
 
     <nav id="bottom-nav" aria-label="Navigazione principale">
@@ -1824,27 +1792,25 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
       </div>
     </nav>
 
-    <!-- FAB Floating Action Button -->
-    <div id="fab-slot">
-      <div class="fab-wrap" id="fab-wrap">
-        <div class="fab-items" id="fab-items">
-          <div class="fab-item">
-            <span class="fab-item-lbl">Esporta PDF</span>
-            <button class="fab-item-btn" style="background:var(--red)" onclick="closeFab();esportaPDF()" aria-label="Esporta PDF">&#128196;</button>
-          </div>
-          <div class="fab-item">
-            <span class="fab-item-lbl">Importa Excel</span>
-            <button class="fab-item-btn" style="background:var(--teal)" onclick="closeFab();document.getElementById('xi').click()" aria-label="Importa Excel">&#128229;</button>
-          </div>
-          <div class="fab-item">
-            <span class="fab-item-lbl">Nuovo Turno</span>
-            <button class="fab-item-btn" style="background:var(--blue)" onclick="closeFab();openM('m-turno')" aria-label="Nuovo Turno">&#10133;</button>
-          </div>
-        </div>
-        <button class="fab-main" id="fab-main" onclick="toggleFab()" aria-label="Azioni rapide" aria-expanded="false">&#43;</button>
+  </div>
+
+  <!-- FAB — position:fixed indipendente -->
+  <div class="fab-wrap" id="fab-wrap">
+    <div class="fab-items" id="fab-items">
+      <div class="fab-item">
+        <span class="fab-item-lbl">Esporta PDF</span>
+        <button class="fab-item-btn" style="background:var(--red)" onclick="closeFab();esportaPDF()" aria-label="Esporta PDF">&#128196;</button>
+      </div>
+      <div class="fab-item">
+        <span class="fab-item-lbl">Importa Excel</span>
+        <button class="fab-item-btn" style="background:var(--teal)" onclick="closeFab();document.getElementById('xi').click()" aria-label="Importa Excel">&#128229;</button>
+      </div>
+      <div class="fab-item">
+        <span class="fab-item-lbl">Nuovo Turno</span>
+        <button class="fab-item-btn" style="background:var(--blue)" onclick="closeFab();openM('m-turno')" aria-label="Nuovo Turno">&#10133;</button>
       </div>
     </div>
-
+    <button class="fab-main" id="fab-main" onclick="toggleFab()" aria-label="Azioni rapide" aria-expanded="false">&#43;</button>
   </div>
 
   <div class="ovl" id="ovl" onclick="chiMenu()"></div>
@@ -5106,19 +5072,18 @@ function _fabOutside(e){
 }
 // Nascondi FAB quando non si è sulla dashboard
 function _aggFabVisibility(pg){
-  var wrap = document.getElementById('bottom-bar-wrap');
+  var nav  = document.getElementById('bottom-nav');
   var btn  = document.getElementById('fab-main');
   if(!btn) return;
   if(pg === 'dash'){
     btn.classList.add('visible');
-    if(wrap) wrap.classList.add('fab-active');
+    if(nav) nav.classList.add('fab-active');
   } else {
     btn.classList.remove('visible');
-    if(wrap) wrap.classList.remove('fab-active');
+    if(nav) nav.classList.remove('fab-active');
     closeFab();
   }
 }
-
 // ══════════════════════════════════════════════════════
 // 1. SKELETON LOADERS
 // ══════════════════════════════════════════════════════
@@ -9173,6 +9138,11 @@ function toggleAzioniRapide(btn) {
       if (wrap) wrap.style.display = 'none';
       if (btn) btn.textContent = '\u25B6 Mostra';
     }
+    // Inizializza FAB subito: se la pagina attiva è dash, mostralo
+    var activePg = (document.querySelector('.pag.on') || document.querySelector('.pg-app.on'));
+    var currentPg = activePg ? (activePg.id || '').replace('pg-','') : 'dash';
+    // La dashboard è attiva di default al caricamento
+    _aggFabVisibility('dash');
   });
 })();
 
