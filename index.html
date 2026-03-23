@@ -115,10 +115,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 .swipe-item.swiping{transition:none}
 
 /* ── 4. FAB ── */
-/* FAB: position fixed indipendente, sopra la bottom nav */
+/* FAB: allineato verticalmente al centro della pill della bottom nav */
 .fab-wrap {
   position: fixed;
-  bottom: calc(10px + 64px + 10px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(10px + env(safe-area-inset-bottom, 0px) + 4px); /* centrato nella pill h=64px con il bottone h=56px */
   right: 16px;
   z-index: 600;
   display: flex;
@@ -1220,22 +1220,15 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
         <div style="font-size:12px;color:var(--txt2)">Stai per iscriverti al reparto: <strong id="reg-invite-rep-nome" style="color:var(--txt)">—</strong></div>
       </div>
 
+      <div class="g2" style="margin-bottom:10px">
         <div class="fg" style="margin-bottom:0">
-
           <label>Nome *</label>
-
           <input type="text" class="fc" id="reg-nome" placeholder="Mario">
-
         </div>
-
         <div class="fg" style="margin-bottom:0">
-
           <label>Cognome *</label>
-
           <input type="text" class="fc" id="reg-cognome" placeholder="Rossi">
-
         </div>
-
       </div>
 
       <div class="fg" style="margin-bottom:10px">
@@ -2067,7 +2060,7 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
           <div style="border-radius:14px;padding:14px 16px;background:var(--bg2);border:1px solid var(--border)">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--txt2)">&#127781; Meteo reparto</div><div style="display:flex;gap:4px"><button onclick="moveWidget('meteo',-1)" class="wdg-mv-btn">&#8593;</button><button onclick="moveWidget('meteo',+1)" class="wdg-mv-btn">&#8595;</button></div></div>
             <div style="display:flex;align-items:center;gap:14px">
-              <div id="wm-ico" style="font-size:42px;line-height:1;flex-shrink:0">&#128336;</div>
+              <div id="wm-ico" style="font-size:42px;line-height:1;flex-shrink:0">🌤️</div>
               <div style="flex:1">
                 <div id="wm-temp" style="font-size:24px;font-weight:900;color:var(--txt)"></div>
                 <div id="wm-desc" style="font-size:11px;color:var(--txt2);margin-top:2px">Caricamento...</div>
@@ -4911,30 +4904,6 @@ function schedulaNotifAgenda(item){
       body:(item.ora?"Ore "+item.ora+" | ":"")+(item.luogo||""),icon:""});
   },Math.min(ms,2147483647));
 }
-function renderAgenda(){
-  var el=document.getElementById("agenda-list");if(!el)return;
-  var AG=lsG("ct_ag",[]);
-  var oggi=new Date().toISOString().slice(0,10);
-  AG=AG.filter(function(x){return x.data>=oggi;}); // solo futuri/oggi
-  if(!AG.length){el.innerHTML='<div style="text-align:center;color:var(--txt2);padding:40px;font-size:13px">Nessun appuntamento &#128467;</div>';return;}
-  var mN=["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
-  el.innerHTML=AG.map(function(a){
-    var d=new Date(a.data+"T00:00:00");
-    var ds=d.getDate()+" "+mN[d.getMonth()]+" "+d.getFullYear();
-    var ora=a.ora?'<span style="margin-left:8px;color:var(--blue)">&#128336; '+a.ora+'</span>':"";
-    var luogo=a.luogo?'<div style="font-size:11px;color:var(--txt2);margin-top:3px">&#128205; '+a.luogo+'</div>':"";
-    var note=a.note?'<div style="font-size:11px;color:var(--txt2);margin-top:2px">'+a.note+'</div>':"";
-    return '<div class="ag-item">'+
-      '<div style="display:flex;justify-content:space-between;align-items:flex-start">'+
-        '<div>'+
-          '<div style="font-weight:700;font-size:13px">'+a.tit+'</div>'+
-          '<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128197; '+ds+ora+'</div>'+
-          luogo+note+
-        '</div>'+
-        '<button onclick="delAgenda('+a.id+')" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:16px;appearance:none;-webkit-appearance:none">&#128465;</button>'+
-      '</div></div>';
-  }).join("");
-}
 
 
 // ---- TEMI ----
@@ -5070,6 +5039,16 @@ function _fabOutside(e){
   var slot = document.getElementById('fab-slot');
   if(slot && !slot.contains(e.target)) closeFab();
 }
+// Ripristina la pagina salvata dopo login/refresh
+function _ripristinaPagina(){
+  var pg = lsG('ct_pg', 'dash');
+  var bnIdx = ['dash','cal','rep','imp'].indexOf(pg);
+  if(bnIdx !== -1 && typeof vaiBN === 'function'){
+    vaiBN(pg, bnIdx);
+  } else {
+    _aggFabVisibility('dash');
+  }
+}
 // Nascondi FAB quando non si è sulla dashboard
 function _aggFabVisibility(pg){
   var nav  = document.getElementById('bottom-nav');
@@ -5077,9 +5056,11 @@ function _aggFabVisibility(pg){
   if(!btn) return;
   if(pg === 'dash'){
     btn.classList.add('visible');
+    btn.style.pointerEvents = 'all';
     if(nav) nav.classList.add('fab-active');
   } else {
     btn.classList.remove('visible');
+    btn.style.pointerEvents = 'none';
     if(nav) nav.classList.remove('fab-active');
     closeFab();
   }
@@ -7995,6 +7976,7 @@ function vai(pg, btn) {
   var newIdx = _pgOrder.indexOf(pg);
   var dir = newIdx >= oldIdx ? 'pg-enter-right' : 'pg-enter-left';
   _pgCurrent = pg;
+  lsS('ct_pg', pg);
 
   document.querySelectorAll(".nv").forEach(function(n){ n.classList.remove("on"); });
   if(btn) btn.classList.add("on");
@@ -8159,10 +8141,6 @@ function chiMenu(){
 /* togTheme rimossa (duplicata) */
 
 
-function closeM(id){
-  var m = document.getElementById(id);
-  if(m) m.classList.remove("on");
-}
 function filtra(id,q){
   q=q.toLowerCase();
   document.querySelectorAll("#"+id+" tr").forEach(function(r){
@@ -8280,10 +8258,10 @@ var METEO_CITTA = {
 };
 
 var METEO_WMO = {
-  0:'&#9728;', 1:'&#127780;', 2:'&#9925;', 3:'&#9729;', 45:'&#127787;', 48:'&#127787;',
-  51:'&#127783;', 53:'&#127783;', 55:'&#127783;', 61:'&#127783;', 63:'&#127783;', 65:'&#127783;',
-  71:'&#127784;', 73:'&#127784;', 75:'&#127784;', 77:'&#127784;', 80:'&#127783;', 81:'&#127783;',
-  82:'&#127783;', 85:'&#127784;', 86:'&#127784;', 95:'&#9928;', 96:'&#9928;', 99:'&#9928;'
+  0:'☀️', 1:'🌤️', 2:'⛅', 3:'☁️', 45:'🌫️', 48:'🌫️',
+  51:'🌦️', 53:'🌦️', 55:'🌧️', 61:'🌧️', 63:'🌧️', 65:'🌊',
+  71:'🌨️', 73:'❄️', 75:'🌨️', 77:'🌨️', 80:'🌦️', 81:'🌧️',
+  82:'⛈️', 85:'❄️', 86:'❄️', 95:'⛈️', 96:'⛈️', 99:'🌩️'
 };
 var METEO_DESC = {
   0:'Sereno', 1:'Quasi sereno', 2:'Parzialmente nuvoloso', 3:'Coperto',
@@ -9121,30 +9099,7 @@ aggUI = function() {
   if (gf && g) gf.value = g;
 };
 
-function toggleAzioniRapide(btn) {
-  var wrap = document.getElementById('agrid-wrap');
-  if (!wrap) return;
-  var nascosto = wrap.style.display === 'none';
-  wrap.style.display = nascosto ? '' : 'none';
-  btn.textContent = nascosto ? '\u25BC Nascondi' : '\u25B6 Mostra';
-  lsS('ct_ar_hidden', !nascosto);
-}
 
-(function() {
-  document.addEventListener('DOMContentLoaded', function() {
-    if (lsG('ct_ar_hidden', false)) {
-      var wrap = document.getElementById('agrid-wrap');
-      var btn = document.getElementById('btn-toggle-ar');
-      if (wrap) wrap.style.display = 'none';
-      if (btn) btn.textContent = '\u25B6 Mostra';
-    }
-    // Inizializza FAB subito: se la pagina attiva è dash, mostralo
-    var activePg = (document.querySelector('.pag.on') || document.querySelector('.pg-app.on'));
-    var currentPg = activePg ? (activePg.id || '').replace('pg-','') : 'dash';
-    // La dashboard è attiva di default al caricamento
-    _aggFabVisibility('dash');
-  });
-})();
 
 /* ============================================================
    FINE MEGA-PATCH JS
@@ -10475,6 +10430,7 @@ var AuthModule = (function() {
         if (banner) banner.style.display = 'flex';
 
         if (typeof aggUI === 'function') aggUI();
+        _ripristinaPagina();
 
         return;
 
@@ -10498,6 +10454,7 @@ var AuthModule = (function() {
         var banner2 = document.getElementById('debug-banner');
         if (banner2) banner2.style.display = 'flex';
         if (typeof aggUI === 'function') aggUI();
+        _ripristinaPagina();
         return;
       }
 
@@ -10569,6 +10526,7 @@ var AuthModule = (function() {
         if (typeof aggiornaWidget === 'function') aggiornaWidget();
         if (typeof renderWidgetProssimo === 'function') renderWidgetProssimo(profile);
         AuthModule.renderGestioneMemebri();
+        _ripristinaPagina();
         if(window.FirebaseModule) window.FirebaseModule.onLogin(AuthModule.getSession()).catch(function(e){ console.warn('onLogin bg:', e.message); });
       } catch(fbErr) {
         var msg = fbErr.code === 'auth/invalid-credential' || fbErr.code === 'auth/wrong-password' || fbErr.code === 'auth/user-not-found'
@@ -11235,6 +11193,10 @@ window.FirebaseModule = {
       _hideSyncBanner();
     }
     _startListeners(rep);
+    // Ripristina pagina dopo che i listener hanno fatto il primo render
+    setTimeout(function(){
+      if(typeof window._ripristinaPagina === 'function') window._ripristinaPagina();
+    }, 400);
   },
 
   // ── Sincronizza ct_users da Firestore ───────────────────────
