@@ -4664,7 +4664,7 @@ function initPWA(){
   // Genera manifest dinamicamente
   var manifest={name:"C-Turni",short_name:"C-Turni",
     description:"Gestione turni Carabinieri",
-    start_url:window.location.href,
+    start_url:"/C-Turni/c_turni_v3.5.0.html",
     display:"standalone",
     background_color:"#0a1628",
     theme_color:"#0a1628",
@@ -6878,15 +6878,15 @@ function cambiaPassword(){
 // ---- STATS ----
 function stats(){
   var T=lsG("ct_t",[]),P=lsG("ct_p",[]);
-  document.getElementById("st-p").textContent=P.length;
-  document.getElementById("st-t").textContent=T.length;
+  var sp=document.getElementById("st-p"); if(sp) sp.textContent=P.length;
+  var st=document.getElementById("st-t"); if(st) st.textContent=T.length;
   var n=0,f=0;
   for(var i=0;i<T.length;i++){
     if(T[i].tipo==="notte")n++;
     if(T[i].tipo==="ferie"||T[i].tipo==="licenza")f++;
   }
-  document.getElementById("st-n").textContent=n;
-  document.getElementById("st-f").textContent=f;
+  var sn=document.getElementById("st-n"); if(sn) sn.textContent=n;
+  var sf=document.getElementById("st-f"); if(sf) sf.textContent=f;
 }
 
 // ---- RENDER TABELLE ----
