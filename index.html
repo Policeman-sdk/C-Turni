@@ -11519,17 +11519,12 @@ window.FirebaseModule = {
     if(!uid || !todoArr) return;
     try {
       var arr = typeof todoArr === 'string' ? JSON.parse(todoArr) : todoArr;
-      var localIds = arr.map(function(t){ return String(t.id); });
       var writes = arr.map(function(t){
         if(!t.id) return Promise.resolve();
         return setDoc(doc(db, 'utenti', uid, 'todo', String(t.id)), t);
       });
-      var snap = await getDocs(collection(db, 'utenti', uid, 'todo'));
-      snap.forEach(function(d){
-        if(localIds.indexOf(d.id) === -1) writes.push(deleteDoc(doc(db, 'utenti', uid, 'todo', d.id)));
-      });
       await Promise.all(writes);
-    } catch(e) { console.warn('saveTodo:', e.message); _toast('Errore sync todo', 'err'); }
+    } catch(e) { console.warn('saveTodo:', e.message); }
   },
 
   // ── Salva array agenda su Firestore (personale, per utente) ─
@@ -11539,14 +11534,9 @@ window.FirebaseModule = {
     if(!uid || !agArr) return;
     try {
       var arr = typeof agArr === 'string' ? JSON.parse(agArr) : agArr;
-      var localIds = arr.map(function(a){ return String(a.id); });
       var writes = arr.map(function(a){
         if(!a.id) return Promise.resolve();
         return setDoc(doc(db, 'utenti', uid, 'agenda', String(a.id)), a);
-      });
-      var snap = await getDocs(collection(db, 'utenti', uid, 'agenda'));
-      snap.forEach(function(d){
-        if(localIds.indexOf(d.id) === -1) writes.push(deleteDoc(doc(db, 'utenti', uid, 'agenda', d.id)));
       });
       await Promise.all(writes);
     } catch(e) { console.warn('saveAgenda:', e.message); }
