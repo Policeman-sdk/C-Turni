@@ -1978,15 +1978,7 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
       <!-- END TESSERINO NUOVO -->
 <h1 class="ptit">Dashboard</h1><p class="psub">Panoramica generale</p>
 
-        <div class="iarea" onclick="document.getElementById('xi').click()"
-          ondragover="event.preventDefault();this.classList.add('drag')"
-          ondragleave="this.classList.remove('drag')"
-          ondrop="event.preventDefault();this.classList.remove('drag');importXL(event.dataTransfer.files[0])">
-          <input type="file" id="xi" accept=".xlsx,.xls" onchange="importXL(this.files[0])">
-          <div style="font-size:32px;margin-bottom:8px">&#128203;</div>
-          <div style="font-size:13px;font-weight:700;margin-bottom:4px">Importa turni da Excel</div>
-          <div style="font-size:11px;color:var(--txt2)">Tocca qui o trascina il file</div>
-        </div>
+        <input type="file" id="xi" accept=".xlsx,.xls" onchange="importXL(this.files[0])" style="display:none">
         <!-- BARRA ORGANIZZA DASHBOARD -->
         <div style="display:flex;align-items:center;justify-content:flex-end;margin-top:14px;margin-bottom:4px">
           <button id="btn-dash-organizza" onclick="toggleDashOrganizza(this)">&#9776; Organizza</button>
@@ -2006,7 +1998,7 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
         <!-- WIDGET TURNO OGGI -->
         <div id="widget-oggi" class="wdg-wrap" data-wid="turno">
           <div id="w-inner" style="border-radius:16px;padding:16px 18px 14px;background:linear-gradient(135deg,#1a3a6e 0%,#0a1628 100%);color:#fff;position:relative;overflow:hidden;box-shadow:0 4px 20px rgba(10,22,40,.4)">
-            <div style="position:absolute;right:-8px;top:-8px;font-size:90px;opacity:.07;line-height:1;pointer-events:none" id="w-bg-ico">&#128197;</div>
+            <div style="position:absolute;right:-8px;top:-8px;font-size:90px;opacity:.07;line-height:1;pointer-events:none" id="w-bg-ico">🛋️</div>
             <!-- Header label + move buttons -->
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
               <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;opacity:.6">&#9889; Il tuo turno oggi</div>
@@ -2021,7 +2013,7 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
               <div style="flex:1;min-width:0">
                 <div id="w-nome-utente" style="font-size:11px;font-weight:700;opacity:.7;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
                 <div style="display:flex;align-items:center;gap:10px">
-                  <div id="w-ico" style="font-size:32px;line-height:1;flex-shrink:0">&#128197;</div>
+                  <div id="w-ico" style="font-size:32px;line-height:1;flex-shrink:0">🛋️</div>
                   <div>
                     <div id="w-tipo" style="font-size:22px;font-weight:900;line-height:1.1">Riposo</div>
                     <div id="w-orario" style="font-size:13px;opacity:.75;margin-top:2px"></div>
@@ -4409,13 +4401,13 @@ function salvaFerie(){
 
 // ---- WIDGET TURNO OGGI ----
 var _tipoIco={
-  mattina:"&#127749;",pomeriggio:"&#9728;",ml:"&#127749;",pl:"&#9728;",
-  notte:"&#127769;",sera:"&#127769;",
-  riposo:"&#128164;",recupero:"&#128260;",
-  ferie:"&#127958;",licenza:"&#128218;","937":"&#127958;",
-  "104":"&#9855;",ls:"&#129656;",
-  permesso:"&#128336;",fest:"&#127881;",
-  corso:"&#127891;",esame:"&#128221;"
+  mattina:"🌅",pomeriggio:"☀️",ml:"🌄",pl:"🌞",
+  notte:"🌙",sera:"🌆",
+  riposo:"🛋️",recupero:"♻️",
+  ferie:"🏖️",licenza:"📚","937":"🏝️",
+  "104":"♿",ls:"🩸",
+  permesso:"📋",fest:"🎉",
+  corso:"🎓",esame:"📝"
 };
 var _tipoBg={
   mattina:"linear-gradient(135deg,#e65100 0%,#bf360c 100%)",
@@ -4542,14 +4534,14 @@ function aggiornaWidget(){
     if(inner) inner.style.background="linear-gradient(135deg,#1a3a6e 0%,#0a1628 100%)";
     // Se la sync Firebase è ancora in corso, non mostrare "Riposo" prematuramente
     if(window._widgetSyncPending) {
-      document.getElementById("w-ico").innerHTML="&#8987;";
-      document.getElementById("w-bg-ico").innerHTML="&#8987;";
+      document.getElementById("w-ico").innerHTML="⏳";
+      document.getElementById("w-bg-ico").innerHTML="⏳";
       document.getElementById("w-tipo").textContent="Sincronizzazione...";
       document.getElementById("w-orario").textContent="Caricamento turni in corso";
       document.getElementById("w-codice").textContent="";
     } else {
-      document.getElementById("w-ico").innerHTML="&#128564;";
-      document.getElementById("w-bg-ico").innerHTML="&#128564;";
+      document.getElementById("w-ico").innerHTML="🛋️";
+      document.getElementById("w-bg-ico").innerHTML="🛋️";
       document.getElementById("w-tipo").textContent="Riposo";
       document.getElementById("w-orario").textContent="Nessun turno assegnato";
       document.getElementById("w-codice").textContent="";
@@ -5055,9 +5047,14 @@ function _aggFabVisibility(pg){
   var btn  = document.getElementById('fab-main');
   if(!btn) return;
   if(pg === 'dash'){
-    btn.classList.add('visible');
-    btn.style.pointerEvents = 'all';
-    if(nav) nav.classList.add('fab-active');
+    // Doppio rAF: primo frame = layout pronto, secondo frame = transizione CSS parte dopo il paint
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){
+        btn.classList.add('visible');
+        btn.style.pointerEvents = 'all';
+        if(nav) nav.classList.add('fab-active');
+      });
+    });
   } else {
     btn.classList.remove('visible');
     btn.style.pointerEvents = 'none';
@@ -7984,6 +7981,8 @@ function vai(pg, btn) {
   var el = document.getElementById("pag-"+pg);
   if(el){ el.classList.add("on", dir); }
   chiMenu();
+  // FAB: visibile SOLO sulla dashboard — gestito qui per coprire tutti i percorsi di navigazione
+  _aggFabVisibility(pg);
   if(pg==="pers"){ renderPers(); if(typeof _renderStatoComando==='function') _renderStatoComando(); }
   if(pg==="cal") { renderCal(); renderTodo(); renderAgenda(); }
   if(pg==="rep") renderRep();
@@ -8127,8 +8126,6 @@ function vaiBN(pg, idx) {
   vai(pg, sideBtn || { classList: { add: function(){}, remove: function(){} } });
   // Hook pagine specifiche
   if(pg === 'imp') { if(typeof renderOrariPreset === 'function') renderOrariPreset(); }
-  // FAB visibile solo sulla dashboard
-  _aggFabVisibility(pg);
   // Chiudi FAB se aperto
   closeFab();
 }
@@ -10303,6 +10300,8 @@ var AuthModule = (function() {
     if (overlay) overlay.style.display = 'none';
     var pgApp = document.getElementById('pg-app');
     if(pgApp){ pgApp.style.display='flex'; pgApp.classList.add('on'); }
+    // Forza reflow per garantire che pg-app sia visibile prima di qualsiasi animazione
+    if(pgApp) void pgApp.offsetHeight;
 
   }
 
