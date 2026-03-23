@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>C-TURNI v3.4.1</title>
+<title>C-TURNI v3.5.0</title>
 <link rel="manifest" id="pwa-manifest">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -30,48 +30,11 @@
   var url=URL.createObjectURL(blob);
   document.getElementById("pwa-manifest").href=url;
 })();
-// -- SERVICE WORKER INLINE --
+// -- SERVICE WORKER (firebase-messaging-sw.js nella root) --
 if("serviceWorker" in navigator){
-  var swCode=[
-    "var CACHE='c-turni-v2.4.6';",
-    "self.addEventListener('install',function(e){",
-    "  e.waitUntil(caches.open(CACHE).then(function(c){return c.add('/');}));",
-    "  self.skipWaiting();",
-    "});",
-    "self.addEventListener('activate',function(e){",
-    "  e.waitUntil(caches.keys().then(function(ks){",
-    "    return Promise.all(ks.filter(function(k){return k!==CACHE;}).map(function(k){return caches.delete(k);}));",
-    "  }));",
-    "  self.clients.claim();",
-    "});",
-    "// ── FCM Push handler ──",
-    "self.addEventListener('push',function(e){",
-    "  var data={title:'C-Turni',body:'Hai una notifica',icon:''};",
-    "  try{var p=e.data?e.data.json():{};data.title=p.title||data.title;data.body=p.body||data.body;data.icon=p.icon||data.icon;}catch(ex){}",
-    "  e.waitUntil(self.registration.showNotification(data.title,{body:data.body,icon:data.icon,badge:data.icon,tag:'c-turni-push',renotify:true}));",
-    "});",
-    "self.addEventListener('notificationclick',function(e){",
-    "  e.notification.close();",
-    "  e.waitUntil(clients.matchAll({type:'window'}).then(function(cs){",
-    "    for(var i=0;i<cs.length;i++){if(cs[i].url&&cs[i].focus){cs[i].focus();return;}}",
-    "    if(clients.openWindow)return clients.openWindow('/');",
-    "  }));",
-    "});",
-    "self.addEventListener('fetch',function(e){",
-    "  e.respondWith(caches.match(e.request).then(function(r){",
-    "    return r||fetch(e.request).then(function(res){",
-    "      var clone=res.clone();",
-    "      caches.open(CACHE).then(function(c){c.put(e.request,clone);});",
-    "      return res;",
-    "    }).catch(function(){return caches.match('/');});",
-    "  }));",
-    "});"
-  ].join("\n");
-  var swBlob=new Blob([swCode],{type:"text/javascript"});
-  var swUrl=URL.createObjectURL(swBlob);
-  navigator.serviceWorker.register(swUrl).then(function(reg){
-    console.log("SW registrato:",reg.scope);
-  }).catch(function(e){console.warn("SW err:",e);});
+  navigator.serviceWorker.register('/C-Turni/firebase-messaging-sw.js', { scope: '/C-Turni/' })
+    .then(function(reg){ console.log("SW FCM registrato:", reg.scope); })
+    .catch(function(e){ console.warn("SW err:", e); });
 }
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -128,6 +91,63 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 .noti.ok{border-left-color:var(--green)}.noti.err{border-left-color:var(--red)}.noti.warn{border-left-color:var(--gold)}
 @keyframes nIn{from{transform:translateX(120%);opacity:0}to{transform:none;opacity:1}}
 @keyframes fadeInUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+/* ── 1. SKELETON LOADERS ── */
+@keyframes skPulse{0%,100%{opacity:.4}50%{opacity:.9}}
+.sk{background:var(--bg2);border-radius:8px;animation:skPulse 1.4s ease-in-out infinite}
+.sk-line{height:12px;margin-bottom:8px}.sk-line.w60{width:60%}.sk-line.w80{width:80%}.sk-line.w40{width:40%}
+.sk-block{height:80px;width:100%;margin-bottom:10px}
+.sk-circle{width:40px;height:40px;border-radius:50%;flex-shrink:0}
+.sk-row{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)}
+
+/* ── 2. EMPTY STATES ── */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:36px 20px;gap:10px;text-align:center}
+.empty-state svg{opacity:.55}
+.empty-state .es-title{font-size:14px;font-weight:700;color:var(--txt);margin-top:4px}
+.empty-state .es-sub{font-size:12px;color:var(--txt2);line-height:1.5}
+
+/* ── 3. SWIPE ACTIONS ── */
+.swipe-wrap{position:relative;overflow:hidden;border-radius:12px;margin-bottom:6px}
+.swipe-bg{position:absolute;top:0;bottom:0;display:flex;align-items:center;padding:0 20px;font-size:20px;font-weight:700;transition:opacity .15s}
+.swipe-bg.left{right:0;background:var(--red);color:#fff;border-radius:0 12px 12px 0}
+.swipe-bg.right{left:0;background:var(--green);color:#fff;border-radius:12px 0 0 12px}
+.swipe-item{position:relative;z-index:1;background:var(--card);border-radius:12px;transition:transform .2s var(--motion-decel);touch-action:pan-y;cursor:grab}
+.swipe-item.swiping{transition:none}
+
+/* ── 4. FAB ── */
+.fab-wrap{position:fixed;bottom:76px;right:18px;z-index:9000;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+.fab-main{width:56px;height:56px;border-radius:50%;background:var(--blue);color:#fff;border:none;font-size:26px;cursor:pointer;
+  box-shadow:0 4px 20px rgba(41,121,255,.45);display:flex;align-items:center;justify-content:center;
+  transition:transform .25s var(--motion-decel),background .2s;appearance:none;-webkit-appearance:none;flex-shrink:0}
+.fab-main.open{transform:rotate(45deg);background:var(--red)}
+.fab-items{display:flex;flex-direction:column;align-items:flex-end;gap:8px;pointer-events:none;opacity:0;transform:translateY(12px);transition:opacity .2s,transform .2s var(--motion-decel)}
+.fab-items.open{pointer-events:all;opacity:1;transform:translateY(0)}
+.fab-item{display:flex;align-items:center;gap:10px}
+.fab-item-btn{width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 12px rgba(0,0,0,.25);appearance:none;-webkit-appearance:none;transition:transform .15s}
+.fab-item-btn:active{transform:scale(.92)}
+.fab-item-lbl{font-size:12px;font-weight:700;color:#fff;background:rgba(0,0,0,.55);padding:4px 10px;border-radius:20px;white-space:nowrap;backdrop-filter:blur(6px)}
+
+/* ── 5. TEMA AUTO ── */
+@media(prefers-color-scheme:dark){
+  html[data-theme="auto"]{
+    --bg:#0d1b2a;--bg2:#111f30;--card:#162436;--card2:#1a2c40;
+    --txt:#e8edf2;--txt2:#8fa3b8;--txt3:#4a6278;
+    --border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.04);
+    --blue:#5b9fff;--teal:#26c6da;--gold:#c8a84b;--red:#c8102e;
+    --green:#6abf69;--orange:#ff9f43;--navy:#0d1b2a;
+    --elevation-1:0 2px 8px rgba(0,0,0,.4);--elevation-2:0 4px 16px rgba(0,0,0,.5);--elevation-3:0 8px 32px rgba(0,0,0,.6)
+  }
+}
+@media(prefers-color-scheme:light){
+  html[data-theme="auto"]{
+    --bg:#f0f4f8;--bg2:#ffffff;--card:#ffffff;--card2:#f8fafc;
+    --txt:#1a2332;--txt2:#5a7a9a;--txt3:#a0b4c8;
+    --border:rgba(0,0,0,.08);--border2:rgba(0,0,0,.04);
+    --blue:#2979ff;--teal:#00bcd4;--gold:#b8860b;--red:#c8102e;
+    --green:#388e3c;--orange:#e65100;--navy:#0d1b2a;
+    --elevation-1:0 2px 8px rgba(0,0,0,.08);--elevation-2:0 4px 16px rgba(0,0,0,.12);--elevation-3:0 8px 32px rgba(0,0,0,.16)
+  }
+}
 .pg{display:none;min-height:100vh}.pgflex{display:none;min-height:100vh;align-items:center;justify-content:center}
 .pg.on{display:block}.pgflex.on{display:flex}
 .fg{margin-bottom:14px}
@@ -1666,6 +1686,25 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
   </header>
 
   <!-- BOTTOM NAVIGATION BAR (sempre visibile) -->
+  <!-- FAB Floating Action Button -->
+  <div class="fab-wrap" id="fab-wrap">
+    <div class="fab-items" id="fab-items">
+      <div class="fab-item">
+        <span class="fab-item-lbl">Esporta PDF</span>
+        <button class="fab-item-btn" style="background:var(--red)" onclick="closeFab();esportaPDF()" aria-label="Esporta PDF">&#128196;</button>
+      </div>
+      <div class="fab-item">
+        <span class="fab-item-lbl">Importa Excel</span>
+        <button class="fab-item-btn" style="background:var(--teal)" onclick="closeFab();document.getElementById('xi').click()" aria-label="Importa Excel">&#128229;</button>
+      </div>
+      <div class="fab-item">
+        <span class="fab-item-lbl">Nuovo Turno</span>
+        <button class="fab-item-btn" style="background:var(--blue)" onclick="closeFab();openM('m-turno')" aria-label="Nuovo Turno">&#10133;</button>
+      </div>
+    </div>
+    <button class="fab-main" id="fab-main" onclick="toggleFab()" aria-label="Azioni rapide" aria-expanded="false">&#43;</button>
+  </div>
+
   <nav id="bottom-nav" aria-label="Navigazione principale">
     <div class="bn-items">
       <button class="bn-item on" id="bn-dash" onclick="vaiBN('dash',0)" aria-label="Dashboard">
@@ -2722,7 +2761,7 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
 
 
         <div class="imp-section">
-          <div class="imp-section-title">&#8505;&#65039; Info <span style="float:right;font-size:10px;font-weight:400;color:var(--txt2)">v3.4.1</span></div>
+          <div class="imp-section-title">&#8505;&#65039; Info <span style="float:right;font-size:10px;font-weight:400;color:var(--txt2)">v3.5.0</span></div>
           <div style="border-radius:14px;border:1px solid var(--border);overflow:hidden">
             <div class="imp-row"><div class="imp-row-ico" style="background:rgba(41,121,255,.12)">&#128196;</div>
               <div class="imp-row-body"><div class="imp-row-title">Formato</div><div class="imp-row-sub">Scarica &#8594; apri con Google Chrome</div></div></div>
@@ -2733,7 +2772,7 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
               <div class="imp-row-ico" style="background:rgba(212,175,55,.12)">&#127381;</div>
               <div class="imp-row-body">
                 <div class="imp-row-title">Versione</div>
-                <div class="imp-row-sub" id="egg-hint">C-Turni v3.4.1</div>
+                <div class="imp-row-sub" id="egg-hint">C-Turni v3.5.0</div>
               </div>
               <div style="font-size:18px;color:var(--txt3)" id="egg-dots">&#8226;&#8226;&#8226;</div>
             </div>
@@ -2755,14 +2794,33 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
               <div id="sec-changelog" style="max-height:0;overflow:hidden;transition:max-height .35s ease">
                 <div style="padding:14px;border-top:1px solid var(--border);font-size:12px;color:var(--txt2)">
 
-                  <!-- v3.4.1 ATTUALE -->
+                  <!-- v3.5.0 ATTUALE -->
                   <div style="margin-bottom:14px">
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-                      <span style="font-weight:800;color:var(--teal)">v3.4.1</span>
+                      <span style="font-weight:800;color:var(--teal)">v3.5.0</span>
                       <span style="font-size:10px;background:rgba(41,121,255,.15);color:var(--blue);padding:1px 7px;border-radius:20px">&#9679; Attuale</span>
                       <span style="font-size:10px;color:var(--txt3)">Mar 2026</span>
                     </div>
                     <div style="padding-left:10px;border-left:2px solid var(--teal);display:flex;flex-direction:column;gap:3px">
+                      <div>&#128276; Notifiche push Firebase (FCM): ricezione anche con app chiusa</div>
+                      <div>&#128247; Service Worker aggiornato per notifiche in background</div>
+                      <div>&#128640; Skeleton loaders durante il caricamento dati da Firebase</div>
+                      <div>&#128247; Empty states illustrati per liste vuote (todo, agenda, turni)</div>
+                      <div>&#128072; Swipe su todo: destra = fatto &#10003;, sinistra = elimina &#128465;</div>
+                      <div>&#10010; FAB multiplo: Nuovo Turno, Importa Excel, Esporta PDF</div>
+                      <div>&#127763; Tema "Auto": segue le impostazioni di sistema (chiaro/scuro)</div>
+                      <div>&#128465; Pulizia Firestore: cancellazione dati completa alla rimozione utente</div>
+                      <div>&#128203; Sync turni/todo/agenda: rimozione automatica doc obsoleti su Firebase</div>
+                    </div>
+                  </div>
+
+                  <!-- v3.4.1 -->
+                  <div style="margin-bottom:14px">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                      <span style="font-weight:800;color:var(--txt)">v3.4.1</span>
+                      <span style="font-size:10px;color:var(--txt3)">Mar 2026</span>
+                    </div>
+                    <div style="padding-left:10px;border-left:2px solid var(--border2);display:flex;flex-direction:column;gap:3px">
                       <div>&#128197; Popup giorno: ordine per grado (dal pi&ugrave; alto al pi&ugrave; basso)</div>
                       <div>&#128100; Popup giorno: SVG grado sempre visibile, icona fallback se assente</div>
                       <div>&#128465; Reset "Turni + Persone": ferma i listener prima di cancellare, poi ricarica</div>
@@ -3303,6 +3361,8 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
       <div id="tema-grid-notte" class="tema-picker-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:0 12px 14px"></div>
       <div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.6px;padding:0 16px 10px;border-top:1px solid var(--border);margin-top:4px">&#9728;&#65039; Temi Giorno</div>
       <div id="tema-grid-giorno" class="tema-picker-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:0 12px 14px"></div>
+      <div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.6px;padding:0 16px 10px;border-top:1px solid var(--border);margin-top:4px">&#128247; Automatico</div>
+      <div id="tema-grid-speciali" class="tema-picker-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:0 12px 14px"></div>
     </div>
     <div class="mfoo">
       <button class="btn btn-g btn-sm" onclick="closeM('m-tema')">Chiudi</button>
@@ -3317,7 +3377,7 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
     <div class="mhan"><div></div></div>
     <div class="mhd">
       <div class="mtit">&#127894; Scegli Grado</div>
-      <button class="mcl" onclick="closeM('m-grado-picker')">?</button>
+      <button class="mcl" onclick="closeM('m-grado-picker')">&#10005;</button>
     </div>
     <div class="mbod" style="padding:12px 16px;max-height:60vh;overflow-y:auto">
       <div id="grado-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px"></div>
@@ -3333,9 +3393,9 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
   <div class="mbox" style="max-width:340px">
     <div class="mhan"></div>
     <div class="mhd" style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px">
-      <button class="btn btn-g btn-sm" onclick="dpMese(-1)" style="padding:4px 12px;font-size:16px;width:auto">?</button>
+      <button class="btn btn-g btn-sm" onclick="dpMese(-1)" style="padding:4px 12px;font-size:16px;width:auto">&#8249;</button>
       <div class="mtit" id="dp-month-year" style="flex:1;text-align:center;font-size:14px;letter-spacing:1px;color:var(--txt)"></div>
-      <button class="btn btn-g btn-sm" onclick="dpMese(1)" style="padding:4px 12px;font-size:16px;width:auto">?</button>
+      <button class="btn btn-g btn-sm" onclick="dpMese(1)" style="padding:4px 12px;font-size:16px;width:auto">&#8250;</button>
     </div>
     <div class="mbod" style="padding:16px" id="dp-grid">
     </div>
@@ -3351,7 +3411,7 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
     <div class="mhan"></div>
     <div class="mhd">
       <div class="mtit">&#128100; Seleziona Persona</div>
-      <button class="mcl" onclick="closeM('m-pers-picker')">?</button>
+      <button class="mcl" onclick="closeM('m-pers-picker')">&#10005;</button>
     </div>
     <div class="mbod" style="padding:0; max-height:65vh; overflow-y:auto; -webkit-overflow-scrolling:touch" id="pers-picker-list">
     </div>
@@ -4659,22 +4719,27 @@ function renderTodo(){
   // Ordina: alta?media?bassa, poi per data
   var po={alta:0,media:1,bassa:2};
   TD.sort(function(a,b){if(a.done!==b.done)return a.done?1:-1;return (po[a.prio]||1)-(po[b.prio]||1);});
-  if(!TD.length){el.innerHTML='<div style="text-align:center;color:var(--txt2);padding:40px;font-size:13px">Nessun promemoria &#127881;</div>';return;}
+  if(!TD.length){el.innerHTML=emptyState('todo');return;}
   var pLbl={alta:"&#128308; Alta",media:"&#128993; Media",bassa:"&#128994; Bassa"};
   el.innerHTML=TD.map(function(t){
     var ds=t.data?'<span style="font-size:10px;color:var(--txt2);margin-left:6px">&#128197; '+t.data+(t.ora?' &#9201; '+t.ora:'')+'</span>':"";
     var rc=t.ricor?'<span style="font-size:10px;color:var(--teal);margin-left:6px">&#128260; Ricorrente</span>':"";
     var nt=t.note?'<div style="font-size:11px;color:var(--txt2);margin-top:3px">'+t.note+'</div>':"";
-    return '<div class="todo-item p-'+t.prio+(t.done?" done":"")+'" id="tditem-'+t.id+'">'+
-      '<button class="chk'+(t.done?" on":"")+'" onclick="toggleTodo('+t.id+')">'+( t.done?"&#10003;":"")+'</button>'+
-
-      '<div style="flex:1;min-width:0">'+
-        nt+
-        '<div style="margin-top:5px"><span class="pbdg">'+pLbl[t.prio]+'</span>'+ds+rc+'</div>'+
+    return '<div class="swipe-wrap">'+
+      '<div class="swipe-bg right">&#10003;</div>'+
+      '<div class="swipe-item todo-item p-'+t.prio+(t.done?" done":"")+ '" id="tditem-'+t.id+'" data-tid="'+t.id+'">'+
+        '<button class="chk'+(t.done?" on":"")+'" onclick="toggleTodo('+t.id+')">'+( t.done?"&#10003;":"")+'</button>'+
+        '<div style="flex:1;min-width:0">'+
+          '<div style="font-weight:700;font-size:13px;color:var(--txt)'+(t.done?';text-decoration:line-through;opacity:.5':'')+'">'+(t.tit||'')+'</div>'+
+          nt+
+          '<div style="margin-top:5px"><span class="pbdg">'+pLbl[t.prio]+'</span>'+ds+rc+'</div>'+
+        '</div>'+
+        '<button onclick="delTodo('+t.id+')" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:16px;padding:4px;appearance:none;-webkit-appearance:none;flex-shrink:0">&#128465;</button>'+
       '</div>'+
-      '<button onclick="delTodo('+t.id+')" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:16px;padding:4px;appearance:none;-webkit-appearance:none;flex-shrink:0">&#128465;</button>'+
+      '<div class="swipe-bg left">&#128465;</div>'+
     '</div>';
   }).join("");
+  setTimeout(initSwipeTodo, 50);
 }
 
 // ---- AGENDA ----
@@ -4740,6 +4805,7 @@ function renderAgenda(){
 var _TEMI_CFG={
   "":         {nome:"Notte",      emoji:"🌙", desc:"Blu scuro  predefinito",   bg:"linear-gradient(135deg,#0d1b2a,#1a3a5c)", colors:["#0d1b2a","#1a2f45","#2979ff","#ffffff"]},
   "light":    {nome:"Giorno",     emoji:"☀️",   desc:"Chiaro e nitido",            bg:"linear-gradient(135deg,#f0f4f8,#dce8f0)", colors:["#f0f4f8","#ffffff","#1565c0","#0d1b2a"]},
+  "auto":     {nome:"Auto",       emoji:"📱", desc:"Segue le impostazioni del sistema", bg:"linear-gradient(135deg,#1a2a3a,#2a3a4a)", colors:["#0d1b2a","#f0f4f8","#2979ff","#c8a84b"]},
   "rosa":     {nome:"Rosa",       emoji:"🌸", desc:"Rosa vivo  petali animati",  bg:"linear-gradient(135deg,#2a0a18,#8a2040,#c0304a)", colors:["#2a0a18","#4a1828","#ff4d80","#fff0f4"]},
   "forestale":{nome:"Forestale+", emoji:"🚗", desc:"Grigio-verde uniforme + radar", bg:"linear-gradient(135deg,#1c2b1c,#2e402e,#3d4a3d)", colors:["#1c1f1c","#2e332e","#6abf69","#e8ede8"]},
   "carabinieri":{nome:"Carabinieri",emoji:"⚜️", desc:"Divisa ufficiale  stemma",  bg:"linear-gradient(135deg,#080b10,#111828,#080b10)", colors:["#080b10","#111828","#c8a96e","#ffffff"]},
@@ -4760,6 +4826,7 @@ function setTema(t){
 function aprireTemapicker() {
   const TEMI_NOTTE = ['', 'rosa', 'forestale', 'carabinieri'];
   const TEMI_GIORNO = ['light', 'rosa-light', 'forestale-light', 'carabinieri-light'];
+  const TEMI_SPECIALI = ['auto'];
   const cur = (_temaPending !== null) ? _temaPending : lsG('ct_tema', '');
 
   function buildGrid(arr, containerId) {
@@ -4778,6 +4845,9 @@ function aprireTemapicker() {
 
   buildGrid(TEMI_NOTTE, 'tema-grid-notte');
   buildGrid(TEMI_GIORNO, 'tema-grid-giorno');
+  // Griglia speciali (auto) — crea il container se non esiste
+  var specEl = document.getElementById('tema-grid-speciali');
+  if(specEl) buildGrid(TEMI_SPECIALI, 'tema-grid-speciali');
 
   const btn = document.getElementById('btn-salva-tema');
   if (btn) { btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; }
@@ -4805,11 +4875,20 @@ function aggTemaUI(t){
 function caricaTema(){
   var t=lsG("ct_tema",null);
   if(t===null)t="";
-  if(t==="light") document.documentElement.setAttribute("data-theme","light");
+  if(t==="auto") document.documentElement.setAttribute("data-theme","auto");
+  else if(t==="light") document.documentElement.setAttribute("data-theme","light");
   else if(t)       document.documentElement.setAttribute("data-theme",t);
   else             document.documentElement.removeAttribute("data-theme");
   aggTemaUI(t);
   aggThemeColor(t);
+  // Listener sistema per tema auto
+  if(t==="auto" && window.matchMedia){
+    var mq = window.matchMedia('(prefers-color-scheme: dark)');
+    if(!window._autoThemeListener){
+      window._autoThemeListener = function(){ aggThemeColor('auto'); };
+      mq.addEventListener('change', window._autoThemeListener);
+    }
+  }
 }
 function togTheme(){
   var cur=document.documentElement.getAttribute("data-theme")||"";
@@ -4826,6 +4905,121 @@ function togTheme(){
   if(btn)btn.innerHTML=isDay?"&#9728;":"&#127769;";
 }
 
+
+// ══════════════════════════════════════════════════════
+// 4. FAB — Floating Action Button
+// ══════════════════════════════════════════════════════
+var _fabOpen = false;
+function toggleFab(){
+  _fabOpen = !_fabOpen;
+  var btn = document.getElementById('fab-main');
+  var items = document.getElementById('fab-items');
+  if(btn){ btn.classList.toggle('open', _fabOpen); btn.setAttribute('aria-expanded', _fabOpen); }
+  if(items) items.classList.toggle('open', _fabOpen);
+  // Chiudi cliccando fuori
+  if(_fabOpen){
+    setTimeout(function(){
+      document.addEventListener('click', _fabOutside, {once:true});
+    }, 10);
+  }
+}
+function closeFab(){
+  _fabOpen = false;
+  var btn = document.getElementById('fab-main');
+  var items = document.getElementById('fab-items');
+  if(btn){ btn.classList.remove('open'); btn.setAttribute('aria-expanded','false'); }
+  if(items) items.classList.remove('open');
+}
+function _fabOutside(e){
+  var wrap = document.getElementById('fab-wrap');
+  if(wrap && !wrap.contains(e.target)) closeFab();
+}
+// Nascondi FAB quando non si è sulla dashboard
+function _aggFabVisibility(pg){
+  var fab = document.getElementById('fab-wrap');
+  if(!fab) return;
+  fab.style.display = (pg === 'dash') ? 'flex' : 'none';
+}
+
+// ══════════════════════════════════════════════════════
+// 1. SKELETON LOADERS
+// ══════════════════════════════════════════════════════
+function skeletonWidget(id, rows){
+  var el = document.getElementById(id);
+  if(!el) return;
+  var r = rows || 3;
+  el.innerHTML = Array(r).fill(0).map(function(_,i){
+    return '<div class="sk-row"><div class="sk sk-circle"></div><div style="flex:1"><div class="sk sk-line w80"></div><div class="sk sk-line w40"></div></div></div>';
+  }).join('');
+}
+function skeletonDash(){
+  ['wpr-body','wmt-body','wsc-list','wag-list','wtd-list'].forEach(function(id){
+    skeletonWidget(id, 2);
+  });
+}
+
+// ══════════════════════════════════════════════════════
+// 2. EMPTY STATES
+// ══════════════════════════════════════════════════════
+var _ES = {
+  todo:    { svg:'<svg width="64" height="64" viewBox="0 0 64 64" fill="none"><rect x="12" y="8" width="40" height="48" rx="6" fill="var(--bg2)" stroke="var(--border)" stroke-width="2"/><rect x="20" y="20" width="24" height="3" rx="1.5" fill="var(--txt3)"/><rect x="20" y="28" width="18" height="3" rx="1.5" fill="var(--txt3)"/><rect x="20" y="36" width="20" height="3" rx="1.5" fill="var(--txt3)"/><circle cx="48" cy="48" r="10" fill="var(--green)"/><path d="M44 48l3 3 5-5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>', title:'Tutto fatto!', sub:'Nessun promemoria aperto.\nGoditela.' },
+  agenda:  { svg:'<svg width="64" height="64" viewBox="0 0 64 64" fill="none"><rect x="10" y="14" width="44" height="40" rx="6" fill="var(--bg2)" stroke="var(--border)" stroke-width="2"/><rect x="10" y="22" width="44" height="2" fill="var(--border)"/><rect x="20" y="8" width="4" height="12" rx="2" fill="var(--blue)"/><rect x="40" y="8" width="4" height="12" rx="2" fill="var(--blue)"/><circle cx="32" cy="38" r="8" fill="var(--bg2)" stroke="var(--border)" stroke-width="2"/><path d="M32 33v5l3 3" stroke="var(--txt2)" stroke-width="2" stroke-linecap="round"/></svg>', title:'Nessun appuntamento oggi', sub:'La giornata è tua.' },
+  scadenze:{ svg:'<svg width="64" height="64" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="22" fill="var(--bg2)" stroke="var(--border)" stroke-width="2"/><path d="M32 20v12l7 7" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="32" cy="32" r="2" fill="var(--green)"/></svg>', title:'Nessuna scadenza', sub:'Sei in regola con tutto.' },
+  turni:   { svg:'<svg width="64" height="64" viewBox="0 0 64 64" fill="none"><rect x="8" y="16" width="48" height="36" rx="6" fill="var(--bg2)" stroke="var(--border)" stroke-width="2"/><path d="M8 26h48" stroke="var(--border)" stroke-width="2"/><rect x="16" y="8" width="4" height="12" rx="2" fill="var(--blue)"/><rect x="44" y="8" width="4" height="12" rx="2" fill="var(--blue)"/><path d="M24 38c0-4.4 3.6-8 8-8s8 3.6 8 8" stroke="var(--gold)" stroke-width="2" stroke-linecap="round"/><circle cx="32" cy="38" r="3" fill="var(--gold)"/></svg>', title:'Nessun turno oggi', sub:'Riposa, te lo sei guadagnato ☕' },
+  notifiche:{ svg:'<svg width="64" height="64" viewBox="0 0 64 64" fill="none"><path d="M32 10c-11 0-18 8-18 18v10l-4 6h44l-4-6V28c0-10-7-18-18-18z" fill="var(--bg2)" stroke="var(--border)" stroke-width="2"/><path d="M28 48a4 4 0 008 0" stroke="var(--txt2)" stroke-width="2" stroke-linecap="round"/><line x1="32" y1="10" x2="32" y2="6" stroke="var(--txt3)" stroke-width="2" stroke-linecap="round"/></svg>', title:'Nessuna notifica', sub:'Tutto tranquillo.' }
+};
+function emptyState(tipo){
+  var cfg = _ES[tipo] || {svg:'', title:'Nessun dato', sub:''};
+  return '<div class="empty-state">'+cfg.svg+'<div class="es-title">'+cfg.title+'</div><div class="es-sub">'+cfg.sub.replace(/\n/g,'<br>')+'</div></div>';
+}
+
+// ══════════════════════════════════════════════════════
+// 3. SWIPE ACTIONS sui Todo
+// ══════════════════════════════════════════════════════
+function initSwipeTodo(){
+  var list = document.getElementById('todo-list');
+  if(!list) return;
+  list.querySelectorAll('.swipe-item').forEach(function(item){
+    var startX = 0, curX = 0, swiping = false;
+    var tid = parseInt(item.getAttribute('data-tid'));
+
+    item.addEventListener('touchstart', function(e){
+      startX = e.touches[0].clientX;
+      curX = 0; swiping = true;
+      item.classList.add('swiping');
+    }, {passive:true});
+
+    item.addEventListener('touchmove', function(e){
+      if(!swiping) return;
+      curX = e.touches[0].clientX - startX;
+      // Limita lo swipe
+      var clamped = Math.max(-80, Math.min(80, curX));
+      item.style.transform = 'translateX('+clamped+'px)';
+      // Mostra bg
+      var bgL = item.previousElementSibling;
+      var bgR = item.nextElementSibling;
+      if(bgL && bgL.classList.contains('swipe-bg')) bgL.style.opacity = curX > 20 ? '1' : '0';
+      if(bgR && bgR.classList.contains('swipe-bg')) bgR.style.opacity = curX < -20 ? '1' : '0';
+    }, {passive:true});
+
+    item.addEventListener('touchend', function(){
+      swiping = false;
+      item.classList.remove('swiping');
+      item.style.transform = '';
+      var bgL = item.previousElementSibling;
+      var bgR = item.nextElementSibling;
+      if(bgL) bgL.style.opacity = '0';
+      if(bgR) bgR.style.opacity = '0';
+      if(curX > 60){
+        // Swipe destra → segna come fatto
+        toggleTodo(tid);
+      } else if(curX < -60){
+        // Swipe sinistra → elimina
+        delTodo(tid);
+      }
+    });
+  });
+}
 
 // ---- IMPOSTAZIONI SEZIONI ESPANDIBILI ----
 function toggleImpProfilo() {
@@ -5142,24 +5336,17 @@ function resetAll(tipo){
     if(window.FirebaseModule){
       (async function(){
         try{
-          // 1. Elimina turni del reparto
+          // Cancella tutti i dati dell'utente (turni, todo, agenda, profilo reparto, profilo globale)
+          if(uid) await window.FirebaseModule.deleteUserData(uid, rep && !isPrivato ? rep : null);
+          // Cancella anche i turni del reparto se è l'unico utente / reset totale
           if(rep && !isPrivato){
             var snap=await getDocs(collection(db,'reparti',rep,'turni'));
             var b=[];
             snap.forEach(function(d){b.push(deleteDoc(doc(db,'reparti',rep,'turni',d.id)));});
             await Promise.all(b);
           }
-          // 2. Elimina todo e agenda personali
-          if(uid){
-            var b2=[];
-            var s2=await getDocs(collection(db,'utenti',uid,'todo'));
-            s2.forEach(function(d){b2.push(deleteDoc(doc(db,'utenti',uid,'todo',d.id)));});
-            var s3=await getDocs(collection(db,'utenti',uid,'agenda'));
-            s3.forEach(function(d){b2.push(deleteDoc(doc(db,'utenti',uid,'agenda',d.id)));});
-            await Promise.all(b2);
-          }
         }catch(e){console.warn('resetAll Firebase:',e.message);}
-        // 3. Elimina account Firebase Auth (così può ri-registrarsi)
+        // Elimina account Firebase Auth
         try{
           var fbAuth = window._fbAuth;
           if(fbAuth && fbAuth.currentUser){
@@ -5590,7 +5777,7 @@ function eggTap(){
   else if(_eggTaps===2){if(hint)hint.textContent="Un altro...";if(dots)dots.innerHTML="&#9679;&#9679;&#8226;";}
   else if(_eggTaps>=3){
     _eggTaps=0;
-    if(hint)hint.textContent="C-Turni v3.4.1";
+    if(hint)hint.textContent="C-Turni v3.5.0";
     var tema=lsG("ct_tema","")||"";
     var isFor=tema==="forestale"||tema==="forestale-light";
     // auto: verde forestale o bianco CC
@@ -5642,7 +5829,7 @@ function eggTap(){
   }
   _eggTimer=setTimeout(function(){
     _eggTaps=0;
-    if(hint)hint.textContent="C-Turni v3.4.1";
+    if(hint)hint.textContent="C-Turni v3.5.0";
     if(dots)dots.innerHTML="&#8226;&#8226;&#8226;";
   },2000);
 }
@@ -6182,9 +6369,9 @@ function aggUI(){
 }
 
 // ---- NOVITÀ VERSIONE ----
-var _APP_VERSION = '3.4.1';
+var _APP_VERSION = '3.5.0';
 function _checkNovita(){
-  var vLetta = localStorage.getItem('ct_novita_v3');
+  var vLetta = localStorage.getItem('ct_novita_v4');
   var giaMostrato = sessionStorage.getItem('ct_novita_shown');
   if(vLetta !== _APP_VERSION && !giaMostrato){
     sessionStorage.setItem('ct_novita_shown','1');
@@ -6193,16 +6380,16 @@ function _checkNovita(){
       var t = document.createElement('div');
       t.id = 'toast-novita';
       t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--navy),#1a2f4a);border:1px solid var(--gold);border-radius:16px;padding:14px 18px;z-index:99999;max-width:320px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.5);cursor:pointer;animation:fadeInUp .4s ease';
-      t.innerHTML = '<div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px">\uD83C\uDF81</span><div style="flex:1"><div style="font-weight:700;color:var(--gold);font-size:13px">Aggiornamento v3.4.1</div><div style="font-size:12px;color:var(--txt2);margin-top:2px">Bollino verificato, fix import Excel, reset dati migliorato e altro.</div></div><button onclick="document.getElementById(\'toast-novita\').remove();localStorage.setItem(\'ct_novita_v3\',\''+_APP_VERSION+'\')" style="background:none;border:none;color:var(--txt2);font-size:18px;cursor:pointer;padding:0;line-height:1">&times;</button></div><div style="margin-top:8px;font-size:11px;color:var(--txt2);text-align:center">Tocca per i dettagli</div>';
-      t.onclick = function(e){ if(e.target.tagName==='BUTTON') return; localStorage.setItem('ct_novita_v3',_APP_VERSION); t.remove(); openM('m-novita'); };
+      t.innerHTML = '<div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px">\uD83C\uDF81</span><div style="flex:1"><div style="font-weight:700;color:var(--gold);font-size:13px">Aggiornamento v3.5.0</div><div style="font-size:12px;color:var(--txt2);margin-top:2px">Notifiche push Firebase, skeleton loaders, swipe todo, FAB e tema auto.</div></div><button onclick="document.getElementById(\'toast-novita\').remove();localStorage.setItem(\'ct_novita_v4\',\''+_APP_VERSION+'\')" style="background:none;border:none;color:var(--txt2);font-size:18px;cursor:pointer;padding:0;line-height:1">&times;</button></div><div style="margin-top:8px;font-size:11px;color:var(--txt2);text-align:center">Tocca per i dettagli</div>';
+      t.onclick = function(e){ if(e.target.tagName==='BUTTON') return; localStorage.setItem('ct_novita_v4',_APP_VERSION); t.remove(); openM('m-novita'); };
       document.body.appendChild(t);
       // Auto-chiudi dopo 8 secondi
-      setTimeout(function(){ if(document.getElementById('toast-novita')){ localStorage.setItem('ct_novita_v3',_APP_VERSION); document.getElementById('toast-novita').remove(); } }, 8000);
+      setTimeout(function(){ if(document.getElementById('toast-novita')){ localStorage.setItem('ct_novita_v4',_APP_VERSION); document.getElementById('toast-novita').remove(); } }, 8000);
     }, 1500);
   }
 }
 function chiudiNovita(){
-  localStorage.setItem('ct_novita_v3', _APP_VERSION);
+  localStorage.setItem('ct_novita_v4', _APP_VERSION);
   closeM('m-novita');
 }
 
@@ -7812,6 +7999,10 @@ function vaiBN(pg, idx) {
   vai(pg, sideBtn || { classList: { add: function(){}, remove: function(){} } });
   // Hook pagine specifiche
   if(pg === 'imp') { if(typeof renderOrariPreset === 'function') renderOrariPreset(); }
+  // FAB visibile solo sulla dashboard
+  _aggFabVisibility(pg);
+  // Chiudi FAB se aperto
+  closeFab();
 }
 
 function togMenu(){ /* sidebar rimossa */ }
@@ -8118,6 +8309,8 @@ function renderDash() {
   var me = lsG("ct_me", null);
   if (!me) return;
   _syncMyPid();
+  // Skeleton durante sync Firebase
+  if(window._widgetSyncPending) skeletonDash();
   var cfg = getWidgetCfg();
   aggiornaWidget();
   if (cfg.prossimo) renderWidgetProssimo(me);
@@ -8284,7 +8477,7 @@ function renderWidgetAlert() {
     return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
       + '<span style="font-size:16px">' + (tipoIco[a.tipo]||'&#128197;') + '</span>'
       + '<span style="font-size:12px;color:var(--txt);flex:1">' + a.msg + '</span>'
-      + '<button onclick="delAlert(' + a.id + ')" style="background:none;border:none;color:var(--txt3);font-size:14px;cursor:pointer;padding:0;appearance:none;-webkit-appearance:none">?</button></div>';
+      + '<button onclick="delAlert(' + a.id + ')" style="background:none;border:none;color:var(--txt3);font-size:14px;cursor:pointer;padding:0;appearance:none;-webkit-appearance:none">&#128465;</button></div>';
   }).join('');
   // Aggiorna lista nel modale
   var alLista = document.getElementById('al-lista');
@@ -8293,7 +8486,7 @@ function renderWidgetAlert() {
         return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">'
           + '<span>' + (tipoIco[a.tipo]||'&#128197;') + '</span>'
           + '<span style="flex:1;font-size:12px">' + a.msg + (a.fine ? ' <span style="color:var(--txt2);font-size:10px">fino ' + a.fine + '</span>' : '') + '</span>'
-          + '<button onclick="delAlert(' + a.id + ');renderWidgetAlert()" style="background:none;border:none;color:var(--red);font-size:13px;cursor:pointer;appearance:none;-webkit-appearance:none">?</button></div>';
+          + '<button onclick="delAlert(' + a.id + ');renderWidgetAlert()" style="background:none;border:none;color:var(--red);font-size:13px;cursor:pointer;appearance:none;-webkit-appearance:none">&#128465;</button></div>';
       }).join('')
     : '<div style="font-size:12px;color:var(--txt2)">Nessuno</div>';
 }
@@ -8325,7 +8518,7 @@ function renderWidgetScadenze() {
   var oggi = new Date().toISOString().slice(0,10);
   var SC = lsG('ct_scadenze', []).filter(function(s){ return s.data >= oggi; });
   SC.sort(function(a,b){ return a.data > b.data ? 1 : -1; });
-  if (!SC.length) { el.innerHTML = '<div style="font-size:12px;color:var(--txt2)">Nessuna scadenza imminente &#128522;</div>'; return; }
+  if (!SC.length) { el.innerHTML = emptyState('scadenze'); return; }
   var now = new Date(); now.setHours(0,0,0,0);
   el.innerHTML = SC.slice(0,4).map(function(s){
     var d = new Date(s.data + 'T00:00:00');
@@ -8335,7 +8528,7 @@ function renderWidgetScadenze() {
     return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">'
       +'<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:var(--txt)">' + s.tit + badge + '</div>'
       + '<div style="font-size:10px;color:' + col + ';margin-top:2px">&#128197; ' + s.data + (diff === 0 ? ' oggi!' : diff === 1 ? ' domani!' : ' tra ' + diff + ' gg') + '</div></div>'
-      + '<button onclick="delScadenza(' + s.id + ')" style="background:none;border:none;color:var(--txt3);font-size:14px;cursor:pointer;padding:0;appearance:none;-webkit-appearance:none;flex-shrink:0">?</button></div>';
+      + '<button onclick="delScadenza(' + s.id + ')" style="background:none;border:none;color:var(--txt3);font-size:14px;cursor:pointer;padding:0;appearance:none;-webkit-appearance:none;flex-shrink:0">&#128465;</button></div>';
   }).join('');
 }
 
@@ -8369,13 +8562,13 @@ function renderWidgetAgenda() {
   if (!el) return;
   var oggi = new Date().toISOString().slice(0,10);
   var AG = lsG('ct_ag', []).filter(function(a){ return a.data === oggi; });
-  if (!AG.length) { el.innerHTML = '<div style="font-size:12px;color:var(--txt2)">Nessun appuntamento oggi</div>'; return; }
+  if (!AG.length) { el.innerHTML = emptyState('agenda'); return; }
   el.innerHTML = AG.map(function(a){
     var mapsLink = a.luogo
       ? ' <a href="https://www.google.com/maps/search/' + encodeURIComponent(a.luogo) + '" target="_blank" style="font-size:10px;color:var(--blue);text-decoration:none">&#128205; Maps</a>'
       : '';
     return '<div style="padding:6px 0;border-bottom:1px solid var(--border)">'
-      + '<div style="font-size:12px;font-weight:700;color:var(--txt)">' + a.tit + (a.ora ? ' <span style="color:var(--blue);font-size:11px">? ' + a.ora + '</span>' : '') + '</div>'
+      + '<div style="font-size:12px;font-weight:700;color:var(--txt)">' + a.tit + (a.ora ? ' <span style="color:var(--blue);font-size:11px">&#9201; ' + a.ora + '</span>' : '') + '</div>'
       + (a.luogo ? '<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128205; ' + a.luogo + mapsLink + '</div>' : '') + '</div>';
   }).join('');
 }
@@ -8396,7 +8589,7 @@ function renderWidgetTodo() {
   if (!el) return;
   var TD = lsG('ct_td', []).filter(function(t){ return !t.done; });
   TD.sort(function(a,b){ var p={alta:0,media:1,bassa:2}; return (p[a.prio]||1)-(p[b.prio]||1); });
-  if (!TD.length) { el.innerHTML = '<div style="font-size:12px;color:var(--txt2)">Nessun to-do aperto &#127881;</div>'; return; }
+  if (!TD.length) { el.innerHTML = emptyState('todo'); return; }
   var pLbl = {alta:'&#128308; Alta',media:'&#128993; Media',bassa:'&#128994; Bassa'};
   el.innerHTML = TD.slice(0,3).map(function(t){
     return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">'
@@ -8550,7 +8743,7 @@ function renderFestSopp() {
     return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">'
       + '<button onclick="toggleFestSopp(' + f.id + ')" style="width:20px;height:20px;border-radius:50%;border:2px solid var(--' + (f.usato?'green':'border') + ');background:' + (f.usato?'var(--green)':'none') + ';cursor:pointer;appearance:none;-webkit-appearance:none;flex-shrink:0"></button>'
       + '<div style="flex:1;font-size:12px;color:var(--txt)">' + f.data + (f.nota ? '  ' + f.nota : '') + '</div>'
-      + '<button onclick="delFestSopp(' + f.id + ')" style="background:none;border:none;color:var(--txt3);font-size:13px;cursor:pointer;appearance:none;-webkit-appearance:none">?</button></div>';
+      + '<button onclick="delFestSopp(' + f.id + ')" style="background:none;border:none;color:var(--txt3);font-size:13px;cursor:pointer;appearance:none;-webkit-appearance:none">&#128465;</button></div>';
   }).join('');
 }
 
@@ -10639,7 +10832,7 @@ try { messaging = getMessaging(app); } catch(e) { console.warn('FCM non supporta
 
 // VAPID key pubblica — SOSTITUISCI con la tua dalla Firebase Console
 // Project Settings → Cloud Messaging → Web Push certificates → Genera coppia di chiavi
-const VAPID_KEY = 'INSERISCI_QUI_LA_TUA_VAPID_KEY';
+const VAPID_KEY = 'BKgPA4D4Bt32xzKutxhNG_r2jv7eR-Ad6hw_7GXAbEdm3KQFbRTZRXuazshlVt2MqAMS_61dUzek_RyD6FBdbAY';
 
 
 // ── Esponi funzioni Firebase Auth su window (accessibili da script non-module) ──
@@ -10703,17 +10896,30 @@ function _startListeners(reparto) {
     if(typeof window.stats       === 'function') window.stats();
   }, function(e){ console.warn('onSnapshot turni:', e.message); }));
 
-  // Todo
-  var todoRef = collection(db, 'reparti', reparto, 'todo');
-  _unsubscribers.push(onSnapshot(todoRef, function(snap) {
-    var arr = [];
-    snap.forEach(function(d){ arr.push(d.data()); });
-    localStorage.setItem('ct_td', JSON.stringify(arr));
-    if(typeof window.renderTodo === 'function') window.renderTodo();
-  }, function(e){ console.warn('onSnapshot todo:', e.message); }));
+  // Todo e Agenda (personali per utente, non per reparto)
+  var session = JSON.parse(localStorage.getItem('ct_session') || 'null');
+  if(session && session.userId) {
+    var _uid = session.userId;
+    var todoRef = collection(db, 'utenti', _uid, 'todo');
+    _unsubscribers.push(onSnapshot(todoRef, function(snap) {
+      var arr = [];
+      snap.forEach(function(d){ arr.push(d.data()); });
+      localStorage.setItem('ct_td', JSON.stringify(arr));
+      if(typeof window.renderTodo === 'function') window.renderTodo();
+      if(typeof window.renderWidgetTodo === 'function') window.renderWidgetTodo();
+    }, function(e){ console.warn('onSnapshot todo:', e.message); }));
+
+    var agendaRef = collection(db, 'utenti', _uid, 'agenda');
+    _unsubscribers.push(onSnapshot(agendaRef, function(snap) {
+      var arr = [];
+      snap.forEach(function(d){ arr.push(d.data()); });
+      localStorage.setItem('ct_ag', JSON.stringify(arr));
+      if(typeof window.renderAgenda === 'function') window.renderAgenda();
+      if(typeof window.renderWidgetAgenda === 'function') window.renderWidgetAgenda();
+    }, function(e){ console.warn('onSnapshot agenda:', e.message); }));
+  }
 
   // Personale (profilo utente corrente)
-  var session = JSON.parse(localStorage.getItem('ct_session') || 'null');
   if(session && session.userId) {
     var meRef = doc(db, 'reparti', reparto, 'personale', session.userId.replace(/[@.]/g,'_'));
     _unsubscribers.push(onSnapshot(meRef, function(snap) {
@@ -10816,6 +11022,8 @@ window.FirebaseModule = {
         if(turni.length > 0) localStorage.setItem('ct_t', JSON.stringify(turni));
       }
 
+      var uid = session.userId;
+
       var todoSnap = await getDocs(collection(db, 'utenti', uid, 'todo'));
       var todo = []; todoSnap.forEach(function(d){ todo.push(d.data()); });
       if(todo.length > 0) localStorage.setItem('ct_td', JSON.stringify(todo));
@@ -10896,12 +11104,18 @@ window.FirebaseModule = {
     if(!rep || !turniArr) return;
     try {
       var arr = typeof turniArr === 'string' ? JSON.parse(turniArr) : turniArr;
-      // Usa batch-like: scrivi ogni turno come documento con id = turno.id
-      for(var i=0; i<arr.length; i++) {
-        var t = arr[i];
-        if(!t.id) continue;
-        await setDoc(doc(db, 'reparti', rep, 'turni', String(t.id)), t);
-      }
+      var localIds = arr.map(function(t){ return String(t.id); });
+      // Scrivi/aggiorna tutti i turni locali
+      var writes = arr.map(function(t){
+        if(!t.id) return Promise.resolve();
+        return setDoc(doc(db, 'reparti', rep, 'turni', String(t.id)), t);
+      });
+      // Cancella da Firestore i turni non più presenti in locale
+      var snap = await getDocs(collection(db, 'reparti', rep, 'turni'));
+      snap.forEach(function(d){
+        if(localIds.indexOf(d.id) === -1) writes.push(deleteDoc(doc(db, 'reparti', rep, 'turni', d.id)));
+      });
+      await Promise.all(writes);
     } catch(e) { console.warn('saveTurni:', e.message); _toast('Errore sync turni', 'err'); }
   },
 
@@ -10920,11 +11134,16 @@ window.FirebaseModule = {
     if(!uid || !todoArr) return;
     try {
       var arr = typeof todoArr === 'string' ? JSON.parse(todoArr) : todoArr;
-      for(var i=0; i<arr.length; i++) {
-        var t = arr[i];
-        if(!t.id) continue;
-        await setDoc(doc(db, 'utenti', uid, 'todo', String(t.id)), t);
-      }
+      var localIds = arr.map(function(t){ return String(t.id); });
+      var writes = arr.map(function(t){
+        if(!t.id) return Promise.resolve();
+        return setDoc(doc(db, 'utenti', uid, 'todo', String(t.id)), t);
+      });
+      var snap = await getDocs(collection(db, 'utenti', uid, 'todo'));
+      snap.forEach(function(d){
+        if(localIds.indexOf(d.id) === -1) writes.push(deleteDoc(doc(db, 'utenti', uid, 'todo', d.id)));
+      });
+      await Promise.all(writes);
     } catch(e) { console.warn('saveTodo:', e.message); _toast('Errore sync todo', 'err'); }
   },
 
@@ -10935,11 +11154,16 @@ window.FirebaseModule = {
     if(!uid || !agArr) return;
     try {
       var arr = typeof agArr === 'string' ? JSON.parse(agArr) : agArr;
-      for(var i=0; i<arr.length; i++) {
-        var a = arr[i];
-        if(!a.id) continue;
-        await setDoc(doc(db, 'utenti', uid, 'agenda', String(a.id)), a);
-      }
+      var localIds = arr.map(function(a){ return String(a.id); });
+      var writes = arr.map(function(a){
+        if(!a.id) return Promise.resolve();
+        return setDoc(doc(db, 'utenti', uid, 'agenda', String(a.id)), a);
+      });
+      var snap = await getDocs(collection(db, 'utenti', uid, 'agenda'));
+      snap.forEach(function(d){
+        if(localIds.indexOf(d.id) === -1) writes.push(deleteDoc(doc(db, 'utenti', uid, 'agenda', d.id)));
+      });
+      await Promise.all(writes);
     } catch(e) { console.warn('saveAgenda:', e.message); }
   },
 
@@ -11082,6 +11306,33 @@ window.FirebaseModule = {
 
   // ── Chiamato da AuthModule.logout ───────────────────────────
 
+  // ── Cancella tutti i dati di un utente da Firestore ─────────
+  // Usato da resetAll('all') e da cancellazione account
+  deleteUserData: async function(uid, rep) {
+    var ops = [];
+    try {
+      // 1. Documento utente principale
+      ops.push(deleteDoc(doc(db, 'utenti', uid)));
+      // 2. Sub-collections personali (todo, agenda)
+      var todoSnap = await getDocs(collection(db, 'utenti', uid, 'todo'));
+      todoSnap.forEach(function(d){ ops.push(deleteDoc(doc(db, 'utenti', uid, 'todo', d.id))); });
+      var agSnap = await getDocs(collection(db, 'utenti', uid, 'agenda'));
+      agSnap.forEach(function(d){ ops.push(deleteDoc(doc(db, 'utenti', uid, 'agenda', d.id))); });
+      // 3. Profilo nel reparto
+      if(rep) {
+        ops.push(deleteDoc(doc(db, 'reparti', rep, 'utenti', uid)));
+        ops.push(deleteDoc(doc(db, 'reparti', rep, 'personale', uid)));
+        // 4. Turni dell'utente nel reparto
+        var turniSnap = await getDocs(collection(db, 'reparti', rep, 'turni'));
+        turniSnap.forEach(function(d){
+          var t = d.data();
+          if(t.uid === uid || t.userId === uid) ops.push(deleteDoc(doc(db, 'reparti', rep, 'turni', d.id)));
+        });
+      }
+      await Promise.all(ops);
+      console.log('[C-Turni] deleteUserData completato per uid:', uid);
+    } catch(e) { console.warn('deleteUserData:', e.message); }
+  },
 
   // ── Carica profilo utente da Firestore ──────────────────────
 
@@ -11176,13 +11427,22 @@ window.FirebaseModule = {
   initFCM: async function() {
     if(!messaging) return;
     try {
-      var perm = await Notification.requestPermission();
-      if(perm !== 'granted') { console.log('FCM: permesso negato'); return; }
-      var swReg = await navigator.serviceWorker.ready;
+      var perm = Notification.permission;
+      if(perm === 'denied') { console.log('FCM: permesso negato dall\'utente'); return; }
+      if(perm !== 'granted') {
+        perm = await Notification.requestPermission();
+        if(perm !== 'granted') { console.log('FCM: permesso non concesso'); return; }
+      }
+      // Usa il SW FCM esterno (non il blob)
+      var swReg = await navigator.serviceWorker.getRegistration('/C-Turni/');
+      if(!swReg) {
+        swReg = await navigator.serviceWorker.register('/C-Turni/firebase-messaging-sw.js', { scope: '/C-Turni/' });
+        await navigator.serviceWorker.ready;
+      }
       var token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg });
-      if(!token) { console.warn('FCM: token non ottenuto — hai inserito la VAPID key?'); return; }
+      if(!token) { console.warn('FCM: token non ottenuto'); return; }
       console.log('[FCM] Token:', token);
-      // Salva token su Firestore (globale + reparto)
+      // Salva token su Firestore
       var session = JSON.parse(localStorage.getItem('ct_session') || 'null');
       if(session && session.userId) {
         var uid = session.userId;
@@ -11198,8 +11458,8 @@ window.FirebaseModule = {
       onMessage(messaging, function(payload) {
         var title = (payload.notification && payload.notification.title) || 'C-Turni';
         var body  = (payload.notification && payload.notification.body)  || '';
-        if(typeof window.toast === 'function') window.toast(title + (body ? ': ' + body : ''), 'ok');
-        if(Notification.permission === 'granted') new Notification(title, { body: body, icon: '' });
+        if(typeof window.toast === 'function') window.toast('\uD83D\uDD14 ' + title + (body ? ': ' + body : ''), 'ok');
+        if(Notification.permission === 'granted') new Notification(title, { body: body, icon: '/C-Turni/icon-192.png' });
       });
     } catch(e) { console.warn('FCM initFCM:', e.message); }
   },
@@ -11232,17 +11492,17 @@ console.log('[Firebase] FirebaseModule pronto.');
   <div class="mbox" style="max-width:400px">
     <div class="mhan"></div>
     <div class="mhd">
-      <div class="mtit">&#127381; Novità in C-TURNI v3.4.1</div>
+      <div class="mtit">&#127381; Novità in C-TURNI v3.5.0</div>
     </div>
     <div class="mbod" style="padding:14px;max-height:60vh;overflow-y:auto">
       <div style="font-size:13px;color:var(--txt2);margin-bottom:14px;line-height:1.6">Benvenuto nell'aggiornamento! Ecco le principali novità di questa versione:</div>
       <div style="display:flex;flex-direction:column;gap:10px;font-size:13px;color:var(--txt)">
-        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#128465;</span><div><strong>Reset dati migliorato</strong><br><span style="font-size:12px;color:var(--txt2)">Nuovo tasto "Turni + Persone (Excel)" che cancella tutto sia in locale che su Firebase, senza residui.</span></div></div>
-        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#128197;</span><div><strong>Popup giorno con gradi</strong><br><span style="font-size:12px;color:var(--txt2)">Nel dettaglio del giorno i colleghi sono ordinati per grado e mostrano l'icona SVG del grado.</span></div></div>
-        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#10003;</span><div><strong>Bollino verificato</strong><br><span style="font-size:12px;color:var(--txt2)">Accanto ad ogni nome vedi se il collega è registrato su C-Turni (✓ blu) o solo importato dall'Excel (○ arancione).</span></div></div>
-        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#128100;</span><div><strong>Collegamento automatico Excel → Account</strong><br><span style="font-size:12px;color:var(--txt2)">I turni importati dall'Excel vengono collegati automaticamente al collega quando si registra su C-Turni.</span></div></div>
-        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#128203;</span><div><strong>Import Excel più pulito</strong><br><span style="font-size:12px;color:var(--txt2)">Nessun utente fantasma creato, stop automatico sulla legenda del foglio.</span></div></div>
-        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#128276;</span><div><strong>Notifiche migliorate</strong><br><span style="font-size:12px;color:var(--txt2)">Permesso richiesto solo su tuo gesto, tasto "Testa" nelle impostazioni, anticipo pre-turno rispettato.</span></div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#128276;</span><div><strong>Notifiche push Firebase (FCM)</strong><br><span style="font-size:12px;color:var(--txt2)">Ricevi le notifiche anche con l'app chiusa grazie al Service Worker FCM.</span></div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#128640;</span><div><strong>Skeleton loaders</strong><br><span style="font-size:12px;color:var(--txt2)">Durante il caricamento da Firebase vedi blocchi animati invece di spazi vuoti.</span></div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#128072;</span><div><strong>Swipe sui Todo</strong><br><span style="font-size:12px;color:var(--txt2)">Scorri a destra per segnare come fatto, a sinistra per eliminare — come su iOS.</span></div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#10010;</span><div><strong>FAB multiplo</strong><br><span style="font-size:12px;color:var(--txt2)">Pulsante + in basso a destra che si apre in 3 azioni: Nuovo Turno, Importa Excel, Esporta PDF.</span></div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#127763;</span><div><strong>Tema Auto</strong><br><span style="font-size:12px;color:var(--txt2)">L'app segue automaticamente la modalità chiara/scura del tuo telefono.</span></div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#128465;</span><div><strong>Pulizia Firestore</strong><br><span style="font-size:12px;color:var(--txt2)">Cancellando un utente o dei turni, i dati vengono rimossi completamente anche dal database.</span></div></div>
       </div>
     </div>
     <div class="mfoo">
@@ -11268,7 +11528,7 @@ console.log('[Firebase] FirebaseModule pronto.');
     <!-- Motto -->
     <div id="egg-motto" style="text-align:center;font-size:11px;color:rgba(255,255,255,.6);font-style:italic;padding:0 20px 10px">&#171;Nei Secoli Fedele&#187;</div>
     <!-- Versione -->
-    <div style="text-align:center;font-size:10px;color:rgba(212,175,55,.7);padding-bottom:14px;letter-spacing:2px">C-TURNI v3.4.1</div>
+    <div style="text-align:center;font-size:10px;color:rgba(212,175,55,.7);padding-bottom:14px;letter-spacing:2px">C-TURNI v3.5.0</div>
     <div class="mfoo" style="background:rgba(0,0,0,.3);border-top:1px solid rgba(212,175,55,.2)">
       <button class="btn btn-g btn-sm" onclick="closeM('m-egg');document.body.style.overflow=''" style="width:100%">&#10005; Chiudi</button>
     </div>
