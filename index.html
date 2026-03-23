@@ -5476,9 +5476,17 @@ function renderAgendaCondivisa(){
   }).join('');
 }
 function delTodoCondiviso(id){
+  // Aggiorna subito il localStorage locale
+  var TD = lsG('ct_td_condivisi', []).filter(function(x){ return x.id !== id; });
+  localStorage.setItem('ct_td_condivisi', JSON.stringify(TD));
+  renderTodoCondivisi();
   if(window.FirebaseModule) window.FirebaseModule.deleteTodoCondiviso(id).catch(function(){});
 }
 function delAgendaCondivisa(id){
+  // Aggiorna subito il localStorage locale
+  var AG = lsG('ct_ag_condivisa', []).filter(function(x){ return x.id !== id; });
+  localStorage.setItem('ct_ag_condivisa', JSON.stringify(AG));
+  renderAgendaCondivisa();
   if(window.FirebaseModule) window.FirebaseModule.deleteAgendaCondivisa(id).catch(function(){});
 }
 
@@ -11195,15 +11203,31 @@ function _startListeners(reparto) {
     }, function(e){ console.warn('onSnapshot agenda:', e.message); }));
   }
 
-  // Personale (profilo utente corrente)
+  // Profilo utente corrente — ascolta su /utenti/{uid} (aggiornato da admin e da saveUserProfile)
   if(session && session.userId) {
-    var meRef = doc(db, 'reparti', reparto, 'personale', session.userId.replace(/[@.]/g,'_'));
+    var meRef = doc(db, 'utenti', session.userId);
     _unsubscribers.push(onSnapshot(meRef, function(snap) {
       if(snap.exists()) {
-        localStorage.setItem('ct_me', JSON.stringify(snap.data()));
+        var prof = snap.data();
+        var oldMe = JSON.parse(localStorage.getItem('ct_me') || 'null');
+        localStorage.setItem('ct_me', JSON.stringify(prof));
+        // Aggiorna anche ct_session se ruolo/stato cambiato
+        try {
+          var sess = JSON.parse(localStorage.getItem('ct_session') || 'null');
+          if(sess) {
+            var changed = (prof.ruolo && prof.ruolo !== sess.ruolo) || (prof.stato && prof.stato !== sess.stato);
+            if(changed) {
+              sess.ruolo = prof.ruolo || sess.ruolo;
+              sess.stato = prof.stato || sess.stato;
+              localStorage.setItem('ct_session', JSON.stringify(sess));
+              var ruoloLabel = prof.ruolo === 'comandante' ? 'Comandante' : prof.ruolo === 'vice' ? 'Vice Comandante' : 'Addetto';
+              _toast('Ruolo aggiornato: ' + ruoloLabel, 'ok');
+            }
+          }
+        } catch(e2) {}
         if(typeof window.aggUI === 'function') window.aggUI();
       }
-    }, function(e){ console.warn('onSnapshot personale:', e.message); }));
+    }, function(e){ console.warn('onSnapshot profilo:', e.message); }));
   }
 
   // Utenti del reparto (per Gestione Membri)
@@ -11217,13 +11241,20 @@ function _startListeners(reparto) {
     try {
       var session = JSON.parse(localStorage.getItem('ct_session') || 'null');
       if(session && session.userId) {
-        var myProfile = arr.find(function(u){ return u.uid === session.userId || u.email === session.userId; });
-        if(myProfile && myProfile.ruolo && myProfile.ruolo !== session.ruolo) {
-          session.ruolo = myProfile.ruolo;
-          localStorage.setItem('ct_session', JSON.stringify(session));
+        var myProfile = arr.find(function(u){
+          return u.uid === session.userId || u.email === session.email || u.email === session.userId;
+        });
+        if(myProfile && myProfile.ruolo) {
+          var oldMe = JSON.parse(localStorage.getItem('ct_me') || 'null');
+          // Aggiorna ct_users con il profilo aggiornato
           localStorage.setItem('ct_me', JSON.stringify(myProfile));
-          if(typeof window.aggUI === 'function') window.aggUI();
-          _toast('Ruolo aggiornato: ' + (myProfile.ruolo === 'comandante' ? 'Comandante' : myProfile.ruolo === 'vice' ? 'Vice Comandante' : 'Addetto'), 'ok');
+          if(myProfile.ruolo !== session.ruolo || myProfile.stato !== session.stato) {
+            session.ruolo = myProfile.ruolo;
+            session.stato = myProfile.stato || session.stato;
+            localStorage.setItem('ct_session', JSON.stringify(session));
+            if(typeof window.aggUI === 'function') window.aggUI();
+            _toast('Ruolo aggiornato: ' + (myProfile.ruolo === 'comandante' ? 'Comandante' : myProfile.ruolo === 'vice' ? 'Vice Comandante' : 'Addetto'), 'ok');
+          }
         }
       }
     } catch(e) { console.warn('onSnapshot ruolo sync:', e.message); }
@@ -11390,11 +11421,11 @@ window.FirebaseModule = {
       try {
         var tdCondSnap = await getDocs(collection(db, 'reparti', rep, 'todo_condivisi'));
         var tdCond = []; tdCondSnap.forEach(function(d){ tdCond.push(d.data()); });
-        if(tdCond.length) localStorage.setItem('ct_td_condivisi', JSON.stringify(tdCond));
+        localStorage.setItem('ct_td_condivisi', JSON.stringify(tdCond));
         var agCondSnap = await getDocs(collection(db, 'reparti', rep, 'agenda_condivisa'));
         var agCond = []; agCondSnap.forEach(function(d){ agCond.push(d.data()); });
         agCond.sort(function(a,b){ return a.data>b.data?1:-1; });
-        if(agCond.length) localStorage.setItem('ct_ag_condivisa', JSON.stringify(agCond));
+        localStorage.setItem('ct_ag_condivisa', JSON.stringify(agCond));
       } catch(e) { console.warn('carica condivisi:', e.message); }
 
       // Ri-renderizza tutto con i dati aggiornati da Firebase
