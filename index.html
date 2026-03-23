@@ -118,10 +118,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 /* FAB: allineato verticalmente al centro della pill della bottom nav */
 .fab-wrap {
   position: fixed;
-  bottom: calc(10px + env(safe-area-inset-bottom, 0px) + 4px); /* centrato nella pill h=64px con il bottone h=56px */
+  bottom: calc(10px + env(safe-area-inset-bottom, 0px) + 4px);
   right: 16px;
   z-index: 600;
-  display: flex;
+  display: none;
   flex-direction: column;
   align-items: flex-end;
   gap: 10px;
@@ -189,7 +189,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   box-shadow: 0 3px 12px rgba(0,0,0,.25);
   appearance: none; -webkit-appearance: none;
   transition: transform .2s cubic-bezier(0.2,0,0,1);
-  pointer-events: all;
 }
 .fab-item-btn:active { transform: scale(.88); }
 .fab-item-lbl {
@@ -5133,16 +5132,16 @@ function _aggFabVisibility(pg){
   if(pg === 'dash'){
     requestAnimationFrame(function(){
       requestAnimationFrame(function(){
+        if(wrap){ wrap.style.display='flex'; wrap.style.pointerEvents='all'; }
         btn.style.display = 'flex';
         btn.classList.add('visible');
-        if(wrap) wrap.style.pointerEvents = 'all';
         if(nav) nav.classList.add('fab-active');
       });
     });
   } else {
     btn.classList.remove('visible');
     btn.style.display = 'none';
-    if(wrap) wrap.style.pointerEvents = 'none';
+    if(wrap){ wrap.style.display='none'; wrap.style.pointerEvents='none'; }
     if(nav) nav.classList.remove('fab-active');
     closeFab();
   }
@@ -6421,6 +6420,11 @@ function aggiornaBadgeNotif(){
 }
 
 function apriNotifCenter(){
+  // Se non ci sono notifiche, aggiungi una di benvenuto per mostrare il design
+  var NL = lsG("ct_notifiche", []);
+  if(!NL.length){
+    aggiungiNotifica("sistema","Benvenuto in C-Turni","Pannello notifiche attivo. Riceverai qui gli aggiornamenti su turni, to-do e agenda.","&#128276;","var(--blue)");
+  }
   renderNotifCenter();
   var dr=document.getElementById("notif-drawer");
   var ov=document.getElementById("notif-overlay");
