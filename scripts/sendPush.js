@@ -23,16 +23,17 @@ async function run() {
   for (const docSnap of snap.docs) {
     const { userId, titolo, body } = docSnap.data();
 
-    const tokenDoc = await db.collection("ctfcm").doc(userId).get();
-    if (!tokenDoc.exists) {
-      console.warn("Nessun token per:", userId);
+    // Legge il token FCM direttamente dal documento utente
+    const userDoc = await db.collection("utenti").doc(userId).get();
+    if (!userDoc.exists) {
+      console.warn("Utente non trovato:", userId);
       await docSnap.ref.delete();
       continue;
     }
 
-    const token = tokenDoc.data()?.token;
+    const token = userDoc.data()?.fcmToken;
     if (!token) {
-      console.warn("Token vuoto per:", userId);
+      console.warn("fcmToken vuoto per:", userId);
       await docSnap.ref.delete();
       continue;
     }
@@ -46,8 +47,8 @@ async function run() {
         },
         webpush: {
           notification: {
-            icon:  "/icon-192.png",
-            badge: "/icon-192.png",
+            icon:    "/C-Turni/icon-192.png",
+            badge:   "/C-Turni/icon-192.png",
             vibrate: [200, 100, 200]
           }
         }
