@@ -2606,6 +2606,7 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
               </div>
               <div id="rec-list" style="max-height:200px;overflow-y:auto"></div>
               <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn btn-sm" style="width:auto;font-size:11px" onclick="aggRecuperoManuale()">&#43; Aggiungi manuale</button>
                 <button class="btn btn-sm" style="width:auto;font-size:11px" onclick="delRecuperi()">&#128465; Elimina smarcati</button>
               </div>
             </div>
@@ -5733,6 +5734,42 @@ function delRecuperi(){
   toast("&#128465; "+da_cancellare+" recupero/i eliminato/i","ok");
 }
 
+function aggRecuperoManuale(){
+  var oggi = new Date().toISOString().slice(0,10);
+  var html =
+    '<div id="m-rec-manuale" style="display:flex;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:10000;align-items:flex-end;justify-content:center;backdrop-filter:blur(3px)">'
+    +'<div style="background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:520px;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 32px rgba(0,0,0,.4)">'
+    +'<div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 16px"></div>'
+    +'<div style="font-size:16px;font-weight:800;margin-bottom:16px">&#127941; Aggiungi recupero manuale</div>'
+    +'<div class="fg"><label>Data del turno festivo</label>'
+    +'<input type="date" id="rm-data" class="fc" value="'+oggi+'"></div>'
+    +'<div class="fg"><label>Etichetta (opzionale)</label>'
+    +'<input type="text" id="rm-label" class="fc" placeholder="es. Capodanno, Ferragosto\u2026" maxlength="40"></div>'
+    +'<div style="display:flex;gap:10px;margin-top:4px">'
+    +'<button class="btn btn-g" style="flex:1" onclick="document.getElementById(\'m-rec-manuale\').remove()">Annulla</button>'
+    +'<button class="btn btn-p" style="flex:1" onclick="_salvaRecuperoManuale()">&#43; Aggiungi</button>'
+    +'</div></div></div>';
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function _salvaRecuperoManuale(){
+  var data = (document.getElementById('rm-data')||{}).value;
+  var label = ((document.getElementById('rm-label')||{}).value||'').trim();
+  if(!data){toast("Inserisci una data","err");return;}
+  var d = new Date(data+'T00:00:00');
+  var mN=["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
+  var dataFmt = d.getDate()+" "+mN[d.getMonth()]+" "+d.getFullYear();
+  var REC = lsG("ct_recuperi",[]);
+  REC.push({id:Date.now(),data:data,tipo:"manuale",label:label||("Recupero festivo del "+dataFmt),nomeFest:label||dataFmt,usato:false,manuale:true});
+  lsS("ct_recuperi", REC);
+  var me = lsG("ct_me", null);
+  if(me){ me.recuperiExtra = REC.filter(function(r){return !r.usato;}).length; lsS("ct_me",me); }
+  renderRecuperi();
+  _syncFerieFirebase();
+  document.getElementById('m-rec-manuale').remove();
+  toast("&#127941; Recupero aggiunto","ok");
+}
+
 function aggAvaPreview(ava){
   var prev=document.getElementById("pf-ava-prev");
   if(!prev)return;
@@ -6420,11 +6457,6 @@ function aggiornaBadgeNotif(){
 }
 
 function apriNotifCenter(){
-  // Se non ci sono notifiche, aggiungi una di benvenuto per mostrare il design
-  var NL = lsG("ct_notifiche", []);
-  if(!NL.length){
-    aggiungiNotifica("sistema","Benvenuto in C-Turni","Pannello notifiche attivo. Riceverai qui gli aggiornamenti su turni, to-do e agenda.","&#128276;","var(--blue)");
-  }
   renderNotifCenter();
   var dr=document.getElementById("notif-drawer");
   var ov=document.getElementById("notif-overlay");
