@@ -14,26 +14,37 @@ const db  = getFirestore();
 const fcm = getMessaging();
 
 async function run() {
-  const snap = await db.collection("notifichepush").get();
+  // Collezione corretta: notifiche_push (con underscore)
+  const snap = await db.collection("notifiche_push").get();
   if (snap.empty) {
     console.log("Nessuna notifica da inviare.");
     return;
   }
 
   for (const docSnap of snap.docs) {
-    const { userId, titolo, body } = docSnap.data();
+    const data = docSnap.data();
 
-    // Legge il token FCM direttamente dal documento utente
-    const userDoc = await db.collection("utenti").doc(userId).get();
+    // Campi corretti: uid, title, body (non userId/titolo)
+    const uid   = data.uid;
+    const title = data.title;
+    const body  = data.body || "";
+
+    if (!uid || !title) {
+      console.warn("Doc malformato, elimino:", docSnap.id);
+      await docSnap.ref.delete();
+      continue;
+    }
+
+    const userDoc = await db.collection("utenti").doc(uid).get();
     if (!userDoc.exists) {
-      console.warn("Utente non trovato:", userId);
+      console.warn("Utente non trovato:", uid);
       await docSnap.ref.delete();
       continue;
     }
 
     const token = userDoc.data()?.fcmToken;
     if (!token) {
-      console.warn("fcmToken vuoto per:", userId);
+      console.warn("fcmToken vuoto per:", uid);
       await docSnap.ref.delete();
       continue;
     }
@@ -41,21 +52,21 @@ async function run() {
     try {
       await fcm.send({
         token,
-        notification: {
-          title: titolo || "C-Turni",
-          body:  body   || ""
-        },
+        notification: { title, body },
         webpush: {
           notification: {
             icon:    "/C-Turni/icon-192.png",
             badge:   "/C-Turni/icon-192.png",
             vibrate: [200, 100, 200]
+          },
+          fcmOptions: {
+            link: "https://policeman-sdk.github.io/C-Turni/"
           }
         }
       });
-      console.log("Push inviata a:", userId);
+      console.log("Push inviata a:", uid);
     } catch (err) {
-      console.error("Errore per", userId, ":", err.message);
+      console.error("Errore per", uid, ":", err.message);
     }
 
     await docSnap.ref.delete();
