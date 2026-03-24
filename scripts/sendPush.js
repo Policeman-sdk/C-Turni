@@ -14,20 +14,31 @@ const db  = getFirestore();
 const fcm = getMessaging();
 
 async function run() {
-  // Collezione corretta: notifiche_push (con underscore)
+  const now  = new Date();
   const snap = await db.collection("notifiche_push").get();
+
   if (snap.empty) {
     console.log("Nessuna notifica da inviare.");
     return;
   }
 
+  let inviate = 0;
+  let saltate = 0;
+
   for (const docSnap of snap.docs) {
     const data = docSnap.data();
-
-    // Campi corretti: uid, title, body (non userId/titolo)
     const uid   = data.uid;
     const title = data.title;
     const body  = data.body || "";
+
+    // Salta se l'orario programmato non è ancora arrivato
+    if (data.scheduleAt) {
+      const scheduleAt = new Date(data.scheduleAt);
+      if (scheduleAt > now) {
+        saltate++;
+        continue;
+      }
+    }
 
     if (!uid || !title) {
       console.warn("Doc malformato, elimino:", docSnap.id);
@@ -64,13 +75,16 @@ async function run() {
           }
         }
       });
-      console.log("Push inviata a:", uid);
+      console.log("Push inviata a:", uid, "| titolo:", title);
+      inviate++;
     } catch (err) {
       console.error("Errore per", uid, ":", err.message);
     }
 
     await docSnap.ref.delete();
   }
+
+  console.log(`Fine: ${inviate} inviate, ${saltate} in attesa.`);
 }
 
 run().catch(console.error);
