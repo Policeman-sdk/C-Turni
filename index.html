@@ -4134,6 +4134,8 @@ function initNotifiche(){
   aggNotifStatus();
   controllaNotifiche();
   setInterval(controllaNotifiche,60000);
+  // Schedula push pre-turno su Firestore (funziona anche con app chiusa)
+  setTimeout(schedulaPreTurniFirebase, 3000);
 }
 function controllaNotifiche(){
   if(Notification.permission!=="granted")return;
@@ -4146,28 +4148,58 @@ function controllaNotifiche(){
   var ORI={mattina:"06:00",pomeriggio:"14:00",notte:"22:00"};
   var now=new Date();
   var notif=lsG("ct_notif_sent",[]);
-  // Controlla turni nei prossimi 2 giorni (per anticipi lunghi come 12h/24h)
   for(var dayOff=0; dayOff<=1; dayOff++){
     var checkDate=new Date(now);checkDate.setDate(checkDate.getDate()+dayOff);
     var ds=checkDate.getFullYear()+'-'+('0'+(checkDate.getMonth()+1)).slice(-2)+'-'+('0'+checkDate.getDate()).slice(-2);
     T.filter(function(t){return _isMyTurno(t,me)&&t.data===ds;}).forEach(function(t){
       var orStr=(t.orario&&t.orario.split('-')[0].trim())||ORI[t.tipo]||"06:00";
-      var parts=orStr.split(":");
       var turnoTime=new Date(t.data+"T"+orStr+":00");
       var diff=(turnoTime-now)/60000;
       var notifId=t.id+'_pre'+preMin;
       if(diff>0&&diff<=(preMin+5)&&notif.indexOf(notifId)===-1){
         var titoloPre="\u23F0 C-Turni \u2014 Turno tra "+(diff>=60?Math.round(diff/60)+"h":Math.round(diff)+" min");
         var bodyPre="Turno "+(t.codice||t.tipo||'').toUpperCase()+" alle "+orStr;
-        new Notification(titoloPre,{body:bodyPre,icon:"/C-Turni/icon-192.png"});
-        // Push FCM (arriva anche con app chiusa)
+        if("Notification" in window && Notification.permission==="granted")
+          new Notification(titoloPre,{body:bodyPre,icon:"/C-Turni/icon-192.png"});
         var sess=lsG("ct_session",null);
         if(sess&&sess.userId&&window.FirebaseModule)
-          window.FirebaseModule.schedulePush(sess.userId,titoloPre,bodyPre).catch(function(){});
+          window.FirebaseModule.schedulePush(sess.userId,titoloPre,bodyPre,new Date().toISOString()).catch(function(){});
         notif.push(notifId);lsS("ct_notif_sent",notif);
       }
     });
   }
+}
+
+// Schedula in anticipo le push pre-turno su Firestore (funziona anche con app chiusa)
+function schedulaPreTurniFirebase(){
+  var sess=lsG("ct_session",null);
+  if(!sess||!sess.userId||!window.FirebaseModule)return;
+  var me=lsG("ct_me",null);if(!me)return;
+  var prefs=lsG("ct_notif_prefs",{preturno:true});
+  if(prefs.preturno===false)return;
+  var preMin=lsG("ct_notif_pre",60);if(preMin<=0)return;
+  var T=lsG("ct_t",[]);
+  var ORI={mattina:"06:00",pomeriggio:"14:00",notte:"22:00"};
+  var now=new Date();
+  var scheduled=lsG("ct_push_scheduled",[]);
+  // Controlla i prossimi 7 giorni
+  for(var dayOff=0;dayOff<=6;dayOff++){
+    var checkDate=new Date(now);checkDate.setDate(checkDate.getDate()+dayOff);
+    var ds=checkDate.getFullYear()+'-'+('0'+(checkDate.getMonth()+1)).slice(-2)+'-'+('0'+checkDate.getDate()).slice(-2);
+    T.filter(function(t){return _isMyTurno(t,me)&&t.data===ds;}).forEach(function(t){
+      var orStr=(t.orario&&t.orario.split('-')[0].trim())||ORI[t.tipo]||"06:00";
+      var turnoTime=new Date(t.data+"T"+orStr+":00");
+      var scheduleAt=new Date(turnoTime.getTime()-(preMin*60000));
+      if(scheduleAt<=now)return; // già passato
+      var pushId=t.id+'_pre'+preMin;
+      if(scheduled.indexOf(pushId)!==-1)return; // già schedulata
+      var titoloPre="\u23F0 C-Turni \u2014 Turno tra "+( preMin>=60?Math.round(preMin/60)+"h":preMin+" min");
+      var bodyPre="Turno "+(t.codice||t.tipo||'').toUpperCase()+" alle "+orStr;
+      window.FirebaseModule.schedulePush(sess.userId,titoloPre,bodyPre,scheduleAt.toISOString()).catch(function(){});
+      scheduled.push(pushId);
+    });
+  }
+  lsS("ct_push_scheduled",scheduled);
 }
 
 
@@ -4769,30 +4801,43 @@ function esportaPDF(){
 
 // ---- NOTIFICA MATTUTINA ----
 function scheduleNotifMattutina(){
-  if(!("Notification" in window)||Notification.permission!=="granted")return;
   var prefs=lsG("ct_notif_prefs",{mattina:true});
+  if(prefs.mattina===false)return;
   var now=new Date();
   var target=new Date();target.setHours(6,0,0,0);
-  if(now>target)target.setDate(target.getDate()+1);
+  if(now>=target)target.setDate(target.getDate()+1);
   var ms=target-now;
+
+  // Schedula push FCM subito con orario preciso (domani alle 06:00)
+  var me=lsG("ct_me",null);
+  if(me){
+    var oggi=target.toISOString().slice(0,10);
+    var T=lsG("ct_t",[]);
+    var t=null;for(var i=0;i<T.length;i++){if(_isMyTurno(T[i],me)&&T[i].data===oggi){t=T[i];break;}}
+    if(t){
+      var titoliN={mattina:"\u2600\uFE0F Mattina",pomeriggio:"\u2600\uFE0F Pomeriggio",notte:"\uD83C\uDF19 Notte"};
+      var titoloMat="C-Turni \u2014 Buongiorno "+me.nome;
+      var bodyMat="Oggi hai il turno "+(titoliN[t.tipo]||t.tipo)+" | "+(t.orario||"");
+      var sess2=lsG("ct_session",null);
+      if(sess2&&sess2.userId&&window.FirebaseModule)
+        window.FirebaseModule.schedulePush(sess2.userId,titoloMat,bodyMat,target.toISOString()).catch(function(){});
+    }
+  }
+
   setTimeout(function(){
     scheduleNotifMattutina();
     var prefs2=lsG("ct_notif_prefs",{mattina:true});
     if(prefs2.mattina===false)return;
-    var me=lsG("ct_me",null);if(!me)return;
-    var oggi=new Date().toISOString().slice(0,10);
-    var T=lsG("ct_t",[]);
-    var t=null;for(var i=0;i<T.length;i++){if(_isMyTurno(T[i],me)&&T[i].data===oggi){t=T[i];break;}}
-    if(t){
-      var titoliN={mattina:"☀️ Mattina",pomeriggio:"☀️ Pomeriggio",notte:"🌙 Notte"};
-      var titoloT=titoliN[t.tipo]||t.tipo;
-      var titoloMat="C-Turni — Buongiorno "+me.nome;
-      var bodyMat="Oggi hai il turno "+titoloT+" | "+(t.orario||"");
-      new Notification(titoloMat,{body:bodyMat,icon:"/C-Turni/icon-192.png"});
-      // Push FCM (arriva anche con app chiusa)
-      var sess2=lsG("ct_session",null);
-      if(sess2&&sess2.userId&&window.FirebaseModule)
-        window.FirebaseModule.schedulePush(sess2.userId,titoloMat,bodyMat).catch(function(){});
+    var me2=lsG("ct_me",null);if(!me2)return;
+    var oggiStr=new Date().toISOString().slice(0,10);
+    var T2=lsG("ct_t",[]);
+    var t2=null;for(var j=0;j<T2.length;j++){if(_isMyTurno(T2[j],me2)&&T2[j].data===oggiStr){t2=T2[j];break;}}
+    if(t2){
+      var titoliN2={mattina:"\u2600\uFE0F Mattina",pomeriggio:"\u2600\uFE0F Pomeriggio",notte:"\uD83C\uDF19 Notte"};
+      var titoloMat2="C-Turni \u2014 Buongiorno "+me2.nome;
+      var bodyMat2="Oggi hai il turno "+(titoliN2[t2.tipo]||t2.tipo)+" | "+(t2.orario||"");
+      if("Notification" in window && Notification.permission==="granted")
+        new Notification(titoloMat2,{body:bodyMat2,icon:"/C-Turni/icon-192.png"});
     }
   },Math.min(ms,2147483647));
   caricaFontSize();
@@ -5390,14 +5435,21 @@ function checkFestivoTurno(t){
 var _tdFiltro="tutti";
 function schedulaNotifTodo(item){
   var prefs=lsG("ct_notif_prefs",{todo:true});if(prefs.todo===false)return;
-  if(!("Notification" in window)||Notification.permission!=="granted"||!item.data)return;
-  var dt=new Date(item.data+"T08:00:00"),ms=dt-Date.now();if(ms<=0)return;
-  setTimeout(function(){
-    new Notification("\u2705 C-Turni \u2014 "+item.tit,{
-      body:(item.prio==="alta"?"\uD83D\uDD34 Alta priorit\u00E0\n":"")+(item.note||"Promemoria di oggi"),
-      icon:"/C-Turni/icon-192.png"
-    });
-  },Math.min(ms,2147483647));
+  if(!item.data)return;
+  var ora=item.ora||"08:00";
+  var dt=new Date(item.data+"T"+ora+":00"),ms=dt-Date.now();if(ms<=0)return;
+  var titolo="\u2705 C-Turni \u2014 "+item.tit;
+  var body=(item.prio==="alta"?"\uD83D\uDD34 Alta priorit\u00E0 | ":"")+(item.note||"Promemoria di oggi");
+  // Schedula push FCM subito (il cron la invia all'orario giusto)
+  var sess=lsG("ct_session",null);
+  if(sess&&sess.userId&&window.FirebaseModule)
+    window.FirebaseModule.schedulePush(sess.userId,titolo,body,dt.toISOString()).catch(function(){});
+  // Notifica locale se app aperta
+  if("Notification" in window && Notification.permission==="granted"){
+    setTimeout(function(){
+      new Notification(titolo,{body:body,icon:"/C-Turni/icon-192.png"});
+    },Math.min(ms,2147483647));
+  }
 }
 function scheduleAllTodoNotif(){lsG("ct_td",[]).forEach(function(t){if(!t.done)schedulaNotifTodo(t);});}
 function salvaTodo(){
@@ -5429,18 +5481,21 @@ function salvaTodo(){
 // ---- AGENDA ----
 function schedulaNotifAgenda(item){
   var prefs=lsG("ct_notif_prefs",{agenda:true});if(prefs.agenda===false)return;
-  if(!("Notification" in window)||Notification.permission!=="granted")return;
-  var dt=new Date(item.data+"T"+(item.ora||"08:00")+":00"),ms=dt-Date.now()-(item.notif*60000);
-  if(ms<=0)return;
-  var titoloAg="📅 C-Turni — "+item.tit;
+  var dt=new Date(item.data+"T"+(item.ora||"08:00")+":00");
+  var scheduleAt=new Date(dt.getTime()-((item.notif||0)*60000));
+  var ms=scheduleAt-Date.now();if(ms<=0)return;
+  var titoloAg="\uD83D\uDCC5 C-Turni \u2014 "+item.tit;
   var bodyAg=(item.ora?"Ore "+item.ora+" | ":"")+(item.luogo||"");
-  setTimeout(function(){
-    new Notification(titoloAg,{body:bodyAg,icon:"/C-Turni/icon-192.png"});
-    // Push FCM (arriva anche con app chiusa)
-    var sess=lsG("ct_session",null);
-    if(sess&&sess.userId&&window.FirebaseModule)
-      window.FirebaseModule.schedulePush(sess.userId,titoloAg,bodyAg).catch(function(){});
-  },Math.min(ms,2147483647));
+  // Schedula push FCM subito con orario preciso (il cron la invia al momento giusto)
+  var sess=lsG("ct_session",null);
+  if(sess&&sess.userId&&window.FirebaseModule)
+    window.FirebaseModule.schedulePush(sess.userId,titoloAg,bodyAg,scheduleAt.toISOString()).catch(function(){});
+  // Notifica locale se app aperta
+  if("Notification" in window && Notification.permission==="granted"){
+    setTimeout(function(){
+      new Notification(titoloAg,{body:bodyAg,icon:"/C-Turni/icon-192.png"});
+    },Math.min(ms,2147483647));
+  }
 }
 function salvaAgenda(){
   var tit=document.getElementById("ag-tit").value.trim(),dt=document.getElementById("ag-data").value;
@@ -9177,17 +9232,19 @@ function toggleWidgetDash(k, btn) {
 
 /* ---------- NOTIFICA BROWSER PRECISA (sveglia) ---------- */
 function _schedulaNotifPrecisa(titolo, data, ora) {
-  if (!('Notification' in window) || Notification.permission !== 'granted') return;
   var dt = new Date(data + 'T' + ora + ':00');
   var ms = dt - Date.now();
   if (ms <= 0) return;
-  setTimeout(function() {
-    new Notification(titolo, { body: '⏰ Promemoria C-Turni', icon: '/C-Turni/icon-192.png' });
-    // Push FCM (arriva anche con app chiusa)
-    var sess=lsG("ct_session",null);
-    if(sess&&sess.userId&&window.FirebaseModule)
-      window.FirebaseModule.schedulePush(sess.userId,titolo,'⏰ Promemoria C-Turni').catch(function(){});
-  }, Math.min(ms, 2147483647));
+  // Schedula push FCM subito con orario preciso
+  var sess=lsG("ct_session",null);
+  if(sess&&sess.userId&&window.FirebaseModule)
+    window.FirebaseModule.schedulePush(sess.userId,titolo,'\u23F0 Promemoria C-Turni',dt.toISOString()).catch(function(){});
+  // Notifica locale se app aperta
+  if('Notification' in window && Notification.permission==='granted'){
+    setTimeout(function(){
+      new Notification(titolo, { body: '\u23F0 Promemoria C-Turni', icon: '/C-Turni/icon-192.png' });
+    }, Math.min(ms, 2147483647));
+  }
 }
 
 /* ---------- SALVA TODO con sveglia ---------- */
@@ -11749,6 +11806,7 @@ window.FirebaseModule = {
       if(typeof window.scheduleNotifMattutina === 'function') window.scheduleNotifMattutina();
       // Controlla subito pre-turno con dati aggiornati
       if(typeof window.controllaNotifiche === 'function') window.controllaNotifiche();
+      if(typeof window.schedulaPreTurniFirebase === 'function') window.schedulaPreTurniFirebase();
     }, 1500);
   },
 
