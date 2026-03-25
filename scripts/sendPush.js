@@ -14,6 +14,7 @@ const db  = getFirestore();
 const fcm = getMessaging();
 
 async function run() {
+  // Collezione corretta: notifiche_push (con underscore)
   const now  = new Date();
   const snap = await db.collection("notifiche_push").get();
 
@@ -27,6 +28,8 @@ async function run() {
 
   for (const docSnap of snap.docs) {
     const data = docSnap.data();
+
+    // Campi corretti: uid, title, body (non userId/titolo)
     const uid   = data.uid;
     const title = data.title;
     const body  = data.body || "";
@@ -43,38 +46,11 @@ async function run() {
     if (!uid || !title) {
       console.warn("Doc malformato, elimino:", docSnap.id);
       await docSnap.ref.delete();
-      continue;
-    }
-
-    const userDoc = await db.collection("utenti").doc(uid).get();
-    if (!userDoc.exists) {
-      console.warn("Utente non trovato:", uid);
-      await docSnap.ref.delete();
-      continue;
-    }
-
-    const token = userDoc.data()?.fcmToken;
-    if (!token) {
-      console.warn("fcmToken vuoto per:", uid);
-      await docSnap.ref.delete();
-      continue;
-    }
-
-    try {
-      await fcm.send({
-        token,
-        notification: { title, body },
-        webpush: {
-          notification: {
-            icon:    "/C-Turni/icon-192.png",
-            badge:   "/C-Turni/icon-192.png",
-            vibrate: [200, 100, 200]
-          },
-          fcmOptions: {
-            link: "https://policeman-sdk.github.io/C-Turni/"
+@@ -64,13 +75,16 @@
           }
         }
       });
+      console.log("Push inviata a:", uid);
       console.log("Push inviata a:", uid, "| titolo:", title);
       inviate++;
     } catch (err) {
