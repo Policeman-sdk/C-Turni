@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>C-TURNI v3.5.0</title>
+<title>C-TURNI v3.5.1</title>
 <link rel="manifest" id="pwa-manifest">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -2854,7 +2854,7 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
 
 
         <div class="imp-section">
-          <div class="imp-section-title">&#8505;&#65039; Info <span style="float:right;font-size:10px;font-weight:400;color:var(--txt2)">v3.5.0</span></div>
+          <div class="imp-section-title">&#8505;&#65039; Info <span style="float:right;font-size:10px;font-weight:400;color:var(--txt2)">v3.5.1</span></div>
           <div style="border-radius:14px;border:1px solid var(--border);overflow:hidden">
             <div class="imp-row"><div class="imp-row-ico" style="background:rgba(41,121,255,.12)">&#128196;</div>
               <div class="imp-row-body"><div class="imp-row-title">Formato</div><div class="imp-row-sub">Scarica &#8594; apri con Google Chrome</div></div></div>
@@ -2865,7 +2865,7 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
               <div class="imp-row-ico" style="background:rgba(212,175,55,.12)">&#127381;</div>
               <div class="imp-row-body">
                 <div class="imp-row-title">Versione</div>
-                <div class="imp-row-sub" id="egg-hint">C-Turni v3.5.0</div>
+                <div class="imp-row-sub" id="egg-hint">C-Turni v3.5.1</div>
               </div>
               <div style="font-size:18px;color:var(--txt3)" id="egg-dots">&#8226;&#8226;&#8226;</div>
             </div>
@@ -2887,14 +2887,34 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
               <div id="sec-changelog" style="max-height:0;overflow:hidden;transition:max-height .35s ease">
                 <div style="padding:14px;border-top:1px solid var(--border);font-size:12px;color:var(--txt2)">
 
-                  <!-- v3.5.0 ATTUALE -->
+                  <!-- v3.5.1 ATTUALE -->
                   <div style="margin-bottom:14px">
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-                      <span style="font-weight:800;color:var(--teal)">v3.5.0</span>
+                      <span style="font-weight:800;color:var(--teal)">v3.5.1</span>
                       <span style="font-size:10px;background:rgba(41,121,255,.15);color:var(--blue);padding:1px 7px;border-radius:20px">&#9679; Attuale</span>
                       <span style="font-size:10px;color:var(--txt3)">Mar 2026</span>
                     </div>
                     <div style="padding-left:10px;border-left:2px solid var(--teal);display:flex;flex-direction:column;gap:3px">
+                      <div>&#128336; Rinvia to-do e appuntamenti: +1/3/7 giorni o data libera, anche per condivisi</div>
+                      <div>&#127941; Recupero festivo manuale: aggiungi recuperi precedenti all&#39;iscrizione</div>
+                      <div>&#128197; Aggiungi anno licenze: bottom sheet sempre visibile (fix z-index)</div>
+                      <div>&#8722; Scala giorni licenze manualmente con motivo opzionale</div>
+                      <div>&#128101; Report carico per persona: ora include colleghi Firebase e match robusto</div>
+                      <div>&#128276; Notifiche push multi-device: token salvato per ogni dispositivo</div>
+                      <div>&#128247; Foto profilo: non viene pi&#249; sovrascritta dal listener Firebase</div>
+                      <div>&#9889; Membri attivi aggiornati in tempo reale senza navigare</div>
+                      <div>&#128640; Fix manifest PWA: start_url corretto, nessun errore console</div>
+                      <div>&#128030; Fix RangeError in schedulaPreTurniFirebase su turni senza orario</div>
+                    </div>
+                  </div>
+
+                  <!-- v3.5.0 -->
+                  <div style="margin-bottom:14px">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                      <span style="font-weight:800;color:var(--txt)">v3.5.0</span>
+                      <span style="font-size:10px;color:var(--txt3)">Mar 2026</span>
+                    </div>
+                    <div style="padding-left:10px;border-left:2px solid var(--border2);display:flex;flex-direction:column;gap:3px">
                       <div>&#128276; Notifiche push Firebase (FCM): ricezione anche con app chiusa</div>
                       <div>&#128247; Service Worker aggiornato per notifiche in background</div>
                       <div>&#128640; Skeleton loaders durante il caricamento dati da Firebase</div>
@@ -4184,6 +4204,13 @@ function schedulaPreTurniFirebase(){
   var T=lsG("ct_t",[]);
   var ORI={mattina:"06:00",pomeriggio:"14:00",notte:"22:00"};
   var now=new Date();
+  var todayKey=now.toISOString().slice(0,10);
+  // Reset lista schedulati se è un nuovo giorno
+  var lastDay=localStorage.getItem('ct_push_sched_day');
+  if(lastDay!==todayKey){
+    lsS("ct_push_scheduled",[]);
+    localStorage.setItem('ct_push_sched_day',todayKey);
+  }
   var scheduled=lsG("ct_push_scheduled",[]);
   // Controlla i prossimi 7 giorni
   for(var dayOff=0;dayOff<=6;dayOff++){
@@ -4868,18 +4895,27 @@ function scheduleNotifMattutina(){
   var ms=target-now;
 
   // Schedula push FCM subito con orario preciso (domani alle 06:00)
+  // Evita duplicati: schedula solo una volta per giorno
   var me=lsG("ct_me",null);
   if(me){
     var oggi=target.toISOString().slice(0,10);
-    var T=lsG("ct_t",[]);
-    var t=null;for(var i=0;i<T.length;i++){if(_isMyTurno(T[i],me)&&T[i].data===oggi){t=T[i];break;}}
-    if(t){
-      var titoliN={mattina:"\u2600\uFE0F Mattina",pomeriggio:"\u2600\uFE0F Pomeriggio",notte:"\uD83C\uDF19 Notte"};
-      var titoloMat="C-Turni \u2014 Buongiorno "+me.nome;
-      var bodyMat="Oggi hai il turno "+(titoliN[t.tipo]||t.tipo)+" | "+(t.orario||"");
-      var sess2=lsG("ct_session",null);
-      if(sess2&&sess2.userId&&window.FirebaseModule)
-        window.FirebaseModule.schedulePush(sess2.userId,titoloMat,bodyMat,target.toISOString()).catch(function(){});
+    var _matKey='ct_mat_scheduled_'+oggi;
+    if(!localStorage.getItem(_matKey)){
+      var T=lsG("ct_t",[]);
+      var t=null;for(var i=0;i<T.length;i++){if(_isMyTurno(T[i],me)&&T[i].data===oggi){t=T[i];break;}}
+      if(t){
+        var titoliN={mattina:"\u2600\uFE0F Mattina",pomeriggio:"\u2600\uFE0F Pomeriggio",notte:"\uD83C\uDF19 Notte"};
+        var titoloMat="C-Turni \u2014 Buongiorno "+me.nome;
+        var bodyMat="Oggi hai il turno "+(titoliN[t.tipo]||t.tipo)+" | "+(t.orario||"");
+        var sess2=lsG("ct_session",null);
+        if(sess2&&sess2.userId&&window.FirebaseModule){
+          window.FirebaseModule.schedulePush(sess2.userId,titoloMat,bodyMat,target.toISOString()).catch(function(){});
+          localStorage.setItem(_matKey,'1');
+          // Pulisci chiavi vecchie (>2 giorni fa)
+          var ieri=new Date(target);ieri.setDate(ieri.getDate()-2);
+          localStorage.removeItem('ct_mat_scheduled_'+ieri.toISOString().slice(0,10));
+        }
+      }
     }
   }
 
@@ -5013,6 +5049,69 @@ function delTodo(id){
   if(window.FirebaseModule) window.FirebaseModule.deleteTodo(id).catch(function(){});
   renderTodo();
 }
+
+function rinviaTodo(id){
+  var TD=lsG("ct_td",[]);
+  var t=TD.find(function(x){return x.id===id;});
+  if(!t)return;
+  var oggi=new Date().toISOString().slice(0,10);
+  var dataBase=t.data&&t.data>=oggi?t.data:oggi;
+  var html=
+    '<div id="m-rinvia-todo" style="display:flex;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99999;align-items:flex-end;justify-content:center;backdrop-filter:blur(3px)">'
+    +'<div style="background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:520px;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 32px rgba(0,0,0,.4)">'
+    +'<div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 14px"></div>'
+    +'<div style="font-size:15px;font-weight:800;margin-bottom:14px">&#128336; Rinvia: '+t.tit+'</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'
+    +'<button class="btn btn-g btn-sm" onclick="_rinviaTodoRel('+id+',1)">+1 giorno</button>'
+    +'<button class="btn btn-g btn-sm" onclick="_rinviaTodoRel('+id+',3)">+3 giorni</button>'
+    +'<button class="btn btn-g btn-sm" onclick="_rinviaTodoRel('+id+',7)">+1 settimana</button>'
+    +'</div>'
+    +'<div class="fg"><label>Oppure scegli data e ora</label>'
+    +'<input type="date" id="rt-data" class="fc" value="'+dataBase+'" style="margin-bottom:8px">'
+    +'<input type="time" id="rt-ora" class="fc" value="'+(t.ora||'')+'"></div>'
+    +'<div style="display:flex;gap:10px;margin-top:4px">'
+    +'<button class="btn btn-g" style="flex:1" onclick="document.getElementById(\'m-rinvia-todo\').remove()">Annulla</button>'
+    +'<button class="btn btn-p" style="flex:1" onclick="_rinviaTodoData('+id+')">&#128336; Rinvia</button>'
+    +'</div></div></div>';
+  document.body.insertAdjacentHTML('beforeend',html);
+}
+
+function _rinviaTodoRel(id,giorni){
+  var TD=lsG("ct_td",[]);
+  var t=TD.find(function(x){return x.id===id;});
+  if(!t)return;
+  var oggi=new Date().toISOString().slice(0,10);
+  var base=new Date((t.data&&t.data>=oggi?t.data:oggi)+'T00:00:00');
+  base.setDate(base.getDate()+giorni);
+  t.data=base.toISOString().slice(0,10);
+  t.done=false;
+  lsS("ct_td",TD);
+  if(window.FirebaseModule)window.FirebaseModule.saveTodo(TD);
+  // Aggiorna condiviso se necessario
+  if(t.condiviso&&window.FirebaseModule)window.FirebaseModule.saveTodoCondiviso(t).catch(function(){});
+  schedulaNotifTodo(t);
+  var bs=document.getElementById('m-rinvia-todo');if(bs)bs.remove();
+  renderTodo();
+  toast("&#128336; Rinviato al "+t.data,"ok");
+}
+
+function _rinviaTodoData(id){
+  var data=(document.getElementById('rt-data')||{}).value;
+  var ora=(document.getElementById('rt-ora')||{}).value||'';
+  if(!data){toast("Scegli una data","err");return;}
+  var TD=lsG("ct_td",[]);
+  var t=TD.find(function(x){return x.id===id;});
+  if(!t)return;
+  t.data=data;t.ora=ora;t.done=false;
+  lsS("ct_td",TD);
+  if(window.FirebaseModule)window.FirebaseModule.saveTodo(TD);
+  if(t.condiviso&&window.FirebaseModule)window.FirebaseModule.saveTodoCondiviso(t).catch(function(){});
+  schedulaNotifTodo(t);
+  if(ora&&data)_schedulaNotifPrecisa("\u23F0 To-Do: "+t.tit,data,ora);
+  var bs=document.getElementById('m-rinvia-todo');if(bs)bs.remove();
+  renderTodo();
+  toast("&#128336; Rinviato al "+data+(ora?" ore "+ora:""),"ok");
+}
 function filtraTodo(f){
   _tdFiltro=f;
   ["tutti","oggi","alta","done"].forEach(function(k){
@@ -5052,6 +5151,7 @@ function renderTodo(){
           nt+
           '<div style="margin-top:5px"><span class="pbdg">'+pLbl[t.prio]+'</span>'+ds+rc+'</div>'+
         '</div>'+
+        '<button onclick="rinviaTodo('+t.id+')" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:14px;padding:4px;appearance:none;-webkit-appearance:none;flex-shrink:0" title="Rinvia">&#128336;</button>'+
         '<button onclick="delTodo('+t.id+')" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:16px;padding:4px;appearance:none;-webkit-appearance:none;flex-shrink:0">&#128465;</button>'+
       '</div>'+
       '<div class="swipe-bg left">&#128465;</div>'+
@@ -5584,6 +5684,65 @@ function delAgenda(id){
   if(window.FirebaseModule) window.FirebaseModule.deleteAgenda(id).catch(function(){});
   renderAgenda();
 }
+
+function rinviaAgenda(id){
+  var AG=lsG("ct_ag",[]);
+  var a=AG.find(function(x){return x.id===id;});
+  if(!a)return;
+  var html=
+    '<div id="m-rinvia-ag" style="display:flex;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99999;align-items:flex-end;justify-content:center;backdrop-filter:blur(3px)">'
+    +'<div style="background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:520px;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 32px rgba(0,0,0,.4)">'
+    +'<div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 14px"></div>'
+    +'<div style="font-size:15px;font-weight:800;margin-bottom:14px">&#128336; Rinvia: '+a.tit+'</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'
+    +'<button class="btn btn-g btn-sm" onclick="_rinviaAgRel('+id+',1)">+1 giorno</button>'
+    +'<button class="btn btn-g btn-sm" onclick="_rinviaAgRel('+id+',3)">+3 giorni</button>'
+    +'<button class="btn btn-g btn-sm" onclick="_rinviaAgRel('+id+',7)">+1 settimana</button>'
+    +'</div>'
+    +'<div class="fg"><label>Oppure scegli data e ora</label>'
+    +'<input type="date" id="ra-data" class="fc" value="'+a.data+'" style="margin-bottom:8px">'
+    +'<input type="time" id="ra-ora" class="fc" value="'+(a.ora||'')+'"></div>'
+    +'<div style="display:flex;gap:10px;margin-top:4px">'
+    +'<button class="btn btn-g" style="flex:1" onclick="document.getElementById(\'m-rinvia-ag\').remove()">Annulla</button>'
+    +'<button class="btn btn-p" style="flex:1" onclick="_rinviaAgData('+id+')">&#128336; Rinvia</button>'
+    +'</div></div></div>';
+  document.body.insertAdjacentHTML('beforeend',html);
+}
+
+function _rinviaAgRel(id,giorni){
+  var AG=lsG("ct_ag",[]);
+  var a=AG.find(function(x){return x.id===id;});
+  if(!a)return;
+  var base=new Date(a.data+'T00:00:00');
+  base.setDate(base.getDate()+giorni);
+  a.data=base.toISOString().slice(0,10);
+  AG.sort(function(x,y){return x.data>y.data?1:-1;});
+  lsS("ct_ag",AG);
+  if(window.FirebaseModule)window.FirebaseModule.saveAgenda(AG).catch(function(){});
+  if(a.condiviso&&window.FirebaseModule)window.FirebaseModule.saveAgendaCondivisa(a).catch(function(){});
+  if(a.notif>0)schedulaNotifAgenda(a);
+  var bs=document.getElementById('m-rinvia-ag');if(bs)bs.remove();
+  renderAgenda();
+  toast("&#128336; Rinviato al "+a.data,"ok");
+}
+
+function _rinviaAgData(id){
+  var data=(document.getElementById('ra-data')||{}).value;
+  var ora=(document.getElementById('ra-ora')||{}).value||'';
+  if(!data){toast("Scegli una data","err");return;}
+  var AG=lsG("ct_ag",[]);
+  var a=AG.find(function(x){return x.id===id;});
+  if(!a)return;
+  a.data=data;if(ora)a.ora=ora;
+  AG.sort(function(x,y){return x.data>y.data?1:-1;});
+  lsS("ct_ag",AG);
+  if(window.FirebaseModule)window.FirebaseModule.saveAgenda(AG).catch(function(){});
+  if(a.condiviso&&window.FirebaseModule)window.FirebaseModule.saveAgendaCondivisa(a).catch(function(){});
+  if(a.notif>0)schedulaNotifAgenda(a);
+  var bs=document.getElementById('m-rinvia-ag');if(bs)bs.remove();
+  renderAgenda();
+  toast("&#128336; Rinviato al "+data+(ora?" ore "+ora:""),"ok");
+}
 function renderAgenda(){
   var el=document.getElementById("agenda-list");if(!el)return;
   var AG=lsG("ct_ag",[]).filter(function(x){return x.data>=new Date().toISOString().slice(0,10);});
@@ -5596,7 +5755,10 @@ function renderAgenda(){
     var note=a.note?'<div style="font-size:11px;color:var(--txt2);margin-top:2px">'+a.note+'</div>':"";
     return '<div class="ag-item"><div style="display:flex;justify-content:space-between;align-items:flex-start">'+
       '<div><div style="font-weight:700;font-size:13px">'+a.tit+'</div><div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128197; '+ds+ora+'</div>'+luogo+note+'</div>'+
+      '<div style="display:flex;gap:4px;align-items:center">'+
+      '<button onclick="rinviaAgenda('+a.id+')" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:14px;appearance:none;-webkit-appearance:none" title="Rinvia">&#128336;</button>'+
       '<button onclick="delAgenda('+a.id+')" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:16px;appearance:none;-webkit-appearance:none">&#128465;</button>'+
+      '</div>'+
       '</div></div>';
   }).join("");
 }
@@ -11577,7 +11739,7 @@ import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
          signOut, onAuthStateChanged, deleteUser }
                                   from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
 import { getFirestore, doc, collection, setDoc, getDoc, getDocs, deleteDoc,
-         onSnapshot, query, where, serverTimestamp }
+         onSnapshot, query, where, serverTimestamp, arrayUnion }
                                   from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
 import { getMessaging, getToken, onMessage }
                                   from "https://www.gstatic.com/firebasejs/11.8.1/firebase-messaging.js";
@@ -11698,6 +11860,8 @@ function _startListeners(reparto) {
       if(snap.exists()) {
         var prof = snap.data();
         var oldMe = JSON.parse(localStorage.getItem('ct_me') || 'null');
+        // Preserva ava locale se Firestore non ha la foto (evita sovrascrittura)
+        if(oldMe && oldMe.ava && !prof.ava) prof.ava = oldMe.ava;
         localStorage.setItem('ct_me', JSON.stringify(prof));
         // Aggiorna anche ct_session se ruolo/stato cambiato
         try {
@@ -11767,6 +11931,8 @@ function _startListeners(reparto) {
     } catch(e2) {}
 
     if(typeof window.AuthModule !== 'undefined') window.AuthModule.renderGestioneMemebri();
+    if(typeof window._renderStatoComando === 'function') window._renderStatoComando();
+    if(typeof window.renderPers === 'function') window.renderPers();
   }, function(e){ console.warn('onSnapshot utenti:', e.message); }));
 
   // Todo condivisi del reparto
@@ -12446,10 +12612,19 @@ window.FirebaseModule = {
       var session = JSON.parse(localStorage.getItem('ct_session') || 'null');
       if(session && session.userId) {
         var uid = session.userId;
-        await setDoc(doc(db, 'utenti', uid), { fcmToken: token, fcmAggiornato: new Date().toISOString() }, { merge: true });
+        // Salva token in array (multi-device) — usa arrayUnion per non duplicare
+        await setDoc(doc(db, 'utenti', uid), {
+          fcmToken: token,
+          fcmTokens: arrayUnion(token),
+          fcmAggiornato: new Date().toISOString()
+        }, { merge: true });
         var rep = _reparto();
         if(rep) {
-          await setDoc(doc(db, 'reparti', rep, 'utenti', uid), { fcmToken: token, fcmAggiornato: new Date().toISOString() }, { merge: true });
+          await setDoc(doc(db, 'reparti', rep, 'utenti', uid), {
+            fcmToken: token,
+            fcmTokens: arrayUnion(token),
+            fcmAggiornato: new Date().toISOString()
+          }, { merge: true });
         }
         localStorage.setItem('ct_fcm_token', token);
         console.log('[FCM] Token salvato su Firestore per uid:', uid);
