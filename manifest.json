@@ -1,8 +1,7 @@
-{
   "name": "C-Turni",
   "short_name": "C-Turni",
   "description": "Gestione turni Carabinieri",
-  "start_url": "/C-Turni/c_turni_v3.5.0.html",
+  "start_url": "/C-Turni/",
   "scope": "/C-Turni/",
   "display": "standalone",
   "orientation": "portrait",
