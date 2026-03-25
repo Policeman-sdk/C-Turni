@@ -13,6 +13,26 @@ initializeApp({
 const db  = getFirestore();
 const fcm = getMessaging();
 
+async function sendToTokens(tokens, title, body) {
+  let ok = 0;
+  for (const token of tokens) {
+    try {
+      await fcm.send({
+        token,
+        notification: { title, body },
+        webpush: {
+          notification: { vibrate: [200, 100, 200] },
+          fcmOptions: { link: "https://policeman-sdk.github.io/C-Turni/" }
+        }
+      });
+      ok++;
+    } catch (err) {
+      console.warn("Token fallito:", token.substring(0, 20) + "...", err.message);
+    }
+  }
+  return ok;
+}
+
 async function run() {
   const now  = new Date();
   const snap = await db.collection("notifiche_push").get();
@@ -31,16 +51,13 @@ async function run() {
     const title = data.title;
     const body  = data.body || "";
 
+    // Salta se scheduleAt non è ancora arrivato
     if (data.scheduleAt) {
       const scheduleAt = new Date(data.scheduleAt);
-      if (scheduleAt > now) {
-        saltate++;
-        continue;
-      }
+      if (scheduleAt > now) { saltate++; continue; }
     }
 
     if (!uid || !title) {
-      console.warn("Doc malformato, elimino:", docSnap.id);
       await docSnap.ref.delete();
       continue;
     }
@@ -52,37 +69,26 @@ async function run() {
       continue;
     }
 
-    const token = userDoc.data()?.fcmToken;
-    if (!token) {
-      console.warn("fcmToken vuoto per:", uid);
+    const userData = userDoc.data();
+    // Usa fcmTokens (array multi-device) con fallback su fcmToken singolo
+    const tokens = userData.fcmTokens
+      ? [...new Set(userData.fcmTokens)]          // deduplicati
+      : (userData.fcmToken ? [userData.fcmToken] : []);
+
+    if (!tokens.length) {
+      console.warn("Nessun token per:", uid);
       await docSnap.ref.delete();
       continue;
     }
 
-    try {
-      await fcm.send({
-        token,
-        notification: { title, body },
-        webpush: {
-          notification: {
-            icon:    "https://policeman-sdk.github.io/C-Turni/favicon.ico",
-            vibrate: [200, 100, 200]
-          },
-          fcmOptions: {
-            link: "https://policeman-sdk.github.io/C-Turni/"
-          }
-        }
-      });
-      console.log("Push inviata a:", uid, "| titolo:", title);
-      inviate++;
-    } catch (err) {
-      console.error("Errore per", uid, ":", err.message);
-    }
+    const sent = await sendToTokens(tokens, title, body);
+    console.log(`Push inviata a: ${uid} | ${sent}/${tokens.length} device | ${title}`);
+    inviate += sent;
 
     await docSnap.ref.delete();
   }
 
-  console.log(`Fine: ${inviate} inviate, ${saltate} in attesa.`);
+  console.log(`Fine: ${inviate} push inviate, ${saltate} in attesa.`);
 }
 
 run().catch(console.error);
