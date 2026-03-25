@@ -2573,8 +2573,11 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
               </div>
 
               <!-- TASTO AGGIUNGI ANNO -->
-              <button onclick="apriAggiungiAnno()" style="width:100%;padding:12px;border-radius:11px;background:var(--blue);color:#fff;border:none;font-size:14px;font-weight:700;cursor:pointer;appearance:none;-webkit-appearance:none;appearance:none;margin-bottom:12px">
+              <button onclick="apriAggiungiAnno()" style="width:100%;padding:12px;border-radius:11px;background:var(--blue);color:#fff;border:none;font-size:14px;font-weight:700;cursor:pointer;appearance:none;-webkit-appearance:none;appearance:none;margin-bottom:8px">
                 &#43; Aggiungi anno
+              </button>
+              <button onclick="apriScalaManuale()" style="width:100%;padding:11px;border-radius:11px;background:rgba(0,188,212,.12);color:var(--teal);border:1px solid rgba(0,188,212,.3);font-size:13px;font-weight:700;cursor:pointer;appearance:none;-webkit-appearance:none;appearance:none;margin-bottom:12px">
+                &#8722; Scala giorni manualmente
               </button>
 
               <!-- POPUP MODIFICA ANNO INLINE -->
@@ -4319,11 +4322,16 @@ var _annoEditCorrente = null;
 var _giorniEditTemp   = 0;
 
 function getFeriePool(pid){
-  // Usa ct_u (utenti login) come storage del pool licenze
+  // Prima prova ct_u, poi ct_me come fallback (utenti Firebase)
   var U=lsG("ct_u",[]);
-  var u=U.find(function(x){return x.id===pid;});
-  if(!u) return [];
-  return (u.licenzePool||[]).slice().sort(function(a,b){return a.anno-b.anno;});
+  var u=U.find(function(x){return x.id===pid||x.uid===pid;});
+  if(u&&u.licenzePool&&u.licenzePool.length)
+    return u.licenzePool.slice().sort(function(a,b){return a.anno-b.anno;});
+  // Fallback: ct_me
+  var me=lsG("ct_me",null);
+  if(me&&(me.id===pid||me.uid===pid)&&me.licenzePool&&me.licenzePool.length)
+    return me.licenzePool.slice().sort(function(a,b){return a.anno-b.anno;});
+  return [];
 }
 
 function saveFeriePool(pid,pool){
@@ -4331,18 +4339,22 @@ function saveFeriePool(pid,pool){
   var tot=pool.reduce(function(s,x){return s+x.giorni;},0);
   // Salva in ct_u
   var U=lsG("ct_u",[]);
+  var trovato=false;
   for(var i=0;i<U.length;i++){
-    if(U[i].id===pid){U[i].licenzePool=pool;U[i].ferie=tot;U[i].ferieRes=tot;break;}
+    if(U[i].id===pid||U[i].uid===pid){U[i].licenzePool=pool;U[i].ferie=tot;U[i].ferieRes=tot;trovato=true;break;}
   }
+  if(!trovato){ U.push({id:pid,licenzePool:pool,ferie:tot,ferieRes:tot}); }
   lsS("ct_u",U);
-  // Aggiorna ct_me se  l'utente loggato
+  // Aggiorna ct_me
   var me=lsG("ct_me",null);
-  if(me&&me.id===pid){me.licenzePool=pool;me.ferie=tot;me.ferieRes=tot;lsS("ct_me",me);}
+  if(me&&(me.id===pid||me.uid===pid)){me.licenzePool=pool;me.ferie=tot;me.ferieRes=tot;lsS("ct_me",me);}
   // Aggiorna UI
   var fs=document.getElementById("ferie-saldo-n");
   if(fs){fs.textContent=tot;fs.style.color=tot<5?"var(--red)":tot<15?"var(--gold)":"var(--green)";}
   var ft=document.getElementById("ferie-totale");
   if(ft){ft.textContent=tot+" gg";ft.style.color=tot<=5?"var(--red)":tot<=15?"var(--gold)":"var(--teal)";}
+  // Sync Firebase
+  _syncFerieFirebase();
 }
 
 function renderFeriePool(){
@@ -4474,6 +4486,55 @@ function eliminaAnnoPool(anno){
   saveFeriePool(me.id,pool);
   renderFeriePool();
   toast("&#128197; Anno "+anno+" eliminato","ok");
+}
+
+function apriScalaManuale(){
+  var me=lsG("ct_me",null);if(!me)return;
+  var pool=getFeriePool(me.id);
+  if(!pool.length){toast("Nessun anno nel pool — aggiungi prima un anno","err");return;}
+  var annoC=new Date().getFullYear();
+  // Preferisci l'anno più vecchio con giorni > 0 (FIFO)
+  var target=pool.find(function(x){return x.giorni>0;})||pool[0];
+  var opzioni=pool.map(function(x){
+    return '<option value="'+x.anno+'"'+(x.anno===target.anno?' selected':'')+'>'+x.anno+' ('+x.giorni+' gg)</option>';
+  }).join('');
+  var html=
+    '<div id="m-scala-manuale" style="display:flex;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:10000;align-items:flex-end;justify-content:center;backdrop-filter:blur(3px)">'
+    +'<div style="background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:520px;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 32px rgba(0,0,0,.4)">'
+    +'<div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 16px"></div>'
+    +'<div style="font-size:16px;font-weight:800;margin-bottom:4px">&#8722; Scala giorni manualmente</div>'
+    +'<div style="font-size:11px;color:var(--txt2);margin-bottom:16px">Usa questa funzione per turni precedenti all\'iscrizione o correzioni manuali.</div>'
+    +'<div class="fg"><label>Anno da scalare</label>'
+    +'<select id="sm-anno" class="fc">'+opzioni+'</select></div>'
+    +'<div class="fg"><label>Giorni da sottrarre</label>'
+    +'<input type="number" id="sm-giorni" class="fc" value="1" min="1" max="365"></div>'
+    +'<div class="fg"><label>Motivo (opzionale)</label>'
+    +'<input type="text" id="sm-motivo" class="fc" placeholder="es. Ferie luglio 2024" maxlength="60"></div>'
+    +'<div style="display:flex;gap:10px;margin-top:4px">'
+    +'<button class="btn btn-g" style="flex:1" onclick="document.getElementById(\'m-scala-manuale\').remove()">Annulla</button>'
+    +'<button class="btn btn-p" style="flex:1;background:var(--teal)" onclick="_salvaScalaManuale()">&#8722; Scala</button>'
+    +'</div></div></div>';
+  document.body.insertAdjacentHTML('beforeend',html);
+}
+
+function _salvaScalaManuale(){
+  var me=lsG("ct_me",null);if(!me)return;
+  var anno=parseInt((document.getElementById('sm-anno')||{}).value);
+  var giorni=parseInt((document.getElementById('sm-giorni')||{}).value);
+  var motivo=((document.getElementById('sm-motivo')||{}).value||'').trim();
+  if(isNaN(anno)||isNaN(giorni)||giorni<=0){toast("Dati non validi","err");return;}
+  var pool=getFeriePool(me.id);
+  var entry=pool.find(function(x){return x.anno===anno;});
+  if(!entry){toast("Anno non trovato nel pool","err");return;}
+  if(giorni>entry.giorni){
+    if(!confirm("Stai scalando "+giorni+" giorni ma ne hai solo "+entry.giorni+" per il "+anno+". Continui?"))return;
+  }
+  entry.giorni=Math.max(0,entry.giorni-giorni);
+  saveFeriePool(me.id,pool);
+  renderFeriePool();
+  _syncFerieFirebase();
+  document.getElementById('m-scala-manuale').remove();
+  toast("&#127958; Scalati "+giorni+" gg dal "+anno+(motivo?" — "+motivo:""),"ok");
 }
 
 function renderFeriePoolOnImp(){
@@ -7102,6 +7163,15 @@ function renderPers(){
         ferieRes: u.ferieRes || u.ferie || 30,
         _fromFirebase: true
       });
+    } else {
+      // Aggiorna foto e dati da Firebase anche se già presente in ct_p
+      for(var _pi=0;_pi<P.length;_pi++){
+        if(P[_pi].uid===u.uid){
+          if(u.ava) P[_pi].ava=u.ava;
+          if(u.grado) P[_pi].grado=u.grado;
+          break;
+        }
+      }
     }
   });
   if(!P.length){tb.innerHTML="<tr><td colspan=\"7\" class=\"empty\">Nessuna persona inserita</td></tr>";return;}
@@ -7156,7 +7226,7 @@ function salvaTurno(){
   var _nt = {id:Date.now(),pid:pid,pnome:p.nome,data:dt,tipo:tp,
     orario:_orario,note:document.getElementById("mt-note").value,codice:_cod,categoria_evento:_catEv};
   // push gestito dopo
-  if(tp==="ferie"||tp==="licenza"){
+  if(tp==="ferie"){
     var _Pf=lsG("ct_p",[]);
     for(var _fi=0;_fi<_Pf.length;_fi++){
       if(_Pf[_fi].id===pid){
@@ -7176,6 +7246,23 @@ function salvaTurno(){
     }
     lsS("ct_p",_Pf);
     renderFeriePool();
+  }
+  // 937 → scala festività soppresse (1 giorno)
+  if(tp==="937"){
+    var _me937=lsG("ct_me",null);
+    if(_me937){
+      var _anno937=new Date(dt+'T00:00:00').getFullYear()||new Date().getFullYear();
+      var _FS=lsG("ct_fest_sopp",[]);
+      var _usate937=_FS.filter(function(f){return f.uid===_me937.id&&f.anno===_anno937&&f.usato;}).length;
+      if(_usate937<4){
+        _FS.push({id:Date.now(),uid:_me937.id,anno:_anno937,data:dt,nota:'Licenza 937',usato:true});
+        lsS("ct_fest_sopp",_FS);
+        renderFestSopp();
+        toast("\uD83C\uDF89 Festivit\u00E0 soppressa scalata per "+_anno937,"ok");
+      } else {
+        toast("Hai gi\u00E0 usato tutte e 4 le festivit\u00E0 soppresse per il "+_anno937,"warn");
+      }
+    }
   }
   var _eid=document.getElementById("mt-edit-id");
   if(_eid&&_eid.value){
@@ -7402,6 +7489,28 @@ function setRepPer(p){
 }
 function renderRepData(){
   var T=lsG("ct_t",[]),P=lsG("ct_p",[]);
+  // Merge con utenti Firebase (stessa logica di renderPers)
+  var me=lsG('ct_me',null);
+  var myRep=(me&&me.reparto)?me.reparto.toLowerCase():'';
+  var fbUsers=lsG('ct_users',[]);
+  fbUsers.forEach(function(u){
+    if(!u.uid||!u.nome)return;
+    if(u.stato==='pending'||u.stato==='rejected')return;
+    var uRep=(u.reparto||'').toLowerCase();
+    if(myRep&&uRep!==myRep)return;
+    var exists=P.some(function(p){return p.uid===u.uid;});
+    if(!exists){
+      P.push({
+        id:u.id||u.uid,
+        nome:((u.cognome||'')+' '+(u.nome||'')).trim()||u.nome,
+        grado:u.grado||'',
+        reparto:u.reparto||'',
+        uid:u.uid,
+        ferieRes:u.ferieRes||u.ferie||30,
+        _fromFirebase:true
+      });
+    }
+  });
   var d=document.getElementById("rep-data");if(!d)return;
   var per=window._repPer||"m";
   var now=new Date(),anno=now.getFullYear();
@@ -8081,7 +8190,7 @@ function parseSheet(rows, sn) {
 
         tot++;
 
-        if(tipo==='ferie'||tipo==='licenza'){
+        if(tipo==='ferie'||raw==='L'){
 
           for(var _fi=0;_fi<P.length;_fi++){
 
@@ -8089,6 +8198,19 @@ function parseSheet(rows, sn) {
 
           }
 
+        }
+
+        if(tipo==='937'||raw==='937'){
+          var _me937i=lsG("ct_me",null);
+          if(_me937i){
+            var _anno937i=new Date(ds+'T00:00:00').getFullYear()||new Date().getFullYear();
+            var _FSi=lsG("ct_fest_sopp",[]);
+            var _usate937i=_FSi.filter(function(f){return f.uid===_me937i.id&&f.anno===_anno937i&&f.usato;}).length;
+            if(_usate937i<4){
+              _FSi.push({id:Date.now()+Math.random(),uid:_me937i.id,anno:_anno937i,data:ds,nota:'Licenza 937 (import)',usato:true});
+              lsS("ct_fest_sopp",_FSi);
+            }
+          }
         }
 
       }
@@ -8662,8 +8784,18 @@ function salvaProfilo(){
   var fine=function(){
     lsS('ct_me',me);
     var U=lsG('ct_u',[]);
-    for(var i=0;i<U.length;i++){if(U[i].id===me.id){U[i]=me;break;}}
+    for(var i=0;i<U.length;i++){if(U[i].id===me.id||U[i].uid===me.uid){U[i]=Object.assign({},U[i],me);break;}}
     lsS('ct_u',U);
+    // Aggiorna anche ct_p con la nuova foto
+    var P=lsG('ct_p',[]);
+    for(var j=0;j<P.length;j++){
+      if(P[j].uid===me.uid||P[j].id===me.id){
+        if(me.ava)P[j].ava=me.ava;
+        P[j].nome=me.nome;P[j].grado=me.grado;
+        break;
+      }
+    }
+    lsS('ct_p',P);
     // Salva su Firebase (foto inclusa)
     if(window.FirebaseModule){
       var session=lsG('ct_session',null);
@@ -8675,7 +8807,7 @@ function salvaProfilo(){
     }
     aggUI();
     closeM('m-profilo');
-    toast('Profilo aggiornato ✓','ok');
+    toast('Profilo aggiornato \u2713','ok');
   };
   if(fEl&&fEl.files[0])comprImg(fEl.files[0],function(d){me.ava=d;fine();});
   else if(window._tempAva){me.ava=window._tempAva;window._tempAva=null;fine();}
@@ -12232,23 +12364,26 @@ window.FirebaseModule = {
 
   // ── FCM: richiedi permesso e salva token ───────────────────
   initFCM: async function() {
-    if(!messaging) return;
+    if(!messaging) { console.warn('[FCM] messaging non inizializzato'); return; }
     try {
       var perm = Notification.permission;
-      if(perm === 'denied') { console.log('FCM: permesso negato dall\'utente'); return; }
+      console.log('[FCM] Permesso notifiche:', perm);
+      if(perm === 'denied') { console.warn('[FCM] Permesso negato dall\'utente'); return; }
       if(perm !== 'granted') {
         perm = await Notification.requestPermission();
-        if(perm !== 'granted') { console.log('FCM: permesso non concesso'); return; }
+        if(perm !== 'granted') { console.warn('[FCM] Permesso non concesso:', perm); return; }
       }
-      // Usa il SW FCM esterno (non il blob)
+      // Usa il SW FCM esterno
       var swReg = await navigator.serviceWorker.getRegistration('/C-Turni/');
       if(!swReg) {
+        console.log('[FCM] SW non trovato, registro...');
         swReg = await navigator.serviceWorker.register('/C-Turni/firebase-messaging-sw.js', { scope: '/C-Turni/' });
         await navigator.serviceWorker.ready;
       }
+      console.log('[FCM] SW registrato:', swReg.scope);
       var token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg });
-      if(!token) { console.warn('FCM: token non ottenuto'); return; }
-      console.log('[FCM] Token:', token);
+      if(!token) { console.warn('[FCM] Token non ottenuto — verifica VAPID_KEY e SW'); return; }
+      console.log('[FCM] Token ottenuto:', token.substring(0,20)+'...');
       // Salva token su Firestore
       var session = JSON.parse(localStorage.getItem('ct_session') || 'null');
       if(session && session.userId) {
@@ -12259,7 +12394,9 @@ window.FirebaseModule = {
           await setDoc(doc(db, 'reparti', rep, 'utenti', uid), { fcmToken: token, fcmAggiornato: new Date().toISOString() }, { merge: true });
         }
         localStorage.setItem('ct_fcm_token', token);
-        console.log('[FCM] Token salvato su Firestore');
+        console.log('[FCM] Token salvato su Firestore per uid:', uid);
+      } else {
+        console.warn('[FCM] Nessuna sessione attiva — token non salvato');
       }
       // Messaggi in foreground → toast + notifica nativa
       onMessage(messaging, function(payload) {
@@ -12268,7 +12405,7 @@ window.FirebaseModule = {
         if(typeof window.toast === 'function') window.toast('\uD83D\uDD14 ' + title + (body ? ': ' + body : ''), 'ok');
         if(Notification.permission === 'granted') new Notification(title, { body: body, icon: '/C-Turni/icon-192.png' });
       });
-    } catch(e) { console.warn('FCM initFCM:', e.message); }
+    } catch(e) { console.error('[FCM] Errore initFCM:', e.message, e); }
   },
 
   // ── FCM: schedula push scrivendo su Firestore (letta da Cloud Function/Extension) ──
