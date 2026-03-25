@@ -4163,7 +4163,7 @@ function controllaNotifiche(){
         var titoloPre="\u23F0 C-Turni \u2014 Turno tra "+(diff>=60?Math.round(diff/60)+"h":Math.round(diff)+" min");
         var bodyPre="Turno "+(t.codice||t.tipo||'').toUpperCase()+" alle "+orStr;
         if("Notification" in window && Notification.permission==="granted")
-          new Notification(titoloPre,{body:bodyPre,icon:"/C-Turni/icon-192.png"});
+          new Notification(titoloPre,{body:bodyPre,icon:_NOTIF_ICON});
         var sess=lsG("ct_session",null);
         if(sess&&sess.userId&&window.FirebaseModule)
           window.FirebaseModule.schedulePush(sess.userId,titoloPre,bodyPre,new Date().toISOString()).catch(function(){});
@@ -4765,6 +4765,8 @@ function aggiornaWidget(){
 
 // ---- PWA ----
 var _pwaPrompt=null;
+// Icona notifiche (SVG inline, non richiede file esterno)
+var _NOTIF_ICON='data:image/svg+xml,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 viewBox%3D%220 0 192 192%22%3E%3Crect width%3D%22192%22 height%3D%22192%22 rx%3D%2240%22 fill%3D%22%230d1b2a%22%2F%3E%3Cpolygon points%3D%2296%2C22 108%2C62 148%2C62 116%2C86 128%2C126 96%2C102 64%2C126 76%2C86 44%2C62 84%2C62%22 fill%3D%22%23c8a84b%22%2F%3E%3C%2Fsvg%3E';
 function initPWA(){
   // Il manifest è già impostato nell'<head> — non sovrascrivere
   // Intercetta evento beforeinstallprompt
@@ -4894,7 +4896,7 @@ function scheduleNotifMattutina(){
       var titoloMat2="C-Turni \u2014 Buongiorno "+me2.nome;
       var bodyMat2="Oggi hai il turno "+(titoliN2[t2.tipo]||t2.tipo)+" | "+(t2.orario||"");
       if("Notification" in window && Notification.permission==="granted")
-        new Notification(titoloMat2,{body:bodyMat2,icon:"/C-Turni/icon-192.png"});
+        new Notification(titoloMat2,{body:bodyMat2,icon:_NOTIF_ICON});
     }
   },Math.min(ms,2147483647));
   caricaFontSize();
@@ -5414,7 +5416,7 @@ function toggleNotifMaster(){
       setTimeout(function(){
         new Notification("🔔 C-Turni — Notifiche attive",{
           body:"Riceverai avvisi per turni, to-do e appuntamenti.",
-          icon:"/C-Turni/icon-192.png"
+          icon:_NOTIF_ICON
         });
       },500);
     } else {
@@ -5454,7 +5456,7 @@ function inviaNotifTest(){
   var me=lsG("ct_me",null);
   new Notification("🔔 C-Turni — Test notifica",{
     body:"Ciao "+(me?me.nome:"!")+" — le notifiche funzionano correttamente.",
-    icon:"/C-Turni/icon-192.png"
+    icon:_NOTIF_ICON
   });
   toast("🔔 Notifica inviata","ok");
 }
@@ -5504,7 +5506,7 @@ function schedulaNotifTodo(item){
   // Notifica locale se app aperta
   if("Notification" in window && Notification.permission==="granted"){
     setTimeout(function(){
-      new Notification(titolo,{body:body,icon:"/C-Turni/icon-192.png"});
+      new Notification(titolo,{body:body,icon:_NOTIF_ICON});
     },Math.min(ms,2147483647));
   }
 }
@@ -5531,8 +5533,8 @@ function salvaTodo(){
   closeM("m-todo");renderTodo();
   var chk=document.getElementById('td-condividi');if(chk)chk.checked=false;
   ["td-tit","td-note","td-data","td-ora"].forEach(function(id){var e=document.getElementById(id);if(e)e.value="";});
-  var rep=_reparto?_reparto():'?';
-  toast(condividi?"✅ Condiviso nel reparto ["+rep+"]":"Promemoria salvato","ok");
+  var rep=(typeof _reparto==='function')?_reparto():(lsG('ct_me',null)||{}).reparto||'?';
+  toast(condividi?"\u2705 Condiviso nel reparto ["+rep+"]":"Promemoria salvato","ok");
 }
 
 // ---- AGENDA ----
@@ -5550,7 +5552,7 @@ function schedulaNotifAgenda(item){
   // Notifica locale se app aperta
   if("Notification" in window && Notification.permission==="granted"){
     setTimeout(function(){
-      new Notification(titoloAg,{body:bodyAg,icon:"/C-Turni/icon-192.png"});
+      new Notification(titoloAg,{body:bodyAg,icon:_NOTIF_ICON});
     },Math.min(ms,2147483647));
   }
 }
@@ -5573,8 +5575,8 @@ function salvaAgenda(){
   closeM("m-agenda");renderAgenda();
   var chk=document.getElementById('ag-condividi');if(chk)chk.checked=false;
   ["ag-tit","ag-data","ag-ora","ag-luogo","ag-note"].forEach(function(id){var e=document.getElementById(id);if(e)e.value="";});
-  var rep2=_reparto?_reparto():'?';
-  toast(condividi?"✅ Condiviso nel reparto ["+rep2+"]":"Appuntamento salvato","ok");
+  var rep2=(typeof _reparto==='function')?_reparto():(lsG('ct_me',null)||{}).reparto||'?';
+  toast(condividi?"\u2705 Condiviso nel reparto ["+rep2+"]":"Appuntamento salvato","ok");
 }
 function delAgenda(id){
   var AG = lsG("ct_ag",[]).filter(function(x){return x.id!==id;});
@@ -7502,34 +7504,30 @@ function setRepPer(p){
   renderRepData();
 }
 function renderRepData(){
-  var T=lsG("ct_t",[]),P=lsG("ct_p",[]);
-  // Merge con utenti Firebase (stessa logica di renderPers)
-  var me=lsG('ct_me',null);
-  var myRep=(me&&me.reparto)?me.reparto.toLowerCase():'';
+  var T=lsG("ct_t",[]);
+  var P=lsG("ct_p",[]).slice(); // copia
+
+  // Aggiungi utenti Firebase non ancora in ct_p
   var fbUsers=lsG('ct_users',[]);
   fbUsers.forEach(function(u){
     if(!u.uid||!u.nome)return;
     if(u.stato==='pending'||u.stato==='rejected')return;
-    var uRep=(u.reparto||'').toLowerCase();
-    if(myRep&&uRep!==myRep)return;
     var exists=P.some(function(p){return p.uid===u.uid;});
     if(!exists){
       P.push({
-        id:u.id||u.uid,
+        id:u.uid,
         nome:((u.cognome||'')+' '+(u.nome||'')).trim()||u.nome,
-        grado:u.grado||'',
-        reparto:u.reparto||'',
         uid:u.uid,
-        ferieRes:u.ferieRes||u.ferie||30,
         _fromFirebase:true
       });
     }
   });
+
   var d=document.getElementById("rep-data");if(!d)return;
   var per=window._repPer||"m";
   var now=new Date(),anno=now.getFullYear();
   var mesSel=parseInt((document.getElementById("rp-sel-mese")||{value:now.getMonth()}).value);
-  // Filtro date
+
   var Tf=T.filter(function(t){
     var dt=new Date(t.data+"T00:00:00");
     if(per==="m")return dt.getFullYear()===anno&&dt.getMonth()===mesSel;
@@ -7537,7 +7535,7 @@ function renderRepData(){
     return dt.getFullYear()===anno;
   });
   if(!Tf.length){d.innerHTML='<div style="padding:30px;text-align:center;color:var(--txt2);font-size:13px">Nessun dato nel periodo selezionato</div>';return;}
-  // Conta codici
+
   var conti={mattina:0,pomeriggio:0,notte:0,riposo:0,recupero:0,ferie:0,licenza:0,permesso:0,corso:0};
   var conti1515=0;
   Tf.forEach(function(t){
@@ -7563,31 +7561,39 @@ function renderRepData(){
     h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px">';
     h+='<div style="padding:11px 14px;border-bottom:1px solid var(--border);font-weight:700;font-size:13px">&#128101; Carico per persona</div>';
     var totT=Tf.length||1;
-    // Costruisci mappa nome→turni per match robusto
-    var turniPerNome={};
+
+    // Indice turni per pid (stringa) e per pnome normalizzato
+    var tByPid={}, tByNome={};
     Tf.forEach(function(t){
       var k=String(t.pid);
-      if(!turniPerNome[k])turniPerNome[k]=[];
-      turniPerNome[k].push(t);
-      // Anche per pnome normalizzato
+      if(!tByPid[k])tByPid[k]=[];
+      tByPid[k].push(t);
       if(t.pnome){
-        var kn=t.pnome.toLowerCase().trim();
-        if(!turniPerNome[kn])turniPerNome[kn]=[];
-        turniPerNome[kn].push(t);
+        var n=t.pnome.toLowerCase().replace(/\s+/g,' ').trim();
+        if(!tByNome[n])tByNome[n]=[];
+        tByNome[n].push(t);
       }
     });
+
     P.forEach(function(p){
-      // Cerca turni per id, uid, o nome
-      var chiavi=[String(p.id)];
-      if(p.uid)chiavi.push(String(p.uid));
-      chiavi.push(p.nome.toLowerCase().trim());
-      var turniP=[];
-      var visti={};
-      chiavi.forEach(function(k){
-        (turniPerNome[k]||[]).forEach(function(t){
-          if(!visti[t.id]){visti[t.id]=true;turniP.push(t);}
-        });
-      });
+      // Raccoglie turni senza duplicati
+      var visti={}, turniP=[];
+      function addT(arr){(arr||[]).forEach(function(t){if(!visti[t.id]){visti[t.id]=true;turniP.push(t);}});}
+
+      // 1. Per id numerico
+      addT(tByPid[String(p.id)]);
+      // 2. Per uid Firebase
+      if(p.uid) addT(tByPid[String(p.uid)]);
+      // 3. Per nome esatto
+      var pn=p.nome.toLowerCase().replace(/\s+/g,' ').trim();
+      addT(tByNome[pn]);
+      // 4. Per nome invertito (Nome Cognome ↔ Cognome Nome)
+      var parti=pn.split(' ');
+      if(parti.length>=2){
+        var inv=parti.slice(1).join(' ')+' '+parti[0];
+        addT(tByNome[inv]);
+      }
+
       if(!turniP.length)return;
       var pc=turniP.length;
       var pct=Math.round(pc/totT*100);
@@ -9426,7 +9432,7 @@ function _schedulaNotifPrecisa(titolo, data, ora) {
   // Notifica locale se app aperta
   if('Notification' in window && Notification.permission==='granted'){
     setTimeout(function(){
-      new Notification(titolo, { body: '\u23F0 Promemoria C-Turni', icon: '/C-Turni/icon-192.png' });
+      new Notification(titolo, { body: '\u23F0 Promemoria C-Turni', icon: _NOTIF_ICON });
     }, Math.min(ms, 2147483647));
   }
 }
@@ -12455,7 +12461,7 @@ window.FirebaseModule = {
         var title = (payload.notification && payload.notification.title) || 'C-Turni';
         var body  = (payload.notification && payload.notification.body)  || '';
         if(typeof window.toast === 'function') window.toast('\uD83D\uDD14 ' + title + (body ? ': ' + body : ''), 'ok');
-        if(Notification.permission === 'granted') new Notification(title, { body: body, icon: '/C-Turni/icon-192.png' });
+        if(Notification.permission === 'granted') new Notification(title, { body: body, icon: _NOTIF_ICON });
       });
     } catch(e) { console.error('[FCM] Errore initFCM:', e.message, e); }
   },
