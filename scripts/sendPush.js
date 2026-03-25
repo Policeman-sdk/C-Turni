@@ -13,6 +13,15 @@ initializeApp({
 const db  = getFirestore();
 const fcm = getMessaging();
 
+// Determina tipo e icona dalla notifica
+function getTipoNotifica(title) {
+  if (title.includes('\u2705')) return { tipo: 'todo',    ico: '\u2705' };
+  if (title.includes('\uD83D\uDCC5')) return { tipo: 'agenda',  ico: '\uD83D\uDCC5' };
+  if (title.includes('\u23F0')) return { tipo: 'turni',   ico: '\u23F0' };
+  if (title.includes('Buongiorno')) return { tipo: 'turni',   ico: '\uD83C\uDF05' };
+  return { tipo: 'sistema', ico: '\uD83D\uDD14' };
+}
+
 async function sendToTokens(tokens, title, body) {
   let ok = 0;
   for (const token of tokens) {
@@ -31,6 +40,24 @@ async function sendToTokens(tokens, title, body) {
     }
   }
   return ok;
+}
+
+async function salvaInCentroNotifiche(uid, title, body) {
+  try {
+    const { tipo, ico } = getTipoNotifica(title);
+    const id = Date.now() + Math.random();
+    await db.collection('utenti').doc(uid).collection('notifiche').doc(String(id)).set({
+      id:     id,
+      tipo:   tipo,
+      titolo: title,
+      sub:    body || '',
+      ico:    ico,
+      ts:     new Date().toISOString(),
+      letta:  false
+    });
+  } catch(e) {
+    console.warn('salvaInCentroNotifiche:', e.message);
+  }
 }
 
 async function run() {
@@ -70,9 +97,8 @@ async function run() {
     }
 
     const userData = userDoc.data();
-    // Usa fcmTokens (array multi-device) con fallback su fcmToken singolo
     const tokens = userData.fcmTokens
-      ? [...new Set(userData.fcmTokens)]          // deduplicati
+      ? [...new Set(userData.fcmTokens)]
       : (userData.fcmToken ? [userData.fcmToken] : []);
 
     if (!tokens.length) {
@@ -84,6 +110,9 @@ async function run() {
     const sent = await sendToTokens(tokens, title, body);
     console.log(`Push inviata a: ${uid} | ${sent}/${tokens.length} device | ${title}`);
     inviate += sent;
+
+    // Salva anche nel centro notifiche in-app
+    await salvaInCentroNotifiche(uid, title, body);
 
     await docSnap.ref.delete();
   }
