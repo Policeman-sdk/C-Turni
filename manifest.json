@@ -1,0 +1,25 @@
+{
+  "name": "C-Turni",
+  "short_name": "C-Turni",
+  "description": "Gestione turni Carabinieri",
+  "start_url": "/C-Turni/c_turni_v3.5.0.html",
+  "scope": "/C-Turni/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d1b2a",
+  "theme_color": "#0d1b2a",
+  "icons": [
+    {
+      "src": "/C-Turni/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/C-Turni/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
