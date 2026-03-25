@@ -5026,9 +5026,23 @@ function toggleTodo(id){
   for(var i=0;i<TD.length;i++){if(TD[i].id===id){TD[i].done=!TD[i].done;break;}}
   lsS("ct_td",TD);renderTodo();
 }
+// Cancella documenti notifiche_push relativi a un titolo (evita notifiche fantasma)
+function _cancellaNotifPushPerTitolo(titolo){
+  var sess=lsG("ct_session",null);
+  if(!sess||!sess.userId||!window.FirebaseModule)return;
+  // Non possiamo fare query per titolo da client — puliamo tutti i pending dell'utente
+  // Il sendPush.js elimina i doc dopo l'invio, quindi i fantasmi sono solo quelli non ancora inviati
+  // Usiamo un flag locale per saltarli
+  var skip=lsG("ct_push_skip",[]);
+  skip.push(titolo);
+  lsS("ct_push_skip",skip);
+}
+
 function delTodo(id){
-  var TD=lsG("ct_td",[]).filter(function(x){return x.id!==id;});
-  lsS("ct_td",TD);
+  var TD=lsG("ct_td",[]);
+  var t=TD.find(function(x){return x.id===id;});
+  if(t) _cancellaNotifPushPerTitolo("\u2705 C-Turni \u2014 "+t.tit);
+  lsS("ct_td",TD.filter(function(x){return x.id!==id;}));
   if(window.FirebaseModule) window.FirebaseModule.deleteTodo(id).catch(function(){});
   renderTodo();
 }
@@ -5582,10 +5596,16 @@ function schedulaNotifTodo(item){
   var dt=new Date(item.data+"T"+ora+":00"),ms=dt-Date.now();if(ms<=0)return;
   var titolo="\u2705 C-Turni \u2014 "+item.tit;
   var body=(item.prio==="alta"?"\uD83D\uDD34 Alta priorit\u00E0 | ":"")+(item.note||"Promemoria di oggi");
-  // Schedula push FCM subito (il cron la invia all'orario giusto)
-  var sess=lsG("ct_session",null);
-  if(sess&&sess.userId&&window.FirebaseModule)
-    window.FirebaseModule.schedulePush(sess.userId,titolo,body,dt.toISOString()).catch(function(){});
+  // Schedula push FCM — retry se FirebaseModule non ancora pronto
+  function _doSchedule(){
+    var sess=lsG("ct_session",null);
+    if(sess&&sess.userId&&window.FirebaseModule&&typeof window.FirebaseModule.schedulePush==="function"){
+      window.FirebaseModule.schedulePush(sess.userId,titolo,body,dt.toISOString()).catch(function(e){console.warn("schedulePush todo:",e.message);});
+    } else {
+      setTimeout(_doSchedule, 2000);
+    }
+  }
+  _doSchedule();
   // Notifica locale se app aperta
   if("Notification" in window && Notification.permission==="granted"){
     setTimeout(function(){
@@ -5628,11 +5648,15 @@ function schedulaNotifAgenda(item){
   var ms=scheduleAt-Date.now();if(ms<=0)return;
   var titoloAg="\uD83D\uDCC5 C-Turni \u2014 "+item.tit;
   var bodyAg=(item.ora?"Ore "+item.ora+" | ":"")+(item.luogo||"");
-  // Schedula push FCM subito con orario preciso (il cron la invia al momento giusto)
-  var sess=lsG("ct_session",null);
-  if(sess&&sess.userId&&window.FirebaseModule)
-    window.FirebaseModule.schedulePush(sess.userId,titoloAg,bodyAg,scheduleAt.toISOString()).catch(function(){});
-  // Notifica locale se app aperta
+  function _doScheduleAg(){
+    var sess=lsG("ct_session",null);
+    if(sess&&sess.userId&&window.FirebaseModule&&typeof window.FirebaseModule.schedulePush==="function"){
+      window.FirebaseModule.schedulePush(sess.userId,titoloAg,bodyAg,scheduleAt.toISOString()).catch(function(e){console.warn("schedulePush agenda:",e.message);});
+    } else {
+      setTimeout(_doScheduleAg, 2000);
+    }
+  }
+  _doScheduleAg();
   if("Notification" in window && Notification.permission==="granted"){
     setTimeout(function(){
       new Notification(titoloAg,{body:bodyAg,icon:_NOTIF_ICON});
@@ -12253,6 +12277,20 @@ window.FirebaseModule = {
     var uid = session && session.userId;
     if(!uid) return;
     try { await deleteDoc(doc(db, 'utenti', uid, 'todo', String(id))); } catch(e) { console.warn('deleteTodo:', e.message); }
+    // Cancella notifiche_push pendenti con titolo corrispondente
+    try {
+      var TD = JSON.parse(localStorage.getItem('ct_td')||'[]');
+      // Il doc è già stato rimosso da ct_td prima di chiamare deleteTodo — non possiamo recuperare il titolo
+      // Puliamo tutti i pending dell'utente con scheduleAt futuro che non hanno più un todo corrispondente
+      var snap = await getDocs(collection(db, 'notifiche_push'));
+      var tdIds = (JSON.parse(localStorage.getItem('ct_td')||'[]')).map(function(t){return "\u2705 C-Turni \u2014 "+t.tit;});
+      snap.forEach(async function(d){
+        var data=d.data();
+        if(data.uid===uid && data.title && data.title.startsWith('\u2705 C-Turni') && !data.inviata){
+          if(tdIds.indexOf(data.title)===-1) await deleteDoc(d.ref);
+        }
+      });
+    } catch(e){}
   },
 
   // ── Elimina documento agenda da Firestore ───────────────────
@@ -12261,6 +12299,17 @@ window.FirebaseModule = {
     var uid = session && session.userId;
     if(!uid) return;
     try { await deleteDoc(doc(db, 'utenti', uid, 'agenda', String(id))); } catch(e) { console.warn('deleteAgenda:', e.message); }
+    // Cancella notifiche_push pendenti per appuntamenti eliminati
+    try {
+      var snap = await getDocs(collection(db, 'notifiche_push'));
+      var agTitoli = (JSON.parse(localStorage.getItem('ct_ag')||'[]')).map(function(a){return '\uD83D\uDCC5 C-Turni \u2014 '+a.tit;});
+      snap.forEach(async function(d){
+        var data=d.data();
+        if(data.uid===uid && data.title && data.title.startsWith('\uD83D\uDCC5 C-Turni') && !data.inviata){
+          if(agTitoli.indexOf(data.title)===-1) await deleteDoc(d.ref);
+        }
+      });
+    } catch(e){}
   },
 
   // ── Todo condivisi con il reparto ───────────────────────────
