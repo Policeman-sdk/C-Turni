@@ -29,7 +29,16 @@ async function sendToTokens(tokens, title, body) {
       await fcm.send({
         token,
         notification: { title, body },
+        android: {
+          priority: 'high',
+          notification: { sound: 'default', priority: 'high', channelId: 'c-turni-default' }
+        },
+        apns: {
+          headers: { 'apns-priority': '10' },
+          payload: { aps: { sound: 'default', badge: 1 } }
+        },
         webpush: {
+          headers: { Urgency: 'high' },
           notification: { vibrate: [200, 100, 200] },
           fcmOptions: { link: "https://policeman-sdk.github.io/C-Turni/" }
         }
