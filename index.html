@@ -1044,19 +1044,26 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;
   transition:opacity .5s ease, visibility .5s ease;
 ">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="96" height="96" style="animation:splashPulse 1.5s ease-in-out infinite">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="88" height="88">
     <rect width="192" height="192" rx="40" fill="#0d1b2a"/>
     <polygon points="96,22 108,62 148,62 116,86 128,126 96,102 64,126 76,86 44,62 84,62" fill="#c8a84b"/>
     <text x="96" y="175" text-anchor="middle" font-size="54" font-weight="900" font-family="Arial,sans-serif" fill="#ffffff" letter-spacing="4">CT</text>
   </svg>
   <div style="color:#c8a84b;font-size:22px;font-weight:900;letter-spacing:3px">C-TURNI</div>
-  <div style="color:rgba(255,255,255,.4);font-size:12px;letter-spacing:1px">Caricamento in corso…</div>
-  <div style="width:48px;height:3px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;margin-top:8px">
+  <div id="splash-car" style="font-size:32px;animation:pattugliaSplash 2s ease-in-out infinite">&#128659;</div>
+  <div style="color:rgba(255,255,255,.4);font-size:11px;letter-spacing:1px">Caricamento in corso…</div>
+  <div style="width:60px;height:3px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden">
     <div id="splash-bar" style="height:100%;width:0%;background:#c8a84b;border-radius:2px;transition:width .4s ease"></div>
   </div>
 </div>
 <style>
-@keyframes splashPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.08);opacity:.85}}
+@keyframes pattugliaSplash{
+  0%   { transform: translateX(-40px) scaleX(1);  }
+  45%  { transform: translateX(40px)  scaleX(1);  }
+  50%  { transform: translateX(40px)  scaleX(-1); }
+  95%  { transform: translateX(-40px) scaleX(-1); }
+  100% { transform: translateX(-40px) scaleX(1);  }
+}
 </style>
 <!-- ═══ AUTH OVERLAY ═══ -->
 <style>
@@ -4092,6 +4099,14 @@ document.addEventListener('scroll',function(){
   if(hdr&&c)hdr.classList.toggle('scrolled',c.scrollTop>8);
 },true);document.addEventListener("scroll",function(){var c=document.querySelector(".cont");var h=document.querySelector(".hdr");if(h&&c)h.classList.toggle("scrolled",c.scrollTop>8);},true);
 window.addEventListener("DOMContentLoaded",function(){
+  // ── Timeout emergenza splash: nasconde dopo 3s comunque ──
+  setTimeout(function(){
+    if(typeof window._hideSplash === 'function') window._hideSplash();
+    else {
+      var s = document.getElementById('splash-screen');
+      if(s){ s.style.opacity='0'; s.style.visibility='hidden'; setTimeout(function(){s.remove();},500); }
+    }
+  }, 3000);
   var U=lsG("ct_u",[]);
   // Aggiorna o crea utente admin (id=1)
   var _adminIdx = -1; for(var _ai=0;_ai<U.length;_ai++){if(U[_ai].id===1||U[_ai].nome==='admin'){_adminIdx=_ai;break;}}
@@ -8236,6 +8251,8 @@ function confermImportF(modoSost){
     return true;
   });
   lsS("ct_p", _Pall);
+  // Salva turni su Firebase (sia in modalità aggiungi che sostituisci)
+  if(window.FirebaseModule) window.FirebaseModule.saveTurni(lsG("ct_t",[])).catch(function(e){ console.warn('saveTurni post-import:', e.message); });
   renderTurni();renderOggi();renderPers();stats();aggSel();aggiornaWidget();
   var _me3=lsG('ct_me',null);
   if(_me3&&typeof renderWidgetProssimo==='function') renderWidgetProssimo(_me3);
@@ -9058,25 +9075,42 @@ async function richiestaTrasfRep() {
 // Bottom Nav handler
 var _bnOrder = ['dash','cal','rep','imp'];
 function vaiBN(pg, idx) {
+  console.log('[Nav] vaiBN chiamata:', pg);
   // Aggiorna stato bottom nav
   document.querySelectorAll(".bn-item").forEach(function(b){ b.classList.remove("on"); });
   var bnEl = document.getElementById("bn-"+pg);
   if(bnEl) bnEl.classList.add("on");
-  // Trova il btn sidebar corrispondente (per compatibilit)
-  var sideBtn = null;
-  document.querySelectorAll(".nv").forEach(function(n){
-    if(n.getAttribute("onclick") && n.getAttribute("onclick").indexOf("'"+pg+"'") !== -1) sideBtn = n;
-  });
-  vai(pg, sideBtn || { classList: { add: function(){}, remove: function(){} } });
-  // Hook pagine specifiche
-  if(pg === 'imp') {
-    if(typeof renderOrariPreset === 'function') renderOrariPreset();
-    // Forza visibilità pag-imp (fix navigazione da home)
-    document.querySelectorAll(".pag").forEach(function(p){ p.classList.remove("on"); });
-    var impEl = document.getElementById("pag-imp");
-    if(impEl) { impEl.classList.add("on"); impEl.scrollTop = 0; }
+
+  // Nascondi TUTTE le pagine, mostra solo quella target
+  document.querySelectorAll(".pag").forEach(function(p){ p.classList.remove("on"); });
+  var target = document.getElementById("pag-"+pg);
+  if(target){
+    target.classList.add("on");
+    target.scrollTop = 0;
+    console.log('[Nav] Pagina mostrata: pag-'+pg);
+  } else {
+    console.warn('[Nav] Pagina non trovata: pag-'+pg);
   }
-  // Chiudi FAB se aperto
+
+  // Aggiorna stato interno
+  _pgCurrent = pg;
+  lsS('ct_pg', pg);
+  chiMenu();
+  _aggFabVisibility(pg);
+
+  // Hook pagine specifiche
+  if(pg==='imp'){
+    aggUI();
+    caricaSaldoFerie();
+    aggNotifStatus();
+    aggTemaUI(lsG("ct_tema","")||"");
+    if(typeof renderOrariPreset === 'function') renderOrariPreset();
+  }
+  if(pg==="pers"){ renderPers(); if(typeof _renderStatoComando==='function') _renderStatoComando(); }
+  if(pg==="cal") { renderCal(); renderTodo(); renderAgenda(); renderTodoCondivisi(); renderAgendaCondivisa(); }
+  if(pg==="rep") renderRep();
+  if(pg==="todo"){ renderTodo(); filtraTodo(_tdFiltro); renderTodoCondivisi(); }
+  if(pg==="agenda") { renderAgenda(); renderAgendaCondivisa(); }
   closeFab();
 }
 
@@ -11249,7 +11283,8 @@ var AuthModule = (function() {
   // ── Show/hide overlay ──
 
   function _showOverlay(panel) {
-
+    // Nascondi splash quando si mostra il login
+    if(typeof window._hideSplash === 'function') window._hideSplash();
     var overlay   = document.getElementById('auth-overlay');
 
     var loginPanel = document.getElementById('auth-login');
@@ -11277,7 +11312,8 @@ var AuthModule = (function() {
 
 
   function _hideOverlay() {
-
+    // Nascondi splash quando l'utente è loggato
+    if(typeof window._hideSplash === 'function') window._hideSplash();
     var overlay = document.getElementById('auth-overlay');
 
     if (overlay) overlay.style.display = 'none';
@@ -11957,6 +11993,8 @@ window._fbGetDocs    = getDocs;
 
 // ── Listener onSnapshot attivi (per cleanup) ─────────────────────
 const _unsubscribers = [];
+// Listener notifiche separato per evitare duplicati
+var _unsubNotifiche = null;
 
 // ── Helper: reparto corrente dalla sessione ──────────────────────
 function _reparto() {
@@ -11976,6 +12014,8 @@ function _toast(msg, type) {
 function _stopListeners() {
   _unsubscribers.forEach(function(u){ try{ u(); }catch(e){} });
   _unsubscribers.length = 0;
+  // Ferma anche il listener notifiche separato
+  if(_unsubNotifiche){ try{ _unsubNotifiche(); }catch(e){} _unsubNotifiche = null; }
 }
 
 // ── Avvia onSnapshot per turni, todo, personale, utenti ─────────
@@ -12128,12 +12168,14 @@ function _startListeners(reparto) {
 
   // Notifiche personali da Firebase (per utente corrente)
   if(session && session.userId) {
+    // Distruggi listener precedente per evitare duplicati
+    if(_unsubNotifiche) { try { _unsubNotifiche(); } catch(e){} _unsubNotifiche = null; }
     var notifRef = query(
       collection(db, 'utenti', session.userId, 'notifiche'),
       orderBy('ts', 'desc'),
       limit(30)
     );
-    _unsubscribers.push(onSnapshot(notifRef, function(snap) {
+    _unsubNotifiche = onSnapshot(notifRef, function(snap) {
       var arr = [];
       snap.forEach(function(d){ arr.push(Object.assign({id: d.id}, d.data())); });
       arr.sort(function(a,b){ return new Date(b.ts||0)-new Date(a.ts||0); });
@@ -12147,7 +12189,7 @@ function _startListeners(reparto) {
       // Se il drawer è aperto, aggiorna la lista
       var dr = document.getElementById('notif-drawer');
       if(dr && dr.classList.contains('open')) renderNotifCenter();
-    }, function(e){ console.warn('onSnapshot notifiche:', e.message); }));
+    }, function(e){ console.warn('onSnapshot notifiche:', e.message); });
   }
 }
 
