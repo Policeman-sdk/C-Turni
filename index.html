@@ -1037,6 +1037,27 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
 </style>
 </head>
 <body>
+<!-- ═══ SPLASH SCREEN ═══ -->
+<div id="splash-screen" style="
+  position:fixed;inset:0;z-index:99999;
+  background:#0d1b2a;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;
+  transition:opacity .5s ease, visibility .5s ease;
+">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="96" height="96" style="animation:splashPulse 1.5s ease-in-out infinite">
+    <rect width="192" height="192" rx="40" fill="#0d1b2a"/>
+    <polygon points="96,22 108,62 148,62 116,86 128,126 96,102 64,126 76,86 44,62 84,62" fill="#c8a84b"/>
+    <text x="96" y="175" text-anchor="middle" font-size="54" font-weight="900" font-family="Arial,sans-serif" fill="#ffffff" letter-spacing="4">CT</text>
+  </svg>
+  <div style="color:#c8a84b;font-size:22px;font-weight:900;letter-spacing:3px">C-TURNI</div>
+  <div style="color:rgba(255,255,255,.4);font-size:12px;letter-spacing:1px">Caricamento in corso…</div>
+  <div style="width:48px;height:3px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;margin-top:8px">
+    <div id="splash-bar" style="height:100%;width:0%;background:#c8a84b;border-radius:2px;transition:width .4s ease"></div>
+  </div>
+</div>
+<style>
+@keyframes splashPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.08);opacity:.85}}
+</style>
 <!-- ═══ AUTH OVERLAY ═══ -->
 <style>
 
@@ -4120,6 +4141,10 @@ window.addEventListener("DOMContentLoaded",function(){
   scheduleNotifMattutina();
   caricaTema();
   aggiornaBadgeNotif();
+  // Fallback: nascondi splash dopo 6s se Firebase non risponde
+  setTimeout(function(){
+    if(typeof window._hideSplash === 'function') window._hideSplash();
+  }, 6000);
   // Schedula notifiche appuntamenti salvati
   lsG("ct_ag",[]).forEach(function(a){if(a.notif>0)schedulaNotifAgenda(a);});
 });
@@ -5201,6 +5226,7 @@ function setTema(t){
   lsS("ct_tema",t);
   aggTemaUI(t);
   aggThemeColor(t);
+  _aggiornaAutoCustomTema(t);
   var cfg=_TEMI_CFG[t]||_TEMI_CFG[""];
   toast("Tema: "+cfg.nome+" &#10003;","ok");
 }
@@ -5269,6 +5295,44 @@ function caricaTema(){
       window._autoThemeListener = function(){ aggThemeColor('auto'); };
       mq.addEventListener('change', window._autoThemeListener);
     }
+  }
+  // Listener per temi custom con variante chiara/scura
+  _aggiornaAutoCustomTema(t);
+}
+
+// Mappa tema base → variante chiara
+var _TEMA_DARK_MAP  = {'':'', 'rosa':'rosa', 'forestale':'forestale', 'carabinieri':'carabinieri'};
+var _TEMA_LIGHT_MAP = {'':'light', 'rosa':'rosa-light', 'forestale':'forestale-light', 'carabinieri':'carabinieri-light'};
+
+function _aggiornaAutoCustomTema(t){
+  if(!window.matchMedia) return;
+  // Rimuovi listener precedente
+  if(window._customThemeListener && window._customThemeMQ){
+    window._customThemeMQ.removeEventListener('change', window._customThemeListener);
+    window._customThemeListener = null;
+  }
+  // Temi che hanno variante chiara/scura
+  var base = t ? t.replace('-light','') : '';
+  var hasVariant = _TEMA_DARK_MAP.hasOwnProperty(base) && base !== '';
+  if(!hasVariant) return;
+
+  var mq = window.matchMedia('(prefers-color-scheme: dark)');
+  window._customThemeMQ = mq;
+  window._customThemeListener = function(e){
+    var saved = lsG('ct_tema', '');
+    var savedBase = saved ? saved.replace('-light','') : '';
+    if(!_TEMA_DARK_MAP.hasOwnProperty(savedBase) || savedBase === '') return;
+    var next = e.matches ? _TEMA_DARK_MAP[savedBase] : _TEMA_LIGHT_MAP[savedBase];
+    document.documentElement.setAttribute('data-theme', next || 'light');
+    aggThemeColor(next);
+  };
+  mq.addEventListener('change', window._customThemeListener);
+  // Applica subito in base allo stato corrente del sistema
+  var isDark = mq.matches;
+  var next = isDark ? _TEMA_DARK_MAP[base] : _TEMA_LIGHT_MAP[base];
+  if(next !== t){
+    document.documentElement.setAttribute('data-theme', next || 'light');
+    aggThemeColor(next);
   }
 }
 function togTheme(){
@@ -6863,10 +6927,13 @@ function _bindSwipeDismiss(card){
 function _rimuoviNotifica(id){
   var NL=lsG("ct_notifiche",[]).filter(function(n){return String(n.id)!==String(id);});
   lsS("ct_notifiche",NL);
-  // Rimuovi anche da Firebase se presente
+  // Rimuovi da Firebase — cerca sia per id numerico che per doc id stringa
   if(window.FirebaseModule && typeof window.FirebaseModule.deleteNotifica==="function"){
     window.FirebaseModule.deleteNotifica(id).catch(function(){});
   }
+  // Rimuovi anche da ct_notif_fb
+  var fbN=lsG("ct_notif_fb",[]).filter(function(n){return String(n.id)!==String(id);});
+  lsS("ct_notif_fb",fbN);
 }
 
 function gestisciNotifAzione(nid, azione){
@@ -6888,21 +6955,63 @@ function fmtNT(ts){
 }
 
 function segnaLetta(id,el){
+  // Aggiorna localStorage
   var NL=lsG("ct_notifiche",[]);
   for(var i=0;i<NL.length;i++){if(String(NL[i].id)===String(id)){NL[i].letta=true;break;}}
   lsS("ct_notifiche",NL);
-  if(el)el.classList.add("letta");
+  // Aggiorna anche ct_notif_fb
+  var fbN=lsG("ct_notif_fb",[]);
+  for(var j=0;j<fbN.length;j++){if(String(fbN[j].id)===String(id)){fbN[j].letta=true;break;}}
+  lsS("ct_notif_fb",fbN);
+  // Aggiorna su Firestore
+  if(window.FirebaseModule && typeof window.FirebaseModule.segnaNotificaLetta==="function"){
+    window.FirebaseModule.segnaNotificaLetta(id).catch(function(){});
+  }
+  if(el){el.classList.remove("non-letta");el.classList.add("letta");}
   aggiornaBadgeNotif();
 }
 
 function segnaLetteTutte(){
   var NL=lsG("ct_notifiche",[]);
   NL.forEach(function(n){n.letta=true;});
-  lsS("ct_notifiche",NL);renderNotifCenter();aggiornaBadgeNotif();
+  lsS("ct_notifiche",NL);
+  // Aggiorna anche ct_notif_fb
+  var fbN=lsG("ct_notif_fb",[]);
+  fbN.forEach(function(n){n.letta=true;});
+  lsS("ct_notif_fb",fbN);
+  // Aggiorna su Firestore tutte le notifiche
+  if(window.FirebaseModule){
+    NL.concat(fbN).forEach(function(n){
+      if(typeof window.FirebaseModule.segnaNotificaLetta==="function")
+        window.FirebaseModule.segnaNotificaLetta(n.id).catch(function(){});
+    });
+  }
+  renderNotifCenter();aggiornaBadgeNotif();
   toast("&#10003; Tutte segnate come lette","ok");
 }
 
-function cancellaNotifLette(){lsS("ct_notifiche",[]);renderNotifCenter();aggiornaBadgeNotif();toast("&#128465; Tutte le notifiche eliminate","ok");}
+function cancellaNotifLette(){
+  var NL=lsG("ct_notifiche",[]);
+  var lette=NL.filter(function(n){return n.letta;});
+  lsS("ct_notifiche",NL.filter(function(n){return !n.letta;}));
+  // Elimina anche da Firebase
+  if(window.FirebaseModule){
+    lette.forEach(function(n){
+      if(typeof window.FirebaseModule.deleteNotifica==="function")
+        window.FirebaseModule.deleteNotifica(n.id).catch(function(){});
+    });
+    // Elimina anche le lette da ct_notif_fb
+    var fbN=lsG("ct_notif_fb",[]);
+    var fbLette=fbN.filter(function(n){return n.letta;});
+    lsS("ct_notif_fb",fbN.filter(function(n){return !n.letta;}));
+    fbLette.forEach(function(n){
+      if(typeof window.FirebaseModule.deleteNotifica==="function")
+        window.FirebaseModule.deleteNotifica(n.id).catch(function(){});
+    });
+  }
+  renderNotifCenter();aggiornaBadgeNotif();
+  toast("&#128465; Notifiche lette eliminate","ok");
+}
 function segnaTutteLette(){segnaLetteTutte();}
 function salvaNuovoAnnoLic(){_confermaAggiungiAnno();}
 
@@ -8112,6 +8221,21 @@ function confermImportF(modoSost){
 
   document.getElementById("xi").value="";
   _xlsWb=null;
+  // Deduplicazione ct_p: rimuovi persone con stesso nome normalizzato
+  var _Pall = lsG("ct_p",[]);
+  var _seen = {};
+  _Pall = _Pall.filter(function(p){
+    var k = (p.nome||'').toLowerCase().replace(/\s+/g,' ').trim();
+    if(!k) return false;
+    if(_seen[k]){
+      // Tieni quello con uid (più completo)
+      if(p.uid && !_seen[k].uid){ _seen[k].uid = p.uid; }
+      return false;
+    }
+    _seen[k] = p;
+    return true;
+  });
+  lsS("ct_p", _Pall);
   renderTurni();renderOggi();renderPers();stats();aggSel();aggiornaWidget();
   var _me3=lsG('ct_me',null);
   if(_me3&&typeof renderWidgetProssimo==='function') renderWidgetProssimo(_me3);
@@ -8345,12 +8469,31 @@ function parseSheet(rows, sn) {
 
 
 
-    // Trova persona — se non esiste crea un placeholder (uid: null)
-    // Verrà collegato all'utente reale al momento della registrazione
-    var persona = P.find(function(x){ return x.nome.toLowerCase() === nR.toLowerCase(); }) || null;
+    // Trova persona — match robusto per evitare doppioni
+    var nRnorm = nR.toLowerCase().replace(/\s+/g,' ').trim();
+    var persona = P.find(function(x){
+      return x.nome.toLowerCase().replace(/\s+/g,' ').trim() === nRnorm;
+    }) || null;
     if(!persona){
-      persona = {id: Date.now()+Math.floor(Math.random()*9999), nome: nR, grado: _pg.grado, reparto: '', ferieRes: 30, uid: null, placeholder: true};
-      P.push(persona);
+      // Controlla anche per uid (utente Firebase già collegato)
+      var fbU = lsG('ct_users',[]);
+      var fbMatch = fbU.find(function(u){
+        if(!u.nome) return false;
+        var un = ((u.cognome||'')+' '+(u.nome||'')).toLowerCase().replace(/\s+/g,' ').trim();
+        var un2 = ((u.nome||'')+' '+(u.cognome||'')).toLowerCase().replace(/\s+/g,' ').trim();
+        return un === nRnorm || un2 === nRnorm;
+      });
+      if(fbMatch){
+        // Usa la persona Firebase esistente invece di creare un placeholder
+        persona = P.find(function(x){ return x.uid === fbMatch.uid; });
+      }
+      if(!persona){
+        persona = {id: Date.now()+Math.floor(Math.random()*9999), nome: nR, grado: _pg.grado, reparto: '', ferieRes: 30, uid: fbMatch?fbMatch.uid:null, placeholder: true};
+        P.push(persona);
+      }
+    } else {
+      // Aggiorna grado se mancante
+      if(!persona.grado && _pg.grado) persona.grado = _pg.grado;
     }
 
 
@@ -8926,7 +9069,13 @@ function vaiBN(pg, idx) {
   });
   vai(pg, sideBtn || { classList: { add: function(){}, remove: function(){} } });
   // Hook pagine specifiche
-  if(pg === 'imp') { if(typeof renderOrariPreset === 'function') renderOrariPreset(); }
+  if(pg === 'imp') {
+    if(typeof renderOrariPreset === 'function') renderOrariPreset();
+    // Forza visibilità pag-imp (fix navigazione da home)
+    document.querySelectorAll(".pag").forEach(function(p){ p.classList.remove("on"); });
+    var impEl = document.getElementById("pag-imp");
+    if(impEl) { impEl.classList.add("on"); impEl.scrollTop = 0; }
+  }
   // Chiudi FAB se aperto
   closeFab();
 }
@@ -10139,6 +10288,14 @@ function openM(id) {
     if (id === 'm-avatar-editor') {
         setTimeout(_aveDraw, 100);
     }
+    // Fix tastiera mobile: scroll input in vista al focus
+    setTimeout(function(){
+      m.querySelectorAll('input,textarea,select').forEach(function(el){
+        el.addEventListener('focus', function(){
+          setTimeout(function(){ el.scrollIntoView({behavior:'smooth',block:'center'}); }, 300);
+        }, {once:false, passive:true});
+      });
+    }, 100);
 }
 
 // Funzione Universale Chiusura Modali
@@ -11746,7 +11903,7 @@ import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
          signOut, onAuthStateChanged, deleteUser }
                                   from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
 import { getFirestore, doc, collection, setDoc, getDoc, getDocs, deleteDoc,
-         onSnapshot, query, where, serverTimestamp, arrayUnion }
+         onSnapshot, query, where, orderBy, limit, serverTimestamp, arrayUnion }
                                   from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
 import { getMessaging, getToken, onMessage }
                                   from "https://www.gstatic.com/firebasejs/11.8.1/firebase-messaging.js";
@@ -11971,7 +12128,11 @@ function _startListeners(reparto) {
 
   // Notifiche personali da Firebase (per utente corrente)
   if(session && session.userId) {
-    var notifRef = collection(db, 'utenti', session.userId, 'notifiche');
+    var notifRef = query(
+      collection(db, 'utenti', session.userId, 'notifiche'),
+      orderBy('ts', 'desc'),
+      limit(30)
+    );
     _unsubscribers.push(onSnapshot(notifRef, function(snap) {
       var arr = [];
       snap.forEach(function(d){ arr.push(Object.assign({id: d.id}, d.data())); });
@@ -12048,6 +12209,23 @@ window.FirebaseModule = {
     var _hideSyncBanner = function() {
       var b = document.getElementById('sync-banner');
       if(b){ b.style.opacity='0'; setTimeout(function(){ b.style.display='none'; }, 400); }
+    };
+    // Nascondi splash screen quando l'app è pronta
+    window._hideSplash = function() {
+      var s = document.getElementById('splash-screen');
+      if(!s) return;
+      var bar = document.getElementById('splash-bar');
+      if(bar) bar.style.width = '100%';
+      setTimeout(function(){
+        s.style.opacity = '0';
+        s.style.visibility = 'hidden';
+        setTimeout(function(){ s.remove(); }, 500);
+      }, 300);
+    };
+    // Aggiorna barra progresso splash durante il caricamento
+    window._splashProgress = function(pct) {
+      var bar = document.getElementById('splash-bar');
+      if(bar) bar.style.width = pct + '%';
     };
     _showSyncBanner('⟳ Sincronizzazione dati...');
     window._widgetSyncPending = true;
@@ -12147,10 +12325,12 @@ window.FirebaseModule = {
       if(typeof window.aggNotifStatus === 'function') window.aggNotifStatus();
       window._widgetSyncPending = false;
       _hideSyncBanner();
+      if(typeof window._hideSplash === 'function') window._hideSplash();
     } catch(e) {
       console.warn('onSessionRestore load:', e.message);
       window._widgetSyncPending = false;
       _hideSyncBanner();
+      if(typeof window._hideSplash === 'function') window._hideSplash();
     }
     // Ripristina pagina dopo che i listener hanno fatto il primo render
     setTimeout(function(){
@@ -12218,17 +12398,39 @@ window.FirebaseModule = {
     if(!rep || !turniArr) return;
     try {
       var arr = typeof turniArr === 'string' ? JSON.parse(turniArr) : turniArr;
-      var localIds = arr.map(function(t){ return String(t.id); });
-      // Scrivi/aggiorna tutti i turni locali
-      var writes = arr.map(function(t){
-        if(!t.id) return Promise.resolve();
-        return setDoc(doc(db, 'reparti', rep, 'turni', String(t.id)), t);
+      if(!arr.length) return;
+
+      // Raggruppa per anno-mese per aggiornare solo i mesi presenti nell'array
+      var mesiPresenti = {};
+      arr.forEach(function(t){
+        if(!t.id || !t.data) return;
+        var ym = t.data.substring(0,7); // "2026-03"
+        if(!mesiPresenti[ym]) mesiPresenti[ym] = [];
+        mesiPresenti[ym].push(t);
       });
-      // Cancella da Firestore i turni non più presenti in locale
-      var snap = await getDocs(collection(db, 'reparti', rep, 'turni'));
-      snap.forEach(function(d){
-        if(localIds.indexOf(d.id) === -1) writes.push(deleteDoc(doc(db, 'reparti', rep, 'turni', d.id)));
+
+      var writes = [];
+      Object.keys(mesiPresenti).forEach(function(ym){
+        var turniMese = mesiPresenti[ym];
+        var localIds = turniMese.map(function(t){ return String(t.id); });
+        // Scrivi/aggiorna tutti i turni del mese
+        turniMese.forEach(function(t){
+          writes.push(setDoc(doc(db, 'reparti', rep, 'turni', String(t.id)), t));
+        });
+        // Cancella da Firestore solo i turni di QUESTO mese non più presenti in locale
+        // (non tocca gli altri mesi)
+        writes.push(
+          getDocs(query(collection(db, 'reparti', rep, 'turni'), where('data', '>=', ym+'-01'), where('data', '<=', ym+'-31')))
+          .then(function(snap){
+            var del = [];
+            snap.forEach(function(d){
+              if(localIds.indexOf(d.id) === -1) del.push(deleteDoc(doc(db, 'reparti', rep, 'turni', d.id)));
+            });
+            return Promise.all(del);
+          })
+        );
       });
+
       await Promise.all(writes);
     } catch(e) { console.warn('saveTurni:', e.message); _toast('Errore sync turni', 'err'); }
   },
@@ -12697,8 +12899,37 @@ window.FirebaseModule = {
     try {
       var session = JSON.parse(localStorage.getItem('ct_session')||'null');
       if(!session || !session.userId) return;
-      await deleteDoc(doc(db, 'utenti', session.userId, 'notifiche', String(nid)));
+      var uid = session.userId;
+      var sidStr = String(nid);
+      // Prova prima con l'id diretto
+      try { await deleteDoc(doc(db, 'utenti', uid, 'notifiche', sidStr)); } catch(e){}
+      // Cerca anche per campo id numerico (notifiche salvate con id float)
+      var snap = await getDocs(collection(db, 'utenti', uid, 'notifiche'));
+      snap.forEach(async function(d){
+        if(String(d.data().id) === sidStr) {
+          try { await deleteDoc(d.ref); } catch(e){}
+        }
+      });
     } catch(e) { console.warn('deleteNotifica:', e.message); }
+  },
+
+  // ── Segna notifica come letta su Firestore ───────────────────
+  segnaNotificaLetta: async function(nid) {
+    try {
+      var session = JSON.parse(localStorage.getItem('ct_session')||'null');
+      if(!session || !session.userId) return;
+      var uid = session.userId;
+      var sidStr = String(nid);
+      // Prova con id diretto
+      try { await setDoc(doc(db, 'utenti', uid, 'notifiche', sidStr), {letta:true}, {merge:true}); } catch(e){}
+      // Cerca anche per campo id
+      var snap = await getDocs(collection(db, 'utenti', uid, 'notifiche'));
+      snap.forEach(async function(d){
+        if(String(d.data().id) === sidStr) {
+          try { await setDoc(d.ref, {letta:true}, {merge:true}); } catch(e){}
+        }
+      });
+    } catch(e) { console.warn('segnaNotificaLetta:', e.message); }
   },
 
   signOut: function() {
