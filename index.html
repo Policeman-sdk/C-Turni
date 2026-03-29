@@ -4214,17 +4214,19 @@ function controllaNotifiche(){
     var ds=checkDate.getFullYear()+'-'+('0'+(checkDate.getMonth()+1)).slice(-2)+'-'+('0'+checkDate.getDate()).slice(-2);
     T.filter(function(t){return _isMyTurno(t,me)&&t.data===ds;}).forEach(function(t){
       var orStr=(t.orario&&t.orario.split('-')[0].trim())||ORI[t.tipo]||"06:00";
-      var turnoTime=new Date(t.data+"T"+orStr+":00");
+      // FIX orario legale/solare: costruisci la data in ora locale, non UTC
+      var parts=orStr.split(':');
+      var turnoTime=new Date(ds.replace(/-/g,'/'));
+      turnoTime.setHours(parseInt(parts[0],10),parseInt(parts[1],10),0,0);
       var diff=(turnoTime-now)/60000;
       var notifId=t.id+'_pre'+preMin;
       if(diff>0&&diff<=(preMin+5)&&notif.indexOf(notifId)===-1){
         var titoloPre="\u23F0 C-Turni \u2014 Turno tra "+(diff>=60?Math.round(diff/60)+"h":Math.round(diff)+" min");
         var bodyPre="Turno "+(t.codice||t.tipo||'').toUpperCase()+" alle "+orStr;
+        // FIX notifiche doppie: solo notifica locale in-app.
+        // La push FCM è già schedulata da schedulaPreTurniFirebase — non duplicare qui.
         if("Notification" in window && Notification.permission==="granted")
           new Notification(titoloPre,{body:bodyPre,icon:_NOTIF_ICON});
-        var sess=lsG("ct_session",null);
-        if(sess&&sess.userId&&window.FirebaseModule)
-          window.FirebaseModule.schedulePush(sess.userId,titoloPre,bodyPre,new Date().toISOString()).catch(function(){});
         notif.push(notifId);lsS("ct_notif_sent",notif);
       }
     });
@@ -4258,7 +4260,10 @@ function schedulaPreTurniFirebase(){
       var orStr=(t.orario&&t.orario.split('-')[0].trim())||ORI[t.tipo]||"06:00";
       // Valida formato HH:MM — salta turni senza orario numerico (riposo, ferie, ecc.)
       if(!/^\d{1,2}:\d{2}$/.test(orStr))return;
-      var turnoTime=new Date(t.data+"T"+orStr+":00");
+      // FIX orario legale/solare: costruisci la data in ora locale, non UTC
+      var _parts=orStr.split(':');
+      var turnoTime=new Date(ds.replace(/-/g,'/'));
+      turnoTime.setHours(parseInt(_parts[0],10),parseInt(_parts[1],10),0,0);
       if(isNaN(turnoTime.getTime()))return; // data non valida
       var scheduleAt=new Date(turnoTime.getTime()-(preMin*60000));
       if(scheduleAt<=now)return;
@@ -4812,17 +4817,19 @@ function aggiornaWidget(){
   if(wCol && turniOggi.length>0){
     var P=lsG("ct_p",[]);
     wCol.innerHTML=turniOggi.map(function(t){
-      var p=P.find(function(x){return x.id===t.pid;});
-      var ini=p?((p.nome||"?").charAt(0)+(p.cognome||"").charAt(0)).toUpperCase():"?";
+      // FIX punto interrogativo: cerca per id, uid o nome diretto dal turno
+      var p=P.find(function(x){return x.id===t.pid||x.uid===t.pid;});
+      var nomeBreve=p?(p.nome||''):(t.pnome||t.nome||'');
+      if(!nomeBreve)return ''; // salta se non c'è proprio nessun nome
+      var ini=nomeBreve.charAt(0).toUpperCase()+(p&&p.cognome?p.cognome.charAt(0).toUpperCase():'');
       var icoT=_tipoIco[t.tipo]||"&#128197;";
-      var nomeBreve=p?(p.nome||t.pnome||"?"):t.pnome||"?";
       return "<div style=\"display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.1);border-radius:20px;padding:3px 8px 3px 4px\">"+
         "<div style=\"width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0\">"+ini+"</div>"+
         "<span style=\"font-size:10px;font-weight:600;opacity:.9\">"+nomeBreve+"</span>"+
         "<span style=\"font-size:11px\">"+icoT+"</span>"+
         "</div>";
-    }).join("");
-    if(wColWrap) wColWrap.style.display="block";
+    }).filter(Boolean).join("");
+    if(wColWrap) wColWrap.style.display=wCol.innerHTML?"block":"none";
   } else {
     if(wColWrap) wColWrap.style.display="none";
   }
@@ -4936,7 +4943,7 @@ function scheduleNotifMattutina(){
   // Evita duplicati: schedula solo una volta per giorno
   var me=lsG("ct_me",null);
   if(me){
-    var oggi=target.toISOString().slice(0,10);
+    var oggi=target.toLocaleDateString('sv-SE'); // FIX: usa data locale, non UTC (evita sfasamento orario legale)
     var _matKey='ct_mat_scheduled_'+oggi;
     if(!localStorage.getItem(_matKey)){
       var T=lsG("ct_t",[]);
@@ -7261,40 +7268,9 @@ function chiudiNovita(){
   closeM('m-novita');
 }
 
-// ---- SALVA PROFILO ----
-function salvaProfilo(){
-  var u=lsG("ct_me",null);if(!u)return;
-  var nRep=document.getElementById("pf-rep").value.trim();
-  var nTipo=document.getElementById("pf-tipo").value;
-  var nNuc=document.getElementById("pf-nuc").value.trim();
-  var nGrado=document.getElementById("pf-grado").value;
-  var fEl=document.getElementById("pf-foto");
-  // Applica modifiche
-  if(nRep)u.reparto=nRep;
-  if(nTipo)u.tipo=nTipo;
-  u.nucleo=nNuc;
-  // Promozione grado
-  if(nGrado&&nGrado!==u.grado){
-    var gOld=GR[u.grado]?GR[u.grado].nome:u.grado;
-    var gNew=GR[nGrado]?GR[nGrado].nome:nGrado;
-    u.grado=nGrado;
-    toast("Promozione: "+gOld+" &#8594; "+gNew,"ok");
-  }
-  var fine=function(){
-    var ok1=lsS("ct_me",u);
-  if(window.FirebaseModule)window.FirebaseModule.savePersonale();
-    var U=lsG("ct_u",[]);
-    for(var i=0;i<U.length;i++){if(U[i].id===u.id){U[i]=u;break;}}
-    var ok2=lsS("ct_u",U);
-    if(ok1&&ok2){
-      aggUI();
-      var ok=document.getElementById("imp-ok");ok.classList.add("on");
-      setTimeout(function(){ok.classList.remove("on");},3000);
-    }else{toast("Errore salvataggio  foto troppo grande?","err");}
-  };
-  if(fEl.files[0]){comprImg(fEl.files[0],function(d){u.ava=d;fine();});}
-  else{fine();}
-}
+// ---- SALVA PROFILO (vecchia versione rimossa — usa quella sotto) ----
+// BUG FIX: questa funzione era duplicata e usava 'pf-foto' (inesistente).
+// La versione corretta è definita più avanti e usa 'pf-ava-file'.
 
 // ---- CAMBIO PASSWORD ----
 function cambiaPassword(){
@@ -11822,6 +11798,10 @@ var AuthModule = (function() {
             html += '<option value="comandante">&#128081; Trasferisci Comando</option>';
             html += '</select>';
           }
+          // FIX: il Comandante può eliminare qualsiasi membro (non se stesso)
+          if (ruoloMe === 'comandante' && u.ruolo !== 'comandante') {
+            html += '<button class="btn btn-sm" style="padding:6px 10px;font-size:.78rem;background:rgba(200,16,46,.12);color:var(--red);border:1px solid rgba(200,16,46,.25);margin-left:4px" onclick="AuthModule._eliminaMembro(\'' + uid_key + '\')">&#128465; Elimina</button>';
+          }
           html += '</div>';
         });
       }
@@ -11914,6 +11894,31 @@ var AuthModule = (function() {
       toast(nomeTarget + ' → ' + (nuovoRuolo === 'comandante' ? 'Comandante' : nuovoRuolo === 'vice' ? 'Vice Comandante' : 'Addetto'), 'ok');
       AuthModule.renderGestioneMemebri();
       if(typeof aggUI === 'function') aggUI();
+    },
+
+    // ── Elimina membro (solo Comandante) ──
+    _eliminaMembro: async function(uid) {
+      var users = _getUsers();
+      var u = users.find(function(x) { return x.uid === uid || x.email === uid; });
+      if (!u) { if(typeof toast==='function') toast('Utente non trovato', 'err'); return; }
+      var nome = (u.nome||'') + ' ' + (u.cognome||'');
+      if (!confirm('Eliminare definitivamente ' + nome.trim() + ' dal reparto?\nQuesta azione non è reversibile.')) return;
+      // Rimuovi dalla lista locale
+      var newUsers = users.filter(function(x) { return x.uid !== uid && x.email !== uid; });
+      _saveUsers(newUsers);
+      // Rimuovi da Firebase
+      try {
+        if(window.FirebaseModule) {
+          var session = getSession();
+          if(session && session.reparto) {
+            var repId = session.reparto.toLowerCase().replace(/\s+/g,'_');
+            await window.FirebaseModule.deleteUserFromReparto(u.uid || uid, repId);
+          }
+        }
+      } catch(e) { console.warn('_eliminaMembro Firebase:', e.message); }
+      AuthModule.renderGestioneMemebri();
+      if(typeof aggUI === 'function') aggUI();
+      if(typeof toast === 'function') toast(nome.trim() + ' eliminato', 'ok');
     },
 
     // ── Transfer comandante role (legacy, mantenuto per compatibilità) ──
@@ -12027,6 +12032,8 @@ window._fbCollection = collection;
 window._fbSetDoc     = setDoc;
 
 window._fbGetDoc     = getDoc;
+
+window._fbDeleteDoc  = deleteDoc;
 
 window._fbGetDocs    = getDocs;
 
@@ -12852,6 +12859,18 @@ window.FirebaseModule = {
 
     } catch(e) { console.warn('saveUserProfile:', e.message); }
 
+  },
+
+  // ── Elimina utente da reparto (usato da Comandante in Gestione Membri) ──
+  deleteUserFromReparto: async function(uid, repId) {
+    try {
+      if(repId) {
+        var rep = repId.toLowerCase().replace(/\s+/g,'_');
+        await window._fbDeleteDoc(window._fbDoc(db, 'reparti', rep, 'utenti', uid));
+      }
+      // Aggiorna stato su /utenti/{uid} senza eliminare l'account
+      try { await window._fbSetDoc(window._fbDoc(db, 'utenti', uid), { stato:'rejected', reparto:'' }, { merge:true }); } catch(e2){}
+    } catch(e) { console.warn('deleteUserFromReparto:', e.message); }
   },
 
 
