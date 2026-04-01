@@ -568,6 +568,38 @@
 
       </div>
       <!-- END TESSERINO NUOVO -->
+
+      <!-- ═══ MODALITÀ FOCUS ═══ -->
+      <div id="widget-focus" style="margin:0 0 14px;display:none">
+        <div id="focus-card" style="border-radius:20px;padding:16px 18px;position:relative;overflow:hidden;transition:background .4s,border .4s">
+          <!-- Sfondo dinamico -->
+          <div id="focus-bg" style="position:absolute;inset:0;opacity:.12;pointer-events:none;transition:background .4s"></div>
+          <!-- Header -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;position:relative">
+            <div style="display:flex;align-items:center;gap:8px">
+              <div id="focus-ico" style="font-size:22px;line-height:1">⚡</div>
+              <div>
+                <div id="focus-fase" style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;opacity:.7">Modalità Focus</div>
+                <div id="focus-titolo" style="font-size:16px;font-weight:900;color:var(--txt)">Caricamento...</div>
+              </div>
+            </div>
+            <div id="focus-badge" style="padding:4px 10px;border-radius:20px;font-size:10px;font-weight:800;letter-spacing:.5px"></div>
+          </div>
+          <!-- Hero info -->
+          <div id="focus-hero" style="position:relative;margin-bottom:10px"></div>
+          <!-- To-Do rapidi -->
+          <div id="focus-todo-wrap" style="display:none">
+            <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;opacity:.6;margin-bottom:6px">To-Do in sospeso</div>
+            <div id="focus-todo-list"></div>
+          </div>
+          <!-- Smart Snooze -->
+          <div id="focus-snooze-wrap" style="display:none;margin-top:8px;padding:8px 12px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12)">
+            <div style="font-size:11px;font-weight:700;opacity:.8;margin-bottom:6px">🕒 Smart Snooze</div>
+            <div id="focus-snooze-list"></div>
+          </div>
+        </div>
+      </div>
+
 <h1 class="ptit">Dashboard</h1><p class="psub">Panoramica generale</p>
 
         <input type="file" id="xi" accept=".xlsx,.xls" onchange="importXL(this.files[0])" style="display:none">
@@ -730,7 +762,7 @@
                 <button onclick="moveWidget('dino',+1)" class="wdg-mv-btn" style="background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.2)">&#8595;</button>
               </div>
             </div>
-            <canvas id="dino-canvas" width="320" height="130" style="width:100%;height:130px;border-radius:12px;background:rgba(0,0,0,.4);display:block;cursor:pointer;touch-action:manipulation" aria-label="Dino Game"></canvas>
+            <canvas id="dino-canvas" width="320" height="180" style="width:100%;height:180px;border-radius:12px;background:rgba(0,0,0,.4);display:block;cursor:pointer;touch-action:manipulation" aria-label="Dino Game"></canvas>
             <div style="font-size:10px;color:rgba(255,255,255,.5);margin-top:8px;text-align:center;letter-spacing:.3px">Tocca o premi Spazio per saltare &nbsp;·&nbsp; Hi: <span id="dino-record" style="font-weight:800;color:rgba(91,159,255,.9)">0</span></div>
           </div>
         </div>

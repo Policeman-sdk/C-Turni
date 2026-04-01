@@ -57,6 +57,23 @@ window._fbDeleteDoc  = deleteDoc;
 
 window._fbGetDocs    = getDocs;
 
+// ── Splash screen: definita subito così funziona anche senza sessione ──
+window._hideSplash = function() {
+  var s = document.getElementById('splash-screen');
+  if(!s) return;
+  var bar = document.getElementById('splash-bar');
+  if(bar) bar.style.width = '100%';
+  setTimeout(function(){
+    s.style.opacity = '0';
+    s.style.visibility = 'hidden';
+    setTimeout(function(){ if(s.parentNode) s.parentNode.removeChild(s); }, 500);
+  }, 300);
+};
+window._splashProgress = function(pct) {
+  var bar = document.getElementById('splash-bar');
+  if(bar) bar.style.width = pct + '%';
+};
+
 // ── Listener onSnapshot attivi (per cleanup) ─────────────────────
 const _unsubscribers = [];
 // Listener notifiche separato per evitare duplicati
@@ -317,23 +334,6 @@ window.FirebaseModule = {
     var _hideSyncBanner = function() {
       var b = document.getElementById('sync-banner');
       if(b){ b.style.opacity='0'; setTimeout(function(){ b.style.display='none'; }, 400); }
-    };
-    // Nascondi splash screen quando l'app è pronta
-    window._hideSplash = function() {
-      var s = document.getElementById('splash-screen');
-      if(!s) return;
-      var bar = document.getElementById('splash-bar');
-      if(bar) bar.style.width = '100%';
-      setTimeout(function(){
-        s.style.opacity = '0';
-        s.style.visibility = 'hidden';
-        setTimeout(function(){ s.remove(); }, 500);
-      }, 300);
-    };
-    // Aggiorna barra progresso splash durante il caricamento
-    window._splashProgress = function(pct) {
-      var bar = document.getElementById('splash-bar');
-      if(bar) bar.style.width = pct + '%';
     };
     _showSyncBanner('⟳ Sincronizzazione dati...');
     window._widgetSyncPending = true;

@@ -1187,6 +1187,193 @@ function aggiornaWidget(){
   } else {
     if(wColWrap) wColWrap.style.display="none";
   }
+  // Aggiorna Modalità Focus
+  if(typeof aggiornaFocus === 'function') aggiornaFocus();
+}
+
+// ---- MODALITÀ FOCUS ----
+function aggiornaFocus(){
+  var me = lsG('ct_me', null);
+  var focusEl = document.getElementById('widget-focus');
+  if(!focusEl) return;
+
+  // Mostra solo sulla home
+  var onHome = (typeof _pgCurrent !== 'undefined' ? _pgCurrent : lsG('ct_pg','dash')) === 'dash';
+  if(!me || !onHome){ focusEl.style.display='none'; return; }
+  focusEl.style.display='block';
+
+  var now = new Date();
+  var oggi = now.getFullYear()+'-'+('0'+(now.getMonth()+1)).slice(-2)+'-'+('0'+now.getDate()).slice(-2);
+  var T = lsG('ct_t', []);
+  var mioTurno = T.find(function(t){ return _isMyTurno(t, me) && t.data === oggi; });
+
+  // Determina fase
+  var fase = 'riposo';
+  var oraInizio = null, oraFine = null;
+  if(mioTurno && mioTurno.orario && mioTurno.orario.indexOf('-') > 0){
+    var parts = mioTurno.orario.split('-');
+    oraInizio = parts[0].trim();
+    oraFine   = parts[1].trim();
+  }
+  var nowH = now.getHours() * 60 + now.getMinutes();
+  if(mioTurno){
+    if(oraInizio){
+      var p = oraInizio.split(':');
+      var startMin = parseInt(p[0])*60 + parseInt(p[1]||0);
+      var preMin = startMin - 120; // 2h prima
+      if(nowH >= startMin){
+        if(oraFine){
+          var pf = oraFine.split(':');
+          var endMin = parseInt(pf[0])*60 + parseInt(pf[1]||0);
+          if(endMin < startMin) endMin += 1440; // notte
+          fase = (nowH < endMin) ? 'servizio' : 'riposo';
+        } else { fase = 'servizio'; }
+      } else if(nowH >= preMin){ fase = 'pre'; }
+      else { fase = 'pre'; }
+    } else { fase = 'servizio'; }
+  }
+
+  // Configurazione per fase
+  var cfg = {
+    servizio: {
+      ico:'🚔', titolo:'In Servizio', badge:'ATTIVO',
+      bg:'linear-gradient(135deg,rgba(0,180,100,.18),rgba(0,100,60,.08))',
+      bgGlow:'radial-gradient(circle at 30% 50%,rgba(0,200,120,.3),transparent 70%)',
+      border:'rgba(0,200,120,.35)', badgeBg:'rgba(0,200,120,.2)', badgeCol:'#00e676',
+      fase:'🟢 In Servizio'
+    },
+    pre: {
+      ico:'⚡', titolo:'Preparazione', badge:'TRA POCO',
+      bg:'linear-gradient(135deg,rgba(255,140,0,.18),rgba(200,80,0,.08))',
+      bgGlow:'radial-gradient(circle at 30% 50%,rgba(255,160,0,.3),transparent 70%)',
+      border:'rgba(255,140,0,.4)', badgeBg:'rgba(255,140,0,.2)', badgeCol:'#ffb300',
+      fase:'🟠 Pre-Servizio'
+    },
+    riposo: {
+      ico:'🛋️', titolo:'Relax', badge:'RIPOSO',
+      bg:'linear-gradient(135deg,rgba(91,100,180,.15),rgba(40,50,100,.08))',
+      bgGlow:'radial-gradient(circle at 30% 50%,rgba(100,120,255,.2),transparent 70%)',
+      border:'rgba(91,100,180,.3)', badgeBg:'rgba(91,100,180,.2)', badgeCol:'#9fa8da',
+      fase:'🟣 Riposo'
+    }
+  };
+  var c = cfg[fase];
+
+  // Applica stile card
+  var card = document.getElementById('focus-card');
+  var bgEl = document.getElementById('focus-bg');
+  if(card){ card.style.background = c.bg; card.style.border = '1.5px solid ' + c.border; }
+  if(bgEl){ bgEl.style.background = c.bgGlow; bgEl.style.opacity = '1'; }
+
+  document.getElementById('focus-ico').textContent = c.ico;
+  document.getElementById('focus-fase').textContent = c.fase;
+  document.getElementById('focus-titolo').textContent = c.titolo;
+  var badge = document.getElementById('focus-badge');
+  if(badge){ badge.textContent = c.badge; badge.style.background = c.badgeBg; badge.style.color = c.badgeCol; }
+
+  // Hero content
+  var hero = document.getElementById('focus-hero');
+  if(hero){
+    if(fase === 'servizio' && mioTurno){
+      var heroHtml = '<div style="font-size:13px;font-weight:700;color:var(--txt);margin-bottom:6px">';
+      heroHtml += (mioTurno.tipo ? mioTurno.tipo.charAt(0).toUpperCase()+mioTurno.tipo.slice(1) : 'Turno');
+      if(mioTurno.orario) heroHtml += ' &nbsp;·&nbsp; <span style="color:#00e676">'+mioTurno.orario+'</span>';
+      heroHtml += '</div>';
+      // Countdown fine turno
+      if(oraFine){
+        var pf2 = oraFine.split(':');
+        var endMin2 = parseInt(pf2[0])*60 + parseInt(pf2[1]||0);
+        if(endMin2 < nowH) endMin2 += 1440;
+        var rimanenti = endMin2 - nowH;
+        var rH = Math.floor(rimanenti/60), rM = rimanenti%60;
+        heroHtml += '<div style="font-size:22px;font-weight:900;color:#00e676;line-height:1.1">⏱ '+rH+'h '+rM+'m</div>';
+        heroHtml += '<div style="font-size:10px;opacity:.6;margin-top:2px">alla fine del turno</div>';
+      }
+      hero.innerHTML = heroHtml;
+    } else if(fase === 'pre' && mioTurno){
+      var heroHtml2 = '<div style="font-size:13px;font-weight:700;color:var(--txt);margin-bottom:4px">Inizio turno: <span style="color:#ffb300">'+(oraInizio||'—')+'</span></div>';
+      if(oraInizio){
+        var pi2 = oraInizio.split(':');
+        var startMin2 = parseInt(pi2[0])*60 + parseInt(pi2[1]||0);
+        var mancano = startMin2 - nowH;
+        if(mancano < 0) mancano += 1440;
+        var mH = Math.floor(mancano/60), mM = mancano%60;
+        heroHtml2 += '<div style="font-size:22px;font-weight:900;color:#ffb300;line-height:1.1">⏰ '+mH+'h '+mM+'m</div>';
+        heroHtml2 += '<div style="font-size:10px;opacity:.6;margin-top:2px">all\'inizio del turno</div>';
+      }
+      hero.innerHTML = heroHtml2;
+    } else {
+      // Riposo: prossimo turno
+      var prossimo = null;
+      var domani = new Date(now); domani.setDate(domani.getDate()+1);
+      for(var gi=0; gi<30; gi++){
+        var dd = new Date(now); dd.setDate(dd.getDate()+gi+(fase==='riposo'?1:0));
+        var dds = dd.getFullYear()+'-'+('0'+(dd.getMonth()+1)).slice(-2)+'-'+('0'+dd.getDate()).slice(-2);
+        var pt = T.find(function(t){ return _isMyTurno(t,me) && t.data===dds && t.tipo!=='riposo'; });
+        if(pt){ prossimo = pt; break; }
+      }
+      var heroHtml3 = '';
+      if(prossimo){
+        var dPross = new Date(prossimo.data+'T00:00:00');
+        var diffDays = Math.round((dPross - new Date(oggi+'T00:00:00'))/(1000*60*60*24));
+        heroHtml3 = '<div style="font-size:12px;opacity:.7;margin-bottom:4px">Prossimo turno</div>';
+        heroHtml3 += '<div style="font-size:18px;font-weight:900;color:#9fa8da">'+
+          (prossimo.tipo?prossimo.tipo.charAt(0).toUpperCase()+prossimo.tipo.slice(1):'Turno')+
+          (prossimo.orario?' <span style="font-size:13px;opacity:.7">'+prossimo.orario+'</span>':'')+
+          '</div>';
+        heroHtml3 += '<div style="font-size:11px;opacity:.6;margin-top:2px">tra '+diffDays+' giorn'+(diffDays===1?'o':'i')+' · '+prossimo.data.split('-').reverse().join('/')+'</div>';
+      } else {
+        heroHtml3 = '<div style="font-size:13px;opacity:.6">Nessun turno programmato nei prossimi 30 giorni</div>';
+      }
+      hero.innerHTML = heroHtml3;
+    }
+  }
+
+  // To-Do in sospeso (solo in servizio)
+  var tdWrap = document.getElementById('focus-todo-wrap');
+  var tdList = document.getElementById('focus-todo-list');
+  if(tdWrap && tdList){
+    if(fase === 'servizio'){
+      var TD = lsG('ct_td',[]).filter(function(t){ return !t.done && t.data === oggi; });
+      if(TD.length){
+        tdWrap.style.display = 'block';
+        tdList.innerHTML = TD.slice(0,3).map(function(t){
+          return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.08)">'
+            +'<button onclick="toggleTodo('+t.id+');aggiornaFocus()" style="width:20px;height:20px;border-radius:50%;border:1.5px solid rgba(255,255,255,.4);background:none;cursor:pointer;flex-shrink:0;appearance:none;-webkit-appearance:none;color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center"></button>'
+            +'<span style="font-size:12px;font-weight:600;color:var(--txt);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+t.tit+'</span>'
+            +'</div>';
+        }).join('');
+      } else { tdWrap.style.display = 'none'; }
+    } else { tdWrap.style.display = 'none'; }
+  }
+
+  // Smart Snooze (to-do scaduti non completati)
+  var snWrap = document.getElementById('focus-snooze-wrap');
+  var snList = document.getElementById('focus-snooze-list');
+  if(snWrap && snList){
+    var scaduti = lsG('ct_td',[]).filter(function(t){ return !t.done && t.data && t.data < oggi; });
+    if(scaduti.length){
+      snWrap.style.display = 'block';
+      snList.innerHTML = scaduti.slice(0,3).map(function(t){
+        return '<div style="display:flex;align-items:center;gap:8px;padding:4px 0">'
+          +'<span style="font-size:11px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.8">'+t.tit+'</span>'
+          +'<button onclick="_snoozeSmartTodo('+t.id+')" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:3px 8px;font-size:10px;font-weight:700;color:#fff;cursor:pointer;appearance:none;-webkit-appearance:none;white-space:nowrap">🕒 Domani</button>'
+          +'</div>';
+      }).join('');
+    } else { snWrap.style.display = 'none'; }
+  }
+}
+function _snoozeSmartTodo(id){
+  var TD = lsG('ct_td', []);
+  var t = TD.find(function(x){ return x.id === id; });
+  if(!t) return;
+  var dom = new Date(); dom.setDate(dom.getDate()+1);
+  t.data = dom.toISOString().slice(0,10);
+  t.done = false;
+  lsS('ct_td', TD);
+  if(window.FirebaseModule) window.FirebaseModule.saveTodo(TD);
+  aggiornaFocus();
+  toast('🕒 Spostato a domani', 'ok');
 }
 
 // ---- PWA ----
@@ -2521,11 +2708,21 @@ function renderTodoCondivisi(){
   el.innerHTML=TD.map(function(t){
     var scad=t.data?'<span style="font-size:10px;color:var(--txt2);margin-left:6px">&#128197; '+t.data.split('-').reverse().join('/')+'</span>':"";
     var autore=t.autore?'<span style="font-size:10px;color:var(--txt2)"> — '+t.autore+'</span>':"";
-    var delBtn='<button onclick="delTodoCondiviso('+t.id+')" title="Elimina / Completato" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:14px;appearance:none;-webkit-appearance:none;flex-shrink:0">&#128465;</button>';
-    return '<div class="todo-item" style="opacity:'+(t.done?.5:1)+'">'
+    var prioCol={alta:'var(--red)',media:'var(--gold)',bassa:'var(--green)'}[t.prio]||'var(--txt2)';
+    var prio=t.prio?'<span style="font-size:9px;font-weight:700;color:'+prioCol+';text-transform:uppercase;margin-left:6px">'+t.prio+'</span>':"";
+    return '<div class="todo-item" style="opacity:'+(t.done?.5:1)+';flex-direction:column;align-items:stretch;gap:6px">'
+      +'<div style="display:flex;align-items:flex-start;gap:8px">'
       +'<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13px">&#128101; '+t.tit+autore+'</div>'
       +(t.note?'<div style="font-size:11px;color:var(--txt2);margin-top:2px">'+t.note+'</div>':"")
-      +scad+'</div>'+delBtn+'</div>';
+      +'<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-top:4px">'+scad+prio+'</div>'
+      +'</div>'
+      +'<button onclick="delTodoCondiviso('+t.id+')" title="Completato/Elimina" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:14px;appearance:none;-webkit-appearance:none;flex-shrink:0;padding:4px">&#128465;</button>'
+      +'</div>'
+      +'<div style="display:flex;gap:6px">'
+      +'<button onclick="rinviaTodoCondiviso('+t.id+')" style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:5px 8px;font-size:11px;font-weight:700;color:var(--blue);cursor:pointer;appearance:none;-webkit-appearance:none;">&#128336; Rinvia</button>'
+      +'<button onclick="toggleTodoCondiviso('+t.id+')" style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:5px 8px;font-size:11px;font-weight:700;color:'+(t.done?'var(--green)':'var(--txt2)')+';cursor:pointer;appearance:none;-webkit-appearance:none;">'+(t.done?'&#10003; Fatto':'&#9744; Segna fatto')+'</button>'
+      +'</div>'
+      +'</div>';
   }).join('');
 }
 function renderAgendaCondivisa(){
@@ -2540,12 +2737,17 @@ function renderAgendaCondivisa(){
     var d=new Date(a.data+"T00:00:00"),ds=d.getDate()+" "+mN[d.getMonth()]+" "+d.getFullYear();
     var ora=a.ora?'<span style="margin-left:6px;color:var(--blue)">&#128336; '+a.ora+'</span>':"";
     var autore=a.autore?'<span style="font-size:10px;color:var(--txt2)"> — '+a.autore+'</span>':"";
-    var delBtn='<button onclick="delAgendaCondivisa('+a.id+')" title="Elimina / Completato" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:16px;appearance:none;-webkit-appearance:none">&#128465;</button>';
-    return '<div class="ag-item"><div style="display:flex;justify-content:space-between;align-items:flex-start">'
+    return '<div class="ag-item" style="flex-direction:column;align-items:stretch;gap:6px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start">'
       +'<div><div style="font-weight:700;font-size:13px">&#128101; '+a.tit+autore+'</div>'
       +'<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128197; '+ds+ora+'</div>'
       +(a.luogo?'<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128205; '+a.luogo+'</div>':"")
-      +'</div>'+delBtn+'</div></div>';
+      +(a.note?'<div style="font-size:11px;color:var(--txt2);margin-top:2px">'+a.note+'</div>':"")
+      +'</div>'
+      +'<button onclick="delAgendaCondivisa('+a.id+')" title="Elimina" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:16px;appearance:none;-webkit-appearance:none">&#128465;</button>'
+      +'</div>'
+      +'<button onclick="rinviaAgenda('+a.id+')" style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:5px 8px;font-size:11px;font-weight:700;color:var(--blue);cursor:pointer;appearance:none;-webkit-appearance:none;width:100%;">&#128336; Rinvia impegno</button>'
+      +'</div>';
   }).join('');
 }
 function delTodoCondiviso(id){
@@ -2554,6 +2756,67 @@ function delTodoCondiviso(id){
   localStorage.setItem('ct_td_condivisi', JSON.stringify(TD));
   renderTodoCondivisi();
   if(window.FirebaseModule) window.FirebaseModule.deleteTodoCondiviso(id).catch(function(){});
+}
+function toggleTodoCondiviso(id){
+  var TD = lsG('ct_td_condivisi', []);
+  var t = TD.find(function(x){ return x.id === id; });
+  if(!t) return;
+  t.done = !t.done;
+  localStorage.setItem('ct_td_condivisi', JSON.stringify(TD));
+  renderTodoCondivisi();
+  if(window.FirebaseModule) window.FirebaseModule.saveTodoCondiviso(t).catch(function(){});
+}
+function rinviaTodoCondiviso(id){
+  var TD = lsG('ct_td_condivisi', []);
+  var t = TD.find(function(x){ return x.id === id; });
+  if(!t) return;
+  var oggi = new Date().toISOString().slice(0,10);
+  var dataBase = t.data && t.data >= oggi ? t.data : oggi;
+  var html =
+    '<div id="m-rinvia-tc" style="display:flex;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99999;align-items:flex-end;justify-content:center;backdrop-filter:blur(3px)">'
+    +'<div style="background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:520px;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 32px rgba(0,0,0,.4)">'
+    +'<div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 14px"></div>'
+    +'<div style="font-size:15px;font-weight:800;margin-bottom:14px">&#128336; Rinvia: '+t.tit+'</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'
+    +'<button class="btn btn-g btn-sm" onclick="_rinviaTCRel('+id+',1)">+1 giorno</button>'
+    +'<button class="btn btn-g btn-sm" onclick="_rinviaTCRel('+id+',3)">+3 giorni</button>'
+    +'<button class="btn btn-g btn-sm" onclick="_rinviaTCRel('+id+',7)">+1 settimana</button>'
+    +'</div>'
+    +'<div class="fg"><label>Oppure scegli data</label>'
+    +'<input type="date" id="rtc-data" class="fc" value="'+dataBase+'"></div>'
+    +'<div style="display:flex;gap:10px;margin-top:12px">'
+    +'<button class="btn btn-g" style="flex:1" onclick="document.getElementById(\'m-rinvia-tc\').remove()">Annulla</button>'
+    +'<button class="btn btn-p" style="flex:1" onclick="_rinviaTCData('+id+')">&#128336; Rinvia</button>'
+    +'</div></div></div>';
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+function _rinviaTCRel(id, giorni){
+  var TD = lsG('ct_td_condivisi', []);
+  var t = TD.find(function(x){ return x.id === id; });
+  if(!t) return;
+  var oggi = new Date().toISOString().slice(0,10);
+  var base = new Date((t.data && t.data >= oggi ? t.data : oggi)+'T00:00:00');
+  base.setDate(base.getDate() + giorni);
+  t.data = base.toISOString().slice(0,10);
+  t.done = false;
+  localStorage.setItem('ct_td_condivisi', JSON.stringify(TD));
+  if(window.FirebaseModule) window.FirebaseModule.saveTodoCondiviso(t).catch(function(){});
+  var bs = document.getElementById('m-rinvia-tc'); if(bs) bs.remove();
+  renderTodoCondivisi();
+  toast('&#128336; Rinviato al '+t.data, 'ok');
+}
+function _rinviaTCData(id){
+  var data = (document.getElementById('rtc-data')||{}).value;
+  if(!data){ toast('Scegli una data','err'); return; }
+  var TD = lsG('ct_td_condivisi', []);
+  var t = TD.find(function(x){ return x.id === id; });
+  if(!t) return;
+  t.data = data; t.done = false;
+  localStorage.setItem('ct_td_condivisi', JSON.stringify(TD));
+  if(window.FirebaseModule) window.FirebaseModule.saveTodoCondiviso(t).catch(function(){});
+  var bs = document.getElementById('m-rinvia-tc'); if(bs) bs.remove();
+  renderTodoCondivisi();
+  toast('&#128336; Rinviato al '+data, 'ok');
 }
 function delAgendaCondivisa(id){
   // Aggiorna subito il localStorage locale
@@ -4082,22 +4345,8 @@ function aggUI(){
 // ---- NOVITÀ VERSIONE ----
 var _APP_VERSION = '4.0';
 function _checkNovita(){
-  var vLetta = localStorage.getItem('ct_novita_v4');
-  var giaMostrato = sessionStorage.getItem('ct_novita_shown');
-  if(vLetta !== _APP_VERSION && !giaMostrato){
-    sessionStorage.setItem('ct_novita_shown','1');
-    setTimeout(function(){
-      // Mostra toast cliccabile invece del modal
-      var t = document.createElement('div');
-      t.id = 'toast-novita';
-      t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--navy),#1a2f4a);border:1px solid var(--gold);border-radius:16px;padding:14px 18px;z-index:99999;max-width:320px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.5);cursor:pointer;animation:fadeInUp .4s ease';
-      t.innerHTML = '<div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px">\uD83C\uDF81</span><div style="flex:1"><div style="font-weight:700;color:var(--gold);font-size:13px">Aggiornamento v3.5.0</div><div style="font-size:12px;color:var(--txt2);margin-top:2px">Notifiche push Firebase, skeleton loaders, swipe todo, FAB e tema auto.</div></div><button onclick="document.getElementById(\'toast-novita\').remove();localStorage.setItem(\'ct_novita_v4\',\''+_APP_VERSION+'\')" style="background:none;border:none;color:var(--txt2);font-size:18px;cursor:pointer;padding:0;line-height:1">&times;</button></div><div style="margin-top:8px;font-size:11px;color:var(--txt2);text-align:center">Tocca per i dettagli</div>';
-      t.onclick = function(e){ if(e.target.tagName==='BUTTON') return; localStorage.setItem('ct_novita_v4',_APP_VERSION); t.remove(); openM('m-novita'); };
-      document.body.appendChild(t);
-      // Auto-chiudi dopo 8 secondi
-      setTimeout(function(){ if(document.getElementById('toast-novita')){ localStorage.setItem('ct_novita_v4',_APP_VERSION); document.getElementById('toast-novita').remove(); } }, 8000);
-    }, 1500);
-  }
+  // Popup novità disabilitato dalla v4.0
+  localStorage.setItem('ct_novita_v4', _APP_VERSION);
 }
 function chiudiNovita(){
   localStorage.setItem('ct_novita_v4', _APP_VERSION);
@@ -4657,8 +4906,17 @@ function mostraGiorno(ds){
         });
         html += '</div>';
 
-        // Tasto modifica se è il mio turno
-        if(myT && gruppi[tipo].some(function(t){ return t.pid===myPid || (me&&t.uid&&t.uid===(me.uid||me.id)); })){
+        // Tasto modifica: il mio turno sempre, o qualsiasi turno se sono comandante/vice
+        var _meCheck = lsG('ct_me', null);
+        var _isCom = _meCheck && (_meCheck.ruolo === 'comandante' || _meCheck.ruolo === 'vice');
+        if(_isCom) {
+          // Comandante/vice: bottone modifica su ogni turno del gruppo
+          gruppi[tipo].forEach(function(t){
+            var p = P.find(function(x){return x.id===t.pid;});
+            var nomeBtn = t.pnome || (p ? p.nome : '') || '?';
+            html += '<button onclick="apriModificaTurnoGiorno('+t.id+')" style="margin-top:6px;margin-right:6px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:10px;padding:6px 12px;font-size:11px;font-weight:700;color:'+(col==='var(--blue)'?'var(--blue)':'#fff')+';cursor:pointer;appearance:none;-webkit-appearance:none;">&#9998; '+nomeBtn+'</button>';
+          });
+        } else if(myT && gruppi[tipo].some(function(t){ return t.pid===myPid || (me&&t.uid&&t.uid===(me.uid||me.id)); })){
           html += '<button onclick="apriModificaTurnoGiorno('+myT.id+')" style="margin-top:10px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:10px;padding:6px 12px;font-size:11px;font-weight:700;color:'+(col==='var(--blue)'?'var(--blue)':'#fff')+';cursor:pointer;appearance:none;-webkit-appearance:none;">&#9998; Modifica il mio turno</button>';
         }
         html += '</div>';
@@ -5023,6 +5281,59 @@ function renderStraord() {
 }
 
 // ---- CONDIVISIONE TURNI SETTIMANALI (WhatsApp) ----
+// apriSheetWA: condivide i turni del giorno corrente (chiamato dallo sheet-giorno) o settimanali
+function apriSheetWA(){
+  // Se c'è una data selezionata nello sheet-giorno, condividi quel giorno
+  var sgData = document.getElementById('sg-data');
+  var ds = sgData && sgData.value ? sgData.value : null;
+  if(ds){
+    _condividiGiornoWA(ds);
+  } else {
+    condividiTurniWA();
+  }
+}
+function _condividiGiornoWA(ds){
+  var me = lsG('ct_me', null);
+  var T = lsG('ct_t', []).filter(function(t){ return t.data === ds; });
+  var P = lsG('ct_p', []);
+  var mN = ["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
+  var d = new Date(ds + 'T00:00:00');
+  var gN = ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
+  var dataLabel = gN[d.getDay()] + ' ' + d.getDate() + ' ' + mN[d.getMonth()] + ' ' + d.getFullYear();
+  var tipoLabel = {
+    mattina:'🌅 Mattina', ml:'🌅 Mattina Lunga', pomeriggio:'☀️ Pomeriggio', pl:'☀️ Pomeriggio Lungo',
+    notte:'🌙 Notte', riposo:'💤 Riposo', recupero:'🔄 Recupero', ferie:'🏖️ Ferie',
+    permesso:'🕐 Permesso', corso:'🎓 Corso', licenza:'📚 Licenza'
+  };
+  var righe = [];
+  righe.push('📅 *Turni ' + dataLabel + '*');
+  righe.push('-----------------');
+  if(!T.length){
+    righe.push('Nessun turno inserito');
+  } else {
+    // Raggruppa per tipo
+    var gruppi = {};
+    T.forEach(function(t){
+      var tipo = t.tipo || 'altro';
+      if(!gruppi[tipo]) gruppi[tipo] = [];
+      var p = P.find(function(x){ return x.id === t.pid; });
+      var nome = t.pnome || (p ? p.nome : '') || '?';
+      gruppi[tipo].push(nome + (t.orario ? ' (' + t.orario + ')' : ''));
+    });
+    Object.keys(gruppi).forEach(function(tipo){
+      righe.push('*' + (tipoLabel[tipo] || tipo) + '*: ' + gruppi[tipo].join(', '));
+    });
+  }
+  righe.push('-----------------');
+  righe.push('_Inviato da C-Turni_');
+  var testo = righe.join('\n');
+  var url = 'https://wa.me/?text=' + encodeURIComponent(testo);
+  if(navigator.share){
+    navigator.share({ title: 'Turni ' + dataLabel, text: testo }).catch(function(){ window.open(url, '_blank'); });
+  } else {
+    window.open(url, '_blank');
+  }
+}
 function condividiTurniWA() {
   var me = lsG("ct_me", null);
   if(!me) { toast("Accedi prima", "err"); return; }
@@ -6790,6 +7101,7 @@ function salvaModTurno() {
   if(window.FirebaseModule) window.FirebaseModule.saveTurni(T);
   closeM('m-mod-turno');
   renderTurni(); aggiornaWidget(); renderDash(); renderOggi();
+  if(typeof renderCal === 'function') renderCal();
   toast('Turno aggiornato', 'ok');
 }
 
@@ -7529,6 +7841,7 @@ function apriModificaTurnoGiorno(tid) {
     var t=T.find(function(x){return x.id===tid;});
     if(!t)return;
     closeM("m-giorno");
+    if(typeof chiudiSheetGiorno === 'function') chiudiSheetGiorno();
     document.getElementById('mmt-id').value = tid;
     document.getElementById('mmt-tipo').value = t.tipo || 'mattina';
     document.getElementById('mmt-orario').value = t.orario && t.orario.indexOf('-')>0 ? t.orario : '';
@@ -8860,12 +9173,12 @@ var AuthModule = (function() {
   var _dinoRaf = null;
 
   // Costanti fisiche
-  var GROUND_RATIO = 0.78;   // y del suolo come % dell'altezza canvas
-  var GRAVITY      = 0.6;
-  var JUMP_VY      = -13;
-  var BASE_SPEED   = 4;
-  var MAX_SPEED    = 14;
-  var ACCEL        = 0.002;  // incremento velocità per frame
+  var GROUND_RATIO = 0.80;   // y del suolo come % dell'altezza canvas
+  var GRAVITY      = 0.55;
+  var JUMP_VY      = -15;
+  var BASE_SPEED   = 4.5;
+  var MAX_SPEED    = 16;
+  var ACCEL        = 0.0018;  // incremento velocità per frame
 
   // Stato gioco
   var state = {};
@@ -8885,19 +9198,20 @@ var AuthModule = (function() {
       onGround: true,
       // Ostacoli
       obstacles: [],
-      nextObs:   80,
+      nextObs:   90,
       // Nuvole decorative
       clouds: [
-        { x: cw * 0.5, y: ch * 0.18 },
-        { x: cw * 0.8, y: ch * 0.10 }
+        { x: cw * 0.4, y: ch * 0.15 },
+        { x: cw * 0.75, y: ch * 0.08 },
+        { x: cw * 0.9, y: ch * 0.22 }
       ],
       frame: 0
     };
   }
 
   // Dimensioni emoji in px (canvas units)
-  var DINO_W = 28, DINO_H = 28;
-  var OBS_W  = 22, OBS_H  = 28;
+  var DINO_W = 34, DINO_H = 34;
+  var OBS_W  = 26, OBS_H  = 32;
 
   function draw(ctx, cw, ch) {
     var s = state;
@@ -8905,35 +9219,56 @@ var AuthModule = (function() {
     // Sfondo
     ctx.clearRect(0, 0, cw, ch);
 
-    // Cielo sfumato
+    // Cielo sfumato più ricco
     var grad = ctx.createLinearGradient(0, 0, 0, s.ground);
-    grad.addColorStop(0, 'rgba(8,14,23,0)');
-    grad.addColorStop(1, 'rgba(41,121,255,0.04)');
+    grad.addColorStop(0, 'rgba(5,10,20,0.95)');
+    grad.addColorStop(0.6, 'rgba(10,20,50,0.5)');
+    grad.addColorStop(1, 'rgba(41,121,255,0.06)');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, cw, s.ground);
 
-    // Suolo
-    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    // Stelle (statiche, decorative)
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    [[cw*0.15,ch*0.12],[cw*0.3,ch*0.06],[cw*0.55,ch*0.18],[cw*0.7,ch*0.05],[cw*0.85,ch*0.14],[cw*0.95,ch*0.09]].forEach(function(p){
+      ctx.fillRect(p[0], p[1], 1.5, 1.5);
+    });
+
+    // Suolo con doppia linea
+    ctx.strokeStyle = 'rgba(91,159,255,0.25)';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(0, s.ground + DINO_H * 0.1);
     ctx.lineTo(cw, s.ground + DINO_H * 0.1);
     ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, s.ground + DINO_H * 0.1 + 3);
+    ctx.lineTo(cw, s.ground + DINO_H * 0.1 + 3);
+    ctx.stroke();
 
     // Nuvole
-    ctx.font = '14px serif';
-    ctx.globalAlpha = 0.35;
+    ctx.font = '16px serif';
+    ctx.globalAlpha = 0.3;
     s.clouds.forEach(function(c) {
       ctx.fillText('☁️', c.x, c.y);
     });
     ctx.globalAlpha = 1;
 
-    // Punteggio
-    ctx.font = 'bold 13px -apple-system, sans-serif';
-    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    // Punteggio con sfondo
+    var scoreStr = Math.floor(s.score).toString().padStart(5, '0');
+    ctx.font = 'bold 14px -apple-system, monospace';
+    ctx.fillStyle = 'rgba(255,255,255,0.65)';
     ctx.textAlign = 'right';
-    ctx.fillText(Math.floor(s.score), cw - 10, 18);
+    ctx.fillText(scoreStr, cw - 10, 20);
     ctx.textAlign = 'left';
+
+    // Velocità indicatore (barra sottile in alto)
+    if(s.started && !s.over){
+      var speedPct = (s.speed - BASE_SPEED) / (MAX_SPEED - BASE_SPEED);
+      ctx.fillStyle = 'rgba(91,159,255,0.3)';
+      ctx.fillRect(0, 0, cw * speedPct, 2);
+    }
 
     // Dino
     ctx.font = DINO_W + 'px serif';
@@ -8947,25 +9282,40 @@ var AuthModule = (function() {
 
     // Schermata iniziale
     if (!s.started && !s.over) {
-      ctx.fillStyle = 'rgba(255,255,255,0.7)';
-      ctx.font = 'bold 13px -apple-system, sans-serif';
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.fillRect(cw/2 - 100, ch/2 - 28, 200, 44);
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.font = 'bold 14px -apple-system, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('Tocca per iniziare', cw / 2, ch / 2 - 6);
+      ctx.fillText('🦖  Tocca per iniziare', cw / 2, ch / 2 - 4);
+      ctx.font = '11px -apple-system, sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fillText('Spazio / Tap per saltare', cw / 2, ch / 2 + 14);
       ctx.textAlign = 'left';
     }
 
     // Game Over
     if (s.over) {
-      ctx.fillStyle = 'rgba(0,0,0,0.45)';
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
       ctx.fillRect(0, 0, cw, ch);
+      // Box centrato
+      var bw = 200, bh = 80;
+      var bx = (cw - bw) / 2, by = (ch - bh) / 2;
+      ctx.fillStyle = 'rgba(20,30,50,0.95)';
+      ctx.beginPath();
+      ctx.roundRect ? ctx.roundRect(bx, by, bw, bh, 14) : ctx.rect(bx, by, bw, bh);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(91,159,255,0.4)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
       ctx.fillStyle = '#fff';
-      ctx.font = 'bold 16px -apple-system, sans-serif';
+      ctx.font = 'bold 17px -apple-system, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('Game Over', cw / 2, ch / 2 - 14);
+      ctx.fillText('💀 Game Over', cw / 2, by + 26);
       ctx.font = '12px -apple-system, sans-serif';
       ctx.fillStyle = 'rgba(255,255,255,0.75)';
-      ctx.fillText('Punteggio: ' + Math.floor(s.score), cw / 2, ch / 2 + 6);
-      ctx.fillText('Tocca per riprovare', cw / 2, ch / 2 + 24);
+      ctx.fillText('Punteggio: ' + Math.floor(s.score), cw / 2, by + 46);
+      ctx.fillText('Tocca per riprovare', cw / 2, by + 64);
       ctx.textAlign = 'left';
     }
   }
