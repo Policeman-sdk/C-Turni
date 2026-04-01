@@ -440,8 +440,7 @@ function degradaVice(){
     document.body.insertAdjacentHTML('beforeend', html);
   }
 }
-  }).catch(function(e){ toast('Errore: '+e.message,'err'); });
-}
+
 // ---- COMPRIMI IMMAGINE ----
 function comprImg(file,cb){
   var TARGET=150;
