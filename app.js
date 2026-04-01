@@ -343,7 +343,9 @@ function _renderStatoComando(){
   var U = lsG('ct_users', []);
   if(!U.length) U = lsG('ct_u', []);
   var hasVice = U.some(function(u){ return u.ruolo==='vice' && u.stato==='approved'; });
+  var nVice = U.filter(function(u){ return u.ruolo==='vice' && u.stato==='approved'; }).length;
   if(btnDegrada) btnDegrada.style.display = (isCom && hasVice) ? 'inline-flex' : 'none';
+  if(btnDegrada && nVice > 1) btnDegrada.textContent = '⬇ Rimuovi Vice (' + nVice + ')';
 }
 
 function _popolaSelectMembri(selId, escludiRuoli){
@@ -411,13 +413,33 @@ function confermaPromuoviVice(){
 function degradaVice(){
   var U = lsG('ct_users', []);
   if(!U.length) U = lsG('ct_u', []);
-  var vice = U.find(function(u){ return u.ruolo==='vice' && u.stato==='approved'; });
-  if(!vice){ toast('Nessun Vice trovato','err'); return; }
-  if(!confirm('Rimuovere il ruolo di Vice Comandante a '+(vice.nome||'')+' '+(vice.cognome||'')+' ?')){ return; }
-  var uid = vice.uid || vice.id;
-  AuthModule._cambiaRuolo(uid, 'addetto').then(function(){
-    toast('Vice rimosso','ok');
-    _renderStatoComando();
+  // Multi-vice: mostra lista di tutti i vice per scegliere quale degradare
+  var viceList = U.filter(function(u){ return u.ruolo==='vice' && u.stato==='approved'; });
+  if(!viceList.length){ toast('Nessun Vice trovato','err'); return; }
+  if(viceList.length === 1) {
+    var vice = viceList[0];
+    if(!confirm('Rimuovere il ruolo di Vice Comandante a '+(vice.nome||'')+' '+(vice.cognome||'')+' ?')){ return; }
+    var uid = vice.uid || vice.id;
+    AuthModule._cambiaRuolo(uid, 'addetto').then(function(){
+      toast('Vice rimosso','ok');
+      _renderStatoComando();
+    }).catch(function(e){ toast('Errore: '+e.message,'err'); });
+  } else {
+    // Più vice — mostra selezione
+    var opts = viceList.map(function(v){
+      return '<option value="'+(v.uid||v.id)+'">'+(v.grado||'')+' '+(v.nome||'')+' '+(v.cognome||'')+'</option>';
+    }).join('');
+    var html = '<div id="m-degrada-vice" style="position:fixed;inset:0;z-index:200000;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center">'+
+      '<div style="background:var(--card);border-radius:20px;padding:20px;max-width:320px;width:90%">'+
+      '<div style="font-size:15px;font-weight:800;margin-bottom:14px">Rimuovi Vice Comandante</div>'+
+      '<select id="sel-degrada-vice" class="fc" style="margin-bottom:14px">'+opts+'</select>'+
+      '<div style="display:flex;gap:10px">'+
+      '<button class="btn btn-g btn-sm" style="flex:1" onclick="document.getElementById(\'m-degrada-vice\').remove()">Annulla</button>'+
+      '<button class="btn btn-d btn-sm" style="flex:1" onclick="(function(){var uid=document.getElementById(\'sel-degrada-vice\').value;document.getElementById(\'m-degrada-vice\').remove();AuthModule._cambiaRuolo(uid,\'addetto\').then(function(){toast(\'Vice rimosso\',\'ok\');_renderStatoComando();});})()">Rimuovi</button>'+
+      '</div></div></div>';
+    document.body.insertAdjacentHTML('beforeend', html);
+  }
+}
   }).catch(function(e){ toast('Errore: '+e.message,'err'); });
 }
 // ---- COMPRIMI IMMAGINE ----
@@ -2050,9 +2072,13 @@ function aggNotifStatus(){
   if(!("Notification" in window)){if(el)el.textContent="Non supportate";return;}
   var p=Notification.permission;
   if(el){if(p==="granted")el.innerHTML="&#10003; Attive";else if(p==="denied")el.innerHTML="&#9940; Bloccate &#8212; sblocca nel browser";else el.textContent="Tocca per abilitare";}
-  if(tog)tog.classList.toggle("on",p==="granted");
+  // FIX: usa .checked per input checkbox, non classList.toggle("on")
+  if(tog) tog.checked = (p==="granted");
   var prefs=lsG("ct_notif_prefs",{mattina:true,todo:true,agenda:true,festivi:true,preturno:true});
-  ["mattina","todo","agenda","festivi"].forEach(function(k){var t=document.getElementById("tog-notif-"+k);if(t)t.classList.toggle("on",prefs[k]!==false);});
+  ["mattina","todo","agenda","festivi"].forEach(function(k){
+    var t=document.getElementById("tog-notif-"+k);
+    if(t) t.checked = (prefs[k]!==false);
+  });
   var pre=lsG("ct_notif_pre",60);
   var subEl=document.getElementById("sub-preturno");
   if(subEl)subEl.textContent=pre>0?"Anticipo: "+(pre>=60?(pre/60)+"h":""+pre+"min")+" prima":"Disabilitato";
@@ -4055,7 +4081,7 @@ function aggUI(){
 }
 
 // ---- NOVITÀ VERSIONE ----
-var _APP_VERSION = '3.5.0';
+var _APP_VERSION = '4.0';
 function _checkNovita(){
   var vLetta = localStorage.getItem('ct_novita_v4');
   var giaMostrato = sessionStorage.getItem('ct_novita_shown');
@@ -4307,9 +4333,18 @@ function salvaPersona(){
   document.getElementById("mp-rep").value="";toast("Persona aggiunta","ok");
 }
 function salvaTurno(){
+  // Controllo ruolo: solo comandante, vice o l'utente stesso può salvare turni
+  var _me = lsG('ct_me', null);
+  var _myPidCheck = parseInt(localStorage.getItem('ct_my_pid')||'0');
+  var _isCom = _me && (_me.ruolo === 'comandante' || _me.ruolo === 'vice' || _me.id === 1);
   var _pSel=document.getElementById("mt-pers-sel");
   if(_pSel&&_pSel.value)document.getElementById("mt-pers").value=_pSel.value;
   var pid=parseInt(document.getElementById("mt-pers").value);
+  // Se non è comandante/vice, può salvare solo il proprio turno
+  if(!_isCom && pid && pid !== _myPidCheck) {
+    toast("Puoi modificare solo i tuoi turni personali","err");
+    return;
+  }
   var dt=document.getElementById("mt-data").value;
   var tp=document.getElementById("mt-tipo").value;
   if(!pid||!dt||!tp){toast("Compila tutti i campi","err");return;}
@@ -4319,7 +4354,7 @@ function salvaTurno(){
     _customCodice = tp.replace('custom_','');
     var _tcList = lsG('ct_turni_custom',[]);
     var _tcItem = _tcList.find(function(x){ return x.codice === _customCodice; });
-    tp = _tcItem ? 'custom' : tp; // usa 'custom' come tipo base
+    tp = _tcItem ? 'custom' : tp;
   }
   var P=lsG("ct_p",[]);var p=P.find(function(x){return x.id===pid;});
   var OR={mattina:"06:00-14:00",pomeriggio:"14:00-22:00",notte:"22:00-06:00",
@@ -4422,6 +4457,17 @@ function delP(id){
   renderPers();renderTurni();renderOggi();stats();aggSel();toast("Eliminato","ok");
 }
 function delT(id){
+  // Controllo ruolo: solo comandante/vice o il proprietario del turno
+  var _me = lsG('ct_me', null);
+  var _myPid = parseInt(localStorage.getItem('ct_my_pid')||'0');
+  var _isCom = _me && (_me.ruolo === 'comandante' || _me.ruolo === 'vice' || _me.id === 1);
+  if(!_isCom) {
+    var _turno = lsG('ct_t',[]).find(function(t){ return t.id===id; });
+    if(_turno && _turno.pid !== _myPid) {
+      toast("Puoi eliminare solo i tuoi turni","err");
+      return;
+    }
+  }
   if(!confirm("Eliminare questo turno?"))return;
   lsS("ct_t",lsG("ct_t",[]).filter(function(t){return t.id!==id;}));
   if(window.FirebaseModule) window.FirebaseModule.deleteTurno(id);

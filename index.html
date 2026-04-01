@@ -1426,9 +1426,38 @@
           </div>
           <div id="sec-changelog" class="imp-sub">
             <div style="padding:14px;border-top:1px solid var(--border);font-size:12px;color:var(--txt2)">
-              <div style="font-weight:800;color:var(--teal);margin-bottom:4px">v4.0 — Material 3 Expressive</div>
+
+              <!-- v4.0 -->
+              <div style="font-weight:800;color:var(--teal);margin-bottom:6px;font-size:13px">v4.0 — Material 3 Expressive</div>
+              <div style="padding-left:10px;border-left:2px solid var(--teal);margin-bottom:14px;line-height:1.7">
+                <div>&#127775; <strong>Design M3 Expressive</strong> — Navbar a pillola, FAB squircle, card bombate, temi ridisegnati con card grandi e dots colore</div>
+                <div>&#128203; <strong>Agenda dedicata</strong> — Pagina Agenda con Bento Box riepilogo, filter chips, card To-Do M3 con snooze e priorità</div>
+                <div>&#128467; <strong>Calendario pulito</strong> — Rimossi To-Do e Agenda dal calendario; sheet giorno con prospetto turni raggruppati per tipo</div>
+                <div>&#127769; <strong>9 temi</strong> — Notte, Giorno, Arma, Arma Giorno, Forestale, Forestale Giorno, Rosa, Rosa Giorno, Auto</div>
+                <div>&#129430; <strong>Dino Game</strong> — Widget nella Dashboard, ordinabile con gli altri widget, attivabile da Impostazioni</div>
+                <div>&#127881; <strong>Confetti To-Do</strong> — Animazione festa al completamento di un compito</div>
+                <div>&#128266; <strong>Suoni UI</strong> — Feedback sonoro per azioni, salvataggi ed errori (Web Audio API)</div>
+                <div>&#128197; <strong>Turni Personalizzati</strong> — Crea tipi di turno custom con nome, codice, orario, emoji e colore</div>
+                <div>&#128218; <strong>Guida interattiva</strong> — 10 guide tematiche espandibili in Impostazioni</div>
+                <div>&#128081; <strong>Multi-Vice Comandante</strong> — Possibilità di avere più Vice nello stesso reparto</div>
+                <div>&#128274; <strong>Sicurezza</strong> — Regole Firestore blindate, controllo ruolo su salvataggio/eliminazione turni, push senza duplicati</div>
+                <div>&#128276; <strong>Notifiche fix</strong> — Tag fisso per tipo, niente notifiche doppie, token FCM morti rimossi automaticamente</div>
+                <div>&#128736; <strong>Tesserino M3</strong> — Restyling completo con header navy, label bordeaux, border-radius 24px</div>
+                <div>&#9989; <strong>Fix iOS/Safari</strong> — Date parse locale, nessuno sfasamento di giorno su dispositivi Apple</div>
+              </div>
+
+              <!-- v3.5.1 -->
               <div style="font-weight:800;color:var(--txt);margin-bottom:4px">v3.5.1 — Mar 2026</div>
-              <div style="padding-left:10px;border-left:2px solid var(--border2);margin-bottom:10px">Rinvia to-do, recupero festivo manuale, notifiche push multi-device, fix foto profilo.</div>
+              <div style="padding-left:10px;border-left:2px solid var(--border2);margin-bottom:10px;line-height:1.6">
+                Rinvia to-do, recupero festivo manuale, notifiche push multi-device, fix foto profilo.
+              </div>
+
+              <!-- v3.5.0 -->
+              <div style="font-weight:800;color:var(--txt);margin-bottom:4px">v3.5.0 — Feb 2026</div>
+              <div style="padding-left:10px;border-left:2px solid var(--border2);margin-bottom:10px;line-height:1.6">
+                Notifiche push FCM, skeleton loaders, swipe sui To-Do, FAB multiplo, tema Auto.
+              </div>
+
             </div>
           </div>
           <div class="m3-row tap" onclick="toggleImpSec('sec-guida','arr-guida')">
@@ -2041,24 +2070,27 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
 
 <!-- MODAL NOVITÀ VERSIONE -->
 <div id="m-novita" class="modal" style="z-index:19999">
-  <div class="mbox" style="max-width:400px">
+  <div class="mbox" style="max-width:420px">
     <div class="mhan"></div>
     <div class="mhd">
-      <div class="mtit">&#127381; Novità in C-TURNI v3.5.0</div>
+      <div class="mtit">&#127775; Novità in C-TURNI v4.0</div>
     </div>
-    <div class="mbod" style="padding:14px;max-height:60vh;overflow-y:auto">
-      <div style="font-size:13px;color:var(--txt2);margin-bottom:14px;line-height:1.6">Benvenuto nell'aggiornamento! Ecco le principali novità di questa versione:</div>
-      <div style="display:flex;flex-direction:column;gap:10px;font-size:13px;color:var(--txt)">
-        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#128276;</span><div><strong>Notifiche push Firebase (FCM)</strong><br><span style="font-size:12px;color:var(--txt2)">Ricevi le notifiche anche con l'app chiusa grazie al Service Worker FCM.</span></div></div>
-        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#128640;</span><div><strong>Skeleton loaders</strong><br><span style="font-size:12px;color:var(--txt2)">Durante il caricamento da Firebase vedi blocchi animati invece di spazi vuoti.</span></div></div>
-        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#128072;</span><div><strong>Swipe sui Todo</strong><br><span style="font-size:12px;color:var(--txt2)">Scorri a destra per segnare come fatto, a sinistra per eliminare — come su iOS.</span></div></div>
-        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#10010;</span><div><strong>FAB multiplo</strong><br><span style="font-size:12px;color:var(--txt2)">Pulsante + in basso a destra che si apre in 3 azioni: Nuovo Turno, Importa Excel, Esporta PDF.</span></div></div>
-        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#127763;</span><div><strong>Tema Auto</strong><br><span style="font-size:12px;color:var(--txt2)">L'app segue automaticamente la modalità chiara/scura del tuo telefono.</span></div></div>
-        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">&#128465;</span><div><strong>Pulizia Firestore</strong><br><span style="font-size:12px;color:var(--txt2)">Cancellando un utente o dei turni, i dati vengono rimossi completamente anche dal database.</span></div></div>
+    <div class="mbod" style="padding:16px;max-height:65vh;overflow-y:auto">
+      <div style="font-size:13px;color:var(--txt2);margin-bottom:16px;line-height:1.6">Benvenuto in <strong style="color:var(--teal)">C-TURNI v4.0</strong> — il più grande aggiornamento dalla versione 3.0. Ecco le novità principali:</div>
+      <div style="display:flex;flex-direction:column;gap:12px;font-size:13px;color:var(--txt)">
+        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#127775;</span><div><strong>Design Material 3 Expressive</strong><br><span style="font-size:12px;color:var(--txt2)">Navbar a pillola, FAB squircle, card bombate con border-radius 24px, 9 temi con card grandi e dots colore.</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#128203;</span><div><strong>Agenda dedicata con Bento Box</strong><br><span style="font-size:12px;color:var(--txt2)">Pagina Agenda separata con riepilogo Bento, filter chips, card To-Do M3 con snooze e priorità visiva.</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#128467;</span><div><strong>Calendario semplificato</strong><br><span style="font-size:12px;color:var(--txt2)">Sheet giorno con prospetto turni raggruppati per tipo. Il tuo turno è evidenziato con bordo colorato.</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#129430;</span><div><strong>Dino Game</strong><br><span style="font-size:12px;color:var(--txt2)">Widget giocabile nella Dashboard, ordinabile con gli altri widget. Attivalo da Impostazioni.</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#127881;</span><div><strong>Confetti &amp; Suoni UI</strong><br><span style="font-size:12px;color:var(--txt2)">Animazione confetti al completamento di un To-Do. Feedback sonoro per azioni e notifiche.</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#128197;</span><div><strong>Turni Personalizzati</strong><br><span style="font-size:12px;color:var(--txt2)">Crea tipi di turno custom con nome, codice, orario, emoji e colore. Appaiono nel menu inserimento turno.</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#128081;</span><div><strong>Multi-Vice Comandante</strong><br><span style="font-size:12px;color:var(--txt2)">Ora puoi avere più Vice Comandanti nello stesso reparto.</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#128274;</span><div><strong>Sicurezza &amp; Notifiche</strong><br><span style="font-size:12px;color:var(--txt2)">Regole Firestore blindate, controllo ruolo sui turni, notifiche senza duplicati, token FCM puliti automaticamente.</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#128736;</span><div><strong>Tesserino M3 &amp; Fix iOS</strong><br><span style="font-size:12px;color:var(--txt2)">Tesserino ridisegnato. Fix date su Safari/iOS: nessuno sfasamento di giorno nei turni e festività.</span></div></div>
       </div>
     </div>
     <div class="mfoo">
-      <button class="btn btn-p" style="width:100%" onclick="chiudiNovita()">&#10004; Ho capito</button>
+      <button class="btn btn-p" style="width:100%" onclick="chiudiNovita()">&#10004; Inizia a usare v4.0</button>
     </div>
   </div>
 </div>
@@ -2080,7 +2112,7 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
     <!-- Motto -->
     <div id="egg-motto" style="text-align:center;font-size:11px;color:rgba(255,255,255,.6);font-style:italic;padding:0 20px 10px">&#171;Nei Secoli Fedele&#187;</div>
     <!-- Versione -->
-    <div style="text-align:center;font-size:10px;color:rgba(212,175,55,.7);padding-bottom:14px;letter-spacing:2px">C-TURNI v3.5.0</div>
+    <div style="text-align:center;font-size:10px;color:rgba(212,175,55,.7);padding-bottom:14px;letter-spacing:2px">C-TURNI v4.0</div>
     <div class="mfoo" style="background:rgba(0,0,0,.3);border-top:1px solid rgba(212,175,55,.2)">
       <button class="btn btn-g btn-sm" onclick="closeM('m-egg');document.body.style.overflow=''" style="width:100%">&#10005; Chiudi</button>
     </div>
