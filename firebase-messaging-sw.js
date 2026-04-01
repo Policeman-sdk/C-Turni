@@ -1,4 +1,4 @@
-// firebase-messaging-sw.js — C-Turni v3.5.1
+// firebase-messaging-sw.js — C-Turni v4.0
 importScripts('https://www.gstatic.com/firebasejs/11.8.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/11.8.1/firebase-messaging-compat.js');
 
@@ -13,20 +13,23 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-var ICON = '/C-Turni/icon-192.png';
+var ICON    = '/C-Turni/icon-192.png';
 var APP_URL = 'https://policeman-sdk.github.io/C-Turni/';
 
-// Notifiche in background — mostra immediatamente senza delay
 messaging.onBackgroundMessage(function(payload) {
   var title = (payload.notification && payload.notification.title) || 'C-Turni';
   var body  = (payload.notification && payload.notification.body)  || '';
 
-  // Forza visualizzazione immediata
+  // FIX: tag fisso per tipo — aggiorna la notifica invece di impilarne una nuova
+  var tag = (payload.data && payload.data.tag) ||
+            (payload.notification && payload.notification.tag) ||
+            'c-turni-alert';
+
   return self.registration.showNotification(title, {
     body:             body,
     icon:             ICON,
     badge:            ICON,
-    tag:              'c-turni-' + Date.now(),
+    tag:              tag,
     renotify:         true,
     requireInteraction: false,
     vibrate:          [200, 100, 200],
@@ -34,7 +37,6 @@ messaging.onBackgroundMessage(function(payload) {
   });
 });
 
-// Click sulla notifica → apre/focalizza l'app
 self.addEventListener('notificationclick', function(e) {
   e.notification.close();
   var url = (e.notification.data && e.notification.data.url) || APP_URL;
@@ -50,6 +52,6 @@ self.addEventListener('notificationclick', function(e) {
   );
 });
 
-// Forza attivazione immediata del SW senza aspettare reload
 self.addEventListener('install',  function(e) { e.waitUntil(self.skipWaiting()); });
 self.addEventListener('activate', function(e) { e.waitUntil(clients.claim()); });
+

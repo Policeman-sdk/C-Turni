@@ -1,0 +1,1067 @@
+﻿import { initializeApp }          from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
+         signOut, onAuthStateChanged, deleteUser }
+                                  from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
+import { getFirestore, doc, collection, setDoc, getDoc, getDocs, deleteDoc,
+         onSnapshot, query, where, orderBy, limit, serverTimestamp, arrayUnion }
+                                  from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+import { getMessaging, getToken, onMessage }
+                                  from "https://www.gstatic.com/firebasejs/11.8.1/firebase-messaging.js";
+
+// ── Configurazione ──────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey:            "AIzaSyCKwzJACHHoWqqsqA9s_fGsajIdVJgZ5n4",
+  authDomain:        "c-turni.firebaseapp.com",
+  databaseURL:       "https://c-turni-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId:         "c-turni",
+  storageBucket:     "c-turni.firebasestorage.app",
+  messagingSenderId: "1085494457115",
+  appId:             "1:1085494457115:web:bff6e0174afa4d7c3d99be",
+  measurementId:     "G-3H53Z47TX9"
+};
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+// FCM — solo se il browser supporta service worker
+let messaging = null;
+try { messaging = getMessaging(app); } catch(e) { console.warn('FCM non supportato:', e.message); }
+
+// VAPID key pubblica — SOSTITUISCI con la tua dalla Firebase Console
+// Project Settings → Cloud Messaging → Web Push certificates → Genera coppia di chiavi
+const VAPID_KEY = 'BKgPA4D4Bt32xzKutxhNG_r2jv7eR-Ad6hw_7GXAbEdm3KQFbRTZRXuazshlVt2MqAMS_61dUzek_RyD6FBdbAY';
+
+
+// ── Esponi funzioni Firebase Auth su window (accessibili da script non-module) ──
+
+window._fbAuth       = auth;
+
+window._fbSignIn     = signInWithEmailAndPassword;
+
+window._fbCreateUser = createUserWithEmailAndPassword;
+
+window._fbSignOut    = signOut;
+
+window._fbDeleteUser = deleteUser;
+
+window._fbDoc        = doc;
+
+window._fbCollection = collection;
+
+window._fbSetDoc     = setDoc;
+
+window._fbGetDoc     = getDoc;
+
+window._fbDeleteDoc  = deleteDoc;
+
+window._fbGetDocs    = getDocs;
+
+// ── Listener onSnapshot attivi (per cleanup) ─────────────────────
+const _unsubscribers = [];
+// Listener notifiche separato per evitare duplicati
+var _unsubNotifiche = null;
+
+// ── Helper: reparto corrente dalla sessione ──────────────────────
+function _reparto() {
+  try {
+    var s = JSON.parse(localStorage.getItem('ct_session') || 'null');
+    return s && s.reparto ? s.reparto.toLowerCase().replace(/\s+/g,'_') : null;
+  } catch(e) { return null; }
+}
+
+// ── Helper: toast (usa quello dell'app se disponibile) ───────────
+function _toast(msg, type) {
+  if(typeof window.toast === 'function') window.toast(msg, type || 'ok');
+  else console.log('[Firebase]', msg);
+}
+
+// ── Ferma tutti gli onSnapshot attivi ───────────────────────────
+function _stopListeners() {
+  _unsubscribers.forEach(function(u){ try{ u(); }catch(e){} });
+  _unsubscribers.length = 0;
+  // Ferma anche il listener notifiche separato
+  if(_unsubNotifiche){ try{ _unsubNotifiche(); }catch(e){} _unsubNotifiche = null; }
+}
+
+// ── Avvia onSnapshot per turni, todo, personale, utenti ─────────
+function _startListeners(reparto) {
+  _stopListeners();
+  if(!reparto) return;
+
+  // Turni
+  var turniRef = collection(db, 'reparti', reparto, 'turni');
+  _unsubscribers.push(onSnapshot(turniRef, function(snap) {
+    var arr = [];
+    snap.forEach(function(d){ arr.push(d.data()); });
+    localStorage.setItem('ct_t', JSON.stringify(arr));
+    if(typeof window.renderTurni === 'function') window.renderTurni();
+    if(typeof window.renderOggi  === 'function') window.renderOggi();
+    if(typeof window.stats       === 'function') window.stats();
+  }, function(e){ console.warn('onSnapshot turni:', e.message); }));
+
+  // Todo e Agenda (personali per utente, non per reparto)
+  var session = JSON.parse(localStorage.getItem('ct_session') || 'null');
+  if(session && session.userId) {
+    var _uid = session.userId;
+    var todoRef = collection(db, 'utenti', _uid, 'todo');
+    _unsubscribers.push(onSnapshot(todoRef, function(snap) {
+      var arr = [];
+      snap.forEach(function(d){ arr.push(d.data()); });
+      localStorage.setItem('ct_td', JSON.stringify(arr));
+      if(typeof window.renderTodo === 'function') window.renderTodo();
+      if(typeof window.renderWidgetTodo === 'function') window.renderWidgetTodo();
+    }, function(e){ console.warn('onSnapshot todo:', e.message); }));
+
+    var agendaRef = collection(db, 'utenti', _uid, 'agenda');
+    _unsubscribers.push(onSnapshot(agendaRef, function(snap) {
+      var arr = [];
+      snap.forEach(function(d){ arr.push(d.data()); });
+      localStorage.setItem('ct_ag', JSON.stringify(arr));
+      if(typeof window.renderAgenda === 'function') window.renderAgenda();
+      if(typeof window.renderWidgetAgenda === 'function') window.renderWidgetAgenda();
+    }, function(e){ console.warn('onSnapshot agenda:', e.message); }));
+  }
+
+  // Profilo utente corrente — ascolta su /utenti/{uid} (aggiornato da admin e da saveUserProfile)
+  if(session && session.userId) {
+    var meRef = doc(db, 'utenti', session.userId);
+    _unsubscribers.push(onSnapshot(meRef, function(snap) {
+      if(snap.exists()) {
+        var prof = snap.data();
+        var oldMe = JSON.parse(localStorage.getItem('ct_me') || 'null');
+        // Preserva ava locale se Firestore non ha la foto (evita sovrascrittura)
+        if(oldMe && oldMe.ava && !prof.ava) prof.ava = oldMe.ava;
+        localStorage.setItem('ct_me', JSON.stringify(prof));
+        // Aggiorna anche ct_session se ruolo/stato cambiato
+        try {
+          var sess = JSON.parse(localStorage.getItem('ct_session') || 'null');
+          if(sess) {
+            var changed = (prof.ruolo && prof.ruolo !== sess.ruolo) || (prof.stato && prof.stato !== sess.stato);
+            if(changed) {
+              sess.ruolo = prof.ruolo || sess.ruolo;
+              sess.stato = prof.stato || sess.stato;
+              localStorage.setItem('ct_session', JSON.stringify(sess));
+              var ruoloLabel = prof.ruolo === 'comandante' ? 'Comandante' : prof.ruolo === 'vice' ? 'Vice Comandante' : 'Addetto';
+              _toast('Ruolo aggiornato: ' + ruoloLabel, 'ok');
+            }
+          }
+        } catch(e2) {}
+        if(typeof window.aggUI === 'function') window.aggUI();
+      }
+    }, function(e){ console.warn('onSnapshot profilo:', e.message); }));
+  }
+
+  // Utenti del reparto (per Gestione Membri)
+  var usersRef = collection(db, 'reparti', reparto, 'utenti');
+  _unsubscribers.push(onSnapshot(usersRef, function(snap) {
+    var arr = [];
+    snap.forEach(function(d){ arr.push(d.data()); });
+    localStorage.setItem('ct_users', JSON.stringify(arr));
+
+    // Aggiorna ct_session e ct_me se il ruolo dell'utente corrente è cambiato
+    try {
+      var session = JSON.parse(localStorage.getItem('ct_session') || 'null');
+      if(session && session.userId) {
+        var myProfile = arr.find(function(u){
+          return u.uid === session.userId || u.email === session.email || u.email === session.userId;
+        });
+        if(myProfile && myProfile.ruolo) {
+          var oldMe = JSON.parse(localStorage.getItem('ct_me') || 'null');
+          // Aggiorna ct_users con il profilo aggiornato
+          localStorage.setItem('ct_me', JSON.stringify(myProfile));
+          if(myProfile.ruolo !== session.ruolo || myProfile.stato !== session.stato) {
+            session.ruolo = myProfile.ruolo;
+            session.stato = myProfile.stato || session.stato;
+            localStorage.setItem('ct_session', JSON.stringify(session));
+            if(typeof window.aggUI === 'function') window.aggUI();
+            _toast('Ruolo aggiornato: ' + (myProfile.ruolo === 'comandante' ? 'Comandante' : myProfile.ruolo === 'vice' ? 'Vice Comandante' : 'Addetto'), 'ok');
+          }
+        }
+      }
+    } catch(e) { console.warn('onSnapshot ruolo sync:', e.message); }
+
+    // Collega uid Firebase ai profili ct_p per nome (aggiorna foto/grado in calendario)
+    try {
+      var _P = lsG('ct_p', []);
+      var _chg = false;
+      arr.forEach(function(u) {
+        if(!u.uid || !u.nome) return;
+        var uN = ((u.nome||'')+' '+(u.cognome||'')).toLowerCase().trim();
+        var uNi = ((u.cognome||'')+' '+(u.nome||'')).toLowerCase().trim();
+        _P.forEach(function(p) {
+          if(p.uid) return;
+          var pn = (p.nome||'').toLowerCase().trim();
+          if(pn===uN||pn===uNi||uN.indexOf(pn)!==-1||pn.indexOf(uN)!==-1||uNi.indexOf(pn)!==-1){
+            p.uid=u.uid; if(u.grado&&!p.grado)p.grado=u.grado; if(u.ava&&!p.ava)p.ava=u.ava; _chg=true;
+          }
+        });
+      });
+      if(_chg) lsS('ct_p', _P);
+    } catch(e2) {}
+
+    if(typeof window.AuthModule !== 'undefined') window.AuthModule.renderGestioneMemebri();
+    if(typeof window._renderStatoComando === 'function') window._renderStatoComando();
+    if(typeof window.renderPers === 'function') window.renderPers();
+  }, function(e){ console.warn('onSnapshot utenti:', e.message); }));
+
+  // Todo condivisi del reparto
+  var todoCondRef = collection(db, 'reparti', reparto, 'todo_condivisi');
+  _unsubscribers.push(onSnapshot(todoCondRef, function(snap) {
+    var arr = []; snap.forEach(function(d){ arr.push(d.data()); });
+    localStorage.setItem('ct_td_condivisi', JSON.stringify(arr));
+    if(typeof window.renderTodoCondivisi === 'function') window.renderTodoCondivisi();
+  }, function(e){ console.warn('onSnapshot todo_condivisi:', e.message); }));
+
+  // Agenda condivisa del reparto
+  var agCondRef = collection(db, 'reparti', reparto, 'agenda_condivisa');
+  _unsubscribers.push(onSnapshot(agCondRef, function(snap) {
+    var arr = []; snap.forEach(function(d){ arr.push(d.data()); });
+    arr.sort(function(a,b){ return a.data>b.data?1:-1; });
+    localStorage.setItem('ct_ag_condivisa', JSON.stringify(arr));
+    if(typeof window.renderAgendaCondivisa === 'function') window.renderAgendaCondivisa();
+  }, function(e){ console.warn('onSnapshot agenda_condivisa:', e.message); }));
+
+  // Orari preset del reparto (sync per tutti i membri)
+  var orariRef = doc(db, 'reparti', reparto, 'config', 'orari');
+  _unsubscribers.push(onSnapshot(orariRef, function(snap) {
+    if(snap.exists()) {
+      var orari = snap.data();
+      localStorage.setItem('ct_orari', JSON.stringify(orari));
+      if(typeof window.renderOrariPreset === 'function') window.renderOrariPreset();
+    }
+  }, function(e){ console.warn('onSnapshot orari:', e.message); }));
+
+  // Notifiche personali da Firebase (per utente corrente)
+  if(session && session.userId) {
+    // Distruggi listener precedente per evitare duplicati
+    if(_unsubNotifiche) { try { _unsubNotifiche(); } catch(e){} _unsubNotifiche = null; }
+    var notifRef = query(
+      collection(db, 'utenti', session.userId, 'notifiche'),
+      orderBy('ts', 'desc'),
+      limit(30)
+    );
+    _unsubNotifiche = onSnapshot(notifRef, function(snap) {
+      var arr = [];
+      snap.forEach(function(d){ arr.push(Object.assign({id: d.id}, d.data())); });
+      arr.sort(function(a,b){ return new Date(b.ts||0)-new Date(a.ts||0); });
+      localStorage.setItem('ct_notif_fb', JSON.stringify(arr));
+      // Aggiorna badge
+      var nonLette = arr.filter(function(n){ return !n.letta; }).length;
+      var localNL = JSON.parse(localStorage.getItem('ct_notifiche')||'[]');
+      var totNonLette = nonLette + localNL.filter(function(n){ return !n.letta; }).length;
+      var b = document.getElementById('notif-badge');
+      if(b){ b.style.display = totNonLette>0?'flex':'none'; b.textContent = totNonLette>9?'9+':String(totNonLette); }
+      // Se il drawer è aperto, aggiorna la lista
+      var dr = document.getElementById('notif-drawer');
+      if(dr && dr.classList.contains('open')) renderNotifCenter();
+    }, function(e){ console.warn('onSnapshot notifiche:', e.message); });
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+// FirebaseModule  API pubblica esposta su window
+// ════════════════════════════════════════════════════════════════
+window.FirebaseModule = {
+
+  // ── Chiamato da AuthModule.login() dopo _saveSession ────────
+  onLogin: async function(session) {
+    if(!session) return;
+    var rep = (session.reparto||'').toLowerCase().replace(/\s+/g,'_');
+    try {
+      // Ricarica profilo aggiornato da Firestore (ruolo, stato, grado, ecc.)
+      var uid = session.userId;
+      var profSnap = await getDoc(doc(db, 'utenti', uid));
+      if(profSnap.exists()) {
+        var prof = profSnap.data();
+        if(!prof.id) prof.id = prof.uid || uid;
+        prof.uid = uid;
+        localStorage.setItem('ct_me', JSON.stringify(prof));
+        if(typeof aggUI === 'function') aggUI();
+      }
+      // Carica snapshot iniziale turni
+      if(rep && !rep.startsWith('privato_')) {
+        var turniSnap = await getDocs(collection(db, 'reparti', rep, 'turni'));
+        var turni = []; turniSnap.forEach(function(d){ turni.push(d.data()); });
+        if(turni.length > 0) localStorage.setItem('ct_t', JSON.stringify(turni));
+      }
+      // Carica utenti
+      await this.syncUsers();
+      _toast('Dati sincronizzati dal cloud', 'ok');
+    } catch(e) {
+      console.warn('FirebaseModule.onLogin:', e.message);
+    }
+    // Avvia listener real-time
+    if(rep) _startListeners(rep);
+    // Inizializza FCM in background
+    setTimeout(function(){ window.FirebaseModule.initFCM().catch(function(e){ console.warn('initFCM:', e.message); }); }, 2000);
+  },
+
+  // ── Chiamato da AuthModule.init() quando sessione gia' presente ─
+  onSessionRestore: async function(session) {
+    if(!session || session.isDebug) return;
+    var repartoRaw = session.reparto || ('privato_' + session.userId);
+    var rep = repartoRaw.toLowerCase().replace(/\s+/g,'_');
+    var isPrivato = !repartoRaw || repartoRaw.startsWith('privato_');
+    // Mostra banner "Sincronizzazione in corso..."
+    var _showSyncBanner = function(msg) {
+      var b = document.getElementById('sync-banner');
+      if(!b) {
+        b = document.createElement('div');
+        b.id = 'sync-banner';
+        b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99998;background:rgba(91,159,255,.95);color:#fff;font-size:12px;font-weight:700;text-align:center;padding:8px;letter-spacing:.5px;transition:opacity .3s';
+        document.body.appendChild(b);
+      }
+      b.textContent = msg; b.style.opacity = '1'; b.style.display = 'block';
+    };
+    var _hideSyncBanner = function() {
+      var b = document.getElementById('sync-banner');
+      if(b){ b.style.opacity='0'; setTimeout(function(){ b.style.display='none'; }, 400); }
+    };
+    // Nascondi splash screen quando l'app è pronta
+    window._hideSplash = function() {
+      var s = document.getElementById('splash-screen');
+      if(!s) return;
+      var bar = document.getElementById('splash-bar');
+      if(bar) bar.style.width = '100%';
+      setTimeout(function(){
+        s.style.opacity = '0';
+        s.style.visibility = 'hidden';
+        setTimeout(function(){ s.remove(); }, 500);
+      }, 300);
+    };
+    // Aggiorna barra progresso splash durante il caricamento
+    window._splashProgress = function(pct) {
+      var bar = document.getElementById('splash-bar');
+      if(bar) bar.style.width = pct + '%';
+    };
+    _showSyncBanner('⟳ Sincronizzazione dati...');
+    window._widgetSyncPending = true;
+    // Avvia subito i listener real-time — popolano il localStorage in parallelo
+    _startListeners(rep);
+    try {
+      // Carica dati iniziali (nuovo device: localStorage vuoto)
+      if(!isPrivato) {
+        var turniSnap = await getDocs(collection(db, 'reparti', rep, 'turni'));
+        var turni = []; turniSnap.forEach(function(d){ turni.push(d.data()); });
+        if(turni.length > 0) localStorage.setItem('ct_t', JSON.stringify(turni));
+      }
+
+      var uid = session.userId;
+
+      var todoSnap = await getDocs(collection(db, 'utenti', uid, 'todo'));
+      var todo = []; todoSnap.forEach(function(d){ todo.push(d.data()); });
+      if(todo.length > 0) localStorage.setItem('ct_td', JSON.stringify(todo));
+
+      var agendaSnap = await getDocs(collection(db, 'utenti', uid, 'agenda'));
+      var agenda = []; agendaSnap.forEach(function(d){ agenda.push(d.data()); });
+      if(agenda.length > 0) localStorage.setItem('ct_ag', JSON.stringify(agenda));
+
+      // Carica profilo utente aggiornato
+      var uid = session.userId;
+      var profSnap = await getDoc(doc(db, 'utenti', uid));
+      if(profSnap.exists()) {
+        var prof = profSnap.data();
+        localStorage.setItem('ct_me', JSON.stringify(prof));
+        // Ripristina myPid (collegamento Excel → utente)
+        if(prof.myPid) localStorage.setItem('ct_my_pid', String(prof.myPid));
+        // Ripristina città meteo dal profilo
+        if(prof.meteoCitta) lsS('ct_meteo_citta', prof.meteoCitta);
+        // Ripristina tema
+        if(prof.tema !== undefined) {
+          lsS('ct_tema', prof.tema);
+          if(typeof window.caricaTema === 'function') window.caricaTema();
+        }
+        // Ripristina ferie e recuperi
+        if(prof.licenzePool && prof.licenzePool.length) {
+          var _U2 = lsG('ct_u', []); var _found2 = false;
+          for(var _i2=0; _i2<_U2.length; _i2++){
+            if(_U2[_i2].id===prof.id || _U2[_i2].uid===prof.uid){
+              _U2[_i2].licenzePool = prof.licenzePool;
+              _U2[_i2].ferieRes = prof.ferieRes || prof.ferie || 30;
+              _found2 = true; break;
+            }
+          }
+          if(!_found2 && prof.id) _U2.push(prof);
+          lsS('ct_u', _U2);
+        }
+        if(prof.ct_recuperi) lsS('ct_recuperi', prof.ct_recuperi);
+        // Ripristina preferenze notifiche dal profilo
+        if(prof.notif_prefs) {
+          lsS('ct_notif_prefs', prof.notif_prefs);
+        }
+        if(prof.notif_pre !== undefined) {
+          lsS('ct_notif_pre', prof.notif_pre);
+        }
+      }
+
+      await this.syncUsers();
+
+      // Carica orari preset del reparto
+      try {
+        var orariSnap = await getDoc(doc(db, 'reparti', rep, 'config', 'orari'));
+        if(orariSnap.exists()) {
+          localStorage.setItem('ct_orari', JSON.stringify(orariSnap.data()));
+        }
+      } catch(e) { console.warn('carica orari preset:', e.message); }
+
+      // Carica todo/agenda condivisi del reparto
+      try {
+        var tdCondSnap = await getDocs(collection(db, 'reparti', rep, 'todo_condivisi'));
+        var tdCond = []; tdCondSnap.forEach(function(d){ tdCond.push(d.data()); });
+        localStorage.setItem('ct_td_condivisi', JSON.stringify(tdCond));
+        var agCondSnap = await getDocs(collection(db, 'reparti', rep, 'agenda_condivisa'));
+        var agCond = []; agCondSnap.forEach(function(d){ agCond.push(d.data()); });
+        agCond.sort(function(a,b){ return a.data>b.data?1:-1; });
+        localStorage.setItem('ct_ag_condivisa', JSON.stringify(agCond));
+      } catch(e) { console.warn('carica condivisi:', e.message); }
+
+      // Ri-renderizza tutto con i dati aggiornati da Firebase
+      var me = lsG('ct_me', null);
+      if(typeof window.aggUI          === 'function') window.aggUI();
+      if(typeof window.renderTurni    === 'function') window.renderTurni();
+      if(typeof window.renderOggi     === 'function') window.renderOggi();
+      if(typeof window.stats          === 'function') window.stats();
+      if(typeof window.aggiornaWidget === 'function') window.aggiornaWidget();
+      if(me && typeof window.renderWidgetProssimo === 'function') window.renderWidgetProssimo(me);
+      if(me && typeof window.renderWidgetMeteo    === 'function') window.renderWidgetMeteo(me);
+      if(typeof window.renderTodo     === 'function') window.renderTodo();
+      if(typeof window.renderTodoCondivisi === 'function') window.renderTodoCondivisi();
+      if(typeof window.renderAgendaCondivisa === 'function') window.renderAgendaCondivisa();
+      if(typeof window.renderOrariPreset === 'function') window.renderOrariPreset();
+      if(typeof window.renderRecuperi === 'function') window.renderRecuperi();
+      if(typeof window.aggNotifStatus === 'function') window.aggNotifStatus();
+      window._widgetSyncPending = false;
+      _hideSyncBanner();
+      if(typeof window._hideSplash === 'function') window._hideSplash();
+    } catch(e) {
+      console.warn('onSessionRestore load:', e.message);
+      window._widgetSyncPending = false;
+      _hideSyncBanner();
+      if(typeof window._hideSplash === 'function') window._hideSplash();
+    }
+    // Ripristina pagina dopo che i listener hanno fatto il primo render
+    setTimeout(function(){
+      if(typeof window._ripristinaPagina === 'function') window._ripristinaPagina();
+    }, 400);
+    // Inizializza FCM (anche dopo refresh pagina)
+    setTimeout(function(){
+      window.FirebaseModule.initFCM().catch(function(e){ console.warn('initFCM restore:', e.message); });
+    }, 2500);
+    // Rischedulazione notifiche todo/agenda + mattutina + pre-turno dopo caricamento dati Firebase
+    setTimeout(function(){
+      if(typeof window.scheduleAllTodoNotif === 'function') window.scheduleAllTodoNotif();
+      var ag = lsG('ct_ag', []);
+      ag.forEach(function(a){ if(a.notif > 0 && typeof window.schedulaNotifAgenda === 'function') window.schedulaNotifAgenda(a); });
+      // Rischedulazione notifica mattutina con dati aggiornati
+      if(typeof window.scheduleNotifMattutina === 'function') window.scheduleNotifMattutina();
+      // Controlla subito pre-turno con dati aggiornati
+      if(typeof window.controllaNotifiche === 'function') window.controllaNotifiche();
+      if(typeof window.schedulaPreTurniFirebase === 'function') window.schedulaPreTurniFirebase();
+    }, 1500);
+  },
+
+  // ── Sincronizza ct_users da Firestore ───────────────────────
+  syncUsers: async function() {
+    var rep = _reparto();
+    if(!rep) return;
+    try {
+      var snap = await getDocs(collection(db, 'reparti', rep, 'utenti'));
+      var arr = [];
+      snap.forEach(function(d){ arr.push(d.data()); });
+      if(arr.length > 0) {
+        localStorage.setItem('ct_users', JSON.stringify(arr));
+        // Collega automaticamente uid Firebase ai profili ct_p per nome
+        var P = lsG('ct_p', []);
+        var changed = false;
+        arr.forEach(function(u) {
+          if(!u.uid || !u.nome) return;
+          var uNome = ((u.nome||'')+' '+(u.cognome||'')).toLowerCase().trim();
+          var uNomeInv = ((u.cognome||'')+' '+(u.nome||'')).toLowerCase().trim();
+          P.forEach(function(p) {
+            if(p.uid) return; // già collegato
+            var pn = (p.nome||'').toLowerCase().trim();
+            if(pn === uNome || pn === uNomeInv ||
+               uNome.indexOf(pn) !== -1 || pn.indexOf(uNome) !== -1 ||
+               uNomeInv.indexOf(pn) !== -1) {
+              p.uid = u.uid;
+              if(u.grado && !p.grado) p.grado = u.grado;
+              if(u.ava && !p.ava) p.ava = u.ava;
+              changed = true;
+            }
+          });
+        });
+        if(changed) {
+          lsS('ct_p', P);
+          if(typeof window.FirebaseModule !== 'undefined')
+            window.FirebaseModule.savePersona().catch(function(){});
+        }
+      }
+    } catch(e) { console.warn('syncUsers:', e.message); }
+  },
+
+  // ── Salva array turni su Firestore ──────────────────────────
+  saveTurni: async function(turniArr) {
+    var rep = _reparto();
+    if(!rep || !turniArr) return;
+    try {
+      var arr = typeof turniArr === 'string' ? JSON.parse(turniArr) : turniArr;
+      if(!arr.length) return;
+
+      // Raggruppa per anno-mese per aggiornare solo i mesi presenti nell'array
+      var mesiPresenti = {};
+      arr.forEach(function(t){
+        if(!t.id || !t.data) return;
+        var ym = t.data.substring(0,7); // "2026-03"
+        if(!mesiPresenti[ym]) mesiPresenti[ym] = [];
+        mesiPresenti[ym].push(t);
+      });
+
+      var writes = [];
+      Object.keys(mesiPresenti).forEach(function(ym){
+        var turniMese = mesiPresenti[ym];
+        var localIds = turniMese.map(function(t){ return String(t.id); });
+        // Scrivi/aggiorna tutti i turni del mese
+        turniMese.forEach(function(t){
+          writes.push(setDoc(doc(db, 'reparti', rep, 'turni', String(t.id)), t));
+        });
+        // Cancella da Firestore solo i turni di QUESTO mese non più presenti in locale
+        // (non tocca gli altri mesi)
+        writes.push(
+          getDocs(query(collection(db, 'reparti', rep, 'turni'), where('data', '>=', ym+'-01'), where('data', '<=', ym+'-31')))
+          .then(function(snap){
+            var del = [];
+            snap.forEach(function(d){
+              if(localIds.indexOf(d.id) === -1) del.push(deleteDoc(doc(db, 'reparti', rep, 'turni', d.id)));
+            });
+            return Promise.all(del);
+          })
+        );
+      });
+
+      await Promise.all(writes);
+    } catch(e) { console.warn('saveTurni:', e.message); _toast('Errore sync turni', 'err'); }
+  },
+
+  deleteTurno: async function(tid) {
+    var rep = _reparto();
+    if(!rep || !tid) return;
+    try {
+      await deleteDoc(doc(db, 'reparti', rep, 'turni', String(tid)));
+    } catch(e) { console.warn('deleteTurno:', e.message); _toast('Errore eliminazione turno', 'err'); }
+  },
+
+  // ── Salva array todo su Firestore (personale, per utente) ───
+  saveTodo: async function(todoArr) {
+    var session = JSON.parse(localStorage.getItem('ct_session') || 'null');
+    var uid = session && session.userId;
+    if(!uid || !todoArr) return;
+    try {
+      var arr = typeof todoArr === 'string' ? JSON.parse(todoArr) : todoArr;
+      var writes = arr.map(function(t){
+        if(!t.id) return Promise.resolve();
+        return setDoc(doc(db, 'utenti', uid, 'todo', String(t.id)), t);
+      });
+      await Promise.all(writes);
+    } catch(e) { console.warn('saveTodo:', e.message); }
+  },
+
+  // ── Salva array agenda su Firestore (personale, per utente) ─
+  saveAgenda: async function(agArr) {
+    var session = JSON.parse(localStorage.getItem('ct_session') || 'null');
+    var uid = session && session.userId;
+    if(!uid || !agArr) return;
+    try {
+      var arr = typeof agArr === 'string' ? JSON.parse(agArr) : agArr;
+      var writes = arr.map(function(a){
+        if(!a.id) return Promise.resolve();
+        return setDoc(doc(db, 'utenti', uid, 'agenda', String(a.id)), a);
+      });
+      await Promise.all(writes);
+    } catch(e) { console.warn('saveAgenda:', e.message); }
+  },
+
+  // ── Elimina documento todo da Firestore ─────────────────────
+  deleteTodo: async function(id) {
+    var session = JSON.parse(localStorage.getItem('ct_session') || 'null');
+    var uid = session && session.userId;
+    if(!uid) return;
+    try { await deleteDoc(doc(db, 'utenti', uid, 'todo', String(id))); } catch(e) { console.warn('deleteTodo:', e.message); }
+    // Cancella notifiche_push pendenti con titolo corrispondente
+    try {
+      var TD = JSON.parse(localStorage.getItem('ct_td')||'[]');
+      // Il doc è già stato rimosso da ct_td prima di chiamare deleteTodo — non possiamo recuperare il titolo
+      // Puliamo tutti i pending dell'utente con scheduleAt futuro che non hanno più un todo corrispondente
+      var snap = await getDocs(collection(db, 'notifiche_push'));
+      var tdIds = (JSON.parse(localStorage.getItem('ct_td')||'[]')).map(function(t){return "\u2705 C-Turni \u2014 "+t.tit;});
+      snap.forEach(async function(d){
+        var data=d.data();
+        if(data.uid===uid && data.title && data.title.startsWith('\u2705 C-Turni') && !data.inviata){
+          if(tdIds.indexOf(data.title)===-1) await deleteDoc(d.ref);
+        }
+      });
+    } catch(e){}
+  },
+
+  // ── Elimina documento agenda da Firestore ───────────────────
+  deleteAgenda: async function(id) {
+    var session = JSON.parse(localStorage.getItem('ct_session') || 'null');
+    var uid = session && session.userId;
+    if(!uid) return;
+    try { await deleteDoc(doc(db, 'utenti', uid, 'agenda', String(id))); } catch(e) { console.warn('deleteAgenda:', e.message); }
+    // Cancella notifiche_push pendenti per appuntamenti eliminati
+    try {
+      var snap = await getDocs(collection(db, 'notifiche_push'));
+      var agTitoli = (JSON.parse(localStorage.getItem('ct_ag')||'[]')).map(function(a){return '\uD83D\uDCC5 C-Turni \u2014 '+a.tit;});
+      snap.forEach(async function(d){
+        var data=d.data();
+        if(data.uid===uid && data.title && data.title.startsWith('\uD83D\uDCC5 C-Turni') && !data.inviata){
+          if(agTitoli.indexOf(data.title)===-1) await deleteDoc(d.ref);
+        }
+      });
+    } catch(e){}
+  },
+
+  // ── Todo condivisi con il reparto ───────────────────────────
+  saveTodoCondiviso: async function(item) {
+    var rep = _reparto();
+    if(!rep || rep.startsWith('privato_')) {
+      _toast('Devi essere in un reparto per condividere', 'err');
+      return;
+    }
+    if(!item || !item.id) return;
+    try {
+      await setDoc(doc(db, 'reparti', rep, 'todo_condivisi', String(item.id)), item);
+    } catch(e) {
+      console.warn('saveTodoCondiviso:', e.message);
+      _toast('Errore salvataggio todo condiviso: ' + e.message, 'err');
+    }
+  },
+  deleteTodoCondiviso: async function(id) {
+    var rep = _reparto();
+    if(!rep) return;
+    try { await deleteDoc(doc(db, 'reparti', rep, 'todo_condivisi', String(id))); } catch(e) { console.warn('deleteTodoCondiviso:', e.message); }
+  },
+
+  // ── Agenda condivisa con il reparto ─────────────────────────
+  saveAgendaCondivisa: async function(item) {
+    var rep = _reparto();
+    if(!rep || rep.startsWith('privato_')) {
+      _toast('Devi essere in un reparto per condividere', 'err');
+      return;
+    }
+    if(!item || !item.id) return;
+    try {
+      await setDoc(doc(db, 'reparti', rep, 'agenda_condivisa', String(item.id)), item);
+    } catch(e) {
+      console.warn('saveAgendaCondivisa:', e.message);
+      _toast('Errore salvataggio agenda condivisa: ' + e.message, 'err');
+    }
+  },
+  deleteAgendaCondivisa: async function(id) {
+    var rep = _reparto();
+    if(!rep) return;
+    try { await deleteDoc(doc(db, 'reparti', rep, 'agenda_condivisa', String(id))); } catch(e) { console.warn('deleteAgendaCondivisa:', e.message); }
+  },
+
+  // ── Orari preset reparto ─────────────────────────────────────
+  saveOrariPreset: async function(orari) {
+    var rep = _reparto();
+    if(!rep || !orari) return;
+    try { await setDoc(doc(db, 'reparti', rep, 'config', 'orari'), orari); } catch(e) { console.warn('saveOrariPreset:', e.message); }
+  },
+
+  // ── Salva profilo personale (ct_me) su Firestore ────────────
+  savePersonale: async function() {
+    var rep = _reparto();
+    if(!rep) return;
+    try {
+      var session = JSON.parse(localStorage.getItem('ct_session') || 'null');
+      var me = JSON.parse(localStorage.getItem('ct_me') || 'null');
+      if(!me || !session) return;
+      var docId = session.userId.replace(/[@.]/g,'_');
+      await setDoc(doc(db, 'reparti', rep, 'personale', docId), me);
+    } catch(e) { console.warn('savePersonale:', e.message); }
+  },
+
+  // ── Salva persona aggiuntiva (ct_p) su Firestore ────────────
+  savePersona: async function() {
+    var rep = _reparto();
+    if(!rep) return;
+    try {
+      var arr = JSON.parse(localStorage.getItem('ct_p') || '[]');
+      for(var i=0; i<arr.length; i++) {
+        var p = arr[i];
+        if(!p.id) continue;
+        await setDoc(doc(db, 'reparti', rep, 'persone', String(p.id)), p);
+      }
+    } catch(e) { console.warn('savePersona:', e.message); }
+  },
+
+  // ── Salva array utenti (ct_users) su Firestore ──────────────
+  saveUsers: async function(usersArr) {
+    var rep = _reparto();
+    if(!rep || !usersArr) return;
+    try {
+      var arr = typeof usersArr === 'string' ? JSON.parse(usersArr) : usersArr;
+      for(var i=0; i<arr.length; i++) {
+        var u = arr[i];
+        if(!u.email) continue;
+        var docId = u.uid || u.email.replace(/[@.]/g,'_');
+        await setDoc(doc(db, 'reparti', rep, 'utenti', docId), u);
+      }
+    } catch(e) { console.warn('saveUsers:', e.message); _toast('Errore sync utenti', 'err'); }
+  },
+
+  // ── Aggiorna stato singolo utente su Firestore ───────────────
+  aggiornaStatoUtente: async function(uid, stato) {
+    var rep = _reparto();
+    if(!rep || !uid) return;
+    try {
+      // Trova il docId corretto (uid o email_sanitized)
+      var U = JSON.parse(localStorage.getItem('ct_users') || '[]');
+      var u = U.find(function(x){ return x.uid === uid || String(x.id) === String(uid); });
+      var docId = (u && u.uid) ? u.uid : (u && u.email ? u.email.replace(/[@.]/g,'_') : uid);
+      await setDoc(doc(db, 'reparti', rep, 'utenti', docId), { stato: stato }, { merge: true });
+      // Aggiorna anche il profilo globale utente
+      if(u && u.uid) {
+        await setDoc(doc(db, 'utenti', u.uid), { stato: stato }, { merge: true });
+      }
+    } catch(e) { console.warn('aggiornaStatoUtente:', e.message); throw e; }
+  },
+
+  // ── Elimina turni di mesi specifici da Firebase (usato da import Excel Sostituisci) ──
+  deleteTurniMesi: async function(mesiArr) {
+    try {
+      var rep = _reparto();
+      if(!rep) return;
+      var snap = await getDocs(collection(db, 'reparti', rep, 'turni'));
+      var batch = [];
+      snap.forEach(function(d){
+        var t = d.data();
+        if(t.data && mesiArr.indexOf(t.data.substring(0,7)) !== -1) {
+          batch.push(deleteDoc(doc(db, 'reparti', rep, 'turni', d.id)));
+        }
+      });
+      await Promise.all(batch);
+    } catch(e){ console.warn('deleteTurniMesi:', e.message); }
+  },
+
+  // ── Migra turni personali (ferie/licenze) al nuovo reparto ──
+  migraTurniPersonali: async function(vecchioReparto, nuovoReparto, uid) {
+    try {
+      var oggi = (function(){var d=new Date();return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);})();
+      var T = JSON.parse(localStorage.getItem('ct_t') || '[]');
+      var nuovoRep = (nuovoReparto||'').toLowerCase().replace(/\s+/g,'_');
+      var _tipiPers = ['riposo','ferie','recupero','licenza','permesso','937','104','ls','fest'];
+      var personali = T.filter(function(t){
+        // Fallback per turni vecchi senza categoria_evento: usa il tipo
+        var isPersonale = t.categoria_evento === 'personale' ||
+          (!t.categoria_evento && _tipiPers.indexOf(t.tipo) !== -1);
+        return isPersonale && t.data >= oggi &&
+               (!uid || String(t.pid) === String(uid) || t.uid === uid);
+      });
+      for(var i=0; i<personali.length; i++){
+        var t = personali[i];
+        t.reparto_id = nuovoReparto;
+        if(nuovoRep && !nuovoRep.startsWith('privato_')) {
+          await setDoc(doc(db, 'reparti', nuovoRep, 'turni', String(t.id)), t);
+        }
+      }
+      // Aggiorna localStorage
+      T.forEach(function(t){
+        if(t.categoria_evento==='personale'&&t.data>=oggi&&(!uid||String(t.pid)===String(uid)||t.uid===uid))
+          t.reparto_id=nuovoReparto;
+      });
+      localStorage.setItem('ct_t', JSON.stringify(T));
+    } catch(e){ console.warn('migraTurniPersonali:', e.message); }
+  },
+
+  // ── Elimina turni di servizio di un utente da un reparto ────
+  eliminaTurniServizioReparto: async function(reparto, uid) {
+    try {
+      var oggi = (function(){var d=new Date();return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);})();
+      var rep = (reparto||'').toLowerCase().replace(/\s+/g,'_');
+      var _tipiPers = ['riposo','ferie','recupero','licenza','permesso','937','104','ls','fest'];
+      var _isServizio = function(t){ return t.categoria_evento === 'servizio' || (!t.categoria_evento && _tipiPers.indexOf(t.tipo) === -1); };
+      if(rep && !rep.startsWith('privato_')) {
+        var snap = await getDocs(collection(db, 'reparti', rep, 'turni'));
+        var batch = [];
+        snap.forEach(function(d){
+          var t = d.data();
+          if(_isServizio(t) && t.data >= oggi) {
+            if(!uid || String(t.pid) === String(uid) || t.uid === uid) {
+              batch.push(deleteDoc(doc(db, 'reparti', rep, 'turni', d.id)));
+            }
+          }
+        });
+        await Promise.all(batch);
+      }
+      // Aggiorna localStorage
+      var T = JSON.parse(localStorage.getItem('ct_t') || '[]');
+      T = T.filter(function(t){
+        if(_isServizio(t) && t.data >= oggi) {
+          if(!uid || String(t.pid) === String(uid) || t.uid === uid) return false;
+        }
+        return true;
+      });
+      localStorage.setItem('ct_t', JSON.stringify(T));
+    } catch(e){ console.warn('eliminaTurniServizioReparto:', e.message); }
+  },
+
+  // ── Chiamato da AuthModule.logout ───────────────────────────
+
+  // ── Cancella tutti i dati di un utente da Firestore ─────────
+  // Usato da resetAll('all') e da cancellazione account
+  deleteUserData: async function(uid, rep) {
+    var ops = [];
+    try {
+      // 1. Documento utente principale
+      ops.push(deleteDoc(doc(db, 'utenti', uid)));
+      // 2. Sub-collections personali (todo, agenda)
+      var todoSnap = await getDocs(collection(db, 'utenti', uid, 'todo'));
+      todoSnap.forEach(function(d){ ops.push(deleteDoc(doc(db, 'utenti', uid, 'todo', d.id))); });
+      var agSnap = await getDocs(collection(db, 'utenti', uid, 'agenda'));
+      agSnap.forEach(function(d){ ops.push(deleteDoc(doc(db, 'utenti', uid, 'agenda', d.id))); });
+      // 3. Profilo nel reparto
+      if(rep) {
+        ops.push(deleteDoc(doc(db, 'reparti', rep, 'utenti', uid)));
+        ops.push(deleteDoc(doc(db, 'reparti', rep, 'personale', uid)));
+        // 4. Turni dell'utente nel reparto
+        var turniSnap = await getDocs(collection(db, 'reparti', rep, 'turni'));
+        turniSnap.forEach(function(d){
+          var t = d.data();
+          if(t.uid === uid || t.userId === uid) ops.push(deleteDoc(doc(db, 'reparti', rep, 'turni', d.id)));
+        });
+      }
+      await Promise.all(ops);
+      console.log('[C-Turni] deleteUserData completato per uid:', uid);
+    } catch(e) { console.warn('deleteUserData:', e.message); }
+  },
+
+  // ── Carica profilo utente da Firestore ──────────────────────
+
+  getUserProfile: async function(uid) {
+    try {
+      var _to = function() { return new Promise(function(_,r){ setTimeout(function(){ r(new Error('timeout')); }, 5000); }); };
+      var snap = await Promise.race([ window._fbGetDoc(window._fbDoc(db, 'utenti', uid)), _to() ]);
+      if(snap.exists()) return snap.data();
+      var rep = _reparto();
+      if(rep) {
+        var snap2 = await Promise.race([ window._fbGetDoc(window._fbDoc(db, 'reparti', rep, 'utenti', uid)), _to() ]);
+        if(snap2.exists()) return snap2.data();
+      }
+      return null;
+    } catch(e) { console.warn('getUserProfile:', e.message); return null; }
+  },
+
+
+
+  // ── Salva profilo utente su Firestore ───────────────────────
+
+  saveUserProfile: async function(uid, profile, reparto) {
+
+    try {
+
+      // Salva in /utenti/{uid} (globale)
+
+      await window._fbSetDoc(window._fbDoc(db, 'utenti', uid), profile);
+
+      // Salva anche in /reparti/{reparto}/utenti/{uid}
+
+      if(reparto) {
+
+        var rep = reparto.toLowerCase().replace(/\s+/g,'_');
+
+        await window._fbSetDoc(window._fbDoc(db, 'reparti', rep, 'utenti', uid), profile);
+
+      }
+
+    } catch(e) { console.warn('saveUserProfile:', e.message); }
+
+  },
+
+  // ── Elimina utente da reparto (usato da Comandante in Gestione Membri) ──
+  deleteUserFromReparto: async function(uid, repId) {
+    try {
+      if(repId) {
+        var rep = repId.toLowerCase().replace(/\s+/g,'_');
+        await window._fbDeleteDoc(window._fbDoc(db, 'reparti', rep, 'utenti', uid));
+      }
+      // Aggiorna stato su /utenti/{uid} senza eliminare l'account
+      try { await window._fbSetDoc(window._fbDoc(db, 'utenti', uid), { stato:'rejected', reparto:'' }, { merge:true }); } catch(e2){}
+    } catch(e) { console.warn('deleteUserFromReparto:', e.message); }
+  },
+
+
+
+  // ── Carica utenti di un reparto ─────────────────────────────
+
+  getUsersByReparto: async function(reparto) {
+
+    try {
+
+      var rep = reparto.toLowerCase().replace(/\s+/g,'_');
+
+      var snap = await window._fbGetDocs(window._fbCollection(db, 'reparti', rep, 'utenti'));
+
+      var arr = [];
+
+      snap.forEach(function(d){ arr.push(d.data()); });
+
+      return arr;
+
+    } catch(e) { console.warn('getUsersByReparto:', e.message); return []; }
+
+  },
+
+
+
+  // ── Collega persona Excel all'utente Firebase ────────────────
+
+  linkPersonaToUser: async function(uid, personaId, personaNome) {
+
+    try {
+
+      var session = JSON.parse(localStorage.getItem('ct_session')||'null');
+
+      if(!session) return;
+
+      var rep = session.reparto.toLowerCase().replace(/\s+/g,'_');
+
+      await window._fbSetDoc(window._fbDoc(db, 'reparti', rep, 'link_utenti', uid),
+
+        { uid: uid, personaId: String(personaId), personaNome: personaNome,
+
+          aggiornatoIl: new Date().toISOString() });
+
+    } catch(e) { console.warn('linkPersonaToUser:', e.message); }
+
+  },
+
+
+  // ── FCM: richiedi permesso e salva token ───────────────────
+  initFCM: async function() {
+    if(!messaging) { console.warn('[FCM] messaging non inizializzato'); return; }
+    try {
+      var perm = Notification.permission;
+      console.log('[FCM] Permesso notifiche:', perm);
+      if(perm === 'denied') { console.warn('[FCM] Permesso negato dall\'utente'); return; }
+      if(perm !== 'granted') {
+        perm = await Notification.requestPermission();
+        if(perm !== 'granted') { console.warn('[FCM] Permesso non concesso:', perm); return; }
+      }
+      // Usa il SW FCM esterno
+      var swReg = await navigator.serviceWorker.getRegistration('/C-Turni/');
+      if(!swReg) {
+        console.log('[FCM] SW non trovato, registro...');
+        swReg = await navigator.serviceWorker.register('/C-Turni/firebase-messaging-sw.js', { scope: '/C-Turni/' });
+        await navigator.serviceWorker.ready;
+      }
+      console.log('[FCM] SW registrato:', swReg.scope);
+      var token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg });
+      if(!token) { console.warn('[FCM] Token non ottenuto — verifica VAPID_KEY e SW'); return; }
+      console.log('[FCM] Token ottenuto:', token.substring(0,20)+'...');
+      // Salva token su Firestore
+      var session = JSON.parse(localStorage.getItem('ct_session') || 'null');
+      if(session && session.userId) {
+        var uid = session.userId;
+        // Salva token in array (multi-device) — usa arrayUnion per non duplicare
+        await setDoc(doc(db, 'utenti', uid), {
+          fcmToken: token,
+          fcmTokens: arrayUnion(token),
+          fcmAggiornato: new Date().toISOString()
+        }, { merge: true });
+        var rep = _reparto();
+        if(rep) {
+          await setDoc(doc(db, 'reparti', rep, 'utenti', uid), {
+            fcmToken: token,
+            fcmTokens: arrayUnion(token),
+            fcmAggiornato: new Date().toISOString()
+          }, { merge: true });
+        }
+        localStorage.setItem('ct_fcm_token', token);
+        console.log('[FCM] Token salvato su Firestore per uid:', uid);
+      } else {
+        console.warn('[FCM] Nessuna sessione attiva — token non salvato');
+      }
+      // Messaggi in foreground → toast + notifica nativa
+      onMessage(messaging, function(payload) {
+        var title = (payload.notification && payload.notification.title) || 'C-Turni';
+        var body  = (payload.notification && payload.notification.body)  || '';
+        if(typeof window.toast === 'function') window.toast('\uD83D\uDD14 ' + title + (body ? ': ' + body : ''), 'ok');
+        if(Notification.permission === 'granted') new Notification(title, { body: body, icon: _NOTIF_ICON });
+      });
+    } catch(e) { console.error('[FCM] Errore initFCM:', e.message, e); }
+  },
+
+  // ── FCM: schedula push scrivendo su Firestore (letta da Cloud Function/Extension) ──
+  schedulePush: async function(uid, title, body, scheduleISO) {
+    try {
+      // ID deterministico: evita duplicati per stesso utente+titolo+giorno
+      var dayKey = (scheduleISO || new Date().toISOString()).slice(0, 10);
+      var docId = uid + '_' + btoa(encodeURIComponent(title)).replace(/[^a-zA-Z0-9]/g,'').slice(0,20) + '_' + dayKey;
+      await setDoc(doc(db, 'notifiche_push', docId), {
+        uid: uid, title: title, body: body,
+        scheduleAt: scheduleISO || new Date().toISOString(),
+        inviata: false, creatoIl: new Date().toISOString()
+      });
+    } catch(e) { console.warn('schedulePush:', e.message); }
+  },
+
+  // ── Salva notifica nel profilo utente su Firestore ───────────
+  saveNotifica: async function(uid, notif) {
+    if(!uid || !notif) return;
+    try {
+      await setDoc(doc(db, 'utenti', uid, 'notifiche', String(notif.id)), notif);
+    } catch(e) { console.warn('saveNotifica:', e.message); }
+  },
+
+  // ── Elimina notifica da Firestore ────────────────────────────
+  deleteNotifica: async function(nid) {
+    try {
+      var session = JSON.parse(localStorage.getItem('ct_session')||'null');
+      if(!session || !session.userId) return;
+      var uid = session.userId;
+      var sidStr = String(nid);
+      // Prova prima con l'id diretto
+      try { await deleteDoc(doc(db, 'utenti', uid, 'notifiche', sidStr)); } catch(e){}
+      // Cerca anche per campo id numerico (notifiche salvate con id float)
+      var snap = await getDocs(collection(db, 'utenti', uid, 'notifiche'));
+      snap.forEach(async function(d){
+        if(String(d.data().id) === sidStr) {
+          try { await deleteDoc(d.ref); } catch(e){}
+        }
+      });
+    } catch(e) { console.warn('deleteNotifica:', e.message); }
+  },
+
+  // ── Segna notifica come letta su Firestore ───────────────────
+  segnaNotificaLetta: async function(nid) {
+    try {
+      var session = JSON.parse(localStorage.getItem('ct_session')||'null');
+      if(!session || !session.userId) return;
+      var uid = session.userId;
+      var sidStr = String(nid);
+      // Prova con id diretto
+      try { await setDoc(doc(db, 'utenti', uid, 'notifiche', sidStr), {letta:true}, {merge:true}); } catch(e){}
+      // Cerca anche per campo id
+      var snap = await getDocs(collection(db, 'utenti', uid, 'notifiche'));
+      snap.forEach(async function(d){
+        if(String(d.data().id) === sidStr) {
+          try { await setDoc(d.ref, {letta:true}, {merge:true}); } catch(e){}
+        }
+      });
+    } catch(e) { console.warn('segnaNotificaLetta:', e.message); }
+  },
+
+  signOut: function() {
+    _stopListeners();
+    signOut(auth).catch(function(e){ console.warn('signOut:', e.message); });
+  }
+
+};
+
+// ── Notifica app che FirebaseModule e' pronto ────────────────────
+window.dispatchEvent(new CustomEvent('firebase-ready'));
+console.log('[Firebase] FirebaseModule pronto.');
