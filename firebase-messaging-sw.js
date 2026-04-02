@@ -1,4 +1,4 @@
-// firebase-messaging-sw.js — C-Turni v4.0
+// firebase-messaging-sw.js — C-Turni v4.0 FIX DEFINITIVO
 importScripts('https://www.gstatic.com/firebasejs/11.8.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/11.8.1/firebase-messaging-compat.js');
 
@@ -13,45 +13,23 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-var ICON    = '/C-Turni/icon-192.png';
-var APP_URL = 'https://policeman-sdk.github.io/C-Turni/';
-
-messaging.onBackgroundMessage(function(payload) {
-  var title = (payload.notification && payload.notification.title) || 'C-Turni';
-  var body  = (payload.notification && payload.notification.body)  || '';
-
-  // FIX: tag fisso per tipo — aggiorna la notifica invece di impilarne una nuova
-  var tag = (payload.data && payload.data.tag) ||
-            (payload.notification && payload.notification.tag) ||
-            'c-turni-alert';
-
-  return self.registration.showNotification(title, {
-    body:             body,
-    icon:             ICON,
-    badge:            ICON,
-    tag:              tag,
-    renotify:         true,
-    requireInteraction: false,
-    vibrate:          [200, 100, 200],
-    data:             { url: APP_URL }
-  });
-});
+// NOTA BENE: Nessun 'onBackgroundMessage' con 'showNotification' 
+// per evitare conflitti e notifiche doppie. Firebase ci pensa da solo!
 
 self.addEventListener('notificationclick', function(e) {
   e.notification.close();
-  var url = (e.notification.data && e.notification.data.url) || APP_URL;
+  var url = (e.notification.data && e.notification.data.url) || 'https://policeman-sdk.github.io/C-Turni/';
+  
   e.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(cs) {
       for (var i = 0; i < cs.length; i++) {
-        if (cs[i].url.indexOf('policeman-sdk.github.io') !== -1 && cs[i].focus) {
+        if (cs[i].url.includes('policeman-sdk') && 'focus' in cs[i]) {
           return cs[i].focus();
         }
       }
-      return clients.openWindow(url);
+      if (clients.openWindow) {
+        return clients.openWindow(url);
+      }
     })
   );
 });
-
-self.addEventListener('install',  function(e) { e.waitUntil(self.skipWaiting()); });
-self.addEventListener('activate', function(e) { e.waitUntil(clients.claim()); });
-
