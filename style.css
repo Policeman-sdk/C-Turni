@@ -42,7 +42,159 @@ body{height:100%;overflow-x:hidden;font-size:var(--fs-base)}
 
 
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-  background:var(--bg);color:var(--txt);min-height:100vh}
+  background:var(--bg);color:var(--txt);min-height:100vh;
+  transition:background-color 0.3s cubic-bezier(0.4,0,0.2,1),color 0.3s cubic-bezier(0.4,0,0.2,1)}
+/* M3 Expressive: card e superfici con transizione tema fluida */
+.card,.pcard,.sc,.ac,.twrap,.sett-card,.mbox,.ag-item,.todo-item,.tess-card,
+[class*="wdg-wrap"],[class*="m3-list"],.hdr,.bottom-bar,.btn{
+  transition:all 0.3s cubic-bezier(0.4,0,0.2,1)
+}
+
+/* ── TEMA ARMA (dark) — Blu Notte M3 ── */
+[data-theme=""],
+:root {
+  --bg:#0A111A;--bg2:#0f1a27;--card:#121E2D;--card2:#172436;
+  --border:rgba(255,255,255,.09);--border2:rgba(255,255,255,.15);
+  --txt:#e8edf5;--txt2:#8faac8;--txt3:#4a6a8a;
+  --blue:#5b9fff;--blue2:#90c2ff;
+  --red:#D32F2F;--gold:#ffd166;--green:#06d6a0;
+  --teal:#00e5ff;--orange:#ff9f43;--purple:#c084fc;
+}
+
+/* ── TEMA FORESTALE (dark) — Grigio-Verde M3 ── */
+[data-theme=forestale]{
+  --bg:#1c1f1c;--bg2:#252825;--card:#2e332e;--card2:#363b36;
+  --border:rgba(255,255,255,.1);--border2:rgba(255,255,255,.18);
+  --txt:#e8ede8;--txt2:#9ab89a;--txt3:#607860;
+  --blue:#2E7D32;--blue2:#4CAF50;--red:#c0392b;
+  --gold:#8fbe6a;--green:#6abf69;--teal:#80b080;--orange:#c9a84c;--purple:#8aaa8a;
+}
+[data-theme=forestale] .hdr{
+  background:linear-gradient(135deg,#1c2b1c,#2e402e)!important;
+  border-bottom:2px solid #2E7D32!important
+}
+[data-theme=forestale] .btn-p{background:linear-gradient(135deg,#1b5e20,#2E7D32)!important}
+
+/* ── TEMA FORESTALE GIORNO — Grigio-Verde chiaro M3 ── */
+[data-theme=forestale-light]{
+  --bg:#E8EFE9;--bg2:#d8e8da;--card:#F0F4F1;--card2:#e4ede6;
+  --border:rgba(0,0,0,.1);--border2:rgba(0,0,0,.18);
+  --txt:#0a1f0a;--txt2:#2e6030;--txt3:#507850;
+  --blue:#2E7D32;--blue2:#388e3c;--red:#b71c1c;
+  --gold:#558b2f;--green:#33691e;--teal:#1b5e20;--orange:#827717;--purple:#4a7a4a;
+  --hdr-bg:rgba(232,239,233,.95)
+}
+[data-theme=forestale-light] .hdr{
+  background:var(--hdr-bg)!important;
+  border-bottom:2px solid #2E7D32!important
+}
+[data-theme=forestale-light] .btn-p{background:linear-gradient(135deg,#2E7D32,#388e3c)!important}
+
+/* ── PALETTE MATERIAL 3 — ARMA & FORESTALE (Task 2) ── */
+
+/* --- TEMA ARMA (Giorno) --- */
+:root[data-theme="arma"] {
+  --bg: #0A111A;
+  --bg2: #0F1926;
+  --card: #121E2D;
+  --card2: #18283C;
+  --border: rgba(255, 255, 255, 0.08);
+  --border2: rgba(255, 255, 255, 0.15);
+  --txt: #FFFFFF;
+  --txt2: #A5B4C7;
+  --blue: #1976D2;
+  --red: #D32F2F;
+  --surface-tint: rgba(25, 118, 210, 0.1);
+}
+
+/* --- TEMA ARMA (Notte) --- */
+:root[data-theme="arma-dark"] {
+  --bg: #04070A;
+  --bg2: #080D14;
+  --card: #0A1119;
+  --card2: #0F1824;
+  --border: rgba(255, 255, 255, 0.05);
+  --border2: rgba(255, 255, 255, 0.1);
+  --txt: #E3E3E3;
+  --txt2: #7A899C;
+  --blue: #1565C0;
+  --red: #B71C1C;
+}
+
+/* --- TEMA FORESTALE (Giorno) --- */
+:root[data-theme="forestale"] {
+  --bg: #E8EFE9;
+  --bg2: #DCE5DD;
+  --card: #F0F4F1;
+  --card2: #FFFFFF;
+  --border: rgba(0, 0, 0, 0.08);
+  --border2: rgba(0, 0, 0, 0.15);
+  --txt: #1A211C;
+  --txt2: #4A554D;
+  --blue: #2E7D32;
+  --red: #C62828;
+  --surface-tint: rgba(46, 125, 50, 0.08);
+}
+
+/* --- TEMA FORESTALE (Notte) --- */
+/* --- TEMA FORESTALE (Notte) --- */
+:root[data-theme="forestale-dark"] {
+  --bg: #0E1410 !important;
+  --bg2: #141C16 !important;
+  --card: #18241B !important;
+  --card2: #1D2E22 !important;
+  --border: rgba(255, 255, 255, 0.08) !important;
+  --border2: rgba(255, 255, 255, 0.12) !important;
+  --txt: #E1EBE3 !important;
+  --txt2: #8E9C91 !important;
+  --blue: #4CAF50 !important;
+  --surface-tint: rgba(76, 175, 80, 0.05) !important;
+}
+
+/* ── BACKGROUND ANIMATI CONTESTUALI (TASK 7) ── */
+@keyframes focusGradient {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+/* Mattina / ML */
+.focus-bg-mattina {
+  background: linear-gradient(135deg, #ff9a56, #ffcc80, #87ceeb, #4fc3f7) !important;
+  background-size: 300% 300% !important;
+  animation: focusGradient 10s ease infinite !important;
+  opacity: 0.18 !important;
+}
+/* Pomeriggio / PL */
+.focus-bg-pomeriggio {
+  background: linear-gradient(135deg, #ff6b35, #f7931e, #9b59b6, #6c3483) !important;
+  background-size: 300% 300% !important;
+  animation: focusGradient 10s ease infinite !important;
+  opacity: 0.18 !important;
+}
+/* Notte */
+.focus-bg-notte {
+  background: linear-gradient(135deg, #0d1b2a, #1a237e, #283593, #0d1b2a) !important;
+  background-size: 300% 300% !important;
+  animation: focusGradient 12s ease infinite !important;
+  opacity: 0.25 !important;
+}
+/* Riposo / Ferie */
+.focus-bg-riposo {
+  background: linear-gradient(135deg, #00bcd4, #26c6da, #80cbc4, #a5d6a7) !important;
+  background-size: 300% 300% !important;
+  animation: focusGradient 14s ease infinite !important;
+  opacity: 0.15 !important;
+}
+
+/* ── METEO ANIMATO (TASK 7) ── */
+@keyframes spinSun { 100% { transform: rotate(360deg); } }
+@keyframes fallRain { 0% { transform: translateY(-4px); opacity: 0; } 50% { opacity: 1; } 100% { transform: translateY(8px); opacity: 0; } }
+@keyframes floatCloud { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(4px); } }
+.meteo-sun-rays { transform-origin: center; animation: spinSun 8s linear infinite; }
+.meteo-rain-drop { animation: fallRain 1s linear infinite; }
+.meteo-rain-drop:nth-child(2) { animation-delay: 0.3s; }
+.meteo-rain-drop:nth-child(3) { animation-delay: 0.6s; }
+.meteo-cloud { animation: floatCloud 4s ease-in-out infinite; }
 #noti{position:fixed;top:14px;right:12px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
 .noti{background:var(--card);border:1px solid var(--border2);border-left:4px solid var(--blue);
   border-radius:var(--radius-sm);padding:12px 16px;min-width:220px;max-width:280px;

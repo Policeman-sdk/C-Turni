@@ -569,13 +569,15 @@
       </div>
       <!-- END TESSERINO NUOVO -->
 
-      <!-- ═══ MODALITÀ FOCUS ═══ -->
-      <div id="widget-focus" style="margin:0 0 14px;display:none">
-        <div id="focus-card" style="border-radius:20px;padding:16px 18px;position:relative;overflow:hidden;transition:background .4s,border .4s">
-          <!-- Sfondo dinamico -->
-          <div id="focus-bg" style="position:absolute;inset:0;opacity:.12;pointer-events:none;transition:background .4s"></div>
+<h1 class="ptit">Dashboard</h1><p class="psub">Panoramica generale</p>
+
+      <!-- ═══ MODALITÀ FOCUS — sotto il titolo Dashboard ═══ -->
+      <div id="widget-focus" style="margin:0 0 16px;display:none">
+        <div id="focus-card" style="border-radius:20px;padding:16px 18px;position:relative;overflow:hidden;border:1.5px solid rgba(255,255,255,.1)">
+          <!-- Sfondo animato contestuale -->
+          <div id="focus-bg" style="position:absolute;inset:0;pointer-events:none;border-radius:20px;background-size:200% 200%;animation:focusGradient 8s ease infinite"></div>
           <!-- Header -->
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;position:relative">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;position:relative;z-index:1">
             <div style="display:flex;align-items:center;gap:8px">
               <div id="focus-ico" style="font-size:22px;line-height:1">⚡</div>
               <div>
@@ -586,21 +588,19 @@
             <div id="focus-badge" style="padding:4px 10px;border-radius:20px;font-size:10px;font-weight:800;letter-spacing:.5px"></div>
           </div>
           <!-- Hero info -->
-          <div id="focus-hero" style="position:relative;margin-bottom:10px"></div>
+          <div id="focus-hero" style="position:relative;z-index:1;margin-bottom:10px"></div>
           <!-- To-Do rapidi -->
-          <div id="focus-todo-wrap" style="display:none">
+          <div id="focus-todo-wrap" style="display:none;position:relative;z-index:1">
             <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;opacity:.6;margin-bottom:6px">To-Do in sospeso</div>
             <div id="focus-todo-list"></div>
           </div>
           <!-- Smart Snooze -->
-          <div id="focus-snooze-wrap" style="display:none;margin-top:8px;padding:8px 12px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12)">
+          <div id="focus-snooze-wrap" style="display:none;margin-top:8px;padding:8px 12px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);position:relative;z-index:1">
             <div style="font-size:11px;font-weight:700;opacity:.8;margin-bottom:6px">🕒 Smart Snooze</div>
             <div id="focus-snooze-list"></div>
           </div>
         </div>
       </div>
-
-<h1 class="ptit">Dashboard</h1><p class="psub">Panoramica generale</p>
 
         <input type="file" id="xi" accept=".xlsx,.xls" onchange="importXL(this.files[0])" style="display:none">
         <!-- BARRA ORGANIZZA DASHBOARD -->
@@ -1183,6 +1183,18 @@
             </div>
           </div>
 
+          <!-- Comportamento tema -->
+          <div style="border-top:1px solid var(--border);padding:14px 18px">
+            <div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:8px">&#9881; Comportamento tema</div>
+            <select id="sel-tema-comportamento" class="fc" style="font-size:13px"
+              onchange="setTemaComportamento(this.value)">
+              <option value="manuale">&#9998; Manuale — scelgo io</option>
+              <option value="sistema">&#128241; Segui sistema (chiaro/scuro)</option>
+              <option value="orario">&#127769; Segui orario (scuro 19:00–07:00)</option>
+            </select>
+            <div id="tema-comp-desc" style="font-size:11px;color:var(--txt2);margin-top:6px"></div>
+          </div>
+
           <!-- Slider dimensione testo -->
           <div style="border-top:1px solid var(--border);padding:14px 18px">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
@@ -1207,6 +1219,25 @@
         <!-- ═══ ISOLA 3: DASHBOARD E NOTIFICHE ═══ -->
         <div class="m3-list-group-title">&#128202; Dashboard e Notifiche</div>
         <div class="m3-list-group">
+
+          <!-- Toggle Modalità Focus -->
+          <div class="m3-row">
+            <div class="m3-row-ico" style="background:rgba(91,159,255,.12)">&#9889;</div>
+            <div class="m3-row-body"><div class="m3-row-title">Modalità Focus</div><div class="m3-row-sub">Widget dinamico in Dashboard</div></div>
+            <label class="m3-switch">
+              <input type="checkbox" id="tog-focus" onchange="(function(v){var s=lsG('ct_prefs',{});s.focus=v;lsS('ct_prefs',s);if(typeof aggiornaFocus==='function')aggiornaFocus();})(this.checked)">
+              <span class="m3-switch-track"></span>
+            </label>
+          </div>
+          <!-- Toggle Smart Snooze -->
+          <div class="m3-row" style="border-top:1px solid var(--border)">
+            <div class="m3-row-ico" style="background:rgba(255,159,67,.12)">&#128336;</div>
+            <div class="m3-row-body"><div class="m3-row-title">Smart Snooze</div><div class="m3-row-sub">Suggerisce rinvio to-do scaduti</div></div>
+            <label class="m3-switch">
+              <input type="checkbox" id="tog-snooze" onchange="(function(v){var s=lsG('ct_prefs',{});s.snooze=v;lsS('ct_prefs',s);if(typeof aggiornaFocus==='function')aggiornaFocus();})(this.checked)">
+              <span class="m3-switch-track"></span>
+            </label>
+          </div>
 
           <!-- Toggle Tesserino ATE -->
           <div class="m3-row">
@@ -1684,11 +1715,13 @@
   <div class="mbod" style="display:grid;gap:12px">
     <input type="hidden" id="mmt-id">
     <div class="fg" style="margin-bottom:0"><label>Tipo turno</label>
-      <select class="fc app-fc" id="mmt-tipo">
-        <option value="mattina">&#127749; Mattina 06:00&#8211;14:00</option>
-        <option value="pomeriggio">&#9728;&#65039; Pomeriggio 14:00&#8211;22:00</option>
-        <option value="notte">&#127769; Notte 22:00&#8211;06:00</option>
-        <option value="sera">&#127769; Sera 20:00&#8211;24:00</option>
+      <select class="fc app-fc" id="mmt-tipo" onchange="aggOraMod(this.value)">
+        <option value="mattina">&#127749; Mattina</option>
+        <option value="ml">&#127749; Mattina Lunga (ML)</option>
+        <option value="pomeriggio">&#9728;&#65039; Pomeriggio</option>
+        <option value="pl">&#9728;&#65039; Pomeriggio Lungo (PL)</option>
+        <option value="notte">&#127769; Notte</option>
+        <option value="sera">&#127769; Sera</option>
         <option value="riposo">&#128164; Riposo</option>
         <option value="recupero">&#128260; Recupero Riposo</option>
         <option value="ferie">&#127958; Ferie/Licenza</option>
@@ -1701,7 +1734,7 @@
         <option value="corso">&#127891; Corso</option>
         <option value="esame">&#128221; Esame</option>
       </select></div>
-    <div class="fg" style="margin-bottom:0"><label>Orario personalizzato</label><input type="text" class="fc app-fc" id="mmt-orario" placeholder="Es. 07:00&#8211;15:00"></div>
+    <div class="fg" style="margin-bottom:0"><label>Orario <span id="mmt-orario-hint" style="font-size:10px;color:var(--txt2);font-weight:400"></span></label><input type="text" class="fc app-fc" id="mmt-orario" placeholder="Es. 07:00&#8211;15:00"></div>
     <div class="fg" style="margin-bottom:0"><label>Note</label><input type="text" class="fc app-fc" id="mmt-note" placeholder="Note..."></div>
   </div>
   <div class="mfoo">

@@ -1197,9 +1197,9 @@ function aggiornaFocus(){
   var focusEl = document.getElementById('widget-focus');
   if(!focusEl) return;
 
-  // Mostra solo sulla home
-  var onHome = (typeof _pgCurrent !== 'undefined' ? _pgCurrent : lsG('ct_pg','dash')) === 'dash';
-  if(!me || !onHome){ focusEl.style.display='none'; return; }
+  // Rispetta toggle impostazioni — widget è dentro pag-dash, il routing lo nasconde già
+  var prefs = lsG('ct_prefs', {});
+  if(!me || prefs.focus === false){ focusEl.style.display='none'; return; }
   focusEl.style.display='block';
 
   var now = new Date();
@@ -1263,7 +1263,19 @@ function aggiornaFocus(){
   var card = document.getElementById('focus-card');
   var bgEl = document.getElementById('focus-bg');
   if(card){ card.style.background = c.bg; card.style.border = '1.5px solid ' + c.border; }
-  if(bgEl){ bgEl.style.background = c.bgGlow; bgEl.style.opacity = '1'; }
+  if(bgEl){
+    // Rimuovi classi precedenti
+    bgEl.className = '';
+    // Applica classe animata contestuale basata sul turno reale
+    var bgClass = 'focus-bg-riposo';
+    if(mioTurno){
+      var t = mioTurno.tipo;
+      if(t==='mattina'||t==='ml') bgClass = 'focus-bg-mattina';
+      else if(t==='pomeriggio'||t==='pl') bgClass = 'focus-bg-pomeriggio';
+      else if(t==='notte'||t==='sera') bgClass = 'focus-bg-notte';
+    }
+    bgEl.className = bgClass;
+  }
 
   document.getElementById('focus-ico').textContent = c.ico;
   document.getElementById('focus-fase').textContent = c.fase;
@@ -1351,7 +1363,8 @@ function aggiornaFocus(){
   var snWrap = document.getElementById('focus-snooze-wrap');
   var snList = document.getElementById('focus-snooze-list');
   if(snWrap && snList){
-    var scaduti = lsG('ct_td',[]).filter(function(t){ return !t.done && t.data && t.data < oggi; });
+    var snoozeEnabled = lsG('ct_prefs',{}).snooze !== false;
+    var scaduti = snoozeEnabled ? lsG('ct_td',[]).filter(function(t){ return !t.done && t.data && t.data < oggi; }) : [];
     if(scaduti.length){
       snWrap.style.display = 'block';
       snList.innerHTML = scaduti.slice(0,3).map(function(t){
@@ -1741,7 +1754,10 @@ function toggleTodo(id){
     }
   }
   lsS("ct_td",TD);
+  if(window.FirebaseModule) window.FirebaseModule.saveTodo(TD).catch(function(){});
   renderTodo();
+  if(typeof aggiornaFocus === 'function') aggiornaFocus();
+  if(typeof aggiornaWidget === 'function') aggiornaWidget();
   // Effetti al completamento
   if(!wasDone) {
     _playUiSound('complete');
@@ -1910,10 +1926,11 @@ var _TEMI_CFG={
   "light":    {nome:"Giorno",     emoji:"☀️",   desc:"Chiaro e nitido",            bg:"linear-gradient(135deg,#f0f4f8,#dce8f0)", colors:["#f0f4f8","#ffffff","#1565c0","#0d1b2a"]},
   "auto":     {nome:"Auto",       emoji:"📱", desc:"Segue le impostazioni del sistema", bg:"linear-gradient(135deg,#1a2a3a,#2a3a4a)", colors:["#0d1b2a","#f0f4f8","#2979ff","#c8a84b"]},
   "rosa":     {nome:"Rosa",       emoji:"🌸", desc:"Rosa vivo  petali animati",  bg:"linear-gradient(135deg,#2a0a18,#8a2040,#c0304a)", colors:["#2a0a18","#4a1828","#ff4d80","#fff0f4"]},
-  "forestale":{nome:"Forestale+", emoji:"🚗", desc:"Grigio-verde uniforme + radar", bg:"linear-gradient(135deg,#1c2b1c,#2e402e,#3d4a3d)", colors:["#1c1f1c","#2e332e","#6abf69","#e8ede8"]},
+  "forestale":{nome:"Forestale",  emoji:"🌲", desc:"Grigio-verde uniforme", bg:"linear-gradient(135deg,#1c2b1c,#2e402e,#3d4a3d)", colors:["#1c1f1c","#2e332e","#6abf69","#e8ede8"]},
+  "forestale-dark":{nome:"Forestale Notte", emoji:"🌲", desc:"Verde scuro profondo", bg:"linear-gradient(135deg,#0E1410,#18241B,#1D2E22)", colors:["#0E1410","#18241B","#4CAF50","#E1EBE3"]},
   "carabinieri":{nome:"Carabinieri",emoji:"⚜️", desc:"Divisa ufficiale  stemma",  bg:"linear-gradient(135deg,#080b10,#111828,#080b10)", colors:["#080b10","#111828","#c8a96e","#ffffff"]},
   "rosa-light":      {nome:"Rosa Giorno",       emoji:"🌸", desc:"Rosa chiaro  bianco e rosa",       bg:"linear-gradient(135deg,#fff5f8,#ffe0ea,#fcc0d0)", colors:["#fff5f8","#ffffff","#d63070","#3a0a18"]},
-  "forestale-light": {nome:"Forestale+ Giorno", emoji:"🚗", desc:"Verde chiaro  bianco e verde",     bg:"linear-gradient(135deg,#f4f8f4,#e4ede4,#c8e0c8)", colors:["#f4f8f4","#ffffff","#2e7d32","#0a1f0a"]},
+  "forestale-light": {nome:"Forestale Giorno",  emoji:"🌲", desc:"Verde chiaro  bianco e verde",     bg:"linear-gradient(135deg,#f4f8f4,#e4ede4,#c8e0c8)", colors:["#f4f8f4","#ffffff","#2e7d32","#0a1f0a"]},
   "carabinieri-light":{nome:"Carabinieri Giorno",emoji:"⚜️",  desc:"Avorio e bordeaux  elegante",      bg:"linear-gradient(135deg,#f5f5f0,#eaeae0,#d8ccc0)", colors:["#f5f5f0","#ffffff","#8b0000","#1a1208"]}
 };
 function setTema(t){
@@ -2002,11 +2019,13 @@ function caricaTema(){
   }
   // Listener per temi custom con variante chiara/scura
   _aggiornaAutoCustomTema(t);
+  // Applica comportamento tema salvato
+  _applicaComportamentoTema();
 }
 
 // Mappa tema base → variante chiara
-var _TEMA_DARK_MAP  = {'':'', 'rosa':'rosa', 'forestale':'forestale', 'carabinieri':'carabinieri'};
-var _TEMA_LIGHT_MAP = {'':'light', 'rosa':'rosa-light', 'forestale':'forestale-light', 'carabinieri':'carabinieri-light'};
+var _TEMA_DARK_MAP  = {'':'', 'rosa':'rosa', 'forestale':'forestale-dark', 'carabinieri':'carabinieri', 'arma':'arma-dark'};
+var _TEMA_LIGHT_MAP = {'':'light', 'rosa':'rosa-light', 'forestale':'forestale', 'carabinieri':'carabinieri-light', 'arma':'arma'};
 
 function _aggiornaAutoCustomTema(t){
   if(!window.matchMedia) return;
@@ -2054,6 +2073,77 @@ function togTheme(){
   if(btn)btn.innerHTML=isDay?"&#9728;":"&#127769;";
 }
 
+
+// ── COMPORTAMENTO TEMA ──────────────────────────────────────────
+// Mappa base → dark/light per comportamento sistema/orario
+var _TEMA_BASE_MAP = {
+  '':'', 'rosa':'rosa', 'forestale':'forestale', 'carabinieri':'carabinieri', 'arma':'arma',
+  'light':'', 'rosa-light':'rosa', 'forestale-light':'forestale', 'forestale-dark':'forestale',
+  'carabinieri-light':'carabinieri', 'arma-dark':'arma'
+};
+function _getTemaBase(t){
+  var b = (t||'').replace('-light','');
+  return _TEMA_BASE_MAP.hasOwnProperty(b) ? b : '';
+}
+function _applyTemaVariant(isDark){
+  var t = lsG('ct_tema','');
+  var base = _getTemaBase(t);
+  if(!base) return; // tema senza variante (es. notte base, light base)
+  var next = isDark ? _TEMA_DARK_MAP[base] : _TEMA_LIGHT_MAP[base];
+  if(next === undefined) return;
+  if(next !== t){
+    if(next) document.documentElement.setAttribute('data-theme', next);
+    else document.documentElement.removeAttribute('data-theme');
+    aggThemeColor(next);
+  }
+}
+function _applicaComportamentoTema(){
+  var comp = lsG('ct_tema_comp','manuale');
+  // MANUALE ha priorità assoluta — non sovrascrivere mai il tema scelto dall'utente
+  if(comp === 'manuale'){
+    // Aggiorna solo la UI del selettore, poi esci
+    var sel = document.getElementById('sel-tema-comportamento');
+    if(sel) sel.value = 'manuale';
+    var desc = document.getElementById('tema-comp-desc');
+    if(desc) desc.textContent = 'Scegli il tema manualmente dalle card sopra.';
+    // Rimuovi eventuali listener automatici attivi
+    if(window._temaCompMQ){ try{ window._temaCompMQ.removeEventListener('change', window._temaCompFn); }catch(e){} window._temaCompMQ = null; }
+    if(window._temaCompTimer){ clearInterval(window._temaCompTimer); window._temaCompTimer = null; }
+    return;
+  }
+  // Aggiorna UI select
+  var sel = document.getElementById('sel-tema-comportamento');
+  if(sel) sel.value = comp;
+  var desc = document.getElementById('tema-comp-desc');
+  var descs = {
+    sistema:'Il tema cambia automaticamente con le impostazioni del dispositivo.',
+    orario:'Tema scuro dalle 19:00 alle 07:00, chiaro il resto del giorno.'
+  };
+  if(desc) desc.textContent = descs[comp]||'';
+  // Rimuovi listener precedenti
+  if(window._temaCompMQ){ try{ window._temaCompMQ.removeEventListener('change', window._temaCompFn); }catch(e){} }
+  if(window._temaCompTimer){ clearInterval(window._temaCompTimer); window._temaCompTimer=null; }
+  if(comp === 'sistema' && window.matchMedia){
+    var mq = window.matchMedia('(prefers-color-scheme: dark)');
+    window._temaCompMQ = mq;
+    window._temaCompFn = function(e){ _applyTemaVariant(e.matches); };
+    mq.addEventListener('change', window._temaCompFn);
+    _applyTemaVariant(mq.matches);
+  } else if(comp === 'orario'){
+    var _checkOrario = function(){
+      var h = new Date().getHours();
+      _applyTemaVariant(h >= 19 || h < 7);
+    };
+    _checkOrario();
+    window._temaCompTimer = setInterval(_checkOrario, 60000);
+  }
+}
+function setTemaComportamento(comp){
+  lsS('ct_tema_comp', comp);
+  _applicaComportamentoTema();
+  var labels = {manuale:'Manuale', sistema:'Segui sistema', orario:'Segui orario'};
+  toast('Comportamento tema: '+(labels[comp]||comp), 'ok');
+}
 
 // ══════════════════════════════════════════════════════
 // 4. FAB — Floating Action Button
@@ -2465,8 +2555,15 @@ function delAgenda(id){
 }
 
 function rinviaAgenda(id){
+  // Cerca prima in agenda personale, poi in condivisa
   var AG=lsG("ct_ag",[]);
   var a=AG.find(function(x){return x.id===id;});
+  var isCondivisa = false;
+  if(!a){
+    var AGc=lsG("ct_ag_condivisa",[]);
+    a=AGc.find(function(x){return x.id===id;});
+    isCondivisa = !!a;
+  }
   if(!a)return;
   var html=
     '<div id="m-rinvia-ag" style="display:flex;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99999;align-items:flex-end;justify-content:center;backdrop-filter:blur(3px)">'
@@ -2474,21 +2571,35 @@ function rinviaAgenda(id){
     +'<div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 14px"></div>'
     +'<div style="font-size:15px;font-weight:800;margin-bottom:14px">&#128336; Rinvia: '+a.tit+'</div>'
     +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'
-    +'<button class="btn btn-g btn-sm" onclick="_rinviaAgRel('+id+',1)">+1 giorno</button>'
-    +'<button class="btn btn-g btn-sm" onclick="_rinviaAgRel('+id+',3)">+3 giorni</button>'
-    +'<button class="btn btn-g btn-sm" onclick="_rinviaAgRel('+id+',7)">+1 settimana</button>'
+    +'<button class="btn btn-g btn-sm" onclick="_rinviaAgRel('+id+',1,'+isCondivisa+')">+1 giorno</button>'
+    +'<button class="btn btn-g btn-sm" onclick="_rinviaAgRel('+id+',3,'+isCondivisa+')">+3 giorni</button>'
+    +'<button class="btn btn-g btn-sm" onclick="_rinviaAgRel('+id+',7,'+isCondivisa+')">+1 settimana</button>'
     +'</div>'
     +'<div class="fg"><label>Oppure scegli data e ora</label>'
     +'<input type="date" id="ra-data" class="fc" value="'+a.data+'" style="margin-bottom:8px">'
     +'<input type="time" id="ra-ora" class="fc" value="'+(a.ora||'')+'"></div>'
     +'<div style="display:flex;gap:10px;margin-top:4px">'
     +'<button class="btn btn-g" style="flex:1" onclick="document.getElementById(\'m-rinvia-ag\').remove()">Annulla</button>'
-    +'<button class="btn btn-p" style="flex:1" onclick="_rinviaAgData('+id+')">&#128336; Rinvia</button>'
+    +'<button class="btn btn-p" style="flex:1" onclick="_rinviaAgData('+id+','+isCondivisa+')">&#128336; Rinvia</button>'
     +'</div></div></div>';
   document.body.insertAdjacentHTML('beforeend',html);
 }
 
-function _rinviaAgRel(id,giorni){
+function _rinviaAgRel(id,giorni,isCondivisa){
+  if(isCondivisa){
+    var AGc=lsG("ct_ag_condivisa",[]);
+    var a=AGc.find(function(x){return x.id===id;});
+    if(!a)return;
+    var base=new Date(a.data+'T00:00:00');
+    base.setDate(base.getDate()+giorni);
+    a.data=base.toISOString().slice(0,10);
+    lsS("ct_ag_condivisa",AGc);
+    if(window.FirebaseModule)window.FirebaseModule.saveAgendaCondivisa(a).catch(function(){});
+    var bs=document.getElementById('m-rinvia-ag');if(bs)bs.remove();
+    renderAgendaPg();
+    toast("&#128336; Rinviato al "+a.data,"ok");
+    return;
+  }
   var AG=lsG("ct_ag",[]);
   var a=AG.find(function(x){return x.id===id;});
   if(!a)return;
@@ -2502,13 +2613,26 @@ function _rinviaAgRel(id,giorni){
   if(a.notif>0)schedulaNotifAgenda(a);
   var bs=document.getElementById('m-rinvia-ag');if(bs)bs.remove();
   renderAgenda();
+  if(typeof renderAgendaPg==='function') renderAgendaPg();
   toast("&#128336; Rinviato al "+a.data,"ok");
 }
 
-function _rinviaAgData(id){
+function _rinviaAgData(id,isCondivisa){
   var data=(document.getElementById('ra-data')||{}).value;
   var ora=(document.getElementById('ra-ora')||{}).value||'';
   if(!data){toast("Scegli una data","err");return;}
+  if(isCondivisa){
+    var AGc=lsG("ct_ag_condivisa",[]);
+    var a=AGc.find(function(x){return x.id===id;});
+    if(!a)return;
+    a.data=data;if(ora)a.ora=ora;
+    lsS("ct_ag_condivisa",AGc);
+    if(window.FirebaseModule)window.FirebaseModule.saveAgendaCondivisa(a).catch(function(){});
+    var bs=document.getElementById('m-rinvia-ag');if(bs)bs.remove();
+    renderAgendaPg();
+    toast("&#128336; Rinviato al "+data+(ora?" ore "+ora:""),"ok");
+    return;
+  }
   var AG=lsG("ct_ag",[]);
   var a=AG.find(function(x){return x.id===id;});
   if(!a)return;
@@ -2520,8 +2644,52 @@ function _rinviaAgData(id){
   if(a.notif>0)schedulaNotifAgenda(a);
   var bs=document.getElementById('m-rinvia-ag');if(bs)bs.remove();
   renderAgenda();
+  if(typeof renderAgendaPg==='function') renderAgendaPg();
   toast("&#128336; Rinviato al "+data+(ora?" ore "+ora:""),"ok");
 }
+// ── Dettaglio appuntamento personale ──────────────────────────
+function apriDettaglioAgenda(id){
+  var AG = lsG('ct_ag',[]);
+  var a = AG.find(function(x){ return x.id===id; });
+  if(!a) return;
+  var mN=["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
+  var d = new Date(a.data+'T00:00:00');
+  var html = '<div id="m-det-ag" style="display:flex;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99999;align-items:flex-end;justify-content:center;backdrop-filter:blur(3px)">'
+    +'<div style="background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:520px;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 32px rgba(0,0,0,.4)">'
+    +'<div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 16px"></div>'
+    +'<div style="font-size:18px;font-weight:900;margin-bottom:4px">'+a.tit+'</div>'
+    +'<div style="font-size:13px;color:var(--txt2);margin-bottom:14px">&#128197; '+d.getDate()+' '+mN[d.getMonth()]+' '+d.getFullYear()+(a.ora?' &nbsp;&#128336; '+a.ora:'')+'</div>'
+    +(a.luogo?'<div style="font-size:12px;color:var(--txt2);margin-bottom:8px">&#128205; '+a.luogo+'</div>':'')
+    +(a.note?'<div style="font-size:12px;color:var(--txt2);margin-bottom:14px;padding:10px;background:var(--bg2);border-radius:10px">'+a.note+'</div>':'')
+    +'<div style="display:flex;gap:10px;margin-top:8px">'
+    +'<button class="btn btn-g" style="flex:1" onclick="document.getElementById(\'m-det-ag\').remove()">Chiudi</button>'
+    +'<button class="btn btn-p" style="flex:1" onclick="document.getElementById(\'m-det-ag\').remove();rinviaAgenda('+id+')">&#128336; Rinvia</button>'
+    +'<button class="btn btn-d btn-sm" style="width:auto" onclick="document.getElementById(\'m-det-ag\').remove();delAgenda('+id+')">&#128465;</button>'
+    +'</div></div></div>';
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+function apriDettaglioAgendaCondivisa(id){
+  var AG = lsG('ct_ag_condivisa',[]);
+  var a = AG.find(function(x){ return x.id===id; });
+  if(!a) return;
+  var mN=["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
+  var d = new Date(a.data+'T00:00:00');
+  var html = '<div id="m-det-ag-cond" style="display:flex;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99999;align-items:flex-end;justify-content:center;backdrop-filter:blur(3px)">'
+    +'<div style="background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:520px;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 32px rgba(0,0,0,.4)">'
+    +'<div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 16px"></div>'
+    +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--blue);margin-bottom:6px">&#128101; Impegno Reparto</div>'
+    +'<div style="font-size:18px;font-weight:900;margin-bottom:4px">'+a.tit+'</div>'
+    +'<div style="font-size:13px;color:var(--txt2);margin-bottom:14px">&#128197; '+d.getDate()+' '+mN[d.getMonth()]+' '+d.getFullYear()+(a.ora?' &nbsp;&#128336; '+a.ora:'')+'</div>'
+    +(a.luogo?'<div style="font-size:12px;color:var(--txt2);margin-bottom:8px">&#128205; '+a.luogo+'</div>':'')
+    +(a.note?'<div style="font-size:12px;color:var(--txt2);margin-bottom:8px;padding:10px;background:var(--bg2);border-radius:10px">'+a.note+'</div>':'')
+    +(a.autore?'<div style="font-size:11px;color:var(--txt3);margin-bottom:14px">Aggiunto da: '+a.autore+'</div>':'')
+    +'<div style="display:flex;gap:10px;margin-top:8px">'
+    +'<button class="btn btn-g" style="flex:1" onclick="document.getElementById(\'m-det-ag-cond\').remove()">Chiudi</button>'
+    +'<button class="btn btn-p" style="flex:1" onclick="document.getElementById(\'m-det-ag-cond\').remove();rinviaAgenda('+id+')">&#128336; Rinvia</button>'
+    +'</div></div></div>';
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
 // Filter chips agenda — struttura pronta, logica filtro da implementare
 function filtraAgenda(tipo, btn) {
   document.querySelectorAll('.ag-chip').forEach(function(c){ c.classList.remove('on'); });
@@ -2576,23 +2744,34 @@ function renderAgendaPg(filtro) {
       var d = new Date(a.data+"T00:00:00");
       var ora = a.ora ? '<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128336; '+a.ora+'</div>' : '';
       var luogo = a.luogo ? '<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128205; '+a.luogo+'</div>' : '';
-      return '<div class="ag-item">'+
+      var note = a.note ? '<div style="font-size:11px;color:var(--txt2);margin-top:2px;font-style:italic">'+a.note+'</div>' : '';
+      return '<div class="ag-item" onclick="apriDettaglioAgenda('+a.id+')" style="cursor:pointer">'+
         '<div class="ag-item-date"><div class="ag-item-date-day">'+d.getDate()+'</div><div class="ag-item-date-mon">'+mN[d.getMonth()]+'</div></div>'+
-        '<div class="ag-item-body"><div class="ag-item-title">'+a.tit+'</div>'+ora+luogo+'</div>'+
+        '<div class="ag-item-body"><div class="ag-item-title">'+a.tit+'</div>'+ora+luogo+note+'</div>'+
         '<div class="ag-item-snooze"><button class="ag-snooze-btn" onclick="event.stopPropagation();rinviaAgenda('+a.id+')" title="Rinvia">&#128336;</button></div>'+
-        '<button onclick="delAgenda('+a.id+')" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:16px;appearance:none;-webkit-appearance:none;padding:10px 12px 10px 0;align-self:flex-start">&#128465;</button>'+
+        '<button onclick="event.stopPropagation();delAgenda('+a.id+')" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:16px;appearance:none;-webkit-appearance:none;padding:10px 12px 10px 0;align-self:flex-start">&#128465;</button>'+
       '</div>';
     }).join('');
   }
-  // Condivisi
-  var TD = lsG('ct_td_condivisi',[]);
+  // Condivisi reparto — con dettagli completi e rinvia
+  var AGcond = lsG('ct_ag_condivisa',[]).filter(function(x){ return x.data >= oggi; });
   if(el2 && w2){
-    if(TD.length){ w2.style.display='block'; el2.innerHTML=TD.map(function(t){
-      return '<div class="ag-item" style="opacity:'+(t.done?.6:1)+'">'+
-        '<div class="ag-item-body"><div class="ag-item-title" style="'+(t.done?'text-decoration:line-through':'')+'">&#128101; '+t.tit+'</div></div>'+
-        '<button onclick="delTodoCondiviso('+t.id+')" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:16px;appearance:none;-webkit-appearance:none;padding:10px 12px">&#128465;</button>'+
-      '</div>';
-    }).join(''); } else { w2.style.display='none'; }
+    if(AGcond.length){
+      w2.style.display='block';
+      el2.innerHTML = AGcond.map(function(a){
+        var d = new Date(a.data+"T00:00:00");
+        var ora = a.ora ? '<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128336; '+a.ora+'</div>' : '';
+        var luogo = a.luogo ? '<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128205; '+a.luogo+'</div>' : '';
+        var note = a.note ? '<div style="font-size:11px;color:var(--txt2);margin-top:2px;font-style:italic">'+a.note+'</div>' : '';
+        var autore = a.autore ? '<div style="font-size:10px;color:var(--txt3);margin-top:2px">&#128100; '+a.autore+'</div>' : '';
+        return '<div class="ag-item" onclick="apriDettaglioAgendaCondivisa('+a.id+')" style="cursor:pointer">'+
+          '<div class="ag-item-date"><div class="ag-item-date-day">'+d.getDate()+'</div><div class="ag-item-date-mon">'+mN[d.getMonth()]+'</div></div>'+
+          '<div class="ag-item-body"><div class="ag-item-title">&#128101; '+a.tit+'</div>'+ora+luogo+note+autore+'</div>'+
+          '<div class="ag-item-snooze"><button class="ag-snooze-btn" onclick="event.stopPropagation();rinviaAgenda('+a.id+')" title="Rinvia">&#128336;</button></div>'+
+          '<button onclick="event.stopPropagation();delAgendaCondivisa('+a.id+')" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:16px;appearance:none;-webkit-appearance:none;padding:10px 12px 10px 0;align-self:flex-start">&#128465;</button>'+
+        '</div>';
+      }).join('');
+    } else { w2.style.display='none'; }
   }
   // Aggiorna bento box
   _aggiornaBentoAg();
@@ -4336,6 +4515,13 @@ function aggUI(){
     if(togSuoni) togSuoni.checked = prefs.suoni !== false; // default ON
     var togConfetti = document.getElementById('tog-confetti');
     if(togConfetti) togConfetti.checked = prefs.confetti !== false; // default ON
+    // Toggles Focus e Snooze
+    var togFocus = document.getElementById('tog-focus');
+    if(togFocus) togFocus.checked = prefs.focus !== false; // default ON
+    var togSnooze = document.getElementById('tog-snooze');
+    if(togSnooze) togSnooze.checked = prefs.snooze !== false; // default ON
+    // Comportamento tema
+    _applicaComportamentoTema();
 
   }catch(e){
     console.warn("aggUI err", e);
@@ -4427,9 +4613,12 @@ function renderOggi(){
 function renderTurni(){
   var tb=document.getElementById("tb-turni");
   var arr=lsG("ct_t",[]).slice().sort(function(a,b){return b.data.localeCompare(a.data);});
-  if(!arr.length){tb.innerHTML="<tr><td colspan=\"6\" class=\"empty\">Nessun turno inserito</td></tr>";return;}
+  if(!arr.length){tb.innerHTML="<tr><td colspan=\"7\" class=\"empty\">Nessun turno inserito</td></tr>";return;}
+  var P=lsG("ct_p",[]);
   tb.innerHTML=arr.map(function(t){
-    return "<tr><td><strong>"+t.pnome+"</strong></td><td>"+fmtD(t.data)+"</td>"+
+    var p=P.find(function(x){return x.id===t.pid;});
+    var grado=p&&p.grado?'<span style="font-size:10px;color:var(--txt2)">'+p.grado+'</span>':'';
+    return "<tr class=\"t-"+t.tipo+"\"><td><strong>"+t.pnome+"</strong><br>"+grado+"</td><td>"+fmtD(t.data)+"</td>"+
       "<td>"+tbdg(t.tipo,t.codice)+"</td><td style=\"font-size:11px\">"+t.orario+"</td>"+
       "<td style=\"font-size:11px;color:var(--txt2)\">"+(t.codice||"")+"</td>"+
       "<td><button class=\"btn btn-d btn-xs\" onclick=\"delT("+t.id+")\">"+"&#128465;</button></td></tr>";
@@ -4840,22 +5029,34 @@ function mostraGiorno(ds){
   var mgTurnoEl = document.getElementById('mg-turno');
   if(mgTurnoEl){
     var colMap={
-      mattina:'#ff6d00',pomeriggio:'#e65100',notte:'#7c4dff',sera:'#5c35cc',
+      mattina:'#ff6d00',ml:'#ff8c00',pomeriggio:'#e65100',pl:'#d84000',
+      notte:'#7c4dff',sera:'#5c35cc',
       riposo:'#00c853',ferie:'#00bcd4',recupero:'#d4af37',permesso:'#e91e63',
       corso:'#2979ff',licenza:'#00bcd4','937':'#00bcd4','104':'#9c27b0',
       ls:'#607d8b',fest:'#ff9800',esame:'#795548',custom:'#546e7a'
     };
     var tipoLabel={
-      mattina:'Mattina',pomeriggio:'Pomeriggio',notte:'Notte',sera:'Sera',
+      mattina:'Mattina',ml:'Mattina Lunga',pomeriggio:'Pomeriggio',pl:'Pomeriggio Lungo',
+      notte:'Notte',sera:'Sera',
       riposo:'Riposo',ferie:'Ferie',recupero:'Recupero',permesso:'Permesso',
       corso:'Corso',licenza:'Lic. Studio','937':'Lic. 937','104':'Art. 104',
       ls:'Donaz./Malattia',fest:'Festivo',esame:'Esame',custom:'Custom'
     };
 
-    // Raggruppa per tipo
+    // Raggruppa per tipo — normalizza usando codice con mapping ESATTO (===)
+    var _codiceToTipoExact = {
+      'M':'mattina', 'ML':'ml', 'P':'pomeriggio', 'PL':'pl',
+      'N':'notte', 'S':'sera', 'R':'riposo', 'RR':'recupero',
+      'L':'ferie', 'LICSTU':'licenza', 'ESAME':'esame', 'CORSO':'corso',
+      'FEST':'fest', '104':'104', 'LS':'ls', '937':'937'
+    };
     var gruppi = {};
     T.forEach(function(t){
+      // Usa il codice per determinare il tipo esatto (ML ≠ M, PL ≠ P)
       var tipo = t.tipo || 'altro';
+      if(t.codice && _codiceToTipoExact[t.codice] !== undefined){
+        tipo = _codiceToTipoExact[t.codice];
+      }
       if(!gruppi[tipo]) gruppi[tipo] = [];
       gruppi[tipo].push(t);
     });
@@ -4870,7 +5071,13 @@ function mostraGiorno(ds){
         var col = colMap[tipo] || 'var(--blue)';
         var lbl = tipoLabel[tipo] || tipo;
         var persone = gruppi[tipo];
+        // Orario: usa quello salvato, oppure il preset per quel tipo esatto
         var orario = persone[0].orario && persone[0].orario.indexOf('-')>0 ? persone[0].orario : '';
+        if(!orario && typeof getOrariPreset === 'function'){
+          var _op = getOrariPreset();
+          var _pk = tipo; // tipo è già normalizzato (ml, pl, mattina, ecc.)
+          if(_op[_pk]) orario = _op[_pk].in + '-' + _op[_pk].out;
+        }
 
         html += '<div style="background:'+col+'18;border:1.5px solid '+col+'44;border-radius:16px;padding:12px 14px;margin-bottom:10px">';
         // Header tipo
@@ -6349,6 +6556,10 @@ function vaiBN(pg, idx) {
   _aggFabVisibility(pg);
   if(typeof window._updateDinoVisibility === 'function') window._updateDinoVisibility();
 
+  if(pg==='dash'){
+    renderDash();
+    if(typeof aggiornaFocus === 'function') aggiornaFocus();
+  }
   if(pg==='imp'){
     aggUI();
     caricaSaldoFerie();
@@ -6462,6 +6673,8 @@ function salvaProfilo(){
       }
     }
     lsS('ct_p',P);
+    // Sync foto istantanea in tutte le sezioni
+    if(typeof _syncAvaAllSections === 'function') _syncAvaAllSections(me.ava||null);
     // Salva su Firebase (foto inclusa)
     if(window.FirebaseModule){
       var session=lsG('ct_session',null);
@@ -6478,6 +6691,39 @@ function salvaProfilo(){
   if(fEl&&fEl.files[0])comprImg(fEl.files[0],function(d){me.ava=d;fine();});
   else if(window._tempAva){me.ava=window._tempAva;window._tempAva=null;fine();}
   else fine();
+}
+
+// Aggiorna foto in tutte le sezioni immediatamente
+function _syncAvaAllSections(avaUrl){
+  // Header avatar
+  var hAva = document.getElementById('h-ava');
+  if(hAva){
+    if(avaUrl){ hAva.style.backgroundImage='url('+avaUrl+')'; hAva.style.backgroundSize='cover'; hAva.style.backgroundPosition='center'; hAva.innerHTML=''; }
+    else { hAva.style.backgroundImage=''; hAva.innerHTML='&#128100;'; }
+  }
+  // Impostazioni avatar
+  var impAva = document.getElementById('imp-ava');
+  if(impAva){
+    if(avaUrl){ impAva.style.backgroundImage='url('+avaUrl+')'; impAva.style.backgroundSize='cover'; impAva.style.backgroundPosition='center'; impAva.textContent=''; }
+    else { impAva.style.backgroundImage=''; impAva.textContent='👤'; }
+  }
+  // Profilo preview
+  var pfPrev = document.getElementById('pf-ava-prev');
+  if(pfPrev){
+    if(avaUrl){ pfPrev.style.backgroundImage='url('+avaUrl+')'; pfPrev.style.backgroundSize='cover'; pfPrev.style.backgroundPosition='center'; pfPrev.textContent=''; }
+    else { pfPrev.style.backgroundImage=''; pfPrev.textContent='👤'; }
+  }
+  // Tesserino
+  var tessAva = document.getElementById('tess-ava');
+  var tessPlaceholder = document.getElementById('tess-ava-placeholder');
+  if(tessAva && avaUrl){ tessAva.src=avaUrl; tessAva.style.display='block'; if(tessPlaceholder)tessPlaceholder.style.display='none'; }
+  else if(tessAva){ tessAva.style.display='none'; if(tessPlaceholder)tessPlaceholder.style.display=''; }
+  // Widget oggi avatar
+  var wAva = document.getElementById('w-ava');
+  if(wAva){
+    if(avaUrl){ wAva.style.backgroundImage='url('+avaUrl+')'; wAva.style.backgroundSize='cover'; wAva.style.backgroundPosition='center'; wAva.innerHTML=''; }
+    else { wAva.style.backgroundImage=''; }
+  }
 }
 /* ============================================================
    MEGA-PATCH JS  c_turni_v3.1.0
@@ -6504,11 +6750,40 @@ var METEO_CITTA = {
   'benevento': [41.1297, 14.7829], 'cosenza': [39.3086, 16.2519], 'catanzaro': [38.9100, 16.5874]
 };
 
+// Icone meteo animate con SVG (Task 1)
+var _SVG_SOLE = '<svg width="40" height="40" viewBox="0 0 100 100"><circle cx="50" cy="50" r="20" fill="#FFD166"/><g class="meteo-sun-rays" stroke="#FFD166" stroke-width="6" stroke-linecap="round"><line x1="50" y1="10" x2="50" y2="20"/><line x1="50" y1="80" x2="50" y2="90"/><line x1="10" y1="50" x2="20" y2="50"/><line x1="80" y1="50" x2="90" y2="50"/><line x1="22" y1="22" x2="29" y2="29"/><line x1="78" y1="78" x2="71" y2="71"/><line x1="22" y1="78" x2="29" y2="71"/><line x1="78" y1="22" x2="71" y2="29"/></g></svg>';
+var _SVG_PIOGGIA = '<svg width="40" height="40" viewBox="0 0 100 100"><path class="meteo-cloud" d="M30,60 a15,15 0 0,1 10,-28 a20,20 0 0,1 35,10 a15,15 0 0,1 -5,28 z" fill="#8faac8"/><g stroke="#5b9fff" stroke-width="4" stroke-linecap="round"><line class="meteo-rain-drop" x1="40" y1="65" x2="35" y2="80"/><line class="meteo-rain-drop" x1="55" y1="65" x2="50" y2="80"/><line class="meteo-rain-drop" x1="70" y1="65" x2="65" y2="80"/></g></svg>';
+var _SVG_NUVOLOSO = '<svg width="40" height="40" viewBox="0 0 100 100"><path class="meteo-cloud" d="M20,65 a18,18 0 0,1 12,-32 a22,22 0 0,1 40,8 a18,18 0 0,1 -4,24 z" fill="#8faac8"/></svg>';
+var _SVG_NEVE = '<svg width="40" height="40" viewBox="0 0 100 100"><path class="meteo-cloud" d="M25,55 a15,15 0 0,1 10,-28 a20,20 0 0,1 35,10 a15,15 0 0,1 -5,28 z" fill="#c8d8e8"/><g fill="#fff" stroke="#a0b8d0" stroke-width="1"><circle class="meteo-rain-drop" cx="38" cy="72" r="3"/><circle class="meteo-rain-drop" cx="52" cy="72" r="3"/><circle class="meteo-rain-drop" cx="66" cy="72" r="3"/></g></svg>';
+var _SVG_TEMPORALE = '<svg width="40" height="40" viewBox="0 0 100 100"><path class="meteo-cloud" d="M20,55 a18,18 0 0,1 12,-32 a22,22 0 0,1 40,8 a18,18 0 0,1 -4,24 z" fill="#546e7a"/><polygon class="meteo-rain-drop" points="52,58 44,75 50,75 46,90 60,68 53,68 58,58" fill="#FFD166"/></svg>';
+var _SVG_NEBBIA = '<svg width="40" height="40" viewBox="0 0 100 100"><g class="meteo-cloud" stroke="#8faac8" stroke-width="5" stroke-linecap="round"><line x1="15" y1="40" x2="85" y2="40"/><line x1="20" y1="55" x2="80" y2="55"/><line x1="25" y1="70" x2="75" y2="70"/></g></svg>';
+var _SVG_PARZIALE = '<svg width="40" height="40" viewBox="0 0 100 100"><circle cx="35" cy="42" r="14" fill="#FFD166"/><g stroke="#FFD166" stroke-width="4" stroke-linecap="round"><line x1="35" y1="20" x2="35" y2="26"/><line x1="35" y1="58" x2="35" y2="64"/><line x1="13" y1="42" x2="19" y2="42"/><line x1="51" y1="42" x2="57" y2="42"/></g><path class="meteo-cloud" d="M38,62 a12,12 0 0,1 8,-22 a16,16 0 0,1 28,8 a12,12 0 0,1 -4,20 z" fill="#8faac8"/></svg>';
+
 var METEO_WMO = {
-  0:'☀️', 1:'🌤️', 2:'⛅', 3:'☁️', 45:'🌫️', 48:'🌫️',
-  51:'🌦️', 53:'🌦️', 55:'🌧️', 61:'🌧️', 63:'🌧️', 65:'🌊',
-  71:'🌨️', 73:'❄️', 75:'🌨️', 77:'🌨️', 80:'🌦️', 81:'🌧️',
-  82:'⛈️', 85:'❄️', 86:'❄️', 95:'⛈️', 96:'⛈️', 99:'🌩️'
+  0:  _SVG_SOLE,
+  1:  _SVG_PARZIALE,
+  2:  _SVG_NUVOLOSO,
+  3:  _SVG_NUVOLOSO,
+  45: _SVG_NEBBIA,
+  48: _SVG_NEBBIA,
+  51: _SVG_PIOGGIA,
+  53: _SVG_PIOGGIA,
+  55: _SVG_PIOGGIA,
+  61: _SVG_PIOGGIA,
+  63: _SVG_PIOGGIA,
+  65: _SVG_PIOGGIA,
+  71: _SVG_NEVE,
+  73: _SVG_NEVE,
+  75: _SVG_NEVE,
+  77: _SVG_NEVE,
+  80: _SVG_PIOGGIA,
+  81: _SVG_PIOGGIA,
+  82: _SVG_TEMPORALE,
+  85: _SVG_NEVE,
+  86: _SVG_NEVE,
+  95: _SVG_TEMPORALE,
+  96: _SVG_TEMPORALE,
+  99: _SVG_TEMPORALE
 };
 var METEO_DESC = {
   0:'Sereno', 1:'Quasi sereno', 2:'Parzialmente nuvoloso', 3:'Coperto',
@@ -6691,6 +6966,8 @@ function renderDash() {
   if (cfg.scadenze) renderWidgetScadenze();
   if (cfg.agenda)   renderWidgetAgenda();
   if (cfg.todo)     renderWidgetTodo();
+  // Modalità Focus — sempre ri-renderizzata quando si torna in Dashboard
+  if(typeof aggiornaFocus === 'function') aggiornaFocus();
   var map = {
     turno:"widget-oggi", prossimo:"widget-prossimo", 'turni-oggi':"widget-turni-oggi",
     meteo:"widget-meteo", alert:"widget-alert", scadenze:"widget-scadenze",
@@ -6790,7 +7067,8 @@ function renderWidgetMeteo(me){
 function _aggiornaUIMeteo(data) {
   var c = data.current;
   var wc = c.weather_code;
-  document.getElementById('wm-ico').innerHTML = METEO_WMO[wc] || '&#127777;';
+  var icoEl = document.getElementById('wm-ico');
+  if(icoEl) icoEl.innerHTML = METEO_WMO[wc] || '<span class="meteo-cloud">🌤️</span>';
   document.getElementById('wm-temp').textContent = Math.round(c.temperature_2m) + '°C';
   document.getElementById('wm-desc').textContent = METEO_DESC[wc] || '';
   document.getElementById('wm-umi').textContent = c.relative_humidity_2m;
@@ -7083,6 +7361,7 @@ function apriModTurno(id) {
   document.getElementById('mmt-tipo').value = t.tipo || 'mattina';
   document.getElementById('mmt-orario').value = t.orario || '';
   document.getElementById('mmt-note').value = t.note || '';
+  aggOraMod(t.tipo || 'mattina');
   openM('m-mod-turno');
 }
 
@@ -7103,6 +7382,18 @@ function salvaModTurno() {
   renderTurni(); aggiornaWidget(); renderDash(); renderOggi();
   if(typeof renderCal === 'function') renderCal();
   toast('Turno aggiornato', 'ok');
+}
+
+// Aggiorna hint orario nel modal modifica turno
+function aggOraMod(tipo) {
+  var o = getOrariPreset();
+  var k = tipo === 'ml' ? 'ml' : tipo === 'pl' ? 'pl' : tipo;
+  var preset = o[k];
+  var hint = document.getElementById('mmt-orario-hint');
+  if(hint) hint.textContent = preset ? '(preset: ' + preset.in + '–' + preset.out + ')' : '';
+  // Se l'orario è vuoto, precompila con il preset
+  var orEl = document.getElementById('mmt-orario');
+  if(orEl && !orEl.value && preset) orEl.value = preset.in + '-' + preset.out;
 }
 
 function eliminaTurnoMod() {
@@ -7818,7 +8109,7 @@ function _aggiornaPresetOra(){
   _PRESET_ORA.S  = o.sera       ? [o.sera.in,       o.sera.out]       : ['20:00','02:00'];
 }
 var _PRESET_TIPO = {
-    M:'mattina', ML:'mattina', P:'pomeriggio', PL:'pomeriggio', N:'notte',
+    M:'mattina', ML:'ml', P:'pomeriggio', PL:'pl', N:'notte',
     R:'riposo', RR:'recupero', L:'ferie', LICSTU:'licenza',
     ESAME:'corso', '104':'permesso', '937':'permesso',
     LS:'permesso', FEST:'permesso', CORSO:'corso'
@@ -7854,6 +8145,7 @@ function apriModificaTurnoGiorno(tid) {
     var dParts = t.data ? t.data.split('-') : [];
     var dataTit = dParts.length===3 ? dParts[2]+' '+mN[parseInt(dParts[1])-1] : t.data;
     document.querySelector('#m-mod-turno .mtit').innerHTML = '&#9998; ' + nomeTit + ' &mdash; ' + dataTit;
+    aggOraMod(t.tipo || 'mattina');
     openM('m-mod-turno');
 }
 
@@ -9174,11 +9466,11 @@ var AuthModule = (function() {
 
   // Costanti fisiche
   var GROUND_RATIO = 0.80;   // y del suolo come % dell'altezza canvas
-  var GRAVITY      = 0.55;
-  var JUMP_VY      = -15;
-  var BASE_SPEED   = 4.5;
-  var MAX_SPEED    = 16;
-  var ACCEL        = 0.0018;  // incremento velocità per frame
+  var GRAVITY      = 0.7;
+  var JUMP_VY      = -12;
+  var BASE_SPEED   = 4;
+  var MAX_SPEED    = 13;
+  var ACCEL        = 0.0015;  // incremento velocità per frame
 
   // Stato gioco
   var state = {};
@@ -9270,14 +9562,26 @@ var AuthModule = (function() {
       ctx.fillRect(0, 0, cw * speedPct, 2);
     }
 
-    // Dino
+    // Dino — flip orizzontale per farlo correre verso destra
+    ctx.save();
+    ctx.scale(-1, 1);
     ctx.font = DINO_W + 'px serif';
-    ctx.fillText('🦖', s.dx - DINO_W * 0.5, s.dy + DINO_H * 0.15);
+    ctx.fillText('🦖', -(s.dx + DINO_W * 0.5), s.dy + DINO_H * 0.15);
+    ctx.restore();
 
-    // Ostacoli
+    // Ostacoli a terra
     ctx.font = OBS_W + 'px serif';
     s.obstacles.forEach(function(o) {
-      ctx.fillText('🌵', o.x - OBS_W * 0.5, s.ground + OBS_H * 0.15);
+      if(o.flying){
+        // Pterodattilo volante
+        ctx.save();
+        ctx.scale(-1,1);
+        ctx.font = (OBS_W+4) + 'px serif';
+        ctx.fillText('🦅', -(o.x + OBS_W * 0.5), o.y);
+        ctx.restore();
+      } else {
+        ctx.fillText('🌵', o.x - OBS_W * 0.5, s.ground + OBS_H * 0.15);
+      }
     });
 
     // Schermata iniziale
@@ -9343,11 +9647,17 @@ var AuthModule = (function() {
       if (c.x < -30) c.x = cw + 30;
     });
 
-    // Spawn ostacoli
+    // Spawn ostacoli (cactus + pterodattilo dopo score 200)
     s.nextObs--;
     if (s.nextObs <= 0) {
-      s.obstacles.push({ x: cw + OBS_W });
-      // Intervallo casuale tra 55 e 110 frame, ridotto con la velocità
+      var canSpawnFlying = s.score > 200 && Math.random() < 0.3;
+      if(canSpawnFlying){
+        // Pterodattilo: vola a 2 altezze diverse
+        var flyH = s.ground - DINO_H * (Math.random() < 0.5 ? 1.8 : 3.2);
+        s.obstacles.push({ x: cw + OBS_W, flying: true, y: flyH });
+      } else {
+        s.obstacles.push({ x: cw + OBS_W, flying: false });
+      }
       var interval = Math.floor(55 + Math.random() * 55 - s.speed * 1.5);
       s.nextObs = Math.max(30, interval);
     }
@@ -9369,8 +9679,15 @@ var AuthModule = (function() {
       var o = s.obstacles[i];
       var oLeft  = o.x - OBS_W * (0.5 - margin);
       var oRight = o.x + OBS_W * (0.5 - margin);
-      var oTop   = s.ground - OBS_H * (1 - margin * 0.5);
-      if (dRight > oLeft && dLeft < oRight && dBot > oTop) {
+      var oTop, oBot;
+      if(o.flying){
+        oTop = o.y - (OBS_W+4) * 0.8;
+        oBot = o.y + (OBS_W+4) * 0.15;
+      } else {
+        oTop   = s.ground - OBS_H * (1 - margin * 0.5);
+        oBot   = s.ground + OBS_H * 0.15;
+      }
+      if (dRight > oLeft && dLeft < oRight && dBot > oTop && dTop < oBot) {
         gameOver();
         return;
       }
@@ -9391,6 +9708,49 @@ var AuthModule = (function() {
     // Aggiorna il display record
     var recEl = document.getElementById('dino-record');
     if (recEl) recEl.textContent = hi;
+
+    // Salva su Firebase e mostra leaderboard reparto
+    _dinoSaveScore(sc);
+  }
+
+  function _dinoSaveScore(sc) {
+    try {
+      var sess = lsG('ct_session', null);
+      var me = lsG('ct_me', null);
+      if(!sess || !sess.userId || !window.FirebaseModule) return;
+      var rep = (me && me.reparto) ? me.reparto : null;
+      if(!rep || rep.startsWith('privato_')) return;
+      var nome = me ? ((me.nome||'') + ' ' + (me.cognome||'')).trim() : 'Anonimo';
+      // Salva solo se è un nuovo record personale
+      window.FirebaseModule.saveDinoScore(sess.userId, nome, sc, rep)
+        .then(function(){
+          return window.FirebaseModule.getDinoLeaderboard(rep);
+        })
+        .then(function(top5){
+          if(!top5 || !top5.length) return;
+          _dinoShowLeaderboard(top5, sc);
+        })
+        .catch(function(){});
+    } catch(e) {}
+  }
+
+  function _dinoShowLeaderboard(top5, myScore) {
+    // Rimuovi eventuale leaderboard precedente
+    var old = document.getElementById('dino-lb-popup');
+    if(old) old.remove();
+    var html = '<div id="dino-lb-popup" style="position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(10,20,40,.97);border:1px solid rgba(91,159,255,.4);border-radius:16px;padding:14px 18px;z-index:99999;min-width:220px;max-width:300px;box-shadow:0 8px 32px rgba(0,0,0,.6)">'
+      +'<div style="font-size:13px;font-weight:800;color:var(--gold,#ffd166);margin-bottom:10px;text-align:center">🏆 Top Reparto</div>';
+    top5.forEach(function(s,i){
+      var isMe = s.score === myScore;
+      html += '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;'+(isMe?'color:#5b9fff;font-weight:800':'color:rgba(255,255,255,.8)')+'">'
+        +'<span style="font-size:12px;width:18px;text-align:center">'+(i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.')+' </span>'
+        +'<span style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+s.nome+'</span>'
+        +'<span style="font-size:13px;font-weight:900">'+s.score+'</span>'
+        +'</div>';
+    });
+    html += '<button onclick="document.getElementById(\'dino-lb-popup\').remove()" style="width:100%;margin-top:10px;background:rgba(255,255,255,.1);border:none;border-radius:8px;padding:6px;font-size:11px;color:rgba(255,255,255,.7);cursor:pointer;appearance:none;-webkit-appearance:none">Chiudi</button></div>';
+    document.body.insertAdjacentHTML('beforeend', html);
+    setTimeout(function(){ var lb = document.getElementById('dino-lb-popup'); if(lb) lb.remove(); }, 7000);
   }
 
   function loop(ctx, cw, ch) {
