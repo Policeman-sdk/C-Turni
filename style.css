@@ -123,32 +123,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 
 /* --- TEMA FORESTALE (Giorno) --- */
 :root[data-theme="forestale"] {
-  --bg: #E8EFE9;
-  --bg2: #DCE5DD;
-  --card: #F0F4F1;
-  --card2: #FFFFFF;
-  --border: rgba(0, 0, 0, 0.08);
-  --border2: rgba(0, 0, 0, 0.15);
-  --txt: #1A211C;
-  --txt2: #4A554D;
-  --blue: #2E7D32;
-  --red: #C62828;
-  --surface-tint: rgba(46, 125, 50, 0.08);
+  --bg: #E8EFE9 !important;
+  --bg2: #DCE5DD !important;
+  --card: #F0F4F1 !important;
+  --card2: #FFFFFF !important;
+  --txt: #1A211C !important;
+  --txt2: #4A554D !important;
+  --blue: #2E7D32 !important;
+  --border: rgba(0,0,0,0.1) !important;
 }
 
-/* --- TEMA FORESTALE (Notte) --- */
 /* --- TEMA FORESTALE (Notte) --- */
 :root[data-theme="forestale-dark"] {
   --bg: #0E1410 !important;
   --bg2: #141C16 !important;
   --card: #18241B !important;
   --card2: #1D2E22 !important;
-  --border: rgba(255, 255, 255, 0.08) !important;
-  --border2: rgba(255, 255, 255, 0.12) !important;
   --txt: #E1EBE3 !important;
   --txt2: #8E9C91 !important;
   --blue: #4CAF50 !important;
-  --surface-tint: rgba(76, 175, 80, 0.05) !important;
+  --border: rgba(255,255,255,0.1) !important;
 }
 
 /* ── BACKGROUND ANIMATI CONTESTUALI (TASK 7) ── */

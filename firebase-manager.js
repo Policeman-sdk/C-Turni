@@ -3,10 +3,12 @@ import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
          signOut, onAuthStateChanged, deleteUser }
                                   from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
 import { getFirestore, doc, collection, setDoc, getDoc, getDocs, deleteDoc,
-         onSnapshot, query, where, orderBy, limit, serverTimestamp, arrayUnion }
+         onSnapshot, query, where, orderBy, limit, serverTimestamp, arrayUnion, updateDoc }
                                   from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
 import { getMessaging, getToken, onMessage }
                                   from "https://www.gstatic.com/firebasejs/11.8.1/firebase-messaging.js";
+import { getStorage, ref as storageRef, uploadString, getDownloadURL, deleteObject }
+                                  from "https://www.gstatic.com/firebasejs/11.8.1/firebase-storage.js";
 
 // ── Configurazione ──────────────────────────────────────────────
 const firebaseConfig = {
@@ -23,6 +25,7 @@ const firebaseConfig = {
 const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db   = getFirestore(app);
+const storage = getStorage(app);
 
 // FCM — solo se il browser supporta service worker
 let messaging = null;
@@ -862,23 +865,77 @@ window.FirebaseModule = {
   saveUserProfile: async function(uid, profile, reparto) {
 
     try {
+      // Se ava è un data URL (base64), caricala su Storage prima
+      if(profile.ava && profile.ava.startsWith('data:')) {
+        try {
+          var fotoUrl = await window.FirebaseModule.uploadFotoProfilo(uid, profile.ava);
+          if(fotoUrl) profile = Object.assign({}, profile, { ava: fotoUrl });
+        } catch(e2) { console.warn('uploadFoto:', e2.message); }
+      }
 
       // Salva in /utenti/{uid} (globale)
-
       await window._fbSetDoc(window._fbDoc(db, 'utenti', uid), profile);
 
       // Salva anche in /reparti/{reparto}/utenti/{uid}
-
       if(reparto) {
-
         var rep = reparto.toLowerCase().replace(/\s+/g,'_');
-
         await window._fbSetDoc(window._fbDoc(db, 'reparti', rep, 'utenti', uid), profile);
-
       }
 
     } catch(e) { console.warn('saveUserProfile:', e.message); }
 
+  },
+
+  // ── Upload foto profilo su Firebase Storage + salva URL su Firestore ────────
+  uploadFotoProfilo: async function(uid, dataUrl) {
+    try {
+      // Elimina foto precedente se esiste
+      try {
+        var oldRef = storageRef(storage, 'foto_profilo/' + uid + '.jpg');
+        await deleteObject(oldRef);
+      } catch(e) { /* non esiste ancora, ok */ }
+      // Carica nuova foto su Storage
+      var newRef = storageRef(storage, 'foto_profilo/' + uid + '.jpg');
+      await uploadString(newRef, dataUrl, 'data_url');
+      // Ottieni URL reale permanente
+      var url = await getDownloadURL(newRef);
+      // Salva fotoURL nel documento utente su Firestore (updateDoc per non sovrascrivere altri campi)
+      await updateDoc(doc(db, 'utenti', uid), { ava: url, fotoURL: url });
+      return url;
+    } catch(e) {
+      console.warn('uploadFotoProfilo:', e.message);
+      return null;
+    }
+  },
+
+  // ── Dino leaderboard ─────────────────────────────────────────
+  saveDinoScore: async function(uid, nome, score, reparto) {
+    if(!reparto || reparto.startsWith('privato_')) return;
+    try {
+      var rep = reparto.toLowerCase().replace(/\s+/g,'_');
+      var existing = null;
+      try {
+        var snap = await getDoc(doc(db, 'reparti', rep, 'dino_scores', uid));
+        if(snap.exists()) existing = snap.data();
+      } catch(e){}
+      // Salva solo se è un nuovo record
+      if(!existing || score > (existing.score||0)){
+        await setDoc(doc(db, 'reparti', rep, 'dino_scores', uid), {
+          uid: uid, nome: nome, score: score, ts: new Date().toISOString()
+        });
+      }
+    } catch(e) { console.warn('saveDinoScore:', e.message); }
+  },
+  getDinoLeaderboard: async function(reparto) {
+    if(!reparto || reparto.startsWith('privato_')) return [];
+    try {
+      var rep = reparto.toLowerCase().replace(/\s+/g,'_');
+      var snap = await getDocs(collection(db, 'reparti', rep, 'dino_scores'));
+      var arr = [];
+      snap.forEach(function(d){ arr.push(d.data()); });
+      arr.sort(function(a,b){ return b.score - a.score; });
+      return arr.slice(0,5);
+    } catch(e) { return []; }
   },
 
   // ── Elimina utente da reparto (usato da Comandante in Gestione Membri) ──

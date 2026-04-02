@@ -2088,7 +2088,7 @@ function _getTemaBase(t){
 function _applyTemaVariant(isDark){
   var t = lsG('ct_tema','');
   var base = _getTemaBase(t);
-  if(!base) return; // tema senza variante (es. notte base, light base)
+  if(!base) return;
   var next = isDark ? _TEMA_DARK_MAP[base] : _TEMA_LIGHT_MAP[base];
   if(next === undefined) return;
   if(next !== t){
@@ -2097,42 +2097,62 @@ function _applyTemaVariant(isDark){
     aggThemeColor(next);
   }
 }
+
+// Applica il tema dinamico rispettando la gerarchia: MANUALE > SISTEMA > ORARIO
 function _applicaComportamentoTema(){
   var comp = lsG('ct_tema_comp','manuale');
-  // MANUALE ha priorità assoluta — non sovrascrivere mai il tema scelto dall'utente
-  if(comp === 'manuale'){
-    // Aggiorna solo la UI del selettore, poi esci
-    var sel = document.getElementById('sel-tema-comportamento');
-    if(sel) sel.value = 'manuale';
-    var desc = document.getElementById('tema-comp-desc');
-    if(desc) desc.textContent = 'Scegli il tema manualmente dalle card sopra.';
-    // Rimuovi eventuali listener automatici attivi
-    if(window._temaCompMQ){ try{ window._temaCompMQ.removeEventListener('change', window._temaCompFn); }catch(e){} window._temaCompMQ = null; }
-    if(window._temaCompTimer){ clearInterval(window._temaCompTimer); window._temaCompTimer = null; }
-    return;
-  }
-  // Aggiorna UI select
+
+  // Aggiorna UI selettore
   var sel = document.getElementById('sel-tema-comportamento');
   if(sel) sel.value = comp;
   var desc = document.getElementById('tema-comp-desc');
   var descs = {
+    manuale:'Scegli il tema manualmente dalle card sopra.',
     sistema:'Il tema cambia automaticamente con le impostazioni del dispositivo.',
     orario:'Tema scuro dalle 19:00 alle 07:00, chiaro il resto del giorno.'
   };
-  if(desc) desc.textContent = descs[comp]||'';
-  // Rimuovi listener precedenti
-  if(window._temaCompMQ){ try{ window._temaCompMQ.removeEventListener('change', window._temaCompFn); }catch(e){} }
-  if(window._temaCompTimer){ clearInterval(window._temaCompTimer); window._temaCompTimer=null; }
+  if(desc) desc.textContent = descs[comp] || '';
+
+  // Rimuovi listener automatici precedenti
+  if(window._temaCompMQ){ try{ window._temaCompMQ.removeEventListener('change', window._temaCompFn); }catch(e){} window._temaCompMQ = null; }
+  if(window._temaCompTimer){ clearInterval(window._temaCompTimer); window._temaCompTimer = null; }
+
+  // 1. MANUALE — priorità assoluta: applica esattamente il tema salvato e non fare altro
+  if(comp === 'manuale'){
+    var tManuale = lsG('ct_tema', '');
+    if(tManuale) document.documentElement.setAttribute('data-theme', tManuale);
+    else document.documentElement.removeAttribute('data-theme');
+    aggThemeColor(tManuale);
+    return;
+  }
+
+  // Helper: aggiunge o rimuove '-dark' al nome base del tema corrente
+  function _forzaDark(isDark){
+    var t = lsG('ct_tema', '');
+    var base = _getTemaBase(t);
+    if(!base) return; // tema senza variante (notte/light base)
+    var next = isDark ? _TEMA_DARK_MAP[base] : _TEMA_LIGHT_MAP[base];
+    if(next === undefined) return;
+    if(next) document.documentElement.setAttribute('data-theme', next);
+    else document.documentElement.removeAttribute('data-theme');
+    aggThemeColor(next);
+  }
+
+  // 2. SISTEMA — segue prefers-color-scheme
   if(comp === 'sistema' && window.matchMedia){
     var mq = window.matchMedia('(prefers-color-scheme: dark)');
     window._temaCompMQ = mq;
-    window._temaCompFn = function(e){ _applyTemaVariant(e.matches); };
+    window._temaCompFn = function(e){ _forzaDark(e.matches); };
     mq.addEventListener('change', window._temaCompFn);
-    _applyTemaVariant(mq.matches);
-  } else if(comp === 'orario'){
+    _forzaDark(mq.matches);
+    return;
+  }
+
+  // 3. ORARIO — scuro dalle 19:00 alle 07:00
+  if(comp === 'orario'){
     var _checkOrario = function(){
       var h = new Date().getHours();
-      _applyTemaVariant(h >= 19 || h < 7);
+      _forzaDark(h >= 19 || h < 7);
     };
     _checkOrario();
     window._temaCompTimer = setInterval(_checkOrario, 60000);
@@ -6658,39 +6678,82 @@ function salvaProfilo(){
   me.nome=nome;me.reparto=rep;me.nucleo=nuc;me.grado=grado;
   if(pw)me.pw=pw;
   var fEl=document.getElementById('pf-ava-file');
-  var fine=function(){
-    lsS('ct_me',me);
+
+  // Funzione finale: aggiorna localStorage e UI SOLO dopo conferma Firebase
+  var _salvaConFoto = function(dataUrl){
+    var session=lsG('ct_session',null);
+    var uid=session&&session.userId?session.userId:null;
+    if(!uid || !window.FirebaseModule){
+      // Nessun Firebase: salva solo in locale
+      if(dataUrl) me.ava = dataUrl;
+      _completaSalvataggio(me);
+      return;
+    }
+    // Se c'è una nuova foto base64, caricala su Storage e ottieni l'URL reale
+    if(dataUrl && dataUrl.startsWith('data:')){
+      toast('Caricamento foto...','ok');
+      window.FirebaseModule.uploadFotoProfilo(uid, dataUrl)
+        .then(function(fotoUrl){
+          if(fotoUrl) me.ava = fotoUrl;
+          return window.FirebaseModule.saveUserProfile(uid, me, me.reparto);
+        })
+        .then(function(){
+          return window.FirebaseModule.savePersonale();
+        })
+        .then(function(){
+          // SOLO dopo il successo di Firestore aggiorna localStorage e UI
+          _completaSalvataggio(me);
+        })
+        .catch(function(e){
+          console.warn('salvaProfilo Firebase:', e.message);
+          toast('Errore salvataggio: '+e.message,'err');
+        });
+    } else {
+      // Nessuna foto nuova: salva profilo direttamente
+      window.FirebaseModule.saveUserProfile(uid, me, me.reparto)
+        .then(function(){
+          return window.FirebaseModule.savePersonale();
+        })
+        .then(function(){
+          _completaSalvataggio(me);
+        })
+        .catch(function(e){
+          console.warn('salvaProfilo Firebase:', e.message);
+          toast('Errore salvataggio: '+e.message,'err');
+        });
+    }
+  };
+
+  // Aggiorna localStorage, ct_u, ct_p, DOM e mostra toast
+  function _completaSalvataggio(profilo){
+    lsS('ct_me', profilo);
     var U=lsG('ct_u',[]);
-    for(var i=0;i<U.length;i++){if(U[i].id===me.id||U[i].uid===me.uid){U[i]=Object.assign({},U[i],me);break;}}
+    for(var i=0;i<U.length;i++){if(U[i].id===profilo.id||U[i].uid===profilo.uid){U[i]=Object.assign({},U[i],profilo);break;}}
     lsS('ct_u',U);
-    // Aggiorna anche ct_p con la nuova foto
     var P=lsG('ct_p',[]);
     for(var j=0;j<P.length;j++){
-      if(P[j].uid===me.uid||P[j].id===me.id){
-        if(me.ava)P[j].ava=me.ava;
-        P[j].nome=me.nome;P[j].grado=me.grado;
+      if(P[j].uid===profilo.uid||P[j].id===profilo.id){
+        if(profilo.ava)P[j].ava=profilo.ava;
+        P[j].nome=profilo.nome;P[j].grado=profilo.grado;
         break;
       }
     }
     lsS('ct_p',P);
-    // Sync foto istantanea in tutte le sezioni
-    if(typeof _syncAvaAllSections === 'function') _syncAvaAllSections(me.ava||null);
-    // Salva su Firebase (foto inclusa)
-    if(window.FirebaseModule){
-      var session=lsG('ct_session',null);
-      var uid=session&&session.userId?session.userId:null;
-      if(uid){
-        window.FirebaseModule.saveUserProfile(uid,me,me.reparto).catch(function(e){console.warn('salvaProfilo Firebase:',e.message);});
-        window.FirebaseModule.savePersonale().catch(function(e){console.warn('savePersonale:',e.message);});
-      }
-    }
+    if(typeof _syncAvaAllSections === 'function') _syncAvaAllSections(profilo.ava||null);
     aggUI();
     closeM('m-profilo');
-    toast('Profilo aggiornato \u2713','ok');
-  };
-  if(fEl&&fEl.files[0])comprImg(fEl.files[0],function(d){me.ava=d;fine();});
-  else if(window._tempAva){me.ava=window._tempAva;window._tempAva=null;fine();}
-  else fine();
+    toast('Profilo aggiornato ✓','ok');
+  }
+
+  // Avvia il flusso con o senza nuova foto
+  if(fEl&&fEl.files[0]){
+    comprImg(fEl.files[0], function(d){ _salvaConFoto(d); });
+  } else if(window._tempAva){
+    var d=window._tempAva; window._tempAva=null;
+    _salvaConFoto(d);
+  } else {
+    _salvaConFoto(null);
+  }
 }
 
 // Aggiorna foto in tutte le sezioni immediatamente
