@@ -2,6 +2,7 @@ const { initializeApp, cert } = require("firebase-admin/app");
 const { getFirestore }        = require("firebase-admin/firestore");
 const { getMessaging }        = require("firebase-admin/messaging");
 
+// Inizializzazione sicura con le variabili d'ambiente di GitHub Actions
 initializeApp({
   credential: cert({
     projectId:   process.env.FIREBASE_PROJECT_ID,
@@ -22,55 +23,58 @@ function getTipoNotifica(title) {
   return { tipo: 'sistema', ico: '\uD83D\uDD14' };
 }
 
+// ==========================================
+// FUNZIONE DI INVIO (FIXATA PER ANDROID E DOPPIONI)
+// ==========================================
 async function sendToTokens(tokens, title, body) {
   let ok = 0;
   for (const token of tokens) {
     try {
       await fcm.send({
-        token,
-        notification: { title, body },
+        token: token,
+        notification: { 
+          title: title, 
+          body: body 
+        },
+        data: { 
+          url: "https://policeman-sdk.github.io/C-Turni/" 
+        },
+        // CONFIGURAZIONE ANDROID: Priorità massima e Tag anti-doppione
         android: {
-          priority: 'high',
-          notification: { sound: 'default', priority: 'high', channelId: 'c-turni-default' }
+          priority: "high",
+          notification: {
+            tag: "c-turni-alert",
+            sound: "default"
+          }
         },
-        apns: {
-          headers: { 'apns-priority': '10' },
-          payload: { aps: { sound: 'default', badge: 1 } }
-        },
+        // CONFIGURAZIONE BROWSER/PWA: Urgenza alta
         webpush: {
-          headers: { Urgency: 'high' },
-          notification: { vibrate: [200, 100, 200] },
-          fcmOptions: { link: "https://policeman-sdk.github.io/C-Turni/" }
+          headers: { Urgency: "high" },
+          notification: {
+            icon: "/C-Turni/icon-192.png",
+            tag: "c-turni-alert",
+            vibrate: [200, 100, 200]
+          }
         }
       });
       ok++;
-    } catch (err) {
-      console.warn("Token fallito:", token.substring(0, 20) + "...", err.message);
+    } catch (e) {
+      console.warn("Errore token:", token, e.message);
+      // Se il token è stato disinstallato dal telefono
+      if (e.code === 'messaging/invalid-registration-token' || 
+          e.code === 'messaging/registration-token-not-registered') {
+        console.log("Token obsoleto o revocato dall'utente.");
+      }
     }
   }
   return ok;
 }
 
-async function salvaInCentroNotifiche(uid, title, body) {
-  try {
-    const { tipo, ico } = getTipoNotifica(title);
-    const id = Date.now() + Math.random();
-    await db.collection('utenti').doc(uid).collection('notifiche').doc(String(id)).set({
-      id:     id,
-      tipo:   tipo,
-      titolo: title,
-      sub:    body || '',
-      ico:    ico,
-      ts:     new Date().toISOString(),
-      letta:  false
-    });
-  } catch(e) {
-    console.warn('salvaInCentroNotifiche:', e.message);
-  }
-}
-
-async function run() {
-  const now  = new Date();
+// ==========================================
+// MOTORE PRINCIPALE DI ELABORAZIONE
+// ==========================================
+async function processPushNotifications() {
+  const now = new Date();
   const snap = await db.collection("notifiche_push").get();
 
   if (snap.empty) {
@@ -87,12 +91,13 @@ async function run() {
     const title = data.title;
     const body  = data.body || "";
 
-    // Salta se scheduleAt non è ancora arrivato
+    // Salta se scheduleAt non è ancora arrivato (Notifiche programmate)
     if (data.scheduleAt) {
       const scheduleAt = new Date(data.scheduleAt);
       if (scheduleAt > now) { saltate++; continue; }
     }
 
+    // Se mancano dati critici, elimina la notifica guasta
     if (!uid || !title) {
       await docSnap.ref.delete();
       continue;
@@ -100,33 +105,42 @@ async function run() {
 
     const userDoc = await db.collection("utenti").doc(uid).get();
     if (!userDoc.exists) {
-      console.warn("Utente non trovato:", uid);
+      console.warn("Utente non trovato nel DB:", uid);
       await docSnap.ref.delete();
       continue;
     }
 
     const userData = userDoc.data();
+    // Recupera i token (supporta array 'fcmTokens' o stringa singola 'fcmToken')
     const tokens = userData.fcmTokens
       ? [...new Set(userData.fcmTokens)]
       : (userData.fcmToken ? [userData.fcmToken] : []);
 
     if (!tokens.length) {
-      console.warn("Nessun token per:", uid);
+      console.warn("Nessun token registrato per l'utente:", uid);
       await docSnap.ref.delete();
       continue;
     }
 
+    // Invia fisicamente la push
     const sent = await sendToTokens(tokens, title, body);
-    console.log(`Push inviata a: ${uid} | ${sent}/${tokens.length} device | ${title}`);
-    inviate += sent;
+    console.log(`Push inviata a: ${uid} | ${sent} token raggiunti con successo`);
 
-    // Salva anche nel centro notifiche in-app
-    await salvaInCentroNotifiche(uid, title, body);
-
+    // Una volta inviata (o se i token erano tutti falliti), cancella il documento
     await docSnap.ref.delete();
+    inviate++;
   }
 
-  console.log(`Fine: ${inviate} push inviate, ${saltate} in attesa.`);
+  console.log(`\n=== RIEPILOGO ===\nInviate: ${inviate}\nProgrammate (in attesa): ${saltate}`);
 }
 
-run().catch(console.error);
+// Avvia lo script e gestisce eventuali errori globali
+processPushNotifications()
+  .then(() => {
+    console.log("Script terminato correttamente.");
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error("Errore critico durante l'esecuzione:", error);
+    process.exit(1);
+  });
