@@ -145,7 +145,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   --border: rgba(255,255,255,0.1) !important;
 }
 
-/* ── BACKGROUND ANIMATI CONTESTUALI (TASK 7) ── */
+/* ── BACKGROUND ANIMATI CONTESTUALI ── */
 @keyframes focusGradient {
   0%   { background-position: 0% 50%; }
   50%  { background-position: 100% 50%; }
@@ -179,6 +179,77 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   animation: focusGradient 14s ease infinite !important;
   opacity: 0.15 !important;
 }
+
+/* ── ANIMAZIONI ICONE TURNO (Task 1) ── */
+@keyframes steamRise  { 0% { transform: translateY(0) scale(1); opacity: 0; } 50% { opacity: 1; } 100% { transform: translateY(-8px) scale(1.1); opacity: 0; } }
+@keyframes twinkleStar { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.9); } }
+@keyframes shieldGlint { 0% { transform: translateX(-150%) skewX(-20deg); } 20%, 100% { transform: translateX(250%) skewX(-20deg); } }
+@keyframes relaxWave  { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+
+.icon-animate-sun   { transform-origin: center; animation: spinSun 20s linear infinite; }
+.icon-animate-steam { animation: steamRise 2s infinite ease-out; }
+.icon-animate-cloud { animation: floatCloud 6s ease-in-out infinite; }
+.icon-animate-star  { animation: twinkleStar 3s infinite ease-in-out; }
+.icon-animate-relax { transform-origin: bottom center; animation: relaxWave 4s ease-in-out infinite; }
+.icon-animate-glint-wrapper { position: relative; overflow: hidden; display: inline-block; }
+.icon-animate-glint-wrapper::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 40%; height: 100%;
+  background: rgba(255,255,255,0.4);
+  animation: shieldGlint 5s infinite linear;
+}
+
+/* ── AMBIANCE GLOW — Effetto luce diffusa dietro il Focus card (Task 2) ── */
+#focus-widget-container {
+  position: relative;
+  width: 100%;
+  padding: 0;
+  box-sizing: border-box;
+}
+#focus-widget-container::before {
+  content: '';
+  position: absolute;
+  top: 10%; left: 10%;
+  width: 80%; height: 80%;
+  border-radius: 40px;
+  filter: blur(80px);
+  opacity: 0.5;
+  z-index: 0;
+  will-change: transform, opacity, background-position;
+  transition: all 0.5s ease;
+  pointer-events: none;
+}
+.focus-glow-mattina   #focus-widget-container::before { background: linear-gradient(135deg, #FFB199, #FFD194, #A1C4FD); background-size: 150% 150%; animation: focusGradient 15s ease infinite; }
+.focus-glow-pomeriggio #focus-widget-container::before { background: linear-gradient(135deg, #FF512F, #DD2476, #4A00E0); background-size: 150% 150%; animation: focusGradient 15s ease infinite; }
+.focus-glow-notte     #focus-widget-container::before { background: linear-gradient(135deg, #0F2027, #203A43, #2C5364); background-size: 150% 150%; animation: focusGradient 20s ease infinite; }
+.focus-glow-smontante #focus-widget-container::before { background: linear-gradient(135deg, #FFEFBA, #FFFFFF, #B0BEC5); background-size: 150% 150%; animation: focusGradient 15s ease infinite; }
+.focus-glow-riposo    #focus-widget-container::before { background: linear-gradient(135deg, #4CA1AF, #C4E0E5); background-size: 150% 150%; animation: focusGradient 18s ease infinite; }
+.focus-glow-assenza   #focus-widget-container::before { background: linear-gradient(135deg, #654EA3, #EAAFC8, #302B63); background-size: 150% 150%; animation: focusGradient 20s ease infinite; }
+
+/* Focus card — Bento M3 Premium (Task 2) */
+#focus-card {
+  position: relative;
+  width: 100%;
+  border-radius: 28px;
+  padding: 24px;
+  box-sizing: border-box;
+  background-size: 200% 200%;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  z-index: 1;
+  overflow: hidden;
+  transition: all 0.5s ease;
+}
+/* Task 4: testo bianco puro con ombreggiatura su tutto il card */
+#focus-card, #focus-card * {
+  color: #fff !important;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.5);
+}
+#focus-fase  { opacity: .75 !important; font-size: 10px !important; font-weight: 800 !important; letter-spacing: .8px !important; text-transform: uppercase !important; }
+#focus-titolo{ font-size: 17px !important; font-weight: 900 !important; text-shadow: 0 2px 10px rgba(0,0,0,.6) !important; }
+#focus-clock { font-size: 13px !important; font-weight: 700 !important; letter-spacing: .5px !important; opacity: .9 !important; }
+#focus-countdown { font-size: 28px !important; font-weight: 900 !important; letter-spacing: -1px !important; line-height: 1.1 !important; text-shadow: 0 2px 12px rgba(0,0,0,.6) !important; }
 
 /* ── METEO ANIMATO (TASK 7) ── */
 @keyframes spinSun { 100% { transform: rotate(360deg); } }

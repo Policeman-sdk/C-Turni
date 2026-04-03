@@ -150,8 +150,16 @@ function _startListeners(reparto) {
       if(snap.exists()) {
         var prof = snap.data();
         var oldMe = JSON.parse(localStorage.getItem('ct_me') || 'null');
-        // Preserva ava locale se Firestore non ha la foto (evita sovrascrittura)
-        if(oldMe && oldMe.ava && !prof.ava) prof.ava = oldMe.ava;
+        // Preserva ava locale se:
+        // 1. Firestore non ha ava, oppure
+        // 2. Firestore ha ancora un data URL base64 (upload non completato) ma locale ha già un URL https
+        var firestoreAva = prof.ava || '';
+        var localAva = (oldMe && oldMe.ava) ? oldMe.ava : '';
+        if(!firestoreAva && localAva) {
+          prof.ava = localAva; // Firestore vuoto → tieni locale
+        } else if(firestoreAva.startsWith('data:') && localAva.startsWith('https')) {
+          prof.ava = localAva; // Firestore ha base64 vecchio → tieni URL https locale
+        }
         localStorage.setItem('ct_me', JSON.stringify(prof));
         // Aggiorna anche ct_session se ruolo/stato cambiato
         try {
@@ -865,12 +873,16 @@ window.FirebaseModule = {
   saveUserProfile: async function(uid, profile, reparto) {
 
     try {
-      // Se ava è un data URL (base64), caricala su Storage prima
+      // Se ava è ancora un data URL base64, caricala su Storage prima di salvare
       if(profile.ava && profile.ava.startsWith('data:')) {
         try {
           var fotoUrl = await window.FirebaseModule.uploadFotoProfilo(uid, profile.ava);
           if(fotoUrl) profile = Object.assign({}, profile, { ava: fotoUrl });
-        } catch(e2) { console.warn('uploadFoto:', e2.message); }
+          else delete profile.ava; // upload fallito: non salvare base64 su Firestore
+        } catch(e2) {
+          console.warn('uploadFoto in saveUserProfile:', e2.message);
+          delete profile.ava; // non salvare base64 su Firestore
+        }
       }
 
       // Salva in /utenti/{uid} (globale)

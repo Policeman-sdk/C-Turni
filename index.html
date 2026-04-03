@@ -573,31 +573,33 @@
 
       <!-- ═══ MODALITÀ FOCUS — sotto il titolo Dashboard ═══ -->
       <div id="widget-focus" style="margin:0 0 16px;display:none">
-        <div id="focus-card" style="border-radius:20px;padding:16px 18px;position:relative;overflow:hidden;border:1.5px solid rgba(255,255,255,.1)">
-          <!-- Sfondo animato contestuale -->
-          <div id="focus-bg" style="position:absolute;inset:0;pointer-events:none;border-radius:20px;background-size:200% 200%;animation:focusGradient 8s ease infinite"></div>
-          <!-- Header -->
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;position:relative;z-index:1">
-            <div style="display:flex;align-items:center;gap:8px">
-              <div id="focus-ico" style="font-size:22px;line-height:1">⚡</div>
-              <div>
-                <div id="focus-fase" style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;opacity:.7">Modalità Focus</div>
-                <div id="focus-titolo" style="font-size:16px;font-weight:900;color:var(--txt)">Caricamento...</div>
+        <div id="focus-widget-container">
+          <div id="focus-card" style="border-radius:28px;padding:24px;position:relative;overflow:hidden;border:1.5px solid rgba(255,255,255,.1);box-shadow:0 8px 32px rgba(0,0,0,.3);transition:all .5s ease">
+            <!-- Sfondo animato contestuale -->
+            <div id="focus-bg" style="position:absolute;inset:0;pointer-events:none;border-radius:28px;background-size:200% 200%;animation:focusGradient 8s ease infinite"></div>
+            <!-- Header -->
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;position:relative;z-index:1">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div id="focus-ico" style="font-size:26px;line-height:1">⚡</div>
+                <div>
+                  <div id="focus-fase" style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;opacity:.7">Modalità Focus</div>
+                  <div id="focus-titolo" style="font-size:16px;font-weight:900;color:var(--txt)">Caricamento...</div>
+                </div>
               </div>
+              <div id="focus-badge" style="padding:4px 10px;border-radius:20px;font-size:10px;font-weight:800;letter-spacing:.5px"></div>
             </div>
-            <div id="focus-badge" style="padding:4px 10px;border-radius:20px;font-size:10px;font-weight:800;letter-spacing:.5px"></div>
-          </div>
-          <!-- Hero info -->
-          <div id="focus-hero" style="position:relative;z-index:1;margin-bottom:10px"></div>
-          <!-- To-Do rapidi -->
-          <div id="focus-todo-wrap" style="display:none;position:relative;z-index:1">
-            <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;opacity:.6;margin-bottom:6px">To-Do in sospeso</div>
-            <div id="focus-todo-list"></div>
-          </div>
-          <!-- Smart Snooze -->
-          <div id="focus-snooze-wrap" style="display:none;margin-top:8px;padding:8px 12px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);position:relative;z-index:1">
-            <div style="font-size:11px;font-weight:700;opacity:.8;margin-bottom:6px">🕒 Smart Snooze</div>
-            <div id="focus-snooze-list"></div>
+            <!-- Hero info -->
+            <div id="focus-hero" style="position:relative;z-index:1;margin-bottom:10px"></div>
+            <!-- To-Do rapidi -->
+            <div id="focus-todo-wrap" style="display:none;position:relative;z-index:1">
+              <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;opacity:.6;margin-bottom:6px">To-Do in sospeso</div>
+              <div id="focus-todo-list"></div>
+            </div>
+            <!-- Smart Snooze -->
+            <div id="focus-snooze-wrap" style="display:none;margin-top:8px;padding:8px 12px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);position:relative;z-index:1">
+              <div style="font-size:11px;font-weight:700;opacity:.8;margin-bottom:6px">🕒 Smart Snooze</div>
+              <div id="focus-snooze-list"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -1329,6 +1331,17 @@
                 <div class="m3-row-ico" style="background:rgba(0,188,212,.12)">&#128203;</div>
                 <div class="m3-row-body"><div class="m3-row-title">Notifiche Agenda</div></div>
                 <label class="m3-switch"><input type="checkbox" id="tog-notif-agenda" onchange="toggleNotifPref('agenda',this)"><span class="m3-switch-track"></span></label>
+              </div>
+              <!-- Anticipo notifica pre-turno -->
+              <div style="border-top:1px solid var(--border);padding:14px 0 4px">
+                <div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:10px">&#9200; Anticipo notifica pre-turno</div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <button class="btn btn-g btn-sm notif-pre-btn" data-min="60"   onclick="setNotifPre(60)"   id="npb-60">1h prima</button>
+                  <button class="btn btn-g btn-sm notif-pre-btn" data-min="360"  onclick="setNotifPre(360)"  id="npb-360">6h prima</button>
+                  <button class="btn btn-g btn-sm notif-pre-btn" data-min="720"  onclick="setNotifPre(720)"  id="npb-720">12h prima</button>
+                  <button class="btn btn-g btn-sm notif-pre-btn" data-min="1440" onclick="setNotifPre(1440)" id="npb-1440">24h prima</button>
+                </div>
+                <div id="sub-preturno" style="font-size:11px;color:var(--txt2);margin-top:8px"></div>
               </div>
             </div>
           </div>

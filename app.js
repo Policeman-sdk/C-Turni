@@ -1233,27 +1233,113 @@ function aggiornaFocus(){
     } else { fase = 'servizio'; }
   }
 
-  // Configurazione per fase
+  // Configurazione per fase — con icone animate e glow class
+  // ── TASK 3: Assegnazione glow, bg e icone SVG animate ──────────
+  var glowClass = 'focus-glow-riposo';
+  var bgClass   = 'focus-bg-riposo';
+  var iconHtml  = '<svg class="icon-animate-relax" width="40" height="40" viewBox="0 0 100 100"><text y="72" font-size="72" text-anchor="middle" x="50">🌴</text></svg>';
+
+  if(mioTurno){
+    var _tipo = mioTurno.tipo;
+    if(_tipo==='mattina' || _tipo==='ml'){
+      glowClass = 'focus-glow-mattina';
+      bgClass   = 'focus-bg-mattina';
+      iconHtml  = '<svg width="40" height="40" viewBox="0 0 100 100">'
+        +'<circle cx="50" cy="50" r="18" fill="#FFD166"/>'
+        +'<g class="icon-animate-sun" stroke="#FFD166" stroke-width="5" stroke-linecap="round">'
+        +'<line x1="50" y1="8"  x2="50" y2="20"/>'
+        +'<line x1="50" y1="80" x2="50" y2="92"/>'
+        +'<line x1="8"  y1="50" x2="20" y2="50"/>'
+        +'<line x1="80" y1="50" x2="92" y2="50"/>'
+        +'<line x1="21" y1="21" x2="29" y2="29"/>'
+        +'<line x1="71" y1="71" x2="79" y2="79"/>'
+        +'<line x1="21" y1="79" x2="29" y2="71"/>'
+        +'<line x1="71" y1="21" x2="79" y2="29"/>'
+        +'</g></svg>';
+    } else if(_tipo==='pomeriggio' || _tipo==='pl'){
+      glowClass = 'focus-glow-pomeriggio';
+      bgClass   = 'focus-bg-pomeriggio';
+      iconHtml  = '<svg class="icon-animate-cloud" width="40" height="40" viewBox="0 0 100 100">'
+        +'<defs><linearGradient id="sunsetG" x1="0%" y1="0%" x2="0%" y2="100%">'
+        +'<stop offset="0%" stop-color="#FF8C00"/>'
+        +'<stop offset="100%" stop-color="#FF512F"/>'
+        +'</linearGradient></defs>'
+        +'<circle cx="50" cy="62" r="22" fill="url(#sunsetG)"/>'
+        +'<rect x="0" y="62" width="100" height="38" fill="rgba(0,0,0,0)"/>'
+        +'<line x1="0" y1="62" x2="100" y2="62" stroke="#FF512F" stroke-width="2" opacity=".5"/>'
+        +'<line x1="20" y1="30" x2="80" y2="30" stroke="#FFD166" stroke-width="3" stroke-linecap="round" opacity=".6"/>'
+        +'<line x1="30" y1="20" x2="70" y2="20" stroke="#FFD166" stroke-width="2" stroke-linecap="round" opacity=".4"/>'
+        +'</svg>';
+    } else if(_tipo==='notte' || _tipo==='sera'){
+      glowClass = 'focus-glow-notte';
+      bgClass   = 'focus-bg-notte';
+      iconHtml  = '<svg class="icon-animate-star" width="40" height="40" viewBox="0 0 100 100">'
+        +'<path d="M65,15 A30,30 0 1,0 65,75 A20,20 0 1,1 65,15 Z" fill="#c8d8f0"/>'
+        +'<circle cx="78" cy="18" r="3" fill="#FFD166" opacity=".9"/>'
+        +'<circle cx="88" cy="35" r="2" fill="#FFD166" opacity=".7"/>'
+        +'<circle cx="70" cy="8"  r="2" fill="#FFD166" opacity=".8"/>'
+        +'<circle cx="85" cy="55" r="1.5" fill="#FFD166" opacity=".6"/>'
+        +'</svg>';
+    } else if(_tipo==='corso' || _tipo==='esame' || _tipo==='licenza'){
+      glowClass = 'focus-glow-assenza';
+      bgClass   = 'focus-bg-riposo';
+      iconHtml  = '<svg class="icon-animate-steam" width="40" height="40" viewBox="0 0 100 100">'
+        +'<rect x="25" y="45" width="50" height="35" rx="5" fill="#8faac8"/>'
+        +'<rect x="30" y="38" width="40" height="10" rx="3" fill="#a0b8d0"/>'
+        +'<path d="M40,38 Q50,20 60,38" fill="none" stroke="#FFD166" stroke-width="3" stroke-linecap="round"/>'
+        +'<rect x="42" y="55" width="16" height="20" rx="2" fill="#0d1b2a"/>'
+        +'</svg>';
+    } else if(_tipo==='937' || _tipo==='104' || _tipo==='ls' || _tipo==='permesso'){
+      glowClass = 'focus-glow-assenza';
+      bgClass   = 'focus-bg-riposo';
+      iconHtml  = '<svg width="40" height="40" viewBox="0 0 100 100">'
+        +'<circle cx="50" cy="50" r="40" fill="rgba(200,16,46,.15)" stroke="rgba(200,16,46,.4)" stroke-width="2"/>'
+        +'<rect x="44" y="22" width="12" height="56" rx="6" fill="#c8102e"/>'
+        +'<rect x="22" y="44" width="56" height="12" rx="6" fill="#c8102e"/>'
+        +'</svg>';
+    } else {
+      // Riposo, ferie, recupero, fest
+      glowClass = 'focus-glow-riposo';
+      bgClass   = 'focus-bg-riposo';
+      iconHtml  = '<svg class="icon-animate-relax" width="40" height="40" viewBox="0 0 100 100">'
+        +'<rect x="10" y="70" width="80" height="8" rx="4" fill="#4CA1AF" opacity=".6"/>'
+        +'<path d="M50,65 Q50,30 50,20" stroke="#8fbe6a" stroke-width="5" stroke-linecap="round" fill="none"/>'
+        +'<path d="M50,40 Q65,30 75,35" stroke="#8fbe6a" stroke-width="4" stroke-linecap="round" fill="none"/>'
+        +'<path d="M50,50 Q35,40 25,45" stroke="#8fbe6a" stroke-width="4" stroke-linecap="round" fill="none"/>'
+        +'<ellipse cx="50" cy="70" rx="12" ry="5" fill="#c9a84c" opacity=".7"/>'
+        +'</svg>';
+    }
+  }
+
+  // Applica glow class al focus-widget-container
+  var fwc = document.getElementById('focus-widget-container');
+  if(fwc) fwc.className = glowClass;
+
+  // Applica bg class al focus-bg
+  var bgEl = document.getElementById('focus-bg');
+  if(bgEl) bgEl.className = bgClass;
+
+  // Inserisce icona SVG animata
+  var icoEl = document.getElementById('focus-ico');
+  if(icoEl) icoEl.innerHTML = iconHtml;
+
   var cfg = {
     servizio: {
-      ico:'🚔', titolo:'In Servizio', badge:'ATTIVO',
-      bg:'linear-gradient(135deg,rgba(0,180,100,.18),rgba(0,100,60,.08))',
-      bgGlow:'radial-gradient(circle at 30% 50%,rgba(0,200,120,.3),transparent 70%)',
-      border:'rgba(0,200,120,.35)', badgeBg:'rgba(0,200,120,.2)', badgeCol:'#00e676',
+      titolo:'In Servizio', badge:'ATTIVO',
+      bg:'linear-gradient(135deg,rgba(0,180,100,.22),rgba(0,100,60,.12))',
+      border:'rgba(0,200,120,.4)', badgeBg:'rgba(0,200,120,.2)', badgeCol:'#00e676',
       fase:'🟢 In Servizio'
     },
     pre: {
-      ico:'⚡', titolo:'Preparazione', badge:'TRA POCO',
-      bg:'linear-gradient(135deg,rgba(255,140,0,.18),rgba(200,80,0,.08))',
-      bgGlow:'radial-gradient(circle at 30% 50%,rgba(255,160,0,.3),transparent 70%)',
-      border:'rgba(255,140,0,.4)', badgeBg:'rgba(255,140,0,.2)', badgeCol:'#ffb300',
+      titolo:'Preparazione', badge:'TRA POCO',
+      bg:'linear-gradient(135deg,rgba(255,140,0,.22),rgba(200,80,0,.12))',
+      border:'rgba(255,140,0,.45)', badgeBg:'rgba(255,140,0,.2)', badgeCol:'#ffb300',
       fase:'🟠 Pre-Servizio'
     },
     riposo: {
-      ico:'🛋️', titolo:'Relax', badge:'RIPOSO',
-      bg:'linear-gradient(135deg,rgba(91,100,180,.15),rgba(40,50,100,.08))',
-      bgGlow:'radial-gradient(circle at 30% 50%,rgba(100,120,255,.2),transparent 70%)',
-      border:'rgba(91,100,180,.3)', badgeBg:'rgba(91,100,180,.2)', badgeCol:'#9fa8da',
+      titolo:'Relax', badge:'RIPOSO',
+      bg:'linear-gradient(135deg,rgba(91,100,180,.18),rgba(40,50,100,.10))',
+      border:'rgba(91,100,180,.35)', badgeBg:'rgba(91,100,180,.2)', badgeCol:'#9fa8da',
       fase:'🟣 Riposo'
     }
   };
@@ -1261,65 +1347,66 @@ function aggiornaFocus(){
 
   // Applica stile card
   var card = document.getElementById('focus-card');
-  var bgEl = document.getElementById('focus-bg');
   if(card){ card.style.background = c.bg; card.style.border = '1.5px solid ' + c.border; }
-  if(bgEl){
-    // Rimuovi classi precedenti
-    bgEl.className = '';
-    // Applica classe animata contestuale basata sul turno reale
-    var bgClass = 'focus-bg-riposo';
-    if(mioTurno){
-      var t = mioTurno.tipo;
-      if(t==='mattina'||t==='ml') bgClass = 'focus-bg-mattina';
-      else if(t==='pomeriggio'||t==='pl') bgClass = 'focus-bg-pomeriggio';
-      else if(t==='notte'||t==='sera') bgClass = 'focus-bg-notte';
-    }
-    bgEl.className = bgClass;
-  }
 
-  document.getElementById('focus-ico').textContent = c.ico;
   document.getElementById('focus-fase').textContent = c.fase;
   document.getElementById('focus-titolo').textContent = c.titolo;
   var badge = document.getElementById('focus-badge');
   if(badge){ badge.textContent = c.badge; badge.style.background = c.badgeBg; badge.style.color = c.badgeCol; }
 
-  // Hero content
+  // Hero content — testo bianco puro con ombreggiatura, orologio LIVE
   var hero = document.getElementById('focus-hero');
   if(hero){
+    var _txtStyle = 'color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.55);';
+    var _subStyle = 'color:rgba(255,255,255,.75);text-shadow:0 1px 4px rgba(0,0,0,.4);font-size:11px;margin-top:3px;';
+
     if(fase === 'servizio' && mioTurno){
-      var heroHtml = '<div style="font-size:13px;font-weight:700;color:var(--txt);margin-bottom:6px">';
-      heroHtml += (mioTurno.tipo ? mioTurno.tipo.charAt(0).toUpperCase()+mioTurno.tipo.slice(1) : 'Turno');
-      if(mioTurno.orario) heroHtml += ' &nbsp;·&nbsp; <span style="color:#00e676">'+mioTurno.orario+'</span>';
-      heroHtml += '</div>';
-      // Countdown fine turno
+      var tipoNome = {mattina:'Mattina',ml:'Mattina Lunga',pomeriggio:'Pomeriggio',pl:'Pomeriggio Lungo',
+        notte:'Notte',sera:'Sera',riposo:'Riposo',ferie:'Ferie',recupero:'Recupero',
+        permesso:'Permesso',corso:'Corso',licenza:'Licenza'}[mioTurno.tipo] || mioTurno.tipo;
+      var heroHtml = '<div style="'+_txtStyle+'font-size:13px;font-weight:700;margin-bottom:6px">'
+        + tipoNome
+        + (mioTurno.orario ? ' &nbsp;·&nbsp; <span style="color:#a5ffcb;text-shadow:0 0 8px rgba(0,230,118,.5)">'+mioTurno.orario+'</span>' : '')
+        + '</div>';
+      // Countdown fine turno con ID per aggiornamento live
       if(oraFine){
         var pf2 = oraFine.split(':');
         var endMin2 = parseInt(pf2[0])*60 + parseInt(pf2[1]||0);
         if(endMin2 < nowH) endMin2 += 1440;
         var rimanenti = endMin2 - nowH;
         var rH = Math.floor(rimanenti/60), rM = rimanenti%60;
-        heroHtml += '<div style="font-size:22px;font-weight:900;color:#00e676;line-height:1.1">⏱ '+rH+'h '+rM+'m</div>';
-        heroHtml += '<div style="font-size:10px;opacity:.6;margin-top:2px">alla fine del turno</div>';
+        heroHtml += '<div id="focus-countdown" style="'+_txtStyle+'font-size:28px;font-weight:900;line-height:1.1;letter-spacing:-1px">'
+          + '⏱ <span id="focus-cd-h">'+rH+'</span>h <span id="focus-cd-m">'+('0'+rM).slice(-2)+'</span>m'
+          + '</div>';
+        heroHtml += '<div style="'+_subStyle+'">alla fine del turno</div>';
       }
+      // Orologio live
+      heroHtml += '<div id="focus-clock" style="'+_txtStyle+'font-size:13px;font-weight:700;margin-top:8px;letter-spacing:.5px;opacity:.85"></div>';
       hero.innerHTML = heroHtml;
+
     } else if(fase === 'pre' && mioTurno){
-      var heroHtml2 = '<div style="font-size:13px;font-weight:700;color:var(--txt);margin-bottom:4px">Inizio turno: <span style="color:#ffb300">'+(oraInizio||'—')+'</span></div>';
+      var heroHtml2 = '<div style="'+_txtStyle+'font-size:13px;font-weight:700;margin-bottom:4px">'
+        + 'Inizio turno: <span style="color:#ffd580;text-shadow:0 0 8px rgba(255,179,0,.5)">'+(oraInizio||'—')+'</span>'
+        + '</div>';
       if(oraInizio){
         var pi2 = oraInizio.split(':');
         var startMin2 = parseInt(pi2[0])*60 + parseInt(pi2[1]||0);
         var mancano = startMin2 - nowH;
         if(mancano < 0) mancano += 1440;
         var mH = Math.floor(mancano/60), mM = mancano%60;
-        heroHtml2 += '<div style="font-size:22px;font-weight:900;color:#ffb300;line-height:1.1">⏰ '+mH+'h '+mM+'m</div>';
-        heroHtml2 += '<div style="font-size:10px;opacity:.6;margin-top:2px">all\'inizio del turno</div>';
+        heroHtml2 += '<div id="focus-countdown" style="'+_txtStyle+'font-size:28px;font-weight:900;line-height:1.1;letter-spacing:-1px">'
+          + '⏰ <span id="focus-cd-h">'+mH+'</span>h <span id="focus-cd-m">'+('0'+mM).slice(-2)+'</span>m'
+          + '</div>';
+        heroHtml2 += '<div style="'+_subStyle+'">all\'inizio del turno</div>';
       }
+      heroHtml2 += '<div id="focus-clock" style="'+_txtStyle+'font-size:13px;font-weight:700;margin-top:8px;letter-spacing:.5px;opacity:.85"></div>';
       hero.innerHTML = heroHtml2;
+
     } else {
       // Riposo: prossimo turno
       var prossimo = null;
-      var domani = new Date(now); domani.setDate(domani.getDate()+1);
       for(var gi=0; gi<30; gi++){
-        var dd = new Date(now); dd.setDate(dd.getDate()+gi+(fase==='riposo'?1:0));
+        var dd = new Date(now); dd.setDate(dd.getDate()+gi+1);
         var dds = dd.getFullYear()+'-'+('0'+(dd.getMonth()+1)).slice(-2)+'-'+('0'+dd.getDate()).slice(-2);
         var pt = T.find(function(t){ return _isMyTurno(t,me) && t.data===dds && t.tipo!=='riposo'; });
         if(pt){ prossimo = pt; break; }
@@ -1328,18 +1415,50 @@ function aggiornaFocus(){
       if(prossimo){
         var dPross = new Date(prossimo.data+'T00:00:00');
         var diffDays = Math.round((dPross - new Date(oggi+'T00:00:00'))/(1000*60*60*24));
-        heroHtml3 = '<div style="font-size:12px;opacity:.7;margin-bottom:4px">Prossimo turno</div>';
-        heroHtml3 += '<div style="font-size:18px;font-weight:900;color:#9fa8da">'+
-          (prossimo.tipo?prossimo.tipo.charAt(0).toUpperCase()+prossimo.tipo.slice(1):'Turno')+
-          (prossimo.orario?' <span style="font-size:13px;opacity:.7">'+prossimo.orario+'</span>':'')+
-          '</div>';
-        heroHtml3 += '<div style="font-size:11px;opacity:.6;margin-top:2px">tra '+diffDays+' giorn'+(diffDays===1?'o':'i')+' · '+prossimo.data.split('-').reverse().join('/')+'</div>';
+        var tipoNomeP = {mattina:'Mattina',ml:'Mattina Lunga',pomeriggio:'Pomeriggio',pl:'Pomeriggio Lungo',
+          notte:'Notte',sera:'Sera'}[prossimo.tipo] || prossimo.tipo;
+        heroHtml3 = '<div style="'+_subStyle+'margin-bottom:4px">Prossimo turno</div>';
+        heroHtml3 += '<div style="'+_txtStyle+'font-size:20px;font-weight:900">'
+          + tipoNomeP
+          + (prossimo.orario ? ' <span style="font-size:13px;opacity:.8">'+prossimo.orario+'</span>' : '')
+          + '</div>';
+        heroHtml3 += '<div style="'+_subStyle+'margin-top:3px">tra '+diffDays+' giorn'+(diffDays===1?'o':'i')+' · '+prossimo.data.split('-').reverse().join('/')+'</div>';
       } else {
-        heroHtml3 = '<div style="font-size:13px;opacity:.6">Nessun turno programmato nei prossimi 30 giorni</div>';
+        heroHtml3 = '<div style="'+_subStyle+'">Nessun turno nei prossimi 30 giorni</div>';
       }
+      heroHtml3 += '<div id="focus-clock" style="'+_txtStyle+'font-size:13px;font-weight:700;margin-top:8px;letter-spacing:.5px;opacity:.85"></div>';
       hero.innerHTML = heroHtml3;
     }
   }
+
+  // Avvia orologio LIVE (aggiorna ogni secondo)
+  if(window._focusClockTimer) clearInterval(window._focusClockTimer);
+  window._focusClockTimer = setInterval(function(){
+    var clk = document.getElementById('focus-clock');
+    if(!clk){ clearInterval(window._focusClockTimer); return; }
+    var n = new Date();
+    var hh = ('0'+n.getHours()).slice(-2);
+    var mm = ('0'+n.getMinutes()).slice(-2);
+    var ss = ('0'+n.getSeconds()).slice(-2);
+    clk.textContent = '🕐 ' + hh + ':' + mm + ':' + ss;
+    // Aggiorna anche il countdown se presente
+    var cdH = document.getElementById('focus-cd-h');
+    var cdM = document.getElementById('focus-cd-m');
+    if(cdH && cdM && (oraFine || oraInizio)){
+      var nowMin = n.getHours()*60 + n.getMinutes();
+      var targetStr = (fase === 'servizio') ? oraFine : oraInizio;
+      if(targetStr){
+        var tp = targetStr.split(':');
+        var targetMin = parseInt(tp[0])*60 + parseInt(tp[1]||0);
+        var diff = targetMin - nowMin;
+        if(fase === 'servizio' && diff < 0) diff += 1440;
+        if(fase === 'pre' && diff < 0) diff += 1440;
+        if(diff < 0) diff = 0;
+        cdH.textContent = Math.floor(diff/60);
+        cdM.textContent = ('0'+(diff%60)).slice(-2);
+      }
+    }
+  }, 1000);
 
   // To-Do in sospeso (solo in servizio)
   var tdWrap = document.getElementById('focus-todo-wrap');
@@ -2368,7 +2487,6 @@ function aggNotifStatus(){
   if(!("Notification" in window)){if(el)el.textContent="Non supportate";return;}
   var p=Notification.permission;
   if(el){if(p==="granted")el.innerHTML="&#10003; Attive";else if(p==="denied")el.innerHTML="&#9940; Bloccate &#8212; sblocca nel browser";else el.textContent="Tocca per abilitare";}
-  // FIX: usa .checked per input checkbox, non classList.toggle("on")
   if(tog) tog.checked = (p==="granted");
   var prefs=lsG("ct_notif_prefs",{mattina:true,todo:true,agenda:true,festivi:true,preturno:true});
   ["mattina","todo","agenda","festivi"].forEach(function(k){
@@ -2377,8 +2495,14 @@ function aggNotifStatus(){
   });
   var pre=lsG("ct_notif_pre",60);
   var subEl=document.getElementById("sub-preturno");
-  if(subEl)subEl.textContent=pre>0?"Anticipo: "+(pre>=60?(pre/60)+"h":""+pre+"min")+" prima":"Disabilitato";
-  document.querySelectorAll(".notif-pre-btn").forEach(function(b){b.classList.toggle("sel",parseInt(b.getAttribute("data-min"))===pre);});
+  var labels={60:"1h prima",360:"6h prima",720:"12h prima",1440:"24h prima"};
+  if(subEl) subEl.textContent = labels[pre] ? "Attivo: "+labels[pre] : (pre>0?(pre>=60?(pre/60)+"h":""+pre+"min")+" prima":"Disabilitato");
+  // Evidenzia bottone attivo
+  document.querySelectorAll(".notif-pre-btn").forEach(function(b){
+    var isActive = parseInt(b.getAttribute("data-min")) === pre;
+    b.classList.toggle("btn-p", isActive);
+    b.classList.toggle("btn-g", !isActive);
+  });
 }
 function toggleNotifMaster(){
   if(!("Notification" in window)){toast("Non supportato","err");return;}
@@ -2414,6 +2538,19 @@ function setPreturno(min){
   lsS("ct_notif_pre",min);aggNotifStatus();toggleImpSec("sec-preturno","arr-pre");
   _syncNotifPrefs();
   toast(min>0?"⏰ "+(min>=60?(min/60)+"h":""+min+"min")+" prima":"🔕 Pre-turno off","ok");
+}
+// Alias usato dai nuovi bottoni anticipo pre-turno
+function setNotifPre(min){
+  lsS("ct_notif_pre", min);
+  _syncNotifPrefs();
+  aggNotifStatus();
+  // Rischedulazione push con il nuovo anticipo
+  if(typeof schedulaPreTurniFirebase === 'function'){
+    lsS("ct_push_scheduled", []); // reset per forzare rischedulazione
+    setTimeout(schedulaPreTurniFirebase, 300);
+  }
+  var labels={60:"1h prima",360:"6h prima",720:"12h prima",1440:"24h prima"};
+  toast("⏰ Notifica turno: "+(labels[min]||min+"min prima"),"ok");
 }
 // Salva preferenze notifiche nel profilo utente su Firestore
 function _syncNotifPrefs(){
@@ -3597,7 +3734,7 @@ function salvaImp(){
     }
     var okEl=document.getElementById("pf-ok");
     if(okEl){okEl.classList.add("on");setTimeout(function(){okEl.classList.remove("on");},3000);}
-    toast("Profilo aggiornato ?","ok");
+    toast("Profilo aggiornato ✓","ok");
   }
   else{toast("Errore salvataggio","err");}
 }
@@ -6575,12 +6712,16 @@ function vaiBN(pg, idx) {
   chiMenu();
   _aggFabVisibility(pg);
   if(typeof window._updateDinoVisibility === 'function') window._updateDinoVisibility();
+  // Ferma orologio Focus quando si lascia la dashboard
+  if(pg !== 'dash' && window._focusClockTimer){
+    clearInterval(window._focusClockTimer);
+    window._focusClockTimer = null;
+  }
 
   if(pg==='dash'){
     renderDash();
     if(typeof aggiornaFocus === 'function') aggiornaFocus();
-  }
-  if(pg==='imp'){
+  }  if(pg==='imp'){
     aggUI();
     caricaSaldoFerie();
     aggNotifStatus();
