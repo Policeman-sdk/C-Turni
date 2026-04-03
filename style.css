@@ -152,33 +152,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   100% { background-position: 0% 50%; }
 }
 /* Mattina / ML */
-.focus-bg-mattina {
-  background: linear-gradient(135deg, #ff9a56, #ffcc80, #87ceeb, #4fc3f7) !important;
-  background-size: 300% 300% !important;
-  animation: focusGradient 10s ease infinite !important;
-  opacity: 0.18 !important;
-}
-/* Pomeriggio / PL */
-.focus-bg-pomeriggio {
-  background: linear-gradient(135deg, #ff6b35, #f7931e, #9b59b6, #6c3483) !important;
-  background-size: 300% 300% !important;
-  animation: focusGradient 10s ease infinite !important;
-  opacity: 0.18 !important;
-}
-/* Notte */
-.focus-bg-notte {
-  background: linear-gradient(135deg, #0d1b2a, #1a237e, #283593, #0d1b2a) !important;
-  background-size: 300% 300% !important;
-  animation: focusGradient 12s ease infinite !important;
-  opacity: 0.25 !important;
-}
-/* Riposo / Ferie */
-.focus-bg-riposo {
-  background: linear-gradient(135deg, #00bcd4, #26c6da, #80cbc4, #a5d6a7) !important;
-  background-size: 300% 300% !important;
-  animation: focusGradient 14s ease infinite !important;
-  opacity: 0.15 !important;
-}
+.focus-bg-mattina    { background: linear-gradient(135deg, #2A4A7F, #D27A52, #B9935A) !important; background-size: 200% 200% !important; animation: focusGradient 12s ease infinite !important; }
+.focus-bg-pomeriggio { background: linear-gradient(135deg, #8B3A3A, #7A2855, #2D1B4E) !important; background-size: 200% 200% !important; animation: focusGradient 12s ease infinite !important; }
+.focus-bg-notte      { background: linear-gradient(135deg, #09121B, #122230, #1A3144) !important; background-size: 200% 200% !important; animation: focusGradient 15s ease infinite !important; }
+.focus-bg-riposo     { background: linear-gradient(135deg, #1D434A, #183340, #0E252C) !important; background-size: 200% 200% !important; animation: focusGradient 14s ease infinite !important; }
+.focus-bg-studio     { background: linear-gradient(135deg, #0D3A66, #164E8A, #112244) !important; background-size: 200% 200% !important; animation: focusGradient 12s ease infinite !important; }
+.focus-bg-assenza    { background: linear-gradient(135deg, #3A2D5E, #5D3A5D, #1E1A3C) !important; background-size: 200% 200% !important; animation: focusGradient 14s ease infinite !important; }
 
 /* ── ANIMAZIONI ICONE TURNO (Task 1) ── */
 @keyframes steamRise  { 0% { transform: translateY(0) scale(1); opacity: 0; } 50% { opacity: 1; } 100% { transform: translateY(-8px) scale(1.1); opacity: 0; } }
@@ -201,54 +180,47 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   animation: shieldGlint 5s infinite linear;
 }
 
-/* ── AMBIANCE GLOW — Effetto luce diffusa dietro il Focus card (Task 2) ── */
+/* ── AMBIANCE GLOW (Task 2) ── */
 #focus-widget-container {
   position: relative;
   width: 100%;
-  padding: 0;
+  padding: 20px;
   box-sizing: border-box;
 }
 #focus-widget-container::before {
   content: '';
   position: absolute;
-  top: 10%; left: 10%;
-  width: 80%; height: 80%;
+  top: 15%; left: 5%;
+  width: 90%; height: 80%;
   border-radius: 40px;
-  filter: blur(80px);
-  opacity: 0.5;
+  filter: blur(24px);
+  opacity: 0.35;
   z-index: 0;
-  will-change: transform, opacity, background-position;
   transition: all 0.5s ease;
-  pointer-events: none;
 }
-.focus-glow-mattina   #focus-widget-container::before { background: linear-gradient(135deg, #FFB199, #FFD194, #A1C4FD); background-size: 150% 150%; animation: focusGradient 15s ease infinite; }
-.focus-glow-pomeriggio #focus-widget-container::before { background: linear-gradient(135deg, #FF512F, #DD2476, #4A00E0); background-size: 150% 150%; animation: focusGradient 15s ease infinite; }
-.focus-glow-notte     #focus-widget-container::before { background: linear-gradient(135deg, #0F2027, #203A43, #2C5364); background-size: 150% 150%; animation: focusGradient 20s ease infinite; }
-.focus-glow-smontante #focus-widget-container::before { background: linear-gradient(135deg, #FFEFBA, #FFFFFF, #B0BEC5); background-size: 150% 150%; animation: focusGradient 15s ease infinite; }
-.focus-glow-riposo    #focus-widget-container::before { background: linear-gradient(135deg, #4CA1AF, #C4E0E5); background-size: 150% 150%; animation: focusGradient 18s ease infinite; }
-.focus-glow-assenza   #focus-widget-container::before { background: linear-gradient(135deg, #654EA3, #EAAFC8, #302B63); background-size: 150% 150%; animation: focusGradient 20s ease infinite; }
+.focus-glow-mattina   #focus-widget-container::before { background: linear-gradient(135deg, #4A7AAB, #E28A62, #C9A36A); background-size: 150% 150%; animation: focusGradient 15s ease infinite; }
+.focus-glow-pomeriggio #focus-widget-container::before { background: linear-gradient(135deg, #AB4A4A, #9A3875, #4D2B7E); background-size: 150% 150%; animation: focusGradient 15s ease infinite; }
+.focus-glow-notte     #focus-widget-container::before { background: linear-gradient(135deg, #19324B, #224260, #2A5174); background-size: 150% 150%; animation: focusGradient 20s ease infinite; }
+.focus-glow-riposo    #focus-widget-container::before { background: linear-gradient(135deg, #2D637A, #285370, #1E455C); background-size: 150% 150%; animation: focusGradient 18s ease infinite; }
+.focus-glow-studio    #focus-widget-container::before { background: linear-gradient(135deg, #1D5A96, #266EBA, #214274); background-size: 150% 150%; animation: focusGradient 15s ease infinite; }
+.focus-glow-assenza   #focus-widget-container::before { background: linear-gradient(135deg, #5A4D7E, #7D5A7D, #3E3A5C); background-size: 150% 150%; animation: focusGradient 20s ease infinite; }
 
-/* Focus card — Bento M3 Premium (Task 2) */
+/* Focus card — Bento M3 Premium */
 #focus-card {
   position: relative;
   width: 100%;
   border-radius: 28px;
   padding: 24px;
   box-sizing: border-box;
-  background-size: 200% 200%;
   box-shadow: 0 8px 32px rgba(0,0,0,0.3);
   z-index: 1;
   overflow: hidden;
   transition: all 0.5s ease;
 }
-/* Task 4: testo bianco puro con ombreggiatura su tutto il card */
-#focus-card, #focus-card * {
-  color: #fff !important;
-  text-shadow: 0 1px 6px rgba(0,0,0,0.5);
-}
-#focus-fase  { opacity: .75 !important; font-size: 10px !important; font-weight: 800 !important; letter-spacing: .8px !important; text-transform: uppercase !important; }
-#focus-titolo{ font-size: 17px !important; font-weight: 900 !important; text-shadow: 0 2px 10px rgba(0,0,0,.6) !important; }
-#focus-clock { font-size: 13px !important; font-weight: 700 !important; letter-spacing: .5px !important; opacity: .9 !important; }
+#focus-card * { color: #ffffff !important; text-shadow: 0 1px 4px rgba(0,0,0,0.6); }
+#focus-fase      { opacity: .75 !important; font-size: 10px !important; font-weight: 800 !important; letter-spacing: .8px !important; text-transform: uppercase !important; }
+#focus-titolo    { font-size: 17px !important; font-weight: 900 !important; text-shadow: 0 2px 10px rgba(0,0,0,.6) !important; }
+#focus-clock     { font-size: 13px !important; font-weight: 700 !important; letter-spacing: .5px !important; opacity: .9 !important; }
 #focus-countdown { font-size: 28px !important; font-weight: 900 !important; letter-spacing: -1px !important; line-height: 1.1 !important; text-shadow: 0 2px 12px rgba(0,0,0,.6) !important; }
 
 /* ── METEO ANIMATO (TASK 7) ── */

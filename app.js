@@ -1244,70 +1244,27 @@ function aggiornaFocus(){
     if(_tipo==='mattina' || _tipo==='ml'){
       glowClass = 'focus-glow-mattina';
       bgClass   = 'focus-bg-mattina';
-      iconHtml  = '<svg width="40" height="40" viewBox="0 0 100 100">'
-        +'<circle cx="50" cy="50" r="18" fill="#FFD166"/>'
-        +'<g class="icon-animate-sun" stroke="#FFD166" stroke-width="5" stroke-linecap="round">'
-        +'<line x1="50" y1="8"  x2="50" y2="20"/>'
-        +'<line x1="50" y1="80" x2="50" y2="92"/>'
-        +'<line x1="8"  y1="50" x2="20" y2="50"/>'
-        +'<line x1="80" y1="50" x2="92" y2="50"/>'
-        +'<line x1="21" y1="21" x2="29" y2="29"/>'
-        +'<line x1="71" y1="71" x2="79" y2="79"/>'
-        +'<line x1="21" y1="79" x2="29" y2="71"/>'
-        +'<line x1="71" y1="21" x2="79" y2="29"/>'
-        +'</g></svg>';
+      iconHtml  = '<svg class="icon-animate-sun" width="40" height="40" viewBox="0 0 100 100"><circle cx="50" cy="50" r="20" fill="#FFD166"/><g stroke="#FFD166" stroke-width="6" stroke-linecap="round"><line x1="50" y1="10" x2="50" y2="20"/><line x1="50" y1="80" x2="50" y2="90"/><line x1="10" y1="50" x2="20" y2="50"/><line x1="80" y1="50" x2="90" y2="50"/><line x1="22" y1="22" x2="29" y2="29"/><line x1="78" y1="78" x2="71" y2="71"/><line x1="22" y1="78" x2="29" y2="71"/><line x1="78" y1="22" x2="71" y2="29"/></g></svg>';
     } else if(_tipo==='pomeriggio' || _tipo==='pl'){
       glowClass = 'focus-glow-pomeriggio';
       bgClass   = 'focus-bg-pomeriggio';
-      iconHtml  = '<svg class="icon-animate-cloud" width="40" height="40" viewBox="0 0 100 100">'
-        +'<defs><linearGradient id="sunsetG" x1="0%" y1="0%" x2="0%" y2="100%">'
-        +'<stop offset="0%" stop-color="#FF8C00"/>'
-        +'<stop offset="100%" stop-color="#FF512F"/>'
-        +'</linearGradient></defs>'
-        +'<circle cx="50" cy="62" r="22" fill="url(#sunsetG)"/>'
-        +'<rect x="0" y="62" width="100" height="38" fill="rgba(0,0,0,0)"/>'
-        +'<line x1="0" y1="62" x2="100" y2="62" stroke="#FF512F" stroke-width="2" opacity=".5"/>'
-        +'<line x1="20" y1="30" x2="80" y2="30" stroke="#FFD166" stroke-width="3" stroke-linecap="round" opacity=".6"/>'
-        +'<line x1="30" y1="20" x2="70" y2="20" stroke="#FFD166" stroke-width="2" stroke-linecap="round" opacity=".4"/>'
-        +'</svg>';
+      iconHtml  = '<svg class="icon-animate-cloud" width="40" height="40" viewBox="0 0 100 100"><path d="M20,70 L80,70 A20,20 0 0,0 60,50 A20,20 0 0,0 40,50 A20,20 0 0,0 20,70 Z" fill="#FF9F43"/><circle cx="50" cy="50" r="15" fill="#FF512F" style="mix-blend-mode: multiply;"/></svg>';
     } else if(_tipo==='notte' || _tipo==='sera'){
       glowClass = 'focus-glow-notte';
       bgClass   = 'focus-bg-notte';
-      iconHtml  = '<svg class="icon-animate-star" width="40" height="40" viewBox="0 0 100 100">'
-        +'<path d="M65,15 A30,30 0 1,0 65,75 A20,20 0 1,1 65,15 Z" fill="#c8d8f0"/>'
-        +'<circle cx="78" cy="18" r="3" fill="#FFD166" opacity=".9"/>'
-        +'<circle cx="88" cy="35" r="2" fill="#FFD166" opacity=".7"/>'
-        +'<circle cx="70" cy="8"  r="2" fill="#FFD166" opacity=".8"/>'
-        +'<circle cx="85" cy="55" r="1.5" fill="#FFD166" opacity=".6"/>'
-        +'</svg>';
+      iconHtml  = '<svg class="icon-animate-star" width="40" height="40" viewBox="0 0 100 100"><path d="M50,10 A40,40 0 0,1 90,50 A40,40 0 0,0 50,90 A40,40 0 0,1 10,50 A40,40 0 0,0 50,10 Z" fill="#E8EDF5"/></svg>';
     } else if(_tipo==='corso' || _tipo==='esame' || _tipo==='licenza'){
-      glowClass = 'focus-glow-assenza';
-      bgClass   = 'focus-bg-riposo';
-      iconHtml  = '<svg class="icon-animate-steam" width="40" height="40" viewBox="0 0 100 100">'
-        +'<rect x="25" y="45" width="50" height="35" rx="5" fill="#8faac8"/>'
-        +'<rect x="30" y="38" width="40" height="10" rx="3" fill="#a0b8d0"/>'
-        +'<path d="M40,38 Q50,20 60,38" fill="none" stroke="#FFD166" stroke-width="3" stroke-linecap="round"/>'
-        +'<rect x="42" y="55" width="16" height="20" rx="2" fill="#0d1b2a"/>'
-        +'</svg>';
+      glowClass = 'focus-glow-studio';
+      bgClass   = 'focus-bg-studio';
+      iconHtml  = '<svg class="icon-animate-steam" width="40" height="40" viewBox="0 0 100 100"><path d="M20,40 L20,70 A20,20 0 0,0 60,70 L60,40 Z" fill="#00E5FF"/><path d="M60,45 A10,10 0 0,1 60,65" fill="none" stroke="#00E5FF" stroke-width="6"/><path d="M30,30 Q35,15 30,0 M50,30 Q55,15 50,0" fill="none" stroke="#00E5FF" stroke-width="4" stroke-linecap="round"/></svg>';
     } else if(_tipo==='937' || _tipo==='104' || _tipo==='ls' || _tipo==='permesso'){
       glowClass = 'focus-glow-assenza';
-      bgClass   = 'focus-bg-riposo';
-      iconHtml  = '<svg width="40" height="40" viewBox="0 0 100 100">'
-        +'<circle cx="50" cy="50" r="40" fill="rgba(200,16,46,.15)" stroke="rgba(200,16,46,.4)" stroke-width="2"/>'
-        +'<rect x="44" y="22" width="12" height="56" rx="6" fill="#c8102e"/>'
-        +'<rect x="22" y="44" width="56" height="12" rx="6" fill="#c8102e"/>'
-        +'</svg>';
+      bgClass   = 'focus-bg-assenza';
+      iconHtml  = '<svg width="40" height="40" viewBox="0 0 100 100"><rect x="40" y="20" width="20" height="60" rx="5" fill="#C084FC"/><rect x="20" y="40" width="60" height="20" rx="5" fill="#C084FC"/></svg>';
     } else {
-      // Riposo, ferie, recupero, fest
       glowClass = 'focus-glow-riposo';
       bgClass   = 'focus-bg-riposo';
-      iconHtml  = '<svg class="icon-animate-relax" width="40" height="40" viewBox="0 0 100 100">'
-        +'<rect x="10" y="70" width="80" height="8" rx="4" fill="#4CA1AF" opacity=".6"/>'
-        +'<path d="M50,65 Q50,30 50,20" stroke="#8fbe6a" stroke-width="5" stroke-linecap="round" fill="none"/>'
-        +'<path d="M50,40 Q65,30 75,35" stroke="#8fbe6a" stroke-width="4" stroke-linecap="round" fill="none"/>'
-        +'<path d="M50,50 Q35,40 25,45" stroke="#8fbe6a" stroke-width="4" stroke-linecap="round" fill="none"/>'
-        +'<ellipse cx="50" cy="70" rx="12" ry="5" fill="#c9a84c" opacity=".7"/>'
-        +'</svg>';
+      iconHtml  = '<svg class="icon-animate-relax" width="40" height="40" viewBox="0 0 100 100"><path d="M10,80 Q50,90 90,80 L90,90 L10,90 Z" fill="#06D6A0"/><circle cx="30" cy="50" r="10" fill="#06D6A0"/><circle cx="70" cy="60" r="8" fill="#06D6A0"/></svg>';
     }
   }
 
