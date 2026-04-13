@@ -3,7 +3,7 @@ import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
          signOut, onAuthStateChanged, deleteUser }
                                   from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
 import { getFirestore, doc, collection, setDoc, getDoc, getDocs, deleteDoc,
-         onSnapshot, query, where, orderBy, limit, serverTimestamp, arrayUnion, updateDoc }
+         onSnapshot, query, where, orderBy, limit, serverTimestamp, arrayUnion, updateDoc, writeBatch }
                                   from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
 import { getMessaging, getToken, onMessage }
                                   from "https://www.gstatic.com/firebasejs/11.8.1/firebase-messaging.js";
@@ -59,6 +59,8 @@ window._fbGetDoc     = getDoc;
 window._fbDeleteDoc  = deleteDoc;
 
 window._fbGetDocs    = getDocs;
+
+window._fbDb         = db;
 
 // ── Splash screen: definita subito così funziona anche senza sessione ──
 window._hideSplash = function() {
@@ -373,6 +375,8 @@ window.FirebaseModule = {
       var profSnap = await getDoc(doc(db, 'utenti', uid));
       if(profSnap.exists()) {
         var prof = profSnap.data();
+        // Se Firestore ha fotoURL (URL Storage), usalo come ava
+        if(prof.fotoURL && prof.fotoURL.startsWith('https')) prof.ava = prof.fotoURL;
         localStorage.setItem('ct_me', JSON.stringify(prof));
         // Ripristina myPid (collegamento Excel → utente)
         if(prof.myPid) localStorage.setItem('ct_my_pid', String(prof.myPid));
@@ -918,6 +922,27 @@ window.FirebaseModule = {
       console.warn('uploadFotoProfilo:', e.message);
       return null;
     }
+  },
+
+  // ── Elimina tutti i turni di un utente (writeBatch) ─────────
+  deleteTurniUtente: async function(uid, myPid) {
+    var rep = _reparto();
+    if(!rep) return;
+    try {
+      var snap = await getDocs(collection(db, 'reparti', rep, 'turni'));
+      var batch = writeBatch(db);
+      var count = 0;
+      snap.forEach(function(d){
+        var t = d.data();
+        if(t.uid === uid || String(t.pid) === String(myPid) || String(t.pid) === String(uid)){
+          batch.delete(d.ref);
+          count++;
+          // Firestore batch limit = 500
+          if(count % 499 === 0){ batch.commit(); batch = writeBatch(db); }
+        }
+      });
+      if(count > 0) await batch.commit();
+    } catch(e) { console.warn('deleteTurniUtente:', e.message); throw e; }
   },
 
   // ── Dino leaderboard ─────────────────────────────────────────

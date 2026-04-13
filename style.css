@@ -193,17 +193,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   top: 15%; left: 5%;
   width: 90%; height: 80%;
   border-radius: 40px;
-  filter: blur(24px);
-  opacity: 0.35;
+  filter: blur(30px);
+  opacity: 0.4;
   z-index: 0;
   transition: all 0.5s ease;
 }
-.focus-glow-mattina   #focus-widget-container::before { background: linear-gradient(135deg, #4A7AAB, #E28A62, #C9A36A); background-size: 150% 150%; animation: focusGradient 15s ease infinite; }
-.focus-glow-pomeriggio #focus-widget-container::before { background: linear-gradient(135deg, #AB4A4A, #9A3875, #4D2B7E); background-size: 150% 150%; animation: focusGradient 15s ease infinite; }
-.focus-glow-notte     #focus-widget-container::before { background: linear-gradient(135deg, #19324B, #224260, #2A5174); background-size: 150% 150%; animation: focusGradient 20s ease infinite; }
-.focus-glow-riposo    #focus-widget-container::before { background: linear-gradient(135deg, #2D637A, #285370, #1E455C); background-size: 150% 150%; animation: focusGradient 18s ease infinite; }
-.focus-glow-studio    #focus-widget-container::before { background: linear-gradient(135deg, #1D5A96, #266EBA, #214274); background-size: 150% 150%; animation: focusGradient 15s ease infinite; }
-.focus-glow-assenza   #focus-widget-container::before { background: linear-gradient(135deg, #5A4D7E, #7D5A7D, #3E3A5C); background-size: 150% 150%; animation: focusGradient 20s ease infinite; }
+.focus-glow-mattina    #focus-widget-container::before { background: linear-gradient(135deg, #FFD166, #F4A261, #E9C46A); background-size: 150% 150%; animation: focusGradient 15s ease infinite; }
+.focus-glow-pomeriggio #focus-widget-container::before { background: linear-gradient(135deg, #F4511E, #E040FB, #7B1FA2); background-size: 150% 150%; animation: focusGradient 15s ease infinite; }
+.focus-glow-notte      #focus-widget-container::before { background: linear-gradient(135deg, #0D1B2A, #1A237E, #1565C0); background-size: 150% 150%; animation: focusGradient 20s ease infinite; }
+.focus-glow-smontante  #focus-widget-container::before { background: linear-gradient(135deg, #FFEFBA, #E0E0E0, #B0BEC5); background-size: 150% 150%; animation: focusGradient 15s ease infinite; }
+.focus-glow-riposo     #focus-widget-container::before { background: linear-gradient(135deg, #87A878, #A8C5A0, #6B9E6B); background-size: 150% 150%; animation: focusGradient 18s ease infinite; }
+.focus-glow-assenza    #focus-widget-container::before { background: linear-gradient(135deg, #7E57C2, #CE93D8, #4527A0); background-size: 150% 150%; animation: focusGradient 20s ease infinite; }
+.focus-glow-studio     #focus-widget-container::before { background: linear-gradient(135deg, #0288D1, #00BCD4, #006064); background-size: 150% 150%; animation: focusGradient 15s ease infinite; }
 
 /* Focus card — Bento M3 Premium */
 #focus-card {
@@ -2722,4 +2723,108 @@ nav.bottom-bar#bottom-nav {
 /* Padding contenuto per la pillola */
 .cont {
   padding-bottom: calc(96px + env(safe-area-inset-bottom,0px)) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   M3 EXPRESSIVE — HAPTIC FEEDBACK + FLOATING NAV + SNACKBAR
+   ═══════════════════════════════════════════════════════════════ */
+
+/* 1. Feedback tattile su tutti gli elementi interattivi */
+.card-turno, .m3-row.tap, .ac, .pcard, .sc, .sett-card,
+.todo-item, .ag-item, .tess-card, .bn-item, .nav-fab,
+[class*="wdg-"] {
+  transition:
+    transform 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.15s ease,
+    background 0.2s ease !important;
+  will-change: transform;
+}
+.card-turno:active, .m3-row.tap:active, .pcard:active,
+.sc:active, .sett-card:active, .todo-item:active,
+.ag-item:active, .tess-card:active {
+  transform: scale(0.97) !important;
+  box-shadow: none !important;
+}
+
+/* 2. Floating Bottom Nav — pillola staccata dal bordo */
+#bottom-nav {
+  position: fixed !important;
+  bottom: 16px !important;
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+  width: min(92%, 480px) !important;
+  padding: 0 !important;
+  background: transparent !important;
+  pointer-events: none;
+  transition: none !important;
+}
+#bottom-nav .bn-items {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  height: 64px;
+  border-radius: 50px !important;
+  background: rgba(13, 21, 32, 0.88) !important;
+  box-shadow:
+    0 8px 32px rgba(0,0,0,.5),
+    0 2px 8px rgba(0,0,0,.3),
+    0 1px 0 rgba(255,255,255,.07) inset !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255,255,255,.1) !important;
+  pointer-events: all;
+}
+/* Temi chiari */
+[data-theme=light] #bottom-nav .bn-items,
+[data-theme=rosa-light] #bottom-nav .bn-items,
+[data-theme=forestale-light] #bottom-nav .bn-items,
+[data-theme=carabinieri-light] #bottom-nav .bn-items {
+  background: rgba(255,255,255,.94) !important;
+  border-color: rgba(0,0,0,.09) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,.14), 0 2px 8px rgba(0,0,0,.08) !important;
+}
+/* Contenuto: padding extra per la pillola staccata */
+.cont {
+  padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px)) !important;
+}
+@media (min-width: 701px) {
+  .cont { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important; }
+}
+
+/* 3. Snackbar M3 */
+#ct-snackbar {
+  visibility: hidden;
+  min-width: 260px;
+  max-width: min(90vw, 400px);
+  background: var(--card2, #1a2c40);
+  color: var(--txt, #e8edf5);
+  text-align: left;
+  border-radius: 30px;
+  padding: 14px 20px;
+  position: fixed;
+  z-index: 10000;
+  left: 50%;
+  bottom: 96px;
+  transform: translateX(-50%) translateY(24px);
+  box-shadow: 0 10px 30px rgba(0,0,0,.55), 0 2px 8px rgba(0,0,0,.3);
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0;
+  pointer-events: none;
+  border-left: 4px solid var(--green, #06d6a0);
+  transition:
+    transform 0.38s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+    opacity 0.3s ease,
+    visibility 0s linear 0.38s;
+}
+#ct-snackbar.show {
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  pointer-events: all;
+  transition:
+    transform 0.38s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+    opacity 0.3s ease,
+    visibility 0s linear 0s;
 }

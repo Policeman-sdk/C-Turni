@@ -233,17 +233,105 @@ function aggiornaStatoReparto(){
   var info = document.getElementById('stato-reparto-info');
   var btnU = document.getElementById('btn-unisciti-reparto');
   var btnS = document.getElementById('btn-scollegati-reparto');
+  var btnT = document.getElementById('btn-trasferimento');
   if(!me || !info) return;
   var rep = me.reparto || '';
   if(_isPrivato(rep)){
     info.innerHTML = '&#128100; Sei in <strong>Modalità Personale</strong>. I tuoi turni sono privati.';
     if(btnU){ btnU.style.display='inline-flex'; }
     if(btnS){ btnS.style.display='none'; }
+    if(btnT){ btnT.style.display='none'; }
   } else {
     info.innerHTML = '&#127968; Sei nel reparto: <strong style="color:var(--blue)">' + rep + '</strong>';
     if(btnU){ btnU.style.display='none'; }
     if(btnS){ btnS.style.display='inline-flex'; }
+    if(btnT){ btnT.style.display='inline-flex'; }
   }
+}
+function apriTrasferimento(){
+  var s = document.getElementById('sec-trasferimento');
+  if(s) s.style.display = 'block';
+}
+function chiudiTrasferimento(){
+  var s = document.getElementById('sec-trasferimento');
+  if(s) s.style.display = 'none';
+}
+function resetTurniUtente(){
+  var me = lsG('ct_me', null);
+  if(!me){ toast('Sessione non trovata','err'); return; }
+  if(!confirm('Eliminare TUTTI i tuoi turni? Questa azione è irreversibile.')){ return; }
+  var uid = me.uid || me.id;
+  var myPid = parseInt(localStorage.getItem('ct_my_pid')||'0');
+  // Rimuovi da localStorage
+  var T = lsG('ct_t', []).filter(function(t){
+    return !(t.pid == myPid || t.pid === uid || (me.uid && t.uid === me.uid));
+  });
+  lsS('ct_t', T);
+  // Rimuovi da Firebase con writeBatch
+  if(window.FirebaseModule) {
+    window.FirebaseModule.deleteTurniUtente(uid, myPid).then(function(){
+      toast('Tutti i tuoi turni eliminati','ok');
+      renderTurni(); renderOggi(); stats(); aggiornaWidget();
+      if(typeof renderCal === 'function') renderCal();
+    }).catch(function(e){ toast('Errore: '+e.message,'err'); });
+  } else {
+    toast('Tutti i tuoi turni eliminati (locale)','ok');
+    renderTurni(); renderOggi(); stats(); aggiornaWidget();
+  }
+}
+
+// ── Reset Totale Dati: elimina tutti i turni dalla collezione Firestore ──
+function resetTotaleFirestore(){
+  var me = lsG('ct_me', null);
+  if(!me){ toast('Sessione non trovata','err'); return; }
+  if(!confirm('⚠️ RESET TOTALE: eliminare TUTTI i turni del reparto da Firestore?\nQuesta azione è irreversibile.')){ return; }
+  var rep = (me.reparto||'').toLowerCase().replace(/\s+/g,'_');
+  var isPrivato = !rep || rep.startsWith('privato_');
+  // Pulisci localStorage
+  lsS('ct_t', []);
+  if(typeof renderTurni==='function') renderTurni();
+  if(typeof renderOggi==='function') renderOggi();
+  if(typeof stats==='function') stats();
+  if(typeof aggiornaWidget==='function') aggiornaWidget();
+  if(!window._fbGetDocs || !window._fbCollection || !window._fbDeleteDoc || !window._fbDoc || !window._fbDb || isPrivato){
+    toast('Turni eliminati (locale)', 'ok');
+    return;
+  }
+  toast('Eliminazione in corso...', 'ok');
+  (async function(){
+    try {
+      var snap = await window._fbGetDocs(window._fbCollection(window._fbDb, 'reparti', rep, 'turni'));
+      var dels = [];
+      snap.forEach(function(d){ dels.push(window._fbDeleteDoc(window._fbDoc(window._fbDb, 'reparti', rep, 'turni', d.id))); });
+      await Promise.all(dels);
+      toast('✅ Tutti i turni eliminati da Firestore', 'ok');
+      setTimeout(function(){ location.reload(); }, 1200);
+    } catch(e) {
+      console.warn('resetTotaleFirestore:', e.message);
+      toast('Errore: ' + e.message, 'err');
+    }
+  })();
+}
+
+// ── Apri selezione reparto iniziale (Trasferimento) ──
+function apriSelezioneReparto(){
+  vaiBN('imp', 4);
+  setTimeout(function(){
+    var secRep = document.getElementById('sec-stato-reparto');
+    if(secRep) secRep.scrollIntoView({behavior:'smooth', block:'center'});
+    apriTrasferimento();
+  }, 200);
+}
+
+// ── Apri selezione reparto iniziale (Trasferimento) ──
+function apriSelezioneReparto(){
+  // Porta l'utente alla sezione impostazioni > stato reparto e apre il form trasferimento
+  vaiBN('imp', 4);
+  setTimeout(function(){
+    var secRep = document.getElementById('sec-stato-reparto');
+    if(secRep) secRep.scrollIntoView({behavior:'smooth', block:'center'});
+    apriTrasferimento();
+  }, 200);
 }
 
 function apriUnitiReparto(){
@@ -1388,34 +1476,8 @@ function aggiornaFocus(){
     }
   }
 
-  // Avvia orologio LIVE (aggiorna ogni secondo)
-  if(window._focusClockTimer) clearInterval(window._focusClockTimer);
-  window._focusClockTimer = setInterval(function(){
-    var clk = document.getElementById('focus-clock');
-    if(!clk){ clearInterval(window._focusClockTimer); return; }
-    var n = new Date();
-    var hh = ('0'+n.getHours()).slice(-2);
-    var mm = ('0'+n.getMinutes()).slice(-2);
-    var ss = ('0'+n.getSeconds()).slice(-2);
-    clk.textContent = '🕐 ' + hh + ':' + mm + ':' + ss;
-    // Aggiorna anche il countdown se presente
-    var cdH = document.getElementById('focus-cd-h');
-    var cdM = document.getElementById('focus-cd-m');
-    if(cdH && cdM && (oraFine || oraInizio)){
-      var nowMin = n.getHours()*60 + n.getMinutes();
-      var targetStr = (fase === 'servizio') ? oraFine : oraInizio;
-      if(targetStr){
-        var tp = targetStr.split(':');
-        var targetMin = parseInt(tp[0])*60 + parseInt(tp[1]||0);
-        var diff = targetMin - nowMin;
-        if(fase === 'servizio' && diff < 0) diff += 1440;
-        if(fase === 'pre' && diff < 0) diff += 1440;
-        if(diff < 0) diff = 0;
-        cdH.textContent = Math.floor(diff/60);
-        cdM.textContent = ('0'+(diff%60)).slice(-2);
-      }
-    }
-  }, 1000);
+  // Avvia orologio LIVE con funzione dedicata
+  startFocusTimer(fase, oraFine, oraInizio);
 
   // To-Do in sospeso (solo in servizio)
   var tdWrap = document.getElementById('focus-todo-wrap');
@@ -1452,6 +1514,37 @@ function aggiornaFocus(){
     } else { snWrap.style.display = 'none'; }
   }
 }
+
+// ── Orologio LIVE Modalità Focus ─────────────────────────────
+function startFocusTimer(fase, oraFine, oraInizio){
+  // Pulisci timer precedente
+  if(window._focusClockTimer){ clearInterval(window._focusClockTimer); window._focusClockTimer = null; }
+  window._focusClockTimer = setInterval(function(){
+    var clk = document.getElementById('focus-clock');
+    // Se il widget non è più nel DOM, ferma il timer
+    if(!clk || !document.getElementById('widget-focus') || document.getElementById('widget-focus').style.display === 'none'){
+      clearInterval(window._focusClockTimer); window._focusClockTimer = null; return;
+    }
+    var n = new Date();
+    clk.innerHTML = '🕐 ' + ('0'+n.getHours()).slice(-2) + ':' + ('0'+n.getMinutes()).slice(-2) + ':' + ('0'+n.getSeconds()).slice(-2);
+    // Aggiorna countdown
+    var cdH = document.getElementById('focus-cd-h');
+    var cdM = document.getElementById('focus-cd-m');
+    if(cdH && cdM){
+      var targetStr = (fase === 'servizio') ? oraFine : oraInizio;
+      if(targetStr){
+        var tp = targetStr.split(':');
+        var targetMin = parseInt(tp[0])*60 + parseInt(tp[1]||0);
+        var nowMin = n.getHours()*60 + n.getMinutes();
+        var diff = targetMin - nowMin;
+        if(diff < 0) diff += 1440;
+        cdH.innerHTML = Math.floor(diff/60);
+        cdM.innerHTML = ('0'+(diff%60)).slice(-2);
+      }
+    }
+  }, 1000);
+}
+
 function _snoozeSmartTodo(id){
   var TD = lsG('ct_td', []);
   var t = TD.find(function(x){ return x.id === id; });
@@ -1666,32 +1759,72 @@ function _isFestivoCalc(ds){
 }
 
 function checkFestivoTurno(t){
-  if(!t||!{mattina:1,pomeriggio:1,notte:1}[t.tipo])return;
-  // REGOLA: domenica non conteggiata come recupero
-  var nomeFest=getNomeFestivo(t.data);
-  if(!nomeFest)return; // null = domenica o giorno normale
-  var me=lsG("ct_me",null);if(!me||t.pid!==me.id)return;
-  var key="ct_rec_"+t.id;if(localStorage.getItem(key))return;
-  localStorage.setItem(key,"1");
-  var tipoLabel={mattina:"Mattina",pomeriggio:"Pomeriggio",notte:"Notte"}[t.tipo]||t.tipo;
-  var REC=lsG("ct_recuperi",[]);
+  if(!t) return;
+  var me = lsG("ct_me", null); if(!me) return;
+  var myPid = parseInt(localStorage.getItem('ct_my_pid')||'0');
+  if(t.pid !== me.id && t.pid !== myPid && !(me.uid && t.uid === me.uid)) return;
+
+  var d = _parseDate(t.data);
+  var isDomenica = (d.getDay() === 0);
+
+  // Festività infrasettimanali (getNomeFestivo esclude domeniche)
+  var nomeFest = getNomeFestivo(t.data);
+  // Patrono: leggi da impostazioni
+  var patrono = lsG('ct_patrono', null);
+  if(patrono && t.data === patrono && !isDomenica) nomeFest = nomeFest || 'Patrono';
+
+  var tipiLavorativi = {mattina:1, ml:1, pomeriggio:1, pl:1, notte:1, sera:1};
+  var tipiRiposo = {riposo:1, recupero:1};
+  var matura = false;
+  var motivo = '';
+
+  if(nomeFest){
+    // REGOLA 1: Festivo/Patrono + Turno lavorativo → +1 recupero maturato
+    if(tipiLavorativi[t.tipo]){
+      matura = true;
+      motivo = 'Lavoro festivo: ' + nomeFest;
+    }
+    // REGOLA 2: Festivo/Patrono + Riposo + NON domenica → +1 recupero maturato
+    else if(tipiRiposo[t.tipo] && !isDomenica){
+      matura = true;
+      motivo = 'Riposo festivo: ' + nomeFest;
+    }
+    // REGOLA 3: Festivo + Riposo + Domenica → Festività Pagata (nessun recupero)
+    else if(tipiRiposo[t.tipo] && isDomenica){
+      var keyPag = 'ct_festpag_' + t.id;
+      if(!localStorage.getItem(keyPag)){
+        localStorage.setItem(keyPag, '1');
+        var prefs2 = lsG("ct_notif_prefs", {festivi:true});
+        if(prefs2.festivi !== false) toast('📅 Festività Pagata: ' + nomeFest + ' (domenica)', 'ok');
+      }
+      return;
+    }
+  }
+
+  if(!matura) return;
+
+  var key = "ct_rec_" + t.id;
+  if(localStorage.getItem(key)) return;
+  localStorage.setItem(key, "1");
+  var REC = lsG("ct_recuperi", []);
   REC.push({
-    id:t.id,
-    data:t.data,
-    tipo:t.tipo,
-    nomeFest:nomeFest,
-    label:"Recupero Riposo del "+nomeFest,
-    usato:false
+    id: t.id,
+    data: t.data,
+    tipo: t.tipo,
+    nomeFest: nomeFest,
+    label: motivo,
+    usato: false
   });
-  lsS("ct_recuperi",REC);
-  me.recuperiExtra=REC.filter(function(r){return !r.usato;}).length;
-  lsS("ct_me",me);
-  var U=lsG("ct_u",[]);
-  for(var i=0;i<U.length;i++){if(U[i].id===me.id){U[i].recuperiExtra=me.recuperiExtra;break;}}
-  lsS("ct_u",U);
-  var prefs=lsG("ct_notif_prefs",{festivi:true});
-  if(prefs.festivi!==false)
-    toast("&#127941; Recupero Riposo del "+nomeFest+" maturato!","ok");
+  lsS("ct_recuperi", REC);
+  me.recuperiExtra = REC.filter(function(r){ return !r.usato; }).length;
+  lsS("ct_me", me);
+  var U = lsG("ct_u", []);
+  for(var i=0; i<U.length; i++){
+    if(U[i].id===me.id || U[i].uid===me.uid){ U[i].recuperiExtra = me.recuperiExtra; break; }
+  }
+  lsS("ct_u", U);
+  var prefs = lsG("ct_notif_prefs", {festivi:true});
+  if(prefs.festivi !== false) toast('🏅 +1 Recupero: ' + motivo, 'ok');
 }
 
 // ---- TEMA ----
@@ -2548,19 +2681,79 @@ function isFestivo(ds){
   return d.toDateString()===pasqua.toDateString()||d.toDateString()===lp.toDateString();
 }
 function checkFestivoTurno(t){
-  if(!t||!{mattina:1,pomeriggio:1,notte:1}[t.tipo])return;
-  if(!isFestivo(t.data))return;
-  var me=lsG("ct_me",null);if(!me||t.pid!==me.id)return;
-  var key="ct_rec_"+t.id;if(localStorage.getItem(key))return;
-  localStorage.setItem(key,"1");
-  var REC=lsG("ct_recuperi",[]);
-  REC.push({id:t.id,data:t.data,tipo:t.tipo,usato:false});
-  lsS("ct_recuperi",REC);
-  me.recuperiExtra=REC.filter(function(r){return !r.usato;}).length;
-  lsS("ct_me",me);
-  var U=lsG("ct_u",[]);for(var i=0;i<U.length;i++){if(U[i].id===me.id){U[i].recuperiExtra=me.recuperiExtra;break;}}lsS("ct_u",U);
-  var prefs=lsG("ct_notif_prefs",{festivi:true});
-  if(prefs.festivi!==false)toast("&#127941; Turno festivo! +1 recupero da usare","ok");
+  if(!t) return;
+  var me = lsG("ct_me", null);
+  if(!me) return;
+  var myPid = parseInt(localStorage.getItem('ct_my_pid')||'0');
+  // Verifica che il turno appartenga all'utente
+  if(t.pid !== me.id && t.pid !== myPid && !(me.uid && t.uid === me.uid)) return;
+
+  var d = _parseDate(t.data);
+  var isDomenica = (d.getDay() === 0);
+  // Usa getNomeFestivo (esclude domeniche) per festività infrasettimanali
+  var nomeFest = getNomeFestivo(t.data);
+  // Patrono: leggi da impostazioni
+  var patrono = lsG('ct_patrono', null);
+  if(patrono && t.data === patrono && !isDomenica) nomeFest = nomeFest || 'Patrono';
+
+  var tipiLavorativi = {mattina:1, ml:1, pomeriggio:1, pl:1, notte:1, sera:1};
+  var tipiRiposo = {riposo:1, recupero:1};
+
+  var matura = false;
+  var motivo = '';
+
+  if(nomeFest){
+    // REGOLA 1: Festivo + Turno lavorativo → +1 recupero maturato
+    if(tipiLavorativi[t.tipo]){
+      matura = true;
+      motivo = 'Lavoro festivo: ' + nomeFest;
+    }
+    // REGOLA 2: Festivo + Riposo + NON domenica → +1 recupero maturato
+    else if(tipiRiposo[t.tipo] && !isDomenica){
+      matura = true;
+      motivo = 'Riposo festivo: ' + nomeFest;
+    }
+    // REGOLA 3: Festivo + Riposo + Domenica → Festività Pagata (nessun recupero)
+    else if(tipiRiposo[t.tipo] && isDomenica){
+      var keyPag = 'ct_festpag_' + t.id;
+      if(!localStorage.getItem(keyPag)){
+        localStorage.setItem(keyPag, '1');
+        var prefs3 = lsG("ct_notif_prefs", {festivi:true});
+        if(prefs3.festivi !== false) toast('📅 Festività Pagata: ' + nomeFest + ' (domenica)', 'ok');
+      }
+      return;
+    }
+  }
+
+  if(!matura) return;
+
+  var key = 'ct_rec_' + t.id;
+  if(localStorage.getItem(key)) return; // già conteggiato
+  localStorage.setItem(key, '1');
+
+  var REC = lsG("ct_recuperi", []);
+  REC.push({
+    id: t.id,
+    data: t.data,
+    tipo: t.tipo,
+    nomeFest: nomeFest,
+    label: motivo,
+    usato: false
+  });
+  lsS("ct_recuperi", REC);
+  me.recuperiExtra = REC.filter(function(r){ return !r.usato; }).length;
+  lsS("ct_me", me);
+  var U = lsG("ct_u", []);
+  for(var i=0; i<U.length; i++){
+    if(U[i].id===me.id || U[i].uid===me.uid){ U[i].recuperiExtra = me.recuperiExtra; break; }
+  }
+  lsS("ct_u", U);
+  if(window.FirebaseModule){
+    var sess = lsG('ct_session', null);
+    if(sess && sess.userId) window.FirebaseModule.saveUserProfile(sess.userId, me, me.reparto).catch(function(){});
+  }
+  var prefs = lsG("ct_notif_prefs", {festivi:true});
+  if(prefs.festivi !== false) toast('🏅 +1 Recupero: ' + motivo, 'ok');
 }
 
 // ---- TODO ----
@@ -6715,6 +6908,36 @@ function tbdg(tipo,cod){
 function fmtD(ds){try{return _parseDate(ds).toLocaleDateString("it-IT");}catch(e){return ds;}}
 function cap(s){return s?s.charAt(0).toUpperCase()+s.slice(1):"";}
 function pad(n){return n<10?"0"+n:""+n;}
+// ── Vibrazione aptica sicura ──────────────────────────────────
+window.haptic = function(type) {
+  if (!navigator.vibrate) return;
+  try {
+    if (type === 'light')   navigator.vibrate(15);
+    else if (type === 'success') navigator.vibrate([15, 60, 20]);
+    else if (type === 'error')   navigator.vibrate([50, 50, 50]);
+    else                    navigator.vibrate(15);
+  } catch(e) {}
+};
+
+// ── Snackbar M3 (alias showToast) ────────────────────────────
+window.showToast = function(msg, isError) {
+  var x = document.getElementById('ct-snackbar');
+  if (!x) {
+    x = document.createElement('div');
+    x.id = 'ct-snackbar';
+    document.body.appendChild(x);
+  }
+  x.textContent = msg;
+  x.style.borderLeftColor = isError ? 'var(--red)' : 'var(--green)';
+  // reset animazione
+  x.className = '';
+  void x.offsetWidth;
+  x.className = 'show';
+  window.haptic(isError ? 'error' : 'success');
+  clearTimeout(x._hideTimer);
+  x._hideTimer = setTimeout(function(){ x.className = x.className.replace('show','').trim(); }, 3000);
+};
+
 function toast(msg,tipo){
   var d=document.createElement("div");
   var tc=tipo==="ok"?" ok":tipo==="err"?" err":tipo==="warn"?" warn":"";
@@ -6724,6 +6947,8 @@ function toast(msg,tipo){
   document.getElementById("noti").appendChild(d);
   setTimeout(function(){d.style.opacity="0";},3000);
   setTimeout(function(){d.remove();},3300);
+  // Feedback aptico
+  window.haptic(tipo === 'err' ? 'error' : tipo === 'ok' ? 'success' : 'light');
   // Suono UI
   if(typeof _playUiSound === 'function') {
     if(tipo === 'ok')   _playUiSound('save');
@@ -6825,6 +7050,13 @@ function salvaProfilo(){
   // Aggiorna localStorage, ct_u, ct_p, DOM e mostra toast
   function _completaSalvataggio(profilo){
     lsS('ct_me', profilo);
+    // Aggiorna ct_session con il nuovo URL foto (persiste al refresh)
+    var sess = lsG('ct_session', null);
+    if(sess && profilo.ava){
+      sess.ava = profilo.ava;
+      sess.fotoURL = profilo.ava;
+      lsS('ct_session', sess);
+    }
     var U=lsG('ct_u',[]);
     for(var i=0;i<U.length;i++){if(U[i].id===profilo.id||U[i].uid===profilo.uid){U[i]=Object.assign({},U[i],profilo);break;}}
     lsS('ct_u',U);

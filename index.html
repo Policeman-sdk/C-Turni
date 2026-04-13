@@ -1086,6 +1086,35 @@
             <div style="display:flex;gap:8px;flex-wrap:wrap">
               <button id="btn-unisciti-reparto" class="btn btn-p btn-sm" style="width:auto;display:none" onclick="apriUnitiReparto()">&#127968; Unisciti a un Reparto</button>
               <button id="btn-scollegati-reparto" class="btn btn-sm" style="width:auto;display:none;background:rgba(200,16,46,.1);color:var(--red);border-color:rgba(200,16,46,.3)" onclick="scollegaReparto()">&#128683; Scollegati</button>
+              <button id="btn-trasferimento" class="btn btn-sm" style="width:auto;display:none;background:rgba(41,121,255,.1);color:var(--blue);border-color:rgba(41,121,255,.3)" onclick="apriTrasferimento()">&#128260; Cambia Reparto</button>
+            </div>
+            <!-- Form trasferimento -->
+            <div id="sec-trasferimento" style="display:none;margin-top:12px;padding:12px;background:var(--bg2);border-radius:12px;border:1px solid var(--border)">
+              <div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:10px">&#128260; Trasferimento Reparto</div>
+              <div class="fg" style="margin-bottom:8px"><label>Tipo Struttura</label>
+                <select class="fc" id="trasf-tipo-struttura" onchange="aggiornaTrasferimentoId()"><option value="">-- Seleziona --</option><option value="stazione">Stazione</option><option value="nucleo">Nucleo</option><option value="compagnia">Compagnia</option><option value="distaccamento">Distaccamento</option><option value="tenenza">Tenenza</option><option value="gruppo">Gruppo</option><option value="legione">Legione</option></select></div>
+              <div class="fg" style="margin-bottom:8px"><label>Specialità</label>
+                <select class="fc" id="trasf-specialita" onchange="aggiornaTrasferimentoId()"><option value="">-- Seleziona --</option><option value="territoriale">Territoriale</option><option value="forestale">Forestale</option><option value="radiomobile">Radiomobile</option><option value="norm">N.O.R.M.</option><option value="sis">S.I.S.</option><option value="cacciatori">Cacciatori</option><option value="paracadutisti">Paracadutisti</option><option value="ros">R.O.S.</option><option value="gis">G.I.S.</option><option value="noe">N.O.E.</option><option value="nas">N.A.S.</option><option value="nit">N.I.T.</option></select></div>
+              <div class="fg" style="margin-bottom:8px"><label>Sede / Città</label><input type="text" class="fc" id="trasf-sede" placeholder="Es. Varazze" oninput="aggiornaTrasferimentoId()"></div>
+              <div style="margin-bottom:10px;padding:8px 12px;background:rgba(41,121,255,.07);border-radius:10px;border:1px solid rgba(41,121,255,.15)">
+                <div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Nuovo Reparto</div>
+                <div id="trasf-reparto-preview" style="font-size:13px;font-weight:700;color:var(--blue);font-family:monospace">—</div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button class="btn btn-p btn-sm" style="width:auto" onclick="richiestaTrasfRep()">&#10004; Conferma Trasferimento</button>
+                <button class="btn btn-sm" style="width:auto" onclick="chiudiTrasferimento()">Annulla</button>
+              </div>
+            </div>
+            <!-- Reset turni -->
+            <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+              <button class="btn btn-sm" style="width:100%;background:rgba(200,16,46,.08);color:var(--red);border:1px solid rgba(200,16,46,.25);font-size:12px" onclick="resetTurniUtente()">&#128465; Elimina tutti i miei turni (Reset)</button>
+              <div style="font-size:10px;color:var(--txt3);margin-top:5px;text-align:center">Rimuove tutti i tuoi turni dal reparto. Utile prima di un trasferimento.</div>
+            </div>
+            <!-- Pulsanti Impostazioni Reparto -->
+            <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px">
+              <button class="btn btn-sm" style="width:100%;background:rgba(41,121,255,.08);color:var(--blue);border:1px solid rgba(41,121,255,.25);font-size:12px" onclick="apriSelezioneReparto()">&#128260; Trasferimento Reparto</button>
+              <button class="btn btn-sm" style="width:100%;background:rgba(200,16,46,.08);color:var(--red);border:1px solid rgba(200,16,46,.25);font-size:12px" onclick="resetTotaleFirestore()">&#128465; Reset Totale Dati</button>
+              <div style="font-size:10px;color:var(--txt3);text-align:center">Reset Totale elimina tutti i turni del reparto da Firestore.</div>
             </div>
             <div id="uniti-reparto-form" style="display:none;margin-top:12px">
               <div class="fg" style="margin-bottom:8px"><label>Tipo Struttura</label>
