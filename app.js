@@ -320,16 +320,6 @@ function resetTotaleFirestore(){
 
 // ── Apri selezione reparto iniziale (Trasferimento) ──
 function apriSelezioneReparto(){
-  vaiBN('imp', 4);
-  setTimeout(function(){
-    var secRep = document.getElementById('sec-stato-reparto');
-    if(secRep) secRep.scrollIntoView({behavior:'smooth', block:'center'});
-    apriTrasferimento();
-  }, 200);
-}
-
-// ── Apri selezione reparto iniziale (Trasferimento) ──
-function apriSelezioneReparto(){
   // Porta l'utente alla sezione impostazioni > stato reparto e apre il form trasferimento
   vaiBN('imp', 4);
   setTimeout(function(){
@@ -361,7 +351,7 @@ function aggiornaUnitiId(){
   if(prev) prev.textContent = id || '—';
 }
 
-function confermaUnitiReparto(){
+async function confermaUnitiReparto(){
   var t = (document.getElementById('uniti-tipo')||{}).value||'';
   var s = (document.getElementById('uniti-spec')||{}).value||'';
   var c = ((document.getElementById('uniti-sede')||{}).value||'').trim().toLowerCase().replace(/\s+/g,'_');
@@ -370,22 +360,51 @@ function confermaUnitiReparto(){
   var me = lsG('ct_me', null);
   if(!me){ toast('Sessione non trovata','err'); return; }
   var vecchioRep = me.reparto || '';
+
+  // Logica pioniere: controlla se il reparto esiste già con un Comandante
+  var isPioniere = false;
+  if(window.FirebaseModule) {
+    try {
+      var esistenti = await window.FirebaseModule.getUsersByReparto(id);
+      var haCmd = esistenti.some(function(u){
+        return u.ruolo === 'comandante' && (u.stato === 'approved' || u.stato === 'approvato');
+      });
+      isPioniere = (esistenti.length === 0 || !haCmd);
+    } catch(e) { isPioniere = true; }
+  } else { isPioniere = true; }
+
   me.reparto = id;
-  me.ruolo = 'addetto';
-  me.stato = 'pending';
+  me.ruolo = isPioniere ? 'comandante' : 'addetto';
+  me.stato = isPioniere ? 'approved' : 'pending';
   lsS('ct_me', me);
+
+  // Pulisci dati vecchio reparto
+  lsS('ct_p', []);
+  lsS('ct_t', []);
+  localStorage.removeItem('ct_my_pid');
+
   if(window.FirebaseModule){
-    window.FirebaseModule.migraTurniPersonali(vecchioRep, id, me.uid || me.id).then(function(){
-      window.FirebaseModule.savePersonale();
-      toast('Richiesta inviata. In attesa di approvazione.','ok');
-      chiudiUnitiReparto();
-      aggiornaStatoReparto();
-    }).catch(function(e){ toast('Errore: '+e.message,'err'); });
+    try {
+      await window.FirebaseModule.saveUserProfile(me.uid || me.id, me, id);
+      if(vecchioRep && vecchioRep !== id){
+        await window.FirebaseModule.migraTurniPersonali(vecchioRep, id, me.uid || me.id);
+      }
+      if(isPioniere){
+        try { await window.FirebaseModule.loadReparto(id); } catch(e){}
+      }
+    } catch(e){ toast('Errore Firebase: '+e.message,'err'); return; }
+  }
+
+  chiudiUnitiReparto();
+  aggiornaStatoReparto();
+  if(isPioniere){
+    toast('Sei il primo del reparto "'+id.replace(/_/g,' ')+'". Sei il Comandante!','ok');
+    if(typeof aggUI==='function') aggUI();
+    if(typeof renderDash==='function') renderDash();
+    if(typeof vaiBN==='function') vaiBN('dash',0);
   } else {
-    window.FirebaseModule && window.FirebaseModule.savePersonale();
-    toast('Richiesta inviata.','ok');
-    chiudiUnitiReparto();
-    aggiornaStatoReparto();
+    toast('Richiesta inviata. In attesa di approvazione.','ok');
+    _showPendingScreen(me);
   }
 }
 
@@ -399,7 +418,7 @@ function scollegaReparto(){
   var vecchioRep = rep;
   me.reparto = 'privato_' + uid;
   me.ruolo = 'addetto';
-  me.stato = 'attivo';
+  me.stato = 'approved';
   lsS('ct_me', me);
 
   // Pulisci lista colleghi e turni del vecchio reparto dal localStorage
@@ -4676,9 +4695,7 @@ function aggUI(){
     // Tasto invita collega: visibile solo se in un reparto
     var btnInvita = document.getElementById('btn-invita-collega');
     if(btnInvita) btnInvita.style.display = (u && u.reparto) ? 'inline-flex' : 'none';
-    // Aggiorna widget dashboard
-    if(typeof renderDash === 'function') renderDash();
-    // Aggiorna orari preset
+    // Aggiorna orari preset (renderDash è chiamato dall'hook aggUI)
     if(typeof renderOrariPreset === 'function') renderOrariPreset();
     // Aggiorna stato reparto in impostazioni
     if(typeof aggiornaStatoReparto === 'function') aggiornaStatoReparto();
@@ -4690,9 +4707,14 @@ function aggUI(){
     var tessSt = document.getElementById('tess-sticky');
     if(tessSt) tessSt.style.display = 'none'; // Task 6: tesserino rimosso dalla dashboard
     // Popola tesserino in Impostazioni > Profilo (Task 6)
+    // Copia il contenuto e rimuove gli id per evitare duplicati nel DOM
     var tessImp = document.getElementById('tess-sticky-imp');
     var tessOrig = document.getElementById('tess-sticky');
-    if(tessImp && tessOrig) tessImp.innerHTML = tessOrig.innerHTML;
+    if(tessImp && tessOrig) {
+      tessImp.innerHTML = tessOrig.innerHTML;
+      // Rimuovi tutti gli id dalla copia per evitare duplicati
+      tessImp.querySelectorAll('[id]').forEach(function(el){ el.removeAttribute('id'); });
+    }
     var togDino = document.getElementById('tog-dino');
     if(togDino) togDino.checked = !!prefs.dino;
     var togSuoni = document.getElementById('tog-suoni');
@@ -6560,14 +6582,25 @@ async function richiestaTrasfRep() {
     // ── Legge del pioniere: se il reparto non esiste o non ha un Comandante → diventa Comandante ──
     var isPioniere = false;
     if(window.FirebaseModule) {
-      var esistenti = await window.FirebaseModule.getUsersByReparto(nuovoReparto);
-      var haCmd = esistenti.some(function(u){ return u.ruolo === 'comandante' && u.stato === 'approvato'; });
-      isPioniere = (esistenti.length === 0 || !haCmd);
+      try {
+        var esistenti = await window.FirebaseModule.getUsersByReparto(nuovoReparto);
+        // Controlla sia 'approved' (inglese, standard Firebase) che 'approvato' (legacy)
+        var haCmd = esistenti.some(function(u){
+          return u.ruolo === 'comandante' && (u.stato === 'approved' || u.stato === 'approvato');
+        });
+        isPioniere = (esistenti.length === 0 || !haCmd);
+      } catch(e) {
+        // Se Firebase non risponde, assume pioniere (reparto nuovo)
+        isPioniere = true;
+      }
+    } else {
+      // Senza Firebase è sempre pioniere
+      isPioniere = true;
     }
 
     me.reparto = nuovoReparto;
     if(isPioniere) {
-      me.stato = 'approvato';
+      me.stato = 'approved';   // usa 'approved' (standard)
       me.ruolo = 'comandante';
     } else {
       me.stato = 'pending';
@@ -6579,6 +6612,7 @@ async function richiestaTrasfRep() {
     }
     session.reparto = nuovoReparto;
     session.ruolo = me.ruolo;
+    session.stato = me.stato;
     lsS('ct_session', session);
     lsS('ct_me', me);
 
@@ -6589,8 +6623,15 @@ async function richiestaTrasfRep() {
 
     if(isPioniere) {
       toast('Sei il primo del reparto "' + nuovoReparto.replace(/_/g,' ') + '". Sei il Comandante!', 'ok');
+      // Ricarica dati Firebase del nuovo reparto
+      if(window.FirebaseModule) {
+        try {
+          await window.FirebaseModule.loadReparto(nuovoReparto);
+        } catch(e) { /* non bloccante */ }
+      }
       if(typeof aggUI === 'function') aggUI();
-      if(typeof vaiBN === 'function') vaiBN('imp', 3);
+      if(typeof renderDash === 'function') renderDash();
+      if(typeof vaiBN === 'function') vaiBN('dash', 0);
     } else {
       toast('Trasferimento richiesto. Attendi approvazione.', 'ok');
       _showPendingScreen(me);
@@ -7125,7 +7166,8 @@ function renderDash() {
   if (cfg.todo)     renderWidgetTodo();
   // Hero Card aggiornata ogni minuto per l'Active Ring
   if(window._heroRingTimer) clearInterval(window._heroRingTimer);
-  window._heroRingTimer = setInterval(aggiornaHeroCard, 60000);  var map = {
+  window._heroRingTimer = setInterval(aggiornaHeroCard, 60000);
+  var map = {
     turno:"widget-oggi", prossimo:"widget-prossimo", 'turni-oggi':"widget-turni-oggi",
     meteo:"widget-meteo", alert:"widget-alert", scadenze:"widget-scadenze",
     agenda:"widget-agenda", todo:"widget-todo", dino:"widget-dino-dash", squadra:"widget-squadra"
@@ -7618,7 +7660,7 @@ var _origRenderPers = renderPers;
 renderPers = function() {
   _origRenderPers();
   var me = lsG('ct_me', null); if (!me) return;
-  var isCom = (me.ruolo === 'comandante' || me.ruolo === 'vice') && me.stato === 'attivo';
+  var isCom = (me.ruolo === 'comandante' || me.ruolo === 'vice') && (me.stato === 'attivo' || me.stato === 'approved' || me.stato === 'approvato');
   if (!isCom) return;
   var U = lsG('ct_u', []);
   var pending = U.filter(function(u){ return u.reparto && u.reparto.toLowerCase() === (me.reparto||'').toLowerCase() && (u.stato === 'pending' || u.stato === 'pending_com'); });
@@ -7639,14 +7681,16 @@ renderPers = function() {
 };
 
 function approvaUtente(id) {
+  // Aggiorna ct_u (locale legacy)
   var U = lsG('ct_u', []);
+  var approvatoUid = null;
   for (var i=0;i<U.length;i++){
     if (U[i].id === id) {
       var wasComReq = U[i].stato === 'pending_com';
-      U[i].stato = 'attivo';
+      U[i].stato = 'approved';
+      approvatoUid = U[i].uid || null;
       if (wasComReq) {
         U[i].ruolo = 'comandante';
-        // Declassa il vecchio comandante ad addetto
         var me = lsG('ct_me', null);
         if (me) { for(var j=0;j<U.length;j++){ if(U[j].id===me.id){ U[j].ruolo='addetto'; break; } } }
       }
@@ -7654,8 +7698,21 @@ function approvaUtente(id) {
     }
   }
   lsS('ct_u', U);
+  // Aggiorna anche ct_users (Firebase cache)
+  var CU = lsG('ct_users', []);
+  for (var k=0;k<CU.length;k++){
+    if (CU[k].id === id || (approvatoUid && CU[k].uid === approvatoUid)) {
+      CU[k].stato = 'approved';
+      break;
+    }
+  }
+  localStorage.setItem('ct_users', JSON.stringify(CU));
+  // Aggiorna su Firebase
+  if(window.FirebaseModule && approvatoUid) {
+    window.FirebaseModule.aggiornaStatoUtente(approvatoUid, 'approved').catch(function(e){ console.warn('approvaUtente Firebase:', e.message); });
+  }
   var NOTS = lsG('ct_notif_app', []);
-  NOTS.push({ id: Date.now(), ts: Date.now(), letta: false, msg: '? Utente approvato', tipo: 'info', targetId: id });
+  NOTS.push({ id: Date.now(), ts: Date.now(), letta: false, msg: '✅ Utente approvato', tipo: 'info', targetId: id });
   lsS('ct_notif_app', NOTS);
   aggiornaBadgeNotif();
   renderPers();
@@ -7664,6 +7721,8 @@ function approvaUtente(id) {
 
 function rifiutaUtente(id) {
   lsS('ct_u', lsG('ct_u', []).filter(function(u){ return u.id !== id; }));
+  var CU = lsG('ct_users', []);
+  localStorage.setItem('ct_users', JSON.stringify(CU.filter(function(u){ return u.id !== id; })));
   renderPers();
   toast('Utente rifiutato e rimosso', 'ok');
 }
