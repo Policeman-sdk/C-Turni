@@ -1099,6 +1099,25 @@
               <button id="btn-scollegati-reparto" class="btn btn-sm" style="width:auto;display:none;background:rgba(200,16,46,.1);color:var(--red);border-color:rgba(200,16,46,.3)" onclick="scollegaReparto()">&#128683; Scollegati</button>
             </div>
 
+            <!-- Form unisciti reparto — visibile direttamente, non dentro Opzioni Avanzate -->
+            <div id="uniti-reparto-form" style="display:none;margin-top:14px;padding:14px;background:var(--bg2);border-radius:14px;border:1px solid var(--border)">
+              <div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:12px">&#127968; Unisciti a un Reparto</div>
+              <div class="fg" style="margin-bottom:8px"><label>Tipo Struttura</label>
+                <select class="fc" id="uniti-tipo" onchange="aggiornaUnitiId()"><option value="">-- Seleziona --</option><option value="stazione">Stazione</option><option value="nucleo">Nucleo</option><option value="compagnia">Compagnia</option><option value="distaccamento">Distaccamento</option><option value="tenenza">Tenenza</option><option value="gruppo">Gruppo</option><option value="legione">Legione</option></select></div>
+              <div class="fg" style="margin-bottom:8px"><label>Specialità</label>
+                <select class="fc" id="uniti-spec" onchange="aggiornaUnitiId()"><option value="">-- Seleziona --</option><option value="territoriale">Territoriale</option><option value="forestale">Forestale</option><option value="radiomobile">Radiomobile</option><option value="norm">N.O.R.M.</option><option value="sis">S.I.S.</option><option value="cacciatori">Cacciatori</option><option value="paracadutisti">Paracadutisti</option><option value="ros">R.O.S.</option><option value="gis">G.I.S.</option><option value="noe">N.O.E.</option><option value="nas">N.A.S.</option><option value="nit">N.I.T.</option></select></div>
+              <div class="fg" style="margin-bottom:8px"><label>Sede / Città</label><input type="text" class="fc" id="uniti-sede" placeholder="Es. Varazze" oninput="aggiornaUnitiId()"></div>
+              <div style="margin-bottom:12px;padding:8px 12px;background:rgba(41,121,255,.07);border-radius:10px;border:1px solid rgba(41,121,255,.15)">
+                <div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">ID Reparto generato</div>
+                <div id="uniti-reparto-preview" style="font-size:13px;font-weight:700;color:var(--blue);font-family:monospace">—</div>
+              </div>
+              <div id="uniti-reparto-hint" style="display:none;margin-bottom:10px;padding:9px 12px;border-radius:10px;border:1px solid;font-size:12px;line-height:1.5"></div>
+              <div style="display:flex;gap:8px">
+                <button class="btn btn-p btn-sm" style="width:auto" onclick="confermaUnitiReparto()">&#10004; Conferma</button>
+                <button class="btn btn-sm" style="width:auto" onclick="chiudiUnitiReparto()">Annulla</button>
+              </div>
+            </div>
+
             <!-- Reset turni -->
             <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
               <button class="btn btn-sm" style="width:100%;background:rgba(200,16,46,.08);color:var(--red);border:1px solid rgba(200,16,46,.25);font-size:12px" onclick="resetTurniUtente()">&#128465; Elimina tutti i miei turni (Reset)</button>
@@ -1137,22 +1156,7 @@
               </div>
             </div>
 
-            <!-- Form unisciti reparto (invariato) -->
-            <div id="uniti-reparto-form" style="display:none;margin-top:12px">
-              <div class="fg" style="margin-bottom:8px"><label>Tipo Struttura</label>
-                <select class="fc" id="uniti-tipo" onchange="aggiornaUnitiId()"><option value="">-- Seleziona --</option><option value="stazione">Stazione</option><option value="nucleo">Nucleo</option><option value="compagnia">Compagnia</option><option value="distaccamento">Distaccamento</option><option value="tenenza">Tenenza</option><option value="gruppo">Gruppo</option><option value="legione">Legione</option></select></div>
-              <div class="fg" style="margin-bottom:8px"><label>Specialità</label>
-                <select class="fc" id="uniti-spec" onchange="aggiornaUnitiId()"><option value="">-- Seleziona --</option><option value="territoriale">Territoriale</option><option value="forestale">Forestale</option><option value="radiomobile">Radiomobile</option><option value="norm">N.O.R.M.</option><option value="sis">S.I.S.</option><option value="cacciatori">Cacciatori</option><option value="paracadutisti">Paracadutisti</option><option value="ros">R.O.S.</option><option value="gis">G.I.S.</option><option value="noe">N.O.E.</option><option value="nas">N.A.S.</option><option value="nit">N.I.T.</option></select></div>
-              <div class="fg" style="margin-bottom:8px"><label>Sede / Città</label><input type="text" class="fc" id="uniti-sede" placeholder="Es. Varazze" oninput="aggiornaUnitiId()"></div>
-              <div style="margin-bottom:10px;padding:8px 12px;background:rgba(41,121,255,.07);border-radius:10px;border:1px solid rgba(41,121,255,.15)">
-                <div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">ID Reparto</div>
-                <div id="uniti-reparto-preview" style="font-size:13px;font-weight:700;color:var(--blue);font-family:monospace">—</div>
-              </div>
-              <div style="display:flex;gap:8px">
-                <button class="btn btn-p btn-sm" style="width:auto" onclick="confermaUnitiReparto()">&#10004; Conferma</button>
-                <button class="btn btn-sm" style="width:auto" onclick="chiudiUnitiReparto()">Annulla</button>
-              </div>
-            </div>
+            <!-- Form unisciti reparto spostato sopra, prima di Opzioni Avanzate -->
           </div>
 
         </div><!-- /isola profilo -->

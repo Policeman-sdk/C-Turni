@@ -331,9 +331,12 @@ function apriSelezioneReparto(){
 
 function apriUnitiReparto(){
   var f = document.getElementById('uniti-reparto-form');
-  if(f) f.style.display='block';
+  if(f){
+    f.style.display = 'block';
+    setTimeout(function(){ f.scrollIntoView({behavior:'smooth', block:'nearest'}); }, 50);
+  }
   var btnU = document.getElementById('btn-unisciti-reparto');
-  if(btnU) btnU.style.display='none';
+  if(btnU) btnU.style.display = 'none';
 }
 
 function chiudiUnitiReparto(){
@@ -349,6 +352,28 @@ function aggiornaUnitiId(){
   var id = [t,s,c].filter(Boolean).join('_');
   var prev = document.getElementById('uniti-reparto-preview');
   if(prev) prev.textContent = id || '—';
+  // Feedback visivo: controlla se il reparto esiste
+  var hint = document.getElementById('uniti-reparto-hint');
+  if(!hint || !id || !window.FirebaseModule) return;
+  clearTimeout(window._unitiHintTimer);
+  window._unitiHintTimer = setTimeout(async function(){
+    try {
+      var existing = await window.FirebaseModule.getUsersByReparto(id);
+      if(existing.length > 0){
+        var cmd = existing.find(function(u){ return (u.ruolo==='comandante'||u.ruolo==='vice') && (u.stato==='approved'||u.stato==='approvato'); });
+        hint.innerHTML = '&#9989; Reparto trovato. Potrai unirti dopo l\'approvazione del Comandante' + (cmd ? ' (<strong>'+(cmd.grado||'')+' '+cmd.nome+' '+cmd.cognome+'</strong>)' : '') + '.';
+        hint.style.background = 'rgba(6,214,160,.08)';
+        hint.style.borderColor = 'rgba(6,214,160,.3)';
+        hint.style.color = 'var(--green)';
+      } else {
+        hint.innerHTML = '&#128640; Nuovo reparto: sarai il primo iscritto e diventerai automaticamente <strong>Comandante</strong>.';
+        hint.style.background = 'rgba(41,121,255,.07)';
+        hint.style.borderColor = 'rgba(41,121,255,.2)';
+        hint.style.color = 'var(--blue)';
+      }
+      hint.style.display = 'block';
+    } catch(e){ hint.style.display = 'none'; }
+  }, 600);
 }
 
 async function confermaUnitiReparto(){
