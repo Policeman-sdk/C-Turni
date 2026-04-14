@@ -3263,3 +3263,146 @@ body[data-atmosfera="oasi"] .hero-ring-fill { stroke: #06D6A0; }
   color: var(--txt2) !important;
   border-color: var(--border) !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   EFFETTI PREMIUM — Glass Shimmer, Ripple Pulse, Magnetic Snap,
+   Live Pulse, Glass Spotlight, SVG Draw-in, Frost Reveal
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 2. GLASS SHIMMER — riflesso di luce sulla Hero Card ── */
+.hero-card {
+  overflow: hidden;
+}
+.hero-card::after {
+  content: '';
+  position: absolute;
+  top: -60%;
+  left: -80%;
+  width: 50%;
+  height: 220%;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(255,255,255,0.18) 50%,
+    transparent 70%
+  );
+  transform: skewX(-15deg);
+  pointer-events: none;
+  opacity: 0;
+  z-index: 10;
+}
+.hero-card.shimmer::after {
+  animation: glassShimmer 0.9s cubic-bezier(0.4,0,0.2,1) forwards;
+}
+@keyframes glassShimmer {
+  0%   { left: -80%; opacity: 1; }
+  100% { left: 130%; opacity: 1; }
+}
+
+/* ── 3. RIPPLE PULSE — onda d'urto dal Tonal Circle ── */
+.hero-tonal-circle {
+  position: relative;
+}
+.hero-ripple {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 96px; height: 96px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 0.7;
+  pointer-events: none;
+  animation: ripplePulse 1.2s cubic-bezier(0.2,0.8,0.4,1) forwards;
+  z-index: -1;
+}
+@keyframes ripplePulse {
+  0%   { transform: translate(-50%,-50%) scale(1);   opacity: 0.6; }
+  100% { transform: translate(-50%,-50%) scale(3.5); opacity: 0; }
+}
+
+/* ── 4. MAGNETIC SNAP — drag widget ── */
+.wdg-wrap.dragging-active {
+  transform: scale(1.04) !important;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.45), 0 0 0 2px rgba(91,159,255,0.4) !important;
+  z-index: 100;
+  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+}
+.wdg-wrap.snap-in {
+  animation: magnetSnap 0.38s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+@keyframes magnetSnap {
+  0%   { transform: scale(1.04); }
+  60%  { transform: scale(0.97); }
+  100% { transform: scale(1); }
+}
+.wdg-wrap.snap-glow {
+  animation: snapGlow 0.5s ease forwards;
+}
+@keyframes snapGlow {
+  0%   { box-shadow: 0 0 0 0 rgba(91,159,255,0); }
+  40%  { box-shadow: 0 0 0 6px rgba(91,159,255,0.35); }
+  100% { box-shadow: 0 0 0 0 rgba(91,159,255,0); }
+}
+
+/* ── 5. LIVE PULSE — badge verde squadra ── */
+.squadra-live-badge {
+  animation: livePulse 2.4s ease-in-out infinite;
+}
+@keyframes livePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(6,214,160,0.7); }
+  50%       { box-shadow: 0 0 0 5px rgba(6,214,160,0); }
+}
+
+/* ── 6. GLASS SPOTLIGHT — luce sotto il dito ── */
+.bento-card {
+  position: relative;
+  overflow: hidden;
+}
+.glass-spotlight {
+  position: absolute;
+  width: 120px; height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.18) 0%, transparent 70%);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 5;
+}
+.bento-card.spotlight-active .glass-spotlight {
+  opacity: 1;
+}
+
+/* ── 7. SVG DRAW-IN — icona che si disegna ── */
+.hero-tonal-ico {
+  transition: opacity 0.15s ease;
+}
+.hero-tonal-ico.drawing {
+  animation: iconDrawIn 0.5s cubic-bezier(0.4,0,0.2,1) forwards;
+}
+@keyframes iconDrawIn {
+  0%   { opacity: 0; transform: scale(0.6) rotate(-8deg); filter: blur(4px); }
+  60%  { opacity: 1; transform: scale(1.1) rotate(2deg);  filter: blur(0); }
+  100% { opacity: 1; transform: scale(1)   rotate(0deg);  filter: blur(0); }
+}
+
+/* ── 8. FROST REVEAL — emergenza dal basso all'avvio ── */
+.wdg-wrap.frost-hidden {
+  opacity: 0;
+  filter: blur(18px);
+  transform: translateY(24px);
+}
+.wdg-wrap.frost-reveal {
+  animation: frostReveal 0.55s cubic-bezier(0.4,0,0.2,1) forwards;
+}
+@keyframes frostReveal {
+  0%   { opacity: 0; filter: blur(18px); transform: translateY(24px); }
+  100% { opacity: 1; filter: blur(0);    transform: translateY(0); }
+}
+.hero-card.frost-hidden {
+  opacity: 0;
+  filter: blur(24px);
+  transform: translateY(16px);
+}
+.hero-card.frost-reveal {
+  animation: frostReveal 0.6s cubic-bezier(0.4,0,0.2,1) forwards;
+}

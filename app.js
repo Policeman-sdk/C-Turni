@@ -401,6 +401,12 @@ function scollegaReparto(){
   me.ruolo = 'addetto';
   me.stato = 'attivo';
   lsS('ct_me', me);
+
+  // Pulisci lista colleghi e turni del vecchio reparto dal localStorage
+  lsS('ct_p', []);
+  lsS('ct_t', []);
+  localStorage.removeItem('ct_my_pid');
+
   if(window.FirebaseModule){
     window.FirebaseModule.eliminaTurniServizioReparto(vecchioRep, uid).then(function(){
       window.FirebaseModule.migraTurniPersonali(vecchioRep, 'privato_'+uid, uid).then(function(){
@@ -408,11 +414,13 @@ function scollegaReparto(){
         toast('Scollegato dal reparto. Ora sei in modalità personale.','ok');
         aggiornaStatoReparto();
         if(typeof aggUI==='function') aggUI();
+        if(typeof renderDash==='function') renderDash();
       });
     }).catch(function(e){ toast('Errore: '+e.message,'err'); });
   } else {
     toast('Scollegato.','ok');
     aggiornaStatoReparto();
+    if(typeof renderDash==='function') renderDash();
   }
 }
 
@@ -1329,9 +1337,15 @@ function aggiornaHeroCard(){
   var heroIco = document.getElementById('hero-tonal-ico');
   var heroSigla = document.getElementById('hero-sigla');
   var heroOrario = document.getElementById('hero-orario');
+  // Anima l'icona solo se è cambiata
+  var prevIco = heroIco ? heroIco.getAttribute('data-prev-ico') : null;
   if(heroIco) heroIco.textContent = ico;
   if(heroSigla) heroSigla.textContent = sigla;
   if(heroOrario) heroOrario.textContent = orario;
+  if(heroIco && ico !== prevIco) {
+    heroIco.setAttribute('data-prev-ico', ico);
+    if(typeof _animateHeroIcon === 'function') _animateHeroIcon();
+  }
 
   // Active Ring — calcola percentuale tempo trascorso
   var ring = document.getElementById('hero-ring-fill');
@@ -4939,15 +4953,21 @@ function salvaPersona(){
 function salvaTurno(){
   // Controllo ruolo: solo comandante, vice o l'utente stesso può salvare turni
   var _me = lsG('ct_me', null);
-  var _myPidCheck = parseInt(localStorage.getItem('ct_my_pid')||'0');
   var _isCom = _me && (_me.ruolo === 'comandante' || _me.ruolo === 'vice' || _me.id === 1);
   var _pSel=document.getElementById("mt-pers-sel");
   if(_pSel&&_pSel.value)document.getElementById("mt-pers").value=_pSel.value;
   var pid=parseInt(document.getElementById("mt-pers").value);
-  // Se non è comandante/vice, può salvare solo il proprio turno
-  if(!_isCom && pid && pid !== _myPidCheck) {
-    toast("Puoi modificare solo i tuoi turni personali","err");
-    return;
+  // Se non è comandante/vice, verifica che il turno sia dell'utente stesso
+  // Controlla ct_my_pid, me.id e me.uid per massima compatibilità
+  if(!_isCom && pid) {
+    var _myPidCheck = parseInt(localStorage.getItem('ct_my_pid')||'0');
+    var _isMe = (_myPidCheck && pid === _myPidCheck)
+             || (_me && pid === _me.id)
+             || (_me && _me.uid && String(pid) === String(_me.uid));
+    if(!_isMe) {
+      toast("Puoi modificare solo i tuoi turni personali","err");
+      return;
+    }
   }
   var dt=document.getElementById("mt-data").value;
   var tp=document.getElementById("mt-tipo").value;
@@ -6535,6 +6555,11 @@ async function richiestaTrasfRep() {
     lsS('ct_session', session);
     lsS('ct_me', me);
 
+    // Pulisci lista colleghi e turni del vecchio reparto
+    lsS('ct_p', []);
+    lsS('ct_t', []);
+    localStorage.removeItem('ct_my_pid');
+
     if(isPioniere) {
       toast('Sei il primo del reparto "' + nuovoReparto.replace(/_/g,' ') + '". Sei il Comandante!', 'ok');
       if(typeof aggUI === 'function') aggUI();
@@ -7073,8 +7098,7 @@ function renderDash() {
   if (cfg.todo)     renderWidgetTodo();
   // Hero Card aggiornata ogni minuto per l'Active Ring
   if(window._heroRingTimer) clearInterval(window._heroRingTimer);
-  window._heroRingTimer = setInterval(aggiornaHeroCard, 60000);
-  var map = {
+  window._heroRingTimer = setInterval(aggiornaHeroCard, 60000);  var map = {
     turno:"widget-oggi", prossimo:"widget-prossimo", 'turni-oggi':"widget-turni-oggi",
     meteo:"widget-meteo", alert:"widget-alert", scadenze:"widget-scadenze",
     agenda:"widget-agenda", todo:"widget-todo", dino:"widget-dino-dash", squadra:"widget-squadra"
@@ -7093,6 +7117,8 @@ function renderDash() {
   renderDashWidgetToggles();
   var panel = document.getElementById('dash-organizza-panel');
   if (panel && panel.classList.contains('open')) renderDopList();
+  // Effetti premium — avvia dopo che il DOM è aggiornato
+  setTimeout(initPremiumEffects, 50);
 }
 
 /* ---------- WIDGET PROSSIMO TURNO ---------- */
@@ -10027,3 +10053,220 @@ var AuthModule = (function() {
   };
 
 })();
+
+
+// ═══════════════════════════════════════════════════════════════
+// EFFETTI PREMIUM — Glass Shimmer, Ripple Pulse, Magnetic Snap,
+// Live Pulse, Glass Spotlight, SVG Draw-in, Frost Reveal
+// ═══════════════════════════════════════════════════════════════
+
+// ── 2. GLASS SHIMMER ──────────────────────────────────────────
+function _startGlassShimmer() {
+  if(window._shimmerTimer) clearInterval(window._shimmerTimer);
+  window._shimmerTimer = setInterval(function() {
+    var card = document.getElementById('hero-card');
+    if(!card) return;
+    card.classList.remove('shimmer');
+    // forza reflow per riavviare l'animazione
+    void card.offsetWidth;
+    card.classList.add('shimmer');
+    setTimeout(function(){ card.classList.remove('shimmer'); }, 950);
+  }, 10000);
+
+  // Anche al ritorno in foreground (visibilitychange)
+  document.removeEventListener('visibilitychange', _onVisibilityShimmer);
+  document.addEventListener('visibilitychange', _onVisibilityShimmer);
+}
+function _onVisibilityShimmer() {
+  if(document.visibilityState === 'visible') {
+    var card = document.getElementById('hero-card');
+    if(!card) return;
+    card.classList.remove('shimmer');
+    void card.offsetWidth;
+    card.classList.add('shimmer');
+    setTimeout(function(){ card.classList.remove('shimmer'); }, 950);
+  }
+}
+
+// ── 3. RIPPLE PULSE ───────────────────────────────────────────
+function _checkRipplePulse() {
+  var me = lsG('ct_me', null);
+  if(!me) return;
+  var now = new Date();
+  var oggi = now.getFullYear()+'-'+('0'+(now.getMonth()+1)).slice(-2)+'-'+('0'+now.getDate()).slice(-2);
+  var T = lsG('ct_t', []);
+  var mioTurno = T.find(function(t){ return _isMyTurno(t, me) && t.data === oggi; });
+  if(!mioTurno || !mioTurno.orario || mioTurno.orario.indexOf('-') < 0) return;
+
+  var parts = mioTurno.orario.split('-');
+  var sp = parts[0].trim().split(':');
+  var startMin = parseInt(sp[0])*60 + parseInt(sp[1]||0);
+  var nowMin = now.getHours()*60 + now.getMinutes();
+
+  // Scatta entro 1 minuto dall'inizio turno
+  if(nowMin === startMin || nowMin === startMin + 1) {
+    var lastRipple = window._lastRippleMin || -99;
+    if(nowMin !== lastRipple) {
+      window._lastRippleMin = nowMin;
+      _fireRipplePulse();
+    }
+  }
+}
+function _fireRipplePulse() {
+  var circle = document.querySelector('.hero-tonal-circle');
+  if(!circle) return;
+  var ripple = document.createElement('div');
+  ripple.className = 'hero-ripple';
+  // Colore basato sull'atmosfera corrente
+  var atm = document.body.getAttribute('data-atmosfera') || 'riposo';
+  var colors = {
+    alba:'rgba(255,209,102,0.5)', tramonto:'rgba(255,107,53,0.5)',
+    crepuscolo:'rgba(0,229,255,0.5)', eclissi:'rgba(255,23,68,0.5)',
+    oasi:'rgba(6,214,160,0.5)', riposo:'rgba(91,159,255,0.4)'
+  };
+  ripple.style.background = colors[atm] || colors.riposo;
+  circle.appendChild(ripple);
+  setTimeout(function(){ ripple.remove(); }, 1250);
+  // Vibrazione leggera
+  if(navigator.vibrate) navigator.vibrate([30, 50, 30]);
+}
+
+// ── 4. MAGNETIC SNAP ──────────────────────────────────────────
+function _initMagneticSnap() {
+  var container = document.getElementById('wdg-container');
+  if(!container) return;
+
+  var dragEl = null;
+  var dragOverEl = null;
+
+  container.addEventListener('dragstart', function(e) {
+    dragEl = e.target.closest('.wdg-wrap');
+    if(!dragEl) return;
+    dragEl.classList.add('dragging-active');
+    e.dataTransfer.effectAllowed = 'move';
+  }, true);
+
+  container.addEventListener('dragend', function(e) {
+    if(!dragEl) return;
+    dragEl.classList.remove('dragging-active');
+    dragEl.classList.add('snap-in');
+    dragEl.classList.add('snap-glow');
+    setTimeout(function(){
+      if(dragEl) { dragEl.classList.remove('snap-in'); dragEl.classList.remove('snap-glow'); }
+      dragEl = null;
+    }, 500);
+    if(navigator.vibrate) navigator.vibrate(15);
+  }, true);
+
+  // Touch drag
+  container.addEventListener('touchstart', function(e) {
+    var el = e.target.closest('.wdg-wrap');
+    if(!el) return;
+    dragEl = el;
+    dragEl.classList.add('dragging-active');
+  }, {passive:true, capture:true});
+
+  container.addEventListener('touchend', function() {
+    if(!dragEl) return;
+    dragEl.classList.remove('dragging-active');
+    dragEl.classList.add('snap-in');
+    dragEl.classList.add('snap-glow');
+    setTimeout(function(){
+      if(dragEl) { dragEl.classList.remove('snap-in'); dragEl.classList.remove('snap-glow'); }
+      dragEl = null;
+    }, 500);
+    if(navigator.vibrate) navigator.vibrate(15);
+  }, {passive:true, capture:true});
+}
+
+// ── 6. GLASS SPOTLIGHT ────────────────────────────────────────
+function _initGlassSpotlight() {
+  document.querySelectorAll('.bento-card').forEach(function(card) {
+    // Evita duplicati
+    if(card.querySelector('.glass-spotlight')) return;
+    var spot = document.createElement('div');
+    spot.className = 'glass-spotlight';
+    card.appendChild(spot);
+
+    card.addEventListener('touchstart', function(e) {
+      var rect = card.getBoundingClientRect();
+      var t = e.touches[0];
+      spot.style.left = (t.clientX - rect.left) + 'px';
+      spot.style.top  = (t.clientY - rect.top)  + 'px';
+      card.classList.add('spotlight-active');
+    }, {passive:true});
+
+    card.addEventListener('touchend', function() {
+      card.classList.remove('spotlight-active');
+    }, {passive:true});
+
+    card.addEventListener('touchcancel', function() {
+      card.classList.remove('spotlight-active');
+    }, {passive:true});
+
+    // Mouse (desktop)
+    card.addEventListener('mousedown', function(e) {
+      var rect = card.getBoundingClientRect();
+      spot.style.left = (e.clientX - rect.left) + 'px';
+      spot.style.top  = (e.clientY - rect.top)  + 'px';
+      card.classList.add('spotlight-active');
+    });
+    card.addEventListener('mouseup',    function(){ card.classList.remove('spotlight-active'); });
+    card.addEventListener('mouseleave', function(){ card.classList.remove('spotlight-active'); });
+  });
+}
+
+// ── 7. SVG DRAW-IN ────────────────────────────────────────────
+function _animateHeroIcon() {
+  var ico = document.getElementById('hero-tonal-ico');
+  if(!ico) return;
+  ico.classList.remove('drawing');
+  void ico.offsetWidth; // reflow
+  ico.classList.add('drawing');
+  setTimeout(function(){ ico.classList.remove('drawing'); }, 520);
+}
+
+// ── 8. FROST REVEAL ───────────────────────────────────────────
+function _frostReveal() {
+  // Hero Card
+  var hero = document.getElementById('hero-card');
+  if(hero) {
+    hero.classList.add('frost-hidden');
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){
+        hero.classList.remove('frost-hidden');
+        hero.classList.add('frost-reveal');
+        setTimeout(function(){ hero.classList.remove('frost-reveal'); }, 650);
+      });
+    });
+  }
+
+  // Widget cards — staggered
+  var widgets = document.querySelectorAll('#wdg-container .wdg-wrap');
+  widgets.forEach(function(w, i) {
+    w.classList.add('frost-hidden');
+    var delay = 80 + i * 55;
+    setTimeout(function(){
+      requestAnimationFrame(function(){
+        w.classList.remove('frost-hidden');
+        w.classList.add('frost-reveal');
+        setTimeout(function(){ w.classList.remove('frost-reveal'); }, 600);
+      });
+    }, delay);
+  });
+}
+
+// ── INIT GLOBALE — chiamato da renderDash ─────────────────────
+function initPremiumEffects() {
+  _startGlassShimmer();
+  _initMagneticSnap();
+  _initGlassSpotlight();
+  _animateHeroIcon();
+  _frostReveal();
+
+  // Ripple pulse: controlla ogni minuto
+  if(window._rippleTimer) clearInterval(window._rippleTimer);
+  window._rippleTimer = setInterval(_checkRipplePulse, 60000);
+  // Controlla subito al caricamento
+  _checkRipplePulse();
+}
