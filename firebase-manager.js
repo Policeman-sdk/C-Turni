@@ -116,10 +116,22 @@ function _startListeners(reparto) {
   _unsubscribers.push(onSnapshot(turniRef, function(snap) {
     var arr = [];
     snap.forEach(function(d){ arr.push(d.data()); });
-    localStorage.setItem('ct_t', JSON.stringify(arr));
+    // Merge intelligente: non sovrascrivere turni locali più recenti
+    // Se Firebase ha meno turni del locale (es. appena salvato), aspetta la conferma
+    var localT = [];
+    try { localT = JSON.parse(localStorage.getItem('ct_t') || '[]'); } catch(e) {}
+    // Usa Firebase come fonte di verità, ma aggiungi turni locali non ancora sincronizzati
+    // (turni con id > timestamp di 5 secondi fa = appena creati)
+    var now5s = Date.now() - 5000;
+    var turniRecenti = localT.filter(function(t){
+      return t.id > now5s && !arr.some(function(fb){ return String(fb.id) === String(t.id); });
+    });
+    var merged = arr.concat(turniRecenti);
+    localStorage.setItem('ct_t', JSON.stringify(merged));
     if(typeof window.renderTurni === 'function') window.renderTurni();
     if(typeof window.renderOggi  === 'function') window.renderOggi();
     if(typeof window.stats       === 'function') window.stats();
+    if(typeof window.aggiornaWidget === 'function') window.aggiornaWidget();
   }, function(e){ console.warn('onSnapshot turni:', e.message); }));
 
   // Todo e Agenda (personali per utente, non per reparto)
@@ -601,45 +613,42 @@ window.FirebaseModule = {
       var arr = typeof turniArr === 'string' ? JSON.parse(turniArr) : turniArr;
       if(!arr.length) return;
 
-      // Raggruppa per anno-mese per aggiornare solo i mesi presenti nell'array
-      var mesiPresenti = {};
-      arr.forEach(function(t){
-        if(!t.id || !t.data) return;
-        var ym = t.data.substring(0,7); // "2026-03"
-        if(!mesiPresenti[ym]) mesiPresenti[ym] = [];
-        mesiPresenti[ym].push(t);
+      // Scrivi ogni turno direttamente — semplice e affidabile
+      var writes = arr.map(function(t){
+        if(!t.id || !t.data) return Promise.resolve();
+        return setDoc(doc(db, 'reparti', rep, 'turni', String(t.id)), t);
       });
-
-      var writes = [];
-      Object.keys(mesiPresenti).forEach(function(ym){
-        var turniMese = mesiPresenti[ym];
-        var localIds = turniMese.map(function(t){ return String(t.id); });
-        // Scrivi/aggiorna tutti i turni del mese
-        turniMese.forEach(function(t){
-          writes.push(setDoc(doc(db, 'reparti', rep, 'turni', String(t.id)), t));
-        });
-        // Cancella da Firestore solo i turni di QUESTO mese non più presenti in locale
-        // (non tocca gli altri mesi)
-        writes.push(
-          getDocs(query(collection(db, 'reparti', rep, 'turni'), where('data', '>=', ym+'-01'), where('data', '<=', ym+'-31')))
-          .then(function(snap){
-            var del = [];
-            snap.forEach(function(d){
-              if(localIds.indexOf(d.id) === -1) del.push(deleteDoc(doc(db, 'reparti', rep, 'turni', d.id)));
-            });
-            return Promise.all(del);
-          })
-        );
-      });
-
       await Promise.all(writes);
     } catch(e) { console.warn('saveTurni:', e.message); _toast('Errore sync turni', 'err'); }
   },
 
+  // ── Riavvia i listener sul nuovo reparto dopo trasferimento ──
+  loadReparto: async function(reparto) {
+    if(!reparto) return;
+    var rep = reparto.toLowerCase().replace(/\s+/g,'_');
+    // Aggiorna ct_session con il nuovo reparto
+    try {
+      var sess = JSON.parse(localStorage.getItem('ct_session') || 'null');
+      if(sess) { sess.reparto = rep; localStorage.setItem('ct_session', JSON.stringify(sess)); }
+    } catch(e) {}
+    // Riavvia i listener sul nuovo reparto
+    _startListeners(rep);
+    // Carica turni iniziali del nuovo reparto
+    try {
+      var turniSnap = await getDocs(collection(db, 'reparti', rep, 'turni'));
+      var turni = []; turniSnap.forEach(function(d){ turni.push(d.data()); });
+      localStorage.setItem('ct_t', JSON.stringify(turni));
+      if(typeof window.renderTurni === 'function') window.renderTurni();
+      if(typeof window.renderOggi  === 'function') window.renderOggi();
+      if(typeof window.stats       === 'function') window.stats();
+    } catch(e) { console.warn('loadReparto turni:', e.message); }
+    // Carica utenti del nuovo reparto
+    try { await this.syncUsers(); } catch(e) {}
+  },
+
   deleteTurno: async function(tid) {
     var rep = _reparto();
-    if(!rep || !tid) return;
-    try {
+    if(!rep || !tid) return;    try {
       await deleteDoc(doc(db, 'reparti', rep, 'turni', String(tid)));
     } catch(e) { console.warn('deleteTurno:', e.message); _toast('Errore eliminazione turno', 'err'); }
   },
