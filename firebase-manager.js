@@ -163,7 +163,32 @@ function _startListeners(reparto) {
           prof.ava = localAva; // Firestore ha base64 vecchio → tieni URL https locale
         }
         localStorage.setItem('ct_me', JSON.stringify(prof));
-        // Aggiorna anche ct_session se ruolo/stato cambiato
+        // Aggiorna ct_p con il nuovo ava (per i widget turni)
+        if(prof.ava && prof.ava.startsWith('https')) {
+          try {
+            var P = JSON.parse(localStorage.getItem('ct_p') || '[]');
+            var uid2 = prof.uid || (JSON.parse(localStorage.getItem('ct_session')||'null')||{}).userId;
+            var aggiornato = false;
+            for(var pi=0; pi<P.length; pi++){
+              if(P[pi].uid === uid2 || P[pi].id === prof.id){
+                P[pi].ava = prof.ava;
+                aggiornato = true;
+                break;
+              }
+            }
+            if(aggiornato) localStorage.setItem('ct_p', JSON.stringify(P));
+          } catch(e3) {}
+        }
+        // Aggiorna ct_session con il nuovo ava
+        try {
+          var sess2 = JSON.parse(localStorage.getItem('ct_session') || 'null');
+          if(sess2 && prof.ava && prof.ava.startsWith('https')) {
+            sess2.ava = prof.ava;
+            sess2.fotoURL = prof.ava;
+            localStorage.setItem('ct_session', JSON.stringify(sess2));
+          }
+        } catch(e4) {}
+        // Aggiorna ct_session e ct_me se ruolo/stato cambiato
         try {
           var sess = JSON.parse(localStorage.getItem('ct_session') || 'null');
           if(sess) {
@@ -188,6 +213,25 @@ function _startListeners(reparto) {
     var arr = [];
     snap.forEach(function(d){ arr.push(d.data()); });
     localStorage.setItem('ct_users', JSON.stringify(arr));
+
+    // Auto-ripristino: se l'utente corrente non è più nella lista del reparto, ri-salvalo
+    try {
+      var session = JSON.parse(localStorage.getItem('ct_session') || 'null');
+      var me = JSON.parse(localStorage.getItem('ct_me') || 'null');
+      if(session && session.userId && me && me.reparto) {
+        var uid = session.userId;
+        var meInLista = arr.some(function(u){ return u.uid === uid || u.email === session.email; });
+        var meReparto = (me.reparto||'').toLowerCase().replace(/\s+/g,'_');
+        var repartoCorrente = reparto.toLowerCase().replace(/\s+/g,'_');
+        // Ripristina solo se il reparto del listener corrisponde al reparto corrente dell'utente
+        if(!meInLista && meReparto === repartoCorrente && me.stato !== 'pending' && me.stato !== 'rejected') {
+          console.log('[C-Turni] Auto-ripristino profilo nel reparto:', reparto);
+          window.FirebaseModule.saveUserProfile(uid, me, reparto).catch(function(e){
+            console.warn('auto-ripristino profilo:', e.message);
+          });
+        }
+      }
+    } catch(e2) { console.warn('auto-ripristino check:', e2.message); }
 
     // Aggiorna ct_session e ct_me se il ruolo dell'utente corrente è cambiato
     try {
@@ -375,9 +419,28 @@ window.FirebaseModule = {
       var profSnap = await getDoc(doc(db, 'utenti', uid));
       if(profSnap.exists()) {
         var prof = profSnap.data();
-        // Se Firestore ha fotoURL (URL Storage), usalo come ava
+        // Se Firestore ha fotoURL (URL Storage), usalo come ava — ha priorità assoluta
         if(prof.fotoURL && prof.fotoURL.startsWith('https')) prof.ava = prof.fotoURL;
+        else if(prof.ava && prof.ava.startsWith('data:')) delete prof.ava; // rimuovi base64 vecchio
         localStorage.setItem('ct_me', JSON.stringify(prof));
+        // Aggiorna ct_session con il nuovo ava
+        try {
+          var sess3 = JSON.parse(localStorage.getItem('ct_session') || 'null');
+          if(sess3 && prof.ava) { sess3.ava = prof.ava; sess3.fotoURL = prof.ava; localStorage.setItem('ct_session', JSON.stringify(sess3)); }
+        } catch(e5) {}
+        // Aggiorna ct_p con il nuovo ava
+        if(prof.ava && prof.ava.startsWith('https')) {
+          try {
+            var P2 = JSON.parse(localStorage.getItem('ct_p') || '[]');
+            for(var pi2=0; pi2<P2.length; pi2++){
+              if(P2[pi2].uid === uid || P2[pi2].id === prof.id){
+                P2[pi2].ava = prof.ava;
+                break;
+              }
+            }
+            localStorage.setItem('ct_p', JSON.stringify(P2));
+          } catch(e6) {}
+        }
         // Ripristina myPid (collegamento Excel → utente)
         if(prof.myPid) localStorage.setItem('ct_my_pid', String(prof.myPid));
         // Ripristina città meteo dal profilo
@@ -411,6 +474,21 @@ window.FirebaseModule = {
       }
 
       await this.syncUsers();
+
+      // Verifica che il profilo utente sia presente nel reparto — ripristina se mancante
+      if(!isPrivato && uid) {
+        try {
+          var meInRep = await getDoc(doc(db, 'reparti', rep, 'utenti', uid));
+          if(!meInRep.exists()) {
+            var meLocale = JSON.parse(localStorage.getItem('ct_me') || 'null');
+            if(meLocale && meLocale.stato !== 'pending' && meLocale.stato !== 'rejected') {
+              console.log('[C-Turni] Profilo mancante nel reparto, ripristino automatico...');
+              await window.FirebaseModule.saveUserProfile(uid, meLocale, rep);
+              _toast('Profilo ripristinato nel reparto', 'ok');
+            }
+          }
+        } catch(e) { console.warn('verifica profilo reparto:', e.message); }
+      }
 
       // Carica orari preset del reparto
       try {
@@ -877,25 +955,31 @@ window.FirebaseModule = {
   saveUserProfile: async function(uid, profile, reparto) {
 
     try {
-      // Se ava è ancora un data URL base64, caricala su Storage prima di salvare
-      if(profile.ava && profile.ava.startsWith('data:')) {
+      // Crea una copia pulita del profilo — rimuovi sempre il base64 prima di salvare su Firestore
+      var profileClean = Object.assign({}, profile);
+      if(profileClean.ava && profileClean.ava.startsWith('data:')) {
+        // Se è ancora base64, prova a caricarla su Storage
         try {
-          var fotoUrl = await window.FirebaseModule.uploadFotoProfilo(uid, profile.ava);
-          if(fotoUrl) profile = Object.assign({}, profile, { ava: fotoUrl });
-          else delete profile.ava; // upload fallito: non salvare base64 su Firestore
+          var fotoUrl = await window.FirebaseModule.uploadFotoProfilo(uid, profileClean.ava);
+          if(fotoUrl) {
+            profileClean.ava = fotoUrl;
+            profileClean.fotoURL = fotoUrl;
+          } else {
+            delete profileClean.ava; // upload fallito: non salvare base64
+          }
         } catch(e2) {
           console.warn('uploadFoto in saveUserProfile:', e2.message);
-          delete profile.ava; // non salvare base64 su Firestore
+          delete profileClean.ava; // non salvare base64 su Firestore
         }
       }
 
-      // Salva in /utenti/{uid} (globale)
-      await window._fbSetDoc(window._fbDoc(db, 'utenti', uid), profile);
+      // Usa merge:true per non sovrascrivere ava/fotoURL già aggiornati da uploadFotoProfilo
+      await window._fbSetDoc(window._fbDoc(db, 'utenti', uid), profileClean, { merge: true });
 
       // Salva anche in /reparti/{reparto}/utenti/{uid}
       if(reparto) {
         var rep = reparto.toLowerCase().replace(/\s+/g,'_');
-        await window._fbSetDoc(window._fbDoc(db, 'reparti', rep, 'utenti', uid), profile);
+        await window._fbSetDoc(window._fbDoc(db, 'reparti', rep, 'utenti', uid), profileClean, { merge: true });
       }
 
     } catch(e) { console.warn('saveUserProfile:', e.message); }

@@ -289,10 +289,10 @@ function resetTurniUtente(){
 function resetTotaleFirestore(){
   var me = lsG('ct_me', null);
   if(!me){ toast('Sessione non trovata','err'); return; }
-  if(!confirm('⚠️ RESET TOTALE: eliminare TUTTI i turni del reparto da Firestore?\nQuesta azione è irreversibile.')){ return; }
+  if(!confirm('⚠️ RESET TOTALE: eliminare TUTTI i turni del reparto da Firestore?\nQuesta azione è irreversibile.\n\nNOTA: il tuo profilo utente NON verrà eliminato.')){ return; }
   var rep = (me.reparto||'').toLowerCase().replace(/\s+/g,'_');
   var isPrivato = !rep || rep.startsWith('privato_');
-  // Pulisci localStorage
+  // Pulisci localStorage turni
   lsS('ct_t', []);
   if(typeof renderTurni==='function') renderTurni();
   if(typeof renderOggi==='function') renderOggi();
@@ -302,13 +302,18 @@ function resetTotaleFirestore(){
     toast('Turni eliminati (locale)', 'ok');
     return;
   }
-  toast('Eliminazione in corso...', 'ok');
+  toast('Eliminazione turni in corso...', 'ok');
   (async function(){
     try {
+      // Elimina SOLO i turni — mai il profilo utente
       var snap = await window._fbGetDocs(window._fbCollection(window._fbDb, 'reparti', rep, 'turni'));
       var dels = [];
       snap.forEach(function(d){ dels.push(window._fbDeleteDoc(window._fbDoc(window._fbDb, 'reparti', rep, 'turni', d.id))); });
       await Promise.all(dels);
+      // Ripristina il profilo utente nel reparto corrente (per sicurezza)
+      if(me.uid && window.FirebaseModule) {
+        window.FirebaseModule.saveUserProfile(me.uid, me, rep).catch(function(){});
+      }
       toast('✅ Tutti i turni eliminati da Firestore', 'ok');
       setTimeout(function(){ location.reload(); }, 1200);
     } catch(e) {
@@ -5107,11 +5112,16 @@ function salvaTurno(){
   renderTurni();renderOggi();stats();aggiornaWidget();
   closeM("m-turno");
   closeM("m-giorno");
-  // Se eravamo nel calendario, aggiorna la vista del giorno
-  if(_nt.data && typeof mostraGiorno === 'function') {
-    var _mgTit = document.getElementById('mg-tit');
-    if(_mgTit) { openM('m-giorno'); mostraGiorno(_nt.data); }
+  // Riapri la vista del giorno SOLO se il turno è stato aggiunto dal calendario
+  if(_nt.data && window._turnoFromCalendar) {
+    window._turnoFromCalendar = false;
+    if(typeof apriSheetGiorno === 'function') {
+      var sgData = document.getElementById('sg-data');
+      if(sgData) sgData.value = _nt.data;
+      mostraGiorno(_nt.data);
+    }
   }
+  window._turnoFromCalendar = false;
   checkFestivoTurno(_nt);
   notificaTurno(_nt.pnome,_nt.tipo,_nt.data);
   document.getElementById("mt-tipo").value="";document.getElementById("mt-note").value="";
@@ -5195,6 +5205,14 @@ function aggSel(){
   }
   var listEl=document.getElementById("pers-picker-list");
   if(!listEl)return;
+  // Deduplicazione finale prima di renderizzare
+  var vistiAgg = {};
+  P = P.filter(function(p){
+    var key = p.uid || (p.nome||'').toLowerCase().trim();
+    if(vistiAgg[key]) return false;
+    vistiAgg[key] = true;
+    return true;
+  });
   listEl.innerHTML=P.map(function(p){
     var gn=GR[p.grado]?GR[p.grado].nome:p.grado;
     var svg=GR[p.grado]?GR[p.grado].svg:"";
@@ -6879,20 +6897,34 @@ function salvaProfilo(){
     lsS('ct_me', profilo);
     // Aggiorna ct_session con il nuovo URL foto (persiste al refresh)
     var sess = lsG('ct_session', null);
-    if(sess && profilo.ava){
-      sess.ava = profilo.ava;
-      sess.fotoURL = profilo.ava;
+    if(sess){
+      if(profilo.ava) { sess.ava = profilo.ava; sess.fotoURL = profilo.ava; }
       lsS('ct_session', sess);
     }
     var U=lsG('ct_u',[]);
     for(var i=0;i<U.length;i++){if(U[i].id===profilo.id||U[i].uid===profilo.uid){U[i]=Object.assign({},U[i],profilo);break;}}
     lsS('ct_u',U);
+    // Aggiorna ct_p — usa uid, id E nome per trovare il profilo
     var P=lsG('ct_p',[]);
+    var aggiornato = false;
     for(var j=0;j<P.length;j++){
-      if(P[j].uid===profilo.uid||P[j].id===profilo.id){
-        if(profilo.ava)P[j].ava=profilo.ava;
-        P[j].nome=profilo.nome;P[j].grado=profilo.grado;
+      if(P[j].uid===profilo.uid || P[j].id===profilo.id){
+        if(profilo.ava) P[j].ava = profilo.ava;
+        P[j].nome = profilo.nome;
+        P[j].grado = profilo.grado;
+        aggiornato = true;
         break;
+      }
+    }
+    // Se non trovato per uid/id, cerca per nome
+    if(!aggiornato && profilo.nome){
+      var nomeNorm = ((profilo.cognome||'')+' '+(profilo.nome||'')).trim().toLowerCase();
+      for(var k=0;k<P.length;k++){
+        if((P[k].nome||'').toLowerCase() === nomeNorm || (P[k].nome||'').toLowerCase() === (profilo.nome||'').toLowerCase()){
+          if(profilo.ava) P[k].ava = profilo.ava;
+          P[k].uid = profilo.uid || P[k].uid;
+          break;
+        }
       }
     }
     lsS('ct_p',P);
@@ -8274,6 +8306,7 @@ function salvaTurnoRapido() {
 function apriNuovoTurno(ds) {
     closeM('m-giorno');
     _giornoSelezionato = ds || '';
+    window._turnoFromCalendar = true; // flag: aperto dal calendario
     var inp = document.getElementById('mt-data');
     if (inp) inp.value = ds || new Date().toLocaleDateString('en-CA');
     var sel = document.getElementById('mt-tipo');
@@ -8314,43 +8347,33 @@ function popolaSelectPersone() {
         if(myRep && u.reparto && u.reparto.toLowerCase() !== myRep) return;
         var exists = P.some(function(p){ return p.uid === u.uid; });
         if(!exists){
-            P.push({
-                id: u.id || u.uid,
-                nome: ((u.cognome||'') + ' ' + (u.nome||'')).trim() || u.nome,
-                grado: u.grado || '',
-                uid: u.uid,
-                _fromFirebase: true
-            });
+            P.push({ id: u.id || u.uid, nome: ((u.cognome||'') + ' ' + (u.nome||'')).trim() || u.nome, grado: u.grado || '', uid: u.uid, _fromFirebase: true });
         }
     });
-    // Assicura che l'utente loggato sia sempre presente e collegato (Excel + Firebase)
+    // Assicura presenza utente loggato — senza creare duplicati
     if(me && me.nome) {
-        // Collega placeholder Excel tramite nome e salva su Firebase
-        if(me.uid) _collegaPlaceholder(me.nome, me.cognome||'', me.uid, me.reparto||'');
-        _syncMyPid();
         var myPid2 = parseInt(localStorage.getItem('ct_my_pid')||'0');
-        // Rileggi ct_p aggiornato dopo il collegamento
-        P = lsG('ct_p', []);
-        fbUsers.forEach(function(u){
-            if(!u.uid || !u.nome) return;
-            if(u.stato === 'pending' || u.stato === 'rejected') return;
-            if(myRep && u.reparto && u.reparto.toLowerCase() !== myRep) return;
-            var exists = P.some(function(p){ return p.uid === u.uid; });
-            if(!exists){
-                P.push({ id: u.id || u.uid, nome: ((u.cognome||'') + ' ' + (u.nome||'')).trim() || u.nome, grado: u.grado || '', uid: u.uid, _fromFirebase: true });
-            }
-        });
-        // Se ancora non presente, crea e salva
         var meInLista = P.some(function(p){
-            return (myPid2 && p.id === myPid2) || p.id === me.id || (me.uid && p.uid === me.uid);
+            return (myPid2 && p.id === myPid2)
+                || p.id === me.id
+                || (me.uid && p.uid === me.uid)
+                || (p.nome||'').toLowerCase() === ((me.cognome||'')+' '+(me.nome||'')).trim().toLowerCase()
+                || (p.nome||'').toLowerCase() === ((me.nome||'')+' '+(me.cognome||'')).trim().toLowerCase();
         });
         if(!meInLista) {
-            var nuovoMe = { id: myPid2 || me.id || Date.now(), nome: ((me.cognome||'') + ' ' + (me.nome||'')).trim() || me.nome, grado: me.grado || '', reparto: me.reparto || '', uid: me.uid || '', ferieRes: 30, _isMe: true };
+            // Crea profilo solo se davvero non esiste in nessuna forma
+            var nuovoMe = { id: myPid2 || me.id || Date.now(), nome: ((me.cognome||'') + ' ' + (me.nome||'')).trim() || me.nome, grado: me.grado || '', reparto: me.reparto || '', uid: me.uid || '', ava: me.ava || '', ferieRes: 30, _isMe: true };
             var Ppers = lsG('ct_p', []);
-            Ppers.push(nuovoMe);
-            lsS('ct_p', Ppers);
-            localStorage.setItem('ct_my_pid', String(nuovoMe.id));
-            if(window.FirebaseModule) window.FirebaseModule.savePersona().catch(function(){});
+            // Doppio check su ct_p fresco prima di aggiungere
+            var giàEsiste = Ppers.some(function(p){
+                return (p.uid && p.uid === me.uid) || p.id === me.id || (myPid2 && p.id === myPid2);
+            });
+            if(!giàEsiste) {
+                Ppers.push(nuovoMe);
+                lsS('ct_p', Ppers);
+                localStorage.setItem('ct_my_pid', String(nuovoMe.id));
+                if(window.FirebaseModule) window.FirebaseModule.savePersona().catch(function(){});
+            }
             P.unshift(nuovoMe);
         } else {
             P = P.map(function(p){
@@ -8359,6 +8382,14 @@ function popolaSelectPersone() {
             });
         }
     }
+    // Deduplicazione finale — rimuovi profili con stesso uid o stesso nome
+    var visti = {};
+    P = P.filter(function(p){
+        var key = p.uid || (p.nome||'').toLowerCase().trim();
+        if(visti[key]) return false;
+        visti[key] = true;
+        return true;
+    });
     var cur = document.getElementById('mt-pers').value;
     sel.innerHTML = '<option value="">Scegli collega...</option>' +
         P.map(function(p){
