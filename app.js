@@ -5109,25 +5109,52 @@ function aggSel(){
     if(myRep && u.reparto && u.reparto.toLowerCase() !== myRep) return;
     var exists = P.some(function(p){ return p.uid === u.uid; });
     if(!exists){
-      P.push({
-        id: u.id || u.uid,
-        nome: ((u.cognome||'') + ' ' + (u.nome||'')).trim() || u.nome,
-        grado: u.grado || '',
-        reparto: u.reparto || '',
-        uid: u.uid,
-        ava: u.ava || '',
-        _fromFirebase: true
-      });
+      P.push({ id: u.id || u.uid, nome: ((u.cognome||'') + ' ' + (u.nome||'')).trim() || u.nome, grado: u.grado || '', reparto: u.reparto || '', uid: u.uid, ava: u.ava || '', _fromFirebase: true });
     }
   });
+  // Collega placeholder Excel e Firebase, poi assicura presenza utente
+  if(me && me.nome) {
+    if(me.uid) _collegaPlaceholder(me.nome, me.cognome||'', me.uid, me.reparto||'');
+    _syncMyPid();
+    var myPid2 = parseInt(localStorage.getItem('ct_my_pid')||'0');
+    P = lsG('ct_p', []);
+    // Re-aggiungi utenti Firebase dopo il collegamento
+    fbUsers.forEach(function(u){
+      if(!u.uid || !u.nome) return;
+      if(u.stato === 'pending' || u.stato === 'rejected') return;
+      if(myRep && u.reparto && u.reparto.toLowerCase() !== myRep) return;
+      var exists = P.some(function(p){ return p.uid === u.uid; });
+      if(!exists){
+        P.push({ id: u.id || u.uid, nome: ((u.cognome||'') + ' ' + (u.nome||'')).trim() || u.nome, grado: u.grado || '', reparto: u.reparto || '', uid: u.uid, ava: u.ava || '', _fromFirebase: true });
+      }
+    });
+    var meInLista = P.some(function(p){
+      return (myPid2 && p.id === myPid2) || p.id === me.id || (me.uid && p.uid === me.uid);
+    });
+    if(!meInLista) {
+      var nuovoMe = { id: myPid2 || me.id || Date.now(), nome: ((me.cognome||'') + ' ' + (me.nome||'')).trim() || me.nome, grado: me.grado || '', reparto: me.reparto || '', uid: me.uid || '', ava: me.ava || '', ferieRes: 30, _isMe: true };
+      var Ppers = lsG('ct_p', []);
+      Ppers.push(nuovoMe);
+      lsS('ct_p', Ppers);
+      localStorage.setItem('ct_my_pid', String(nuovoMe.id));
+      if(window.FirebaseModule) window.FirebaseModule.savePersona().catch(function(){});
+      P.unshift(nuovoMe);
+    } else {
+      P = P.map(function(p){
+        if((myPid2 && p.id === myPid2) || p.id === me.id || (me.uid && p.uid === me.uid)) return Object.assign({}, p, {_isMe: true});
+        return p;
+      });
+    }
+  }
   var listEl=document.getElementById("pers-picker-list");
   if(!listEl)return;
   listEl.innerHTML=P.map(function(p){
     var gn=GR[p.grado]?GR[p.grado].nome:p.grado;
     var svg=GR[p.grado]?GR[p.grado].svg:"";
+    var isMeLabel = p._isMe ? ' <span style="font-size:10px;background:rgba(91,159,255,.2);color:var(--blue);border-radius:8px;padding:1px 6px">Tu</span>' : '';
     return '<div class="pers-card" onclick="selezionaPersona(\''+p.id+'\',\''+p.nome.replace(/'/g,"\\'")+'\')" style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:center;cursor:pointer;transition:background .2s" onmouseover="this.style.background=\'var(--card2)\'" onmouseout="this.style.background=\'transparent\'">'+
       (svg?'<img src="'+svg+'" style="height:32px;width:50px;object-fit:contain;flex-shrink:0">':'<div style="width:50px;height:32px;display:flex;align-items:center;justify-content:center;font-size:22px">&#128100;</div>')+
-      '<div style="flex:1;min-width:0"><div style="font-weight:700;color:var(--txt);font-size:14px">'+p.nome+_badgeP(p)+'</div><div style="font-size:12px;color:var(--txt2)">'+gn+'</div></div>'+
+      '<div style="flex:1;min-width:0"><div style="font-weight:700;color:var(--txt);font-size:14px">'+p.nome+isMeLabel+_badgeP(p)+'</div><div style="font-size:12px;color:var(--txt2)">'+gn+'</div></div>'+
     '</div>';
   }).join("");
 }
@@ -8212,11 +8239,48 @@ function popolaSelectPersone() {
             });
         }
     });
+    // Assicura che l'utente loggato sia sempre presente e collegato (Excel + Firebase)
+    if(me && me.nome) {
+        // Collega placeholder Excel tramite nome e salva su Firebase
+        if(me.uid) _collegaPlaceholder(me.nome, me.cognome||'', me.uid, me.reparto||'');
+        _syncMyPid();
+        var myPid2 = parseInt(localStorage.getItem('ct_my_pid')||'0');
+        // Rileggi ct_p aggiornato dopo il collegamento
+        P = lsG('ct_p', []);
+        fbUsers.forEach(function(u){
+            if(!u.uid || !u.nome) return;
+            if(u.stato === 'pending' || u.stato === 'rejected') return;
+            if(myRep && u.reparto && u.reparto.toLowerCase() !== myRep) return;
+            var exists = P.some(function(p){ return p.uid === u.uid; });
+            if(!exists){
+                P.push({ id: u.id || u.uid, nome: ((u.cognome||'') + ' ' + (u.nome||'')).trim() || u.nome, grado: u.grado || '', uid: u.uid, _fromFirebase: true });
+            }
+        });
+        // Se ancora non presente, crea e salva
+        var meInLista = P.some(function(p){
+            return (myPid2 && p.id === myPid2) || p.id === me.id || (me.uid && p.uid === me.uid);
+        });
+        if(!meInLista) {
+            var nuovoMe = { id: myPid2 || me.id || Date.now(), nome: ((me.cognome||'') + ' ' + (me.nome||'')).trim() || me.nome, grado: me.grado || '', reparto: me.reparto || '', uid: me.uid || '', ferieRes: 30, _isMe: true };
+            var Ppers = lsG('ct_p', []);
+            Ppers.push(nuovoMe);
+            lsS('ct_p', Ppers);
+            localStorage.setItem('ct_my_pid', String(nuovoMe.id));
+            if(window.FirebaseModule) window.FirebaseModule.savePersona().catch(function(){});
+            P.unshift(nuovoMe);
+        } else {
+            P = P.map(function(p){
+                if((myPid2 && p.id === myPid2) || p.id === me.id || (me.uid && p.uid === me.uid)) return Object.assign({}, p, {_isMe: true});
+                return p;
+            });
+        }
+    }
     var cur = document.getElementById('mt-pers').value;
     sel.innerHTML = '<option value="">Scegli collega...</option>' +
         P.map(function(p){
             var verificato = (p.uid) ? ' ✓' : (p.placeholder ? ' ○' : '');
-            var label = p.nome + (p.grado ? ' (' + p.grado + ')' : '') + verificato;
+            var isMeLabel = p._isMe ? ' (Tu)' : '';
+            var label = p.nome + (p.grado ? ' (' + p.grado + ')' : '') + verificato + isMeLabel;
             return '<option value="' + p.id + '"' + (p.id == cur ? ' selected' : '') + '>' + label + '</option>';
         }).join('');
     sel.onchange = function(){ document.getElementById('mt-pers').value = this.value; };
