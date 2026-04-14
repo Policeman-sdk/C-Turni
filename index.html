@@ -457,8 +457,30 @@
     <!-- DASHBOARD -->
       <div id="pag-dash" class="pag on">
         
-      <!-- TESSERINO NUOVO -->
-      <div id="tess-sticky" class="tess-card">
+      <!-- AMBIENT GLOW — Task 1 -->
+      <div id="ambient-glow"></div>
+
+      <!-- HERO CARD — Task 2 -->
+      <div id="hero-card" class="hero-card">
+        <div class="hero-tonal-wrap">
+          <!-- Tonal Circle con icona SVG -->
+          <div class="hero-tonal-circle" id="hero-tonal-circle">
+            <!-- Active Ring SVG -->
+            <svg class="hero-ring-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+              <circle class="hero-ring-bg" cx="60" cy="60" r="52"/>
+              <circle class="hero-ring-fill" id="hero-ring-fill" cx="60" cy="60" r="52"/>
+            </svg>
+            <div class="hero-tonal-ico" id="hero-tonal-ico">🛋️</div>
+          </div>
+        </div>
+        <div class="hero-info">
+          <div class="hero-sigla" id="hero-sigla">—</div>
+          <div class="hero-orario" id="hero-orario">Nessun turno</div>
+        </div>
+      </div>
+
+      <!-- TESSERINO NUOVO (spostato in Impostazioni > Profilo, qui nascosto) -->
+      <div id="tess-sticky" class="tess-card" style="display:none">
 
         <!-- HEADER -->
         <div class="tess-hdr">
@@ -571,38 +593,7 @@
 
 <h1 class="ptit">Dashboard</h1><p class="psub">Panoramica generale</p>
 
-      <!-- ═══ MODALITÀ FOCUS — sotto il titolo Dashboard ═══ -->
-      <div id="widget-focus" style="margin:0 0 16px;display:none">
-        <div id="focus-widget-container">
-          <div id="focus-card" style="border-radius:28px;padding:24px;position:relative;overflow:hidden;border:1.5px solid rgba(255,255,255,.1);box-shadow:0 8px 32px rgba(0,0,0,.3);transition:all .5s ease">
-            <!-- Sfondo animato contestuale -->
-            <div id="focus-bg" style="position:absolute;inset:0;pointer-events:none;border-radius:28px;background-size:200% 200%;animation:focusGradient 8s ease infinite"></div>
-            <!-- Header -->
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;position:relative;z-index:1">
-              <div style="display:flex;align-items:center;gap:8px">
-                <div id="focus-ico" style="font-size:26px;line-height:1">⚡</div>
-                <div>
-                  <div id="focus-fase" style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;opacity:.7">Modalità Focus</div>
-                  <div id="focus-titolo" style="font-size:16px;font-weight:900;color:var(--txt)">Caricamento...</div>
-                </div>
-              </div>
-              <div id="focus-badge" style="padding:4px 10px;border-radius:20px;font-size:10px;font-weight:800;letter-spacing:.5px"></div>
-            </div>
-            <!-- Hero info -->
-            <div id="focus-hero" style="position:relative;z-index:1;margin-bottom:10px"></div>
-            <!-- To-Do rapidi -->
-            <div id="focus-todo-wrap" style="display:none;position:relative;z-index:1">
-              <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;opacity:.6;margin-bottom:6px">To-Do in sospeso</div>
-              <div id="focus-todo-list"></div>
-            </div>
-            <!-- Smart Snooze -->
-            <div id="focus-snooze-wrap" style="display:none;margin-top:8px;padding:8px 12px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);position:relative;z-index:1">
-              <div style="font-size:11px;font-weight:700;opacity:.8;margin-bottom:6px">🕒 Smart Snooze</div>
-              <div id="focus-snooze-list"></div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <!-- ═══ MODALITÀ FOCUS — RIMOSSA (Task 1) ═══ -->
 
         <input type="file" id="xi" accept=".xlsx,.xls" onchange="importXL(this.files[0])" style="display:none">
         <!-- BARRA ORGANIZZA DASHBOARD -->
@@ -621,9 +612,9 @@
         <!-- WIDGET CONTAINER (drag & drop) -->
         <div id="wdg-container" class="wdg-container">
 
-        <!-- WIDGET TURNO OGGI -->
-        <div id="widget-oggi" class="wdg-wrap" data-wid="turno">
-          <div id="w-inner" style="border-radius:16px;padding:16px 18px 14px;background:linear-gradient(135deg,#1a3a6e 0%,#0a1628 100%);color:#fff;position:relative;overflow:hidden;box-shadow:0 4px 20px rgba(10,22,40,.4)">
+        <!-- WIDGET TURNO OGGI — Bento Card Task 3 -->
+        <div id="widget-oggi" class="wdg-wrap bento-card" data-wid="turno" onclick="if(navigator.vibrate)navigator.vibrate(15)">
+          <div id="w-inner" style="border-radius:24px;padding:16px 18px 14px;background:linear-gradient(135deg,#1a3a6e 0%,#0a1628 100%);color:#fff;position:relative;overflow:hidden;box-shadow:0 4px 20px rgba(10,22,40,.4)">
             <div style="position:absolute;right:-8px;top:-8px;font-size:90px;opacity:.07;line-height:1;pointer-events:none" id="w-bg-ico">🛋️</div>
             <!-- Header label + move buttons -->
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
@@ -657,9 +648,23 @@
           </div>
         </div>
 
-        <!-- WIDGET PROSSIMO TURNO -->
-        <div id="widget-prossimo" class="wdg-wrap" data-wid="prossimo">
-          <div style="border-radius:14px;padding:14px 16px;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;gap:14px">
+        <!-- WIDGET SQUADRA IBRIDA — Task 4 -->
+        <div id="widget-squadra" class="wdg-wrap bento-card" data-wid="squadra" onclick="if(navigator.vibrate)navigator.vibrate(15)">
+          <div style="border-radius:24px;padding:14px 16px;background:rgba(15,23,42,0.5);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--border2)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--txt2)">&#128101; La Squadra</div>
+              <div style="display:flex;gap:4px">
+                <button onclick="moveWidget('squadra',-1)" class="wdg-mv-btn">&#8593;</button>
+                <button onclick="moveWidget('squadra',+1)" class="wdg-mv-btn">&#8595;</button>
+              </div>
+            </div>
+            <div id="w-squadra-list" style="display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none"></div>
+          </div>
+        </div>
+
+        <!-- WIDGET PROSSIMO TURNO — Bento Card -->
+        <div id="widget-prossimo" class="wdg-wrap bento-card" data-wid="prossimo" onclick="if(navigator.vibrate)navigator.vibrate(15)">
+          <div style="border-radius:24px;padding:14px 16px;background:rgba(15,23,42,0.5);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--border);display:flex;align-items:center;gap:14px">
             <div style="font-size:36px;line-height:1;flex-shrink:0">&#9200;</div>
             <div style="flex:1;min-width:0">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--txt2)">Prossimo turno</div><div style="display:flex;gap:4px"><button onclick="moveWidget('prossimo',-1)" class="wdg-mv-btn">&#8593;</button><button onclick="moveWidget('prossimo',+1)" class="wdg-mv-btn">&#8595;</button></div></div>
@@ -673,9 +678,9 @@
           </div>
         </div>
 
-        <!-- WIDGET METEO -->
-        <div id="widget-meteo" class="wdg-wrap" data-wid="meteo">
-          <div style="border-radius:14px;padding:14px 16px;background:var(--bg2);border:1px solid var(--border)">
+        <!-- WIDGET METEO — Bento Card -->
+        <div id="widget-meteo" class="wdg-wrap bento-card" data-wid="meteo" onclick="if(navigator.vibrate)navigator.vibrate(15)">
+          <div style="border-radius:24px;padding:14px 16px;background:rgba(15,23,42,0.5);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--border)">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--txt2)">&#127781; Meteo reparto</div><div style="display:flex;gap:4px"><button onclick="moveWidget('meteo',-1)" class="wdg-mv-btn">&#8593;</button><button onclick="moveWidget('meteo',+1)" class="wdg-mv-btn">&#8595;</button></div></div>
             <div style="display:flex;align-items:center;gap:14px">
               <div id="wm-ico" style="font-size:42px;line-height:1;flex-shrink:0">🌤️</div>
@@ -692,18 +697,18 @@
           </div>
         </div>
 
-        <!-- WIDGET ALERT -->
-        <div id="widget-alert" class="wdg-wrap" data-wid="alert">
-          <div id="widget-alert-inner" style="border-radius:14px;padding:14px 16px;background:rgba(200,16,46,.08);border:1px solid rgba(200,16,46,.25)">
+        <!-- WIDGET ALERT — Bento Card -->
+        <div id="widget-alert" class="wdg-wrap bento-card" data-wid="alert" onclick="if(navigator.vibrate)navigator.vibrate(15)">
+          <div id="widget-alert-inner" style="border-radius:24px;padding:14px 16px;background:rgba(200,16,46,.08);border:1px solid rgba(200,16,46,.25)">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--red)">&#128680; Alert attivi</div><div style="display:flex;gap:4px"><button onclick="moveWidget('alert',-1)" class="wdg-mv-btn">&#8593;</button><button onclick="moveWidget('alert',+1)" class="wdg-mv-btn">&#8595;</button></div></div>
             <div id="wale-list"></div>
             <button class="btn btn-sm" onclick="openM('m-alert')" style="width:auto;font-size:11px;margin-top:8px;background:rgba(200,16,46,.12);color:var(--red);border-color:rgba(200,16,46,.3)">Gestisci alert</button>
           </div>
         </div>
 
-        <!-- WIDGET SCADENZE -->
-        <div id="widget-scadenze" class="wdg-wrap" data-wid="scadenze">
-          <div style="border-radius:14px;padding:14px 16px;background:var(--bg2);border:1px solid var(--border)">
+        <!-- WIDGET SCADENZE — Bento Card -->
+        <div id="widget-scadenze" class="wdg-wrap bento-card" data-wid="scadenze" onclick="if(navigator.vibrate)navigator.vibrate(15)">
+          <div style="border-radius:24px;padding:14px 16px;background:rgba(15,23,42,0.5);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--border)">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
               <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--txt2)">&#128197; Scadenze</div>
               <button class="btn btn-sm" onclick="openM('m-scadenza')" style="width:auto;font-size:10px;padding:3px 10px">+ Aggiungi</button>
@@ -712,9 +717,9 @@
           </div>
         </div>
 
-        <!-- WIDGET AGENDA OGGI -->
-        <div id="widget-agenda" class="wdg-wrap" data-wid="agenda">
-          <div style="border-radius:14px;padding:14px 16px;background:var(--bg2);border:1px solid var(--border)">
+        <!-- WIDGET AGENDA OGGI — Bento Card -->
+        <div id="widget-agenda" class="wdg-wrap bento-card" data-wid="agenda" onclick="if(navigator.vibrate)navigator.vibrate(15)">
+          <div style="border-radius:24px;padding:14px 16px;background:rgba(15,23,42,0.5);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--border)">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
               <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--txt2)">&#128467; Agenda oggi</div>
               <button class="btn btn-sm" onclick="vaiAgenda()" style="width:auto;font-size:10px;padding:3px 10px">Vedi tutto</button>
@@ -723,9 +728,9 @@
           </div>
         </div>
 
-        <!-- WIDGET TODO -->
-        <div id="widget-todo" class="wdg-wrap" data-wid="todo">
-          <div style="border-radius:14px;padding:14px 16px;background:var(--bg2);border:1px solid var(--border)">
+        <!-- WIDGET TODO — Bento Card -->
+        <div id="widget-todo" class="wdg-wrap bento-card" data-wid="todo" onclick="if(navigator.vibrate)navigator.vibrate(15)">
+          <div style="border-radius:24px;padding:14px 16px;background:rgba(15,23,42,0.5);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--border)">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
               <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--txt2)">&#9989; To-Do aperti</div>
               <div style="display:flex;gap:6px">
@@ -737,9 +742,9 @@
           </div>
         </div>
 
-        <!-- WIDGET TURNI OGGI -->
-        <div id="widget-turni-oggi" class="wdg-wrap" data-wid="turni-oggi">
-          <div style="border-radius:14px;overflow:hidden;background:var(--bg2);border:1px solid var(--border)">
+        <!-- WIDGET TURNI OGGI — Bento Card -->
+        <div id="widget-turni-oggi" class="wdg-wrap bento-card" data-wid="turni-oggi" onclick="if(navigator.vibrate)navigator.vibrate(15)">
+          <div style="border-radius:24px;overflow:hidden;background:rgba(15,23,42,0.5);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--border)">
             <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px 8px">
               <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--txt2)">&#128203; Turni di Oggi</div>
               <div style="display:flex;gap:4px">
@@ -1045,6 +1050,12 @@
                 <button class="btn btn-p btn-sm" style="width:auto" onclick="salvaImp()">&#128190; Salva</button>
                 <button class="btn btn-g btn-sm" style="width:auto" id="btn-invita-collega" onclick="invitaCollega()">&#128279; Invita Collega</button>
               </div>
+
+              <!-- TESSERINO ATE — Task 6: spostato qui da Dashboard -->
+              <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px">
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--txt2);margin-bottom:10px">&#127959; Tesserino ATE</div>
+                <div id="tess-sticky-imp" class="tess-card" style="margin:0"></div>
+              </div>
             </div>
           </div>
 
@@ -1086,36 +1097,47 @@
             <div style="display:flex;gap:8px;flex-wrap:wrap">
               <button id="btn-unisciti-reparto" class="btn btn-p btn-sm" style="width:auto;display:none" onclick="apriUnitiReparto()">&#127968; Unisciti a un Reparto</button>
               <button id="btn-scollegati-reparto" class="btn btn-sm" style="width:auto;display:none;background:rgba(200,16,46,.1);color:var(--red);border-color:rgba(200,16,46,.3)" onclick="scollegaReparto()">&#128683; Scollegati</button>
-              <button id="btn-trasferimento" class="btn btn-sm" style="width:auto;display:none;background:rgba(41,121,255,.1);color:var(--blue);border-color:rgba(41,121,255,.3)" onclick="apriTrasferimento()">&#128260; Cambia Reparto</button>
             </div>
-            <!-- Form trasferimento -->
-            <div id="sec-trasferimento" style="display:none;margin-top:12px;padding:12px;background:var(--bg2);border-radius:12px;border:1px solid var(--border)">
-              <div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:10px">&#128260; Trasferimento Reparto</div>
-              <div class="fg" style="margin-bottom:8px"><label>Tipo Struttura</label>
-                <select class="fc" id="trasf-tipo-struttura" onchange="aggiornaTrasferimentoId()"><option value="">-- Seleziona --</option><option value="stazione">Stazione</option><option value="nucleo">Nucleo</option><option value="compagnia">Compagnia</option><option value="distaccamento">Distaccamento</option><option value="tenenza">Tenenza</option><option value="gruppo">Gruppo</option><option value="legione">Legione</option></select></div>
-              <div class="fg" style="margin-bottom:8px"><label>Specialità</label>
-                <select class="fc" id="trasf-specialita" onchange="aggiornaTrasferimentoId()"><option value="">-- Seleziona --</option><option value="territoriale">Territoriale</option><option value="forestale">Forestale</option><option value="radiomobile">Radiomobile</option><option value="norm">N.O.R.M.</option><option value="sis">S.I.S.</option><option value="cacciatori">Cacciatori</option><option value="paracadutisti">Paracadutisti</option><option value="ros">R.O.S.</option><option value="gis">G.I.S.</option><option value="noe">N.O.E.</option><option value="nas">N.A.S.</option><option value="nit">N.I.T.</option></select></div>
-              <div class="fg" style="margin-bottom:8px"><label>Sede / Città</label><input type="text" class="fc" id="trasf-sede" placeholder="Es. Varazze" oninput="aggiornaTrasferimentoId()"></div>
-              <div style="margin-bottom:10px;padding:8px 12px;background:rgba(41,121,255,.07);border-radius:10px;border:1px solid rgba(41,121,255,.15)">
-                <div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Nuovo Reparto</div>
-                <div id="trasf-reparto-preview" style="font-size:13px;font-weight:700;color:var(--blue);font-family:monospace">—</div>
-              </div>
-              <div style="display:flex;gap:8px">
-                <button class="btn btn-p btn-sm" style="width:auto" onclick="richiestaTrasfRep()">&#10004; Conferma Trasferimento</button>
-                <button class="btn btn-sm" style="width:auto" onclick="chiudiTrasferimento()">Annulla</button>
-              </div>
-            </div>
+
             <!-- Reset turni -->
             <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
               <button class="btn btn-sm" style="width:100%;background:rgba(200,16,46,.08);color:var(--red);border:1px solid rgba(200,16,46,.25);font-size:12px" onclick="resetTurniUtente()">&#128465; Elimina tutti i miei turni (Reset)</button>
               <div style="font-size:10px;color:var(--txt3);margin-top:5px;text-align:center">Rimuove tutti i tuoi turni dal reparto. Utile prima di un trasferimento.</div>
             </div>
-            <!-- Pulsanti Impostazioni Reparto -->
-            <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px">
-              <button class="btn btn-sm" style="width:100%;background:rgba(41,121,255,.08);color:var(--blue);border:1px solid rgba(41,121,255,.25);font-size:12px" onclick="apriSelezioneReparto()">&#128260; Trasferimento Reparto</button>
-              <button class="btn btn-sm" style="width:100%;background:rgba(200,16,46,.08);color:var(--red);border:1px solid rgba(200,16,46,.25);font-size:12px" onclick="resetTotaleFirestore()">&#128465; Reset Totale Dati</button>
-              <div style="font-size:10px;color:var(--txt3);text-align:center">Reset Totale elimina tutti i turni del reparto da Firestore.</div>
+
+            <!-- OPZIONI AVANZATE -->
+            <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+              <div class="m3-row tap" onclick="toggleImpSec('sec-opz-avanzate','arr-opz-avanzate')" style="padding:0;border:none;margin-bottom:0">
+                <div class="m3-row-ico" style="background:rgba(255,159,67,.12)">&#9881;</div>
+                <div class="m3-row-body"><div class="m3-row-title">Opzioni Avanzate</div><div class="m3-row-sub">Trasferimento reparto e reset dati</div></div>
+                <div class="m3-row-right" id="arr-opz-avanzate">&#8250;</div>
+              </div>
+              <div id="sec-opz-avanzate" class="imp-sub" style="margin-top:8px">
+                <div style="display:flex;flex-direction:column;gap:10px;padding-top:8px">
+
+                  <!-- Form trasferimento inline -->
+                  <div style="padding:12px;background:var(--bg2);border-radius:12px;border:1px solid var(--border)">
+                    <div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:10px">&#128260; Trasferimento Reparto</div>
+                    <div class="fg" style="margin-bottom:8px"><label>Tipo Struttura</label>
+                      <select class="fc" id="trasf-tipo-struttura" onchange="aggiornaTrasferimentoId()"><option value="">-- Seleziona --</option><option value="stazione">Stazione</option><option value="nucleo">Nucleo</option><option value="compagnia">Compagnia</option><option value="distaccamento">Distaccamento</option><option value="tenenza">Tenenza</option><option value="gruppo">Gruppo</option><option value="legione">Legione</option></select></div>
+                    <div class="fg" style="margin-bottom:8px"><label>Specialità</label>
+                      <select class="fc" id="trasf-specialita" onchange="aggiornaTrasferimentoId()"><option value="">-- Seleziona --</option><option value="territoriale">Territoriale</option><option value="forestale">Forestale</option><option value="radiomobile">Radiomobile</option><option value="norm">N.O.R.M.</option><option value="sis">S.I.S.</option><option value="cacciatori">Cacciatori</option><option value="paracadutisti">Paracadutisti</option><option value="ros">R.O.S.</option><option value="gis">G.I.S.</option><option value="noe">N.O.E.</option><option value="nas">N.A.S.</option><option value="nit">N.I.T.</option></select></div>
+                    <div class="fg" style="margin-bottom:8px"><label>Sede / Città</label><input type="text" class="fc" id="trasf-sede" placeholder="Es. Varazze" oninput="aggiornaTrasferimentoId()"></div>
+                    <div style="margin-bottom:10px;padding:8px 12px;background:rgba(41,121,255,.07);border-radius:10px;border:1px solid rgba(41,121,255,.15)">
+                      <div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Nuovo Reparto</div>
+                      <div id="trasf-reparto-preview" style="font-size:13px;font-weight:700;color:var(--blue);font-family:monospace">—</div>
+                    </div>
+                    <button class="btn btn-p btn-sm" style="width:100%" onclick="richiestaTrasfRep()">&#10004; Conferma Trasferimento</button>
+                  </div>
+
+                  <!-- Reset totale -->
+                  <button class="btn btn-sm" style="width:100%;background:rgba(200,16,46,.08);color:var(--red);border:1px solid rgba(200,16,46,.25);font-size:12px" onclick="resetTotaleFirestore()">&#128465; Reset Totale Dati</button>
+                  <div style="font-size:10px;color:var(--txt3);text-align:center">Reset Totale elimina tutti i turni del reparto da Firestore.</div>
+                </div>
+              </div>
             </div>
+
+            <!-- Form unisciti reparto (invariato) -->
             <div id="uniti-reparto-form" style="display:none;margin-top:12px">
               <div class="fg" style="margin-bottom:8px"><label>Tipo Struttura</label>
                 <select class="fc" id="uniti-tipo" onchange="aggiornaUnitiId()"><option value="">-- Seleziona --</option><option value="stazione">Stazione</option><option value="nucleo">Nucleo</option><option value="compagnia">Compagnia</option><option value="distaccamento">Distaccamento</option><option value="tenenza">Tenenza</option><option value="gruppo">Gruppo</option><option value="legione">Legione</option></select></div>
@@ -1251,31 +1273,12 @@
         <div class="m3-list-group-title">&#128202; Dashboard e Notifiche</div>
         <div class="m3-list-group">
 
-          <!-- Toggle Modalità Focus -->
-          <div class="m3-row">
-            <div class="m3-row-ico" style="background:rgba(91,159,255,.12)">&#9889;</div>
-            <div class="m3-row-body"><div class="m3-row-title">Modalità Focus</div><div class="m3-row-sub">Widget dinamico in Dashboard</div></div>
-            <label class="m3-switch">
-              <input type="checkbox" id="tog-focus" onchange="(function(v){var s=lsG('ct_prefs',{});s.focus=v;lsS('ct_prefs',s);if(typeof aggiornaFocus==='function')aggiornaFocus();})(this.checked)">
-              <span class="m3-switch-track"></span>
-            </label>
-          </div>
           <!-- Toggle Smart Snooze -->
           <div class="m3-row" style="border-top:1px solid var(--border)">
             <div class="m3-row-ico" style="background:rgba(255,159,67,.12)">&#128336;</div>
             <div class="m3-row-body"><div class="m3-row-title">Smart Snooze</div><div class="m3-row-sub">Suggerisce rinvio to-do scaduti</div></div>
             <label class="m3-switch">
               <input type="checkbox" id="tog-snooze" onchange="(function(v){var s=lsG('ct_prefs',{});s.snooze=v;lsS('ct_prefs',s);if(typeof aggiornaFocus==='function')aggiornaFocus();})(this.checked)">
-              <span class="m3-switch-track"></span>
-            </label>
-          </div>
-
-          <!-- Toggle Tesserino ATE -->
-          <div class="m3-row">
-            <div class="m3-row-ico" style="background:rgba(212,175,55,.12)">&#127959;</div>
-            <div class="m3-row-body"><div class="m3-row-title">Mostra Tesserino ATE</div><div class="m3-row-sub">Visualizza il tesserino in Dashboard</div></div>
-            <label class="m3-switch">
-              <input type="checkbox" id="tog-tesserino" onchange="(function(v){var s=lsG('ct_prefs',{});s.tesserino=v;lsS('ct_prefs',s);var el=document.getElementById('tess-sticky');if(el)el.style.display=v?'':'none';})(this.checked)">
               <span class="m3-switch-track"></span>
             </label>
           </div>

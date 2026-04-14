@@ -2828,3 +2828,438 @@ nav.bottom-bar#bottom-nav {
     opacity 0.3s ease,
     visibility 0s linear 0s;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   C-TURNI v4.0 — NUOVI TASK 1-6
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── TASK 1: AMBIENT GLOW ── */
+#ambient-glow {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 60vh;
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(90px);
+  opacity: 0.18;
+  transition: background 1.2s ease;
+  border-radius: 0 0 50% 50%;
+}
+/* Atmosfere per tipo turno */
+body[data-atmosfera="alba"] #ambient-glow {
+  background: radial-gradient(ellipse at 30% 0%, #FFD166 0%, #F4A261 40%, #E9C46A 100%);
+}
+body[data-atmosfera="tramonto"] #ambient-glow {
+  background: radial-gradient(ellipse at 70% 0%, #FF6B35 0%, #FF4757 40%, #5F0A87 100%);
+}
+body[data-atmosfera="crepuscolo"] #ambient-glow {
+  background: radial-gradient(ellipse at 50% 0%, #00E5FF 0%, #2979FF 50%, #0D1B2A 100%);
+}
+body[data-atmosfera="eclissi"] #ambient-glow {
+  background: radial-gradient(ellipse at 50% 0%, #8B0000 0%, #4A0010 60%, #1A0005 100%);
+}
+body[data-atmosfera="oasi"] #ambient-glow {
+  background: radial-gradient(ellipse at 40% 0%, #06D6A0 0%, #2ECC71 40%, #00B4D8 100%);
+}
+body[data-atmosfera="riposo"] #ambient-glow {
+  background: radial-gradient(ellipse at 50% 0%, #3A4A6B 0%, #1A2A4A 100%);
+}
+
+/* ── TASK 2: HERO CARD ── */
+.hero-card {
+  width: 100%;
+  border-radius: 32px;
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  padding: 24px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+  position: relative;
+  z-index: 1;
+  transition: background 0.8s ease, border-color 0.8s ease;
+}
+.hero-tonal-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hero-tonal-circle {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.hero-ring-svg {
+  position: absolute;
+  top: -12px; left: -12px;
+  width: 120px; height: 120px;
+  transform: rotate(-90deg);
+}
+.hero-ring-bg {
+  fill: none;
+  stroke: rgba(255,255,255,0.1);
+  stroke-width: 5;
+}
+.hero-ring-fill {
+  fill: none;
+  stroke: rgba(255,255,255,0.75);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 326.7; /* 2π×52 */
+  stroke-dashoffset: 326.7;
+  transition: stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1), stroke 0.8s ease;
+}
+.hero-tonal-ico {
+  font-size: 36px;
+  line-height: 1;
+  position: relative;
+  z-index: 1;
+}
+.hero-info {
+  text-align: center;
+}
+.hero-sigla {
+  font-size: 24px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 1px;
+  line-height: 1.1;
+}
+.hero-orario {
+  font-size: 14px;
+  color: rgba(255,255,255,0.8);
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+/* Atmosfere Hero Card */
+body[data-atmosfera="alba"] .hero-card {
+  background: rgba(255,209,102,0.08);
+  border-color: rgba(255,209,102,0.2);
+}
+body[data-atmosfera="alba"] .hero-ring-fill { stroke: #FFD166; }
+body[data-atmosfera="tramonto"] .hero-card {
+  background: rgba(255,107,53,0.08);
+  border-color: rgba(255,107,53,0.2);
+}
+body[data-atmosfera="tramonto"] .hero-ring-fill { stroke: #FF6B35; }
+body[data-atmosfera="crepuscolo"] .hero-card {
+  background: rgba(0,229,255,0.08);
+  border-color: rgba(0,229,255,0.2);
+}
+body[data-atmosfera="crepuscolo"] .hero-ring-fill { stroke: #00E5FF; }
+body[data-atmosfera="eclissi"] .hero-card {
+  background: rgba(139,0,0,0.1);
+  border-color: rgba(139,0,0,0.25);
+}
+body[data-atmosfera="eclissi"] .hero-ring-fill { stroke: #FF1744; }
+body[data-atmosfera="oasi"] .hero-card {
+  background: rgba(6,214,160,0.08);
+  border-color: rgba(6,214,160,0.2);
+}
+body[data-atmosfera="oasi"] .hero-ring-fill { stroke: #06D6A0; }
+
+/* ── TASK 3: BENTO CARDS ── */
+.bento-card {
+  transition: transform 0.15s cubic-bezier(0.4,0,0.2,1), box-shadow 0.15s ease !important;
+}
+.bento-card:active {
+  transform: scale(0.98) !important;
+}
+
+/* ── TASK 4: SQUADRA IBRIDA ── */
+.squadra-avatar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.squadra-avatar-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.12);
+  border: 2px solid rgba(255,255,255,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+  overflow: hidden;
+  position: relative;
+  background-size: cover;
+  background-position: center;
+}
+.squadra-avatar-circle img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+.squadra-live-badge {
+  position: absolute;
+  bottom: 1px;
+  right: 1px;
+  width: 11px;
+  height: 11px;
+  background: #06D6A0;
+  border-radius: 50%;
+  border: 2px solid var(--bg, #0a111a);
+  box-shadow: 0 0 6px rgba(6,214,160,0.6);
+}
+.squadra-nome {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--txt2);
+  text-align: center;
+  max-width: 52px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── TASK 5: FLOATING NAV — già implementata, rafforzamento ── */
+.bottom-bar {
+  bottom: 18px !important;
+  backdrop-filter: blur(28px) !important;
+  -webkit-backdrop-filter: blur(28px) !important;
+}
+/* Contenuto scorre sotto la nav in trasparenza */
+.cont {
+  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+/* ── TASK 6: TESSERINO IN IMPOSTAZIONI ── */
+#tess-sticky-imp {
+  transform: scale(0.92);
+  transform-origin: top center;
+  margin-bottom: -20px !important;
+}
+
+/* ═══ COMPATIBILITÀ TEMI — Hero Card, Ambient Glow, Bento Cards ═══ */
+
+/* ── Temi CHIARI: ambient glow più tenue ── */
+:root[data-theme=light] #ambient-glow,
+:root[data-theme=rosa-light] #ambient-glow,
+:root[data-theme=forestale-light] #ambient-glow,
+:root[data-theme=carabinieri-light] #ambient-glow {
+  opacity: 0.08;
+}
+
+/* Hero Card temi chiari: sfondo bianco semitrasparente, testo scuro */
+:root[data-theme=light] .hero-card,
+:root[data-theme=rosa-light] .hero-card,
+:root[data-theme=forestale-light] .hero-card,
+:root[data-theme=carabinieri-light] .hero-card {
+  background: rgba(255,255,255,0.65) !important;
+  border-color: rgba(0,0,0,0.1) !important;
+}
+:root[data-theme=light] .hero-sigla,
+:root[data-theme=rosa-light] .hero-sigla,
+:root[data-theme=forestale-light] .hero-sigla,
+:root[data-theme=carabinieri-light] .hero-sigla {
+  color: var(--txt) !important;
+}
+:root[data-theme=light] .hero-orario,
+:root[data-theme=rosa-light] .hero-orario,
+:root[data-theme=forestale-light] .hero-orario,
+:root[data-theme=carabinieri-light] .hero-orario {
+  color: var(--txt2) !important;
+}
+:root[data-theme=light] .hero-ring-bg,
+:root[data-theme=rosa-light] .hero-ring-bg,
+:root[data-theme=forestale-light] .hero-ring-bg,
+:root[data-theme=carabinieri-light] .hero-ring-bg {
+  stroke: rgba(0,0,0,0.1);
+}
+:root[data-theme=light] .hero-ring-fill,
+:root[data-theme=rosa-light] .hero-ring-fill,
+:root[data-theme=forestale-light] .hero-ring-fill,
+:root[data-theme=carabinieri-light] .hero-ring-fill {
+  stroke: var(--blue);
+}
+:root[data-theme=light] .hero-tonal-circle,
+:root[data-theme=rosa-light] .hero-tonal-circle,
+:root[data-theme=forestale-light] .hero-tonal-circle,
+:root[data-theme=carabinieri-light] .hero-tonal-circle {
+  background: rgba(0,0,0,0.06);
+}
+
+/* ── Tema ROSA (scuro): atmosfera rosa ── */
+:root[data-theme=rosa] .hero-card {
+  background: rgba(255,77,128,0.08) !important;
+  border-color: rgba(255,77,128,0.2) !important;
+}
+:root[data-theme=rosa] .hero-ring-fill { stroke: #ff4d80; }
+:root[data-theme=rosa] #ambient-glow {
+  background: radial-gradient(ellipse at 50% 0%, #ff4d80 0%, #8a2040 50%, #2a0a18 100%) !important;
+  opacity: 0.15;
+}
+
+/* ── Tema FORESTALE (scuro): atmosfera verde ── */
+:root[data-theme=forestale] .hero-card {
+  background: rgba(90,138,90,0.1) !important;
+  border-color: rgba(90,138,90,0.25) !important;
+}
+:root[data-theme=forestale] .hero-ring-fill { stroke: #6abf69; }
+:root[data-theme=forestale] #ambient-glow {
+  background: radial-gradient(ellipse at 40% 0%, #6abf69 0%, #3a5a3a 50%, #1c1f1c 100%) !important;
+  opacity: 0.15;
+}
+
+/* ── Tema CARABINIERI (scuro): atmosfera oro/bordeaux ── */
+:root[data-theme=carabinieri] .hero-card {
+  background: rgba(200,169,110,0.08) !important;
+  border-color: rgba(200,169,110,0.2) !important;
+}
+:root[data-theme=carabinieri] .hero-ring-fill { stroke: #c8a96e; }
+:root[data-theme=carabinieri] #ambient-glow {
+  background: radial-gradient(ellipse at 50% 0%, #c8a96e 0%, #8b0000 50%, #080b10 100%) !important;
+  opacity: 0.15;
+}
+
+/* ── Temi chiari: Bento Cards con sfondo chiaro ── */
+:root[data-theme=light] .bento-card > div,
+:root[data-theme=rosa-light] .bento-card > div,
+:root[data-theme=forestale-light] .bento-card > div,
+:root[data-theme=carabinieri-light] .bento-card > div {
+  background: rgba(255,255,255,0.7) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-color: var(--border) !important;
+}
+
+/* ── Temi chiari: Squadra avatar ── */
+:root[data-theme=light] .squadra-avatar-circle,
+:root[data-theme=rosa-light] .squadra-avatar-circle,
+:root[data-theme=forestale-light] .squadra-avatar-circle,
+:root[data-theme=carabinieri-light] .squadra-avatar-circle {
+  background: rgba(0,0,0,0.08);
+  border-color: rgba(0,0,0,0.15);
+  color: var(--txt);
+}
+:root[data-theme=light] .squadra-live-badge,
+:root[data-theme=rosa-light] .squadra-live-badge,
+:root[data-theme=forestale-light] .squadra-live-badge,
+:root[data-theme=carabinieri-light] .squadra-live-badge {
+  border-color: var(--bg);
+}
+
+/* ── Fix: testo Hero Card sempre leggibile su tutti i temi scuri ── */
+.hero-sigla { color: #fff; }
+.hero-orario { color: rgba(255,255,255,0.8); }
+
+/* ═══ WIDGET TURNO OGGI — compatibilità temi light ═══ */
+
+/* Nei temi chiari: sfondo card adattato, testo scuro */
+:root[data-theme=light] #w-inner,
+:root[data-theme=rosa-light] #w-inner,
+:root[data-theme=forestale-light] #w-inner,
+:root[data-theme=carabinieri-light] #w-inner {
+  background: var(--card) !important;
+  border: 1px solid var(--border2) !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08) !important;
+}
+
+/* Testo principale leggibile */
+:root[data-theme=light] #w-tipo,
+:root[data-theme=rosa-light] #w-tipo,
+:root[data-theme=forestale-light] #w-tipo,
+:root[data-theme=carabinieri-light] #w-tipo {
+  color: var(--txt) !important;
+}
+:root[data-theme=light] #w-orario,
+:root[data-theme=rosa-light] #w-orario,
+:root[data-theme=forestale-light] #w-orario,
+:root[data-theme=carabinieri-light] #w-orario {
+  color: var(--txt2) !important;
+  opacity: 1 !important;
+}
+:root[data-theme=light] #w-nome-utente,
+:root[data-theme=rosa-light] #w-nome-utente,
+:root[data-theme=forestale-light] #w-nome-utente,
+:root[data-theme=carabinieri-light] #w-nome-utente {
+  color: var(--txt2) !important;
+  opacity: 1 !important;
+}
+:root[data-theme=light] #w-nota,
+:root[data-theme=rosa-light] #w-nota,
+:root[data-theme=forestale-light] #w-nota,
+:root[data-theme=carabinieri-light] #w-nota {
+  color: var(--txt2) !important;
+  opacity: 1 !important;
+  border-top-color: var(--border) !important;
+}
+:root[data-theme=light] #w-codice,
+:root[data-theme=rosa-light] #w-codice,
+:root[data-theme=forestale-light] #w-codice,
+:root[data-theme=carabinieri-light] #w-codice {
+  background: var(--surface-tint) !important;
+  color: var(--blue) !important;
+}
+
+/* Avatar */
+:root[data-theme=light] #w-ava,
+:root[data-theme=rosa-light] #w-ava,
+:root[data-theme=forestale-light] #w-ava,
+:root[data-theme=carabinieri-light] #w-ava {
+  background: var(--bg2) !important;
+  border-color: var(--border2) !important;
+  color: var(--txt2) !important;
+}
+
+/* Label "Il tuo turno oggi" */
+:root[data-theme=light] #w-inner > div:first-child > div:first-child,
+:root[data-theme=rosa-light] #w-inner > div:first-child > div:first-child,
+:root[data-theme=forestale-light] #w-inner > div:first-child > div:first-child,
+:root[data-theme=carabinieri-light] #w-inner > div:first-child > div:first-child {
+  color: var(--txt2) !important;
+  opacity: 1 !important;
+}
+
+/* Colleghi in servizio */
+:root[data-theme=light] #w-colleghi-wrap,
+:root[data-theme=rosa-light] #w-colleghi-wrap,
+:root[data-theme=forestale-light] #w-colleghi-wrap,
+:root[data-theme=carabinieri-light] #w-colleghi-wrap {
+  border-top-color: var(--border) !important;
+}
+:root[data-theme=light] #w-colleghi > div,
+:root[data-theme=rosa-light] #w-colleghi > div,
+:root[data-theme=forestale-light] #w-colleghi > div,
+:root[data-theme=carabinieri-light] #w-colleghi > div {
+  background: var(--bg2) !important;
+  color: var(--txt) !important;
+}
+
+/* Icona di sfondo (opacità ridotta) */
+:root[data-theme=light] #w-bg-ico,
+:root[data-theme=rosa-light] #w-bg-ico,
+:root[data-theme=forestale-light] #w-bg-ico,
+:root[data-theme=carabinieri-light] #w-bg-ico {
+  opacity: 0.04 !important;
+  color: var(--txt) !important;
+}
+
+/* Move buttons */
+:root[data-theme=light] .wdg-mv-btn,
+:root[data-theme=rosa-light] .wdg-mv-btn,
+:root[data-theme=forestale-light] .wdg-mv-btn,
+:root[data-theme=carabinieri-light] .wdg-mv-btn {
+  background: var(--bg2) !important;
+  color: var(--txt2) !important;
+  border-color: var(--border) !important;
+}

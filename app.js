@@ -249,12 +249,17 @@ function aggiornaStatoReparto(){
   }
 }
 function apriTrasferimento(){
-  var s = document.getElementById('sec-trasferimento');
-  if(s) s.style.display = 'block';
+  // Il form trasferimento è ora dentro Opzioni Avanzate — apri quel pannello
+  var sec = document.getElementById('sec-opz-avanzate');
+  var arr = document.getElementById('arr-opz-avanzate');
+  if(sec && !sec.classList.contains('open')){
+    sec.classList.add('open');
+    if(arr) arr.style.transform = 'rotate(90deg)';
+  }
+  if(sec) sec.scrollIntoView({behavior:'smooth', block:'nearest'});
 }
 function chiudiTrasferimento(){
-  var s = document.getElementById('sec-trasferimento');
-  if(s) s.style.display = 'none';
+  // stub — il form è sempre visibile dentro Opzioni Avanzate
 }
 function resetTurniUtente(){
   var me = lsG('ct_me', null);
@@ -1275,287 +1280,144 @@ function aggiornaWidget(){
   } else {
     if(wColWrap) wColWrap.style.display="none";
   }
-  // Aggiorna Modalità Focus
-  if(typeof aggiornaFocus === 'function') aggiornaFocus();
+  // Aggiorna Hero Card e Ambient Glow
+  if(typeof aggiornaHeroCard === 'function') aggiornaHeroCard();
+  // Aggiorna Squadra Ibrida
+  if(typeof aggiornaSquadra === 'function') aggiornaSquadra();
 }
 
-// ---- MODALITÀ FOCUS ----
-function aggiornaFocus(){
+// ---- HERO CARD + AMBIENT GLOW (Task 1 & 2) ----
+var _TURNO_ATMOSFERA = {
+  mattina:'alba', ml:'alba',
+  pomeriggio:'tramonto', pl:'tramonto',
+  notte:'crepuscolo', sera:'crepuscolo',
+  riposo:'riposo', recupero:'riposo', ferie:'oasi',
+  '937':'oasi', '104':'oasi', ls:'oasi', licenza:'oasi',
+  permesso:'oasi', fest:'oasi', corso:'oasi', esame:'oasi'
+};
+var _TURNO_ICO_HERO = {
+  mattina:'☀️', ml:'🌅', pomeriggio:'🌆', pl:'🌇',
+  notte:'🌙', sera:'🌃', riposo:'🛋️', recupero:'🛋️',
+  ferie:'🏖️', '937':'📋', '104':'📋', ls:'🩸',
+  licenza:'📚', permesso:'📝', fest:'🎉', corso:'📖', esame:'✏️'
+};
+var _TURNO_SIGLA = {
+  mattina:'M', ml:'ML', pomeriggio:'P', pl:'PL',
+  notte:'N', sera:'S', riposo:'R', recupero:'RR',
+  ferie:'F', '937':'937', '104':'104', ls:'LS',
+  licenza:'LIC', permesso:'PER', fest:'FEST', corso:'COR', esame:'ES'
+};
+
+function aggiornaHeroCard(){
   var me = lsG('ct_me', null);
-  var focusEl = document.getElementById('widget-focus');
-  if(!focusEl) return;
-
-  // Rispetta toggle impostazioni — widget è dentro pag-dash, il routing lo nasconde già
-  var prefs = lsG('ct_prefs', {});
-  if(!me || prefs.focus === false){ focusEl.style.display='none'; return; }
-  focusEl.style.display='block';
-
+  if(!me) return;
   var now = new Date();
   var oggi = now.getFullYear()+'-'+('0'+(now.getMonth()+1)).slice(-2)+'-'+('0'+now.getDate()).slice(-2);
   var T = lsG('ct_t', []);
   var mioTurno = T.find(function(t){ return _isMyTurno(t, me) && t.data === oggi; });
+  var tipo = mioTurno ? (_codiceToTipo[mioTurno.codice] || mioTurno.tipo || 'riposo') : 'riposo';
 
-  // Determina fase
-  var fase = 'riposo';
-  var oraInizio = null, oraFine = null;
-  if(mioTurno && mioTurno.orario && mioTurno.orario.indexOf('-') > 0){
+  // Atmosfera
+  var atmosfera = _TURNO_ATMOSFERA[tipo] || 'riposo';
+  document.body.setAttribute('data-atmosfera', atmosfera);
+
+  // Icona e sigla
+  var ico = _TURNO_ICO_HERO[tipo] || '🛋️';
+  var sigla = (mioTurno && mioTurno.codice) ? mioTurno.codice : (_TURNO_SIGLA[tipo] || tipo.toUpperCase());
+  var orario = (mioTurno && mioTurno.orario) ? mioTurno.orario : 'Nessun turno';
+
+  var heroIco = document.getElementById('hero-tonal-ico');
+  var heroSigla = document.getElementById('hero-sigla');
+  var heroOrario = document.getElementById('hero-orario');
+  if(heroIco) heroIco.textContent = ico;
+  if(heroSigla) heroSigla.textContent = sigla;
+  if(heroOrario) heroOrario.textContent = orario;
+
+  // Active Ring — calcola percentuale tempo trascorso
+  var ring = document.getElementById('hero-ring-fill');
+  if(ring && mioTurno && mioTurno.orario && mioTurno.orario.indexOf('-') > 0){
     var parts = mioTurno.orario.split('-');
-    oraInizio = parts[0].trim();
-    oraFine   = parts[1].trim();
-  }
-  var nowH = now.getHours() * 60 + now.getMinutes();
-  if(mioTurno){
-    if(oraInizio){
-      var p = oraInizio.split(':');
-      var startMin = parseInt(p[0])*60 + parseInt(p[1]||0);
-      var preMin = startMin - 120; // 2h prima
-      if(nowH >= startMin){
-        if(oraFine){
-          var pf = oraFine.split(':');
-          var endMin = parseInt(pf[0])*60 + parseInt(pf[1]||0);
-          if(endMin < startMin) endMin += 1440; // notte
-          fase = (nowH < endMin) ? 'servizio' : 'riposo';
-        } else { fase = 'servizio'; }
-      } else if(nowH >= preMin){ fase = 'pre'; }
-      else { fase = 'pre'; }
-    } else { fase = 'servizio'; }
-  }
-
-  // Configurazione per fase — con icone animate e glow class
-  // ── TASK 3: Assegnazione glow, bg e icone SVG animate ──────────
-  var glowClass = 'focus-glow-riposo';
-  var bgClass   = 'focus-bg-riposo';
-  var iconHtml  = '<svg class="icon-animate-relax" width="40" height="40" viewBox="0 0 100 100"><text y="72" font-size="72" text-anchor="middle" x="50">🌴</text></svg>';
-
-  if(mioTurno){
-    var _tipo = mioTurno.tipo;
-    if(_tipo==='mattina' || _tipo==='ml'){
-      glowClass = 'focus-glow-mattina';
-      bgClass   = 'focus-bg-mattina';
-      iconHtml  = '<svg class="icon-animate-sun" width="40" height="40" viewBox="0 0 100 100"><circle cx="50" cy="50" r="20" fill="#FFD166"/><g stroke="#FFD166" stroke-width="6" stroke-linecap="round"><line x1="50" y1="10" x2="50" y2="20"/><line x1="50" y1="80" x2="50" y2="90"/><line x1="10" y1="50" x2="20" y2="50"/><line x1="80" y1="50" x2="90" y2="50"/><line x1="22" y1="22" x2="29" y2="29"/><line x1="78" y1="78" x2="71" y2="71"/><line x1="22" y1="78" x2="29" y2="71"/><line x1="78" y1="22" x2="71" y2="29"/></g></svg>';
-    } else if(_tipo==='pomeriggio' || _tipo==='pl'){
-      glowClass = 'focus-glow-pomeriggio';
-      bgClass   = 'focus-bg-pomeriggio';
-      iconHtml  = '<svg class="icon-animate-cloud" width="40" height="40" viewBox="0 0 100 100"><path d="M20,70 L80,70 A20,20 0 0,0 60,50 A20,20 0 0,0 40,50 A20,20 0 0,0 20,70 Z" fill="#FF9F43"/><circle cx="50" cy="50" r="15" fill="#FF512F" style="mix-blend-mode: multiply;"/></svg>';
-    } else if(_tipo==='notte' || _tipo==='sera'){
-      glowClass = 'focus-glow-notte';
-      bgClass   = 'focus-bg-notte';
-      iconHtml  = '<svg class="icon-animate-star" width="40" height="40" viewBox="0 0 100 100"><path d="M50,10 A40,40 0 0,1 90,50 A40,40 0 0,0 50,90 A40,40 0 0,1 10,50 A40,40 0 0,0 50,10 Z" fill="#E8EDF5"/></svg>';
-    } else if(_tipo==='corso' || _tipo==='esame' || _tipo==='licenza'){
-      glowClass = 'focus-glow-studio';
-      bgClass   = 'focus-bg-studio';
-      iconHtml  = '<svg class="icon-animate-steam" width="40" height="40" viewBox="0 0 100 100"><path d="M20,40 L20,70 A20,20 0 0,0 60,70 L60,40 Z" fill="#00E5FF"/><path d="M60,45 A10,10 0 0,1 60,65" fill="none" stroke="#00E5FF" stroke-width="6"/><path d="M30,30 Q35,15 30,0 M50,30 Q55,15 50,0" fill="none" stroke="#00E5FF" stroke-width="4" stroke-linecap="round"/></svg>';
-    } else if(_tipo==='937' || _tipo==='104' || _tipo==='ls' || _tipo==='permesso'){
-      glowClass = 'focus-glow-assenza';
-      bgClass   = 'focus-bg-assenza';
-      iconHtml  = '<svg width="40" height="40" viewBox="0 0 100 100"><rect x="40" y="20" width="20" height="60" rx="5" fill="#C084FC"/><rect x="20" y="40" width="60" height="20" rx="5" fill="#C084FC"/></svg>';
-    } else {
-      glowClass = 'focus-glow-riposo';
-      bgClass   = 'focus-bg-riposo';
-      iconHtml  = '<svg class="icon-animate-relax" width="40" height="40" viewBox="0 0 100 100"><path d="M10,80 Q50,90 90,80 L90,90 L10,90 Z" fill="#06D6A0"/><circle cx="30" cy="50" r="10" fill="#06D6A0"/><circle cx="70" cy="60" r="8" fill="#06D6A0"/></svg>';
-    }
-  }
-
-  // Applica glow class al focus-widget-container
-  var fwc = document.getElementById('focus-widget-container');
-  if(fwc) fwc.className = glowClass;
-
-  // Applica bg class al focus-bg
-  var bgEl = document.getElementById('focus-bg');
-  if(bgEl) bgEl.className = bgClass;
-
-  // Inserisce icona SVG animata
-  var icoEl = document.getElementById('focus-ico');
-  if(icoEl) icoEl.innerHTML = iconHtml;
-
-  var cfg = {
-    servizio: {
-      titolo:'In Servizio', badge:'ATTIVO',
-      bg:'linear-gradient(135deg,rgba(0,180,100,.22),rgba(0,100,60,.12))',
-      border:'rgba(0,200,120,.4)', badgeBg:'rgba(0,200,120,.2)', badgeCol:'#00e676',
-      fase:'🟢 In Servizio'
-    },
-    pre: {
-      titolo:'Preparazione', badge:'TRA POCO',
-      bg:'linear-gradient(135deg,rgba(255,140,0,.22),rgba(200,80,0,.12))',
-      border:'rgba(255,140,0,.45)', badgeBg:'rgba(255,140,0,.2)', badgeCol:'#ffb300',
-      fase:'🟠 Pre-Servizio'
-    },
-    riposo: {
-      titolo:'Relax', badge:'RIPOSO',
-      bg:'linear-gradient(135deg,rgba(91,100,180,.18),rgba(40,50,100,.10))',
-      border:'rgba(91,100,180,.35)', badgeBg:'rgba(91,100,180,.2)', badgeCol:'#9fa8da',
-      fase:'🟣 Riposo'
-    }
-  };
-  var c = cfg[fase];
-
-  // Applica stile card
-  var card = document.getElementById('focus-card');
-  if(card){ card.style.background = c.bg; card.style.border = '1.5px solid ' + c.border; }
-
-  document.getElementById('focus-fase').textContent = c.fase;
-  document.getElementById('focus-titolo').textContent = c.titolo;
-  var badge = document.getElementById('focus-badge');
-  if(badge){ badge.textContent = c.badge; badge.style.background = c.badgeBg; badge.style.color = c.badgeCol; }
-
-  // Hero content — testo bianco puro con ombreggiatura, orologio LIVE
-  var hero = document.getElementById('focus-hero');
-  if(hero){
-    var _txtStyle = 'color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.55);';
-    var _subStyle = 'color:rgba(255,255,255,.75);text-shadow:0 1px 4px rgba(0,0,0,.4);font-size:11px;margin-top:3px;';
-
-    if(fase === 'servizio' && mioTurno){
-      var tipoNome = {mattina:'Mattina',ml:'Mattina Lunga',pomeriggio:'Pomeriggio',pl:'Pomeriggio Lungo',
-        notte:'Notte',sera:'Sera',riposo:'Riposo',ferie:'Ferie',recupero:'Recupero',
-        permesso:'Permesso',corso:'Corso',licenza:'Licenza'}[mioTurno.tipo] || mioTurno.tipo;
-      var heroHtml = '<div style="'+_txtStyle+'font-size:13px;font-weight:700;margin-bottom:6px">'
-        + tipoNome
-        + (mioTurno.orario ? ' &nbsp;·&nbsp; <span style="color:#a5ffcb;text-shadow:0 0 8px rgba(0,230,118,.5)">'+mioTurno.orario+'</span>' : '')
-        + '</div>';
-      // Countdown fine turno con ID per aggiornamento live
-      if(oraFine){
-        var pf2 = oraFine.split(':');
-        var endMin2 = parseInt(pf2[0])*60 + parseInt(pf2[1]||0);
-        if(endMin2 < nowH) endMin2 += 1440;
-        var rimanenti = endMin2 - nowH;
-        var rH = Math.floor(rimanenti/60), rM = rimanenti%60;
-        heroHtml += '<div id="focus-countdown" style="'+_txtStyle+'font-size:28px;font-weight:900;line-height:1.1;letter-spacing:-1px">'
-          + '⏱ <span id="focus-cd-h">'+rH+'</span>h <span id="focus-cd-m">'+('0'+rM).slice(-2)+'</span>m'
-          + '</div>';
-        heroHtml += '<div style="'+_subStyle+'">alla fine del turno</div>';
-      }
-      // Orologio live
-      heroHtml += '<div id="focus-clock" style="'+_txtStyle+'font-size:13px;font-weight:700;margin-top:8px;letter-spacing:.5px;opacity:.85"></div>';
-      hero.innerHTML = heroHtml;
-
-    } else if(fase === 'pre' && mioTurno){
-      var heroHtml2 = '<div style="'+_txtStyle+'font-size:13px;font-weight:700;margin-bottom:4px">'
-        + 'Inizio turno: <span style="color:#ffd580;text-shadow:0 0 8px rgba(255,179,0,.5)">'+(oraInizio||'—')+'</span>'
-        + '</div>';
-      if(oraInizio){
-        var pi2 = oraInizio.split(':');
-        var startMin2 = parseInt(pi2[0])*60 + parseInt(pi2[1]||0);
-        var mancano = startMin2 - nowH;
-        if(mancano < 0) mancano += 1440;
-        var mH = Math.floor(mancano/60), mM = mancano%60;
-        heroHtml2 += '<div id="focus-countdown" style="'+_txtStyle+'font-size:28px;font-weight:900;line-height:1.1;letter-spacing:-1px">'
-          + '⏰ <span id="focus-cd-h">'+mH+'</span>h <span id="focus-cd-m">'+('0'+mM).slice(-2)+'</span>m'
-          + '</div>';
-        heroHtml2 += '<div style="'+_subStyle+'">all\'inizio del turno</div>';
-      }
-      heroHtml2 += '<div id="focus-clock" style="'+_txtStyle+'font-size:13px;font-weight:700;margin-top:8px;letter-spacing:.5px;opacity:.85"></div>';
-      hero.innerHTML = heroHtml2;
-
-    } else {
-      // Riposo: prossimo turno
-      var prossimo = null;
-      for(var gi=0; gi<30; gi++){
-        var dd = new Date(now); dd.setDate(dd.getDate()+gi+1);
-        var dds = dd.getFullYear()+'-'+('0'+(dd.getMonth()+1)).slice(-2)+'-'+('0'+dd.getDate()).slice(-2);
-        var pt = T.find(function(t){ return _isMyTurno(t,me) && t.data===dds && t.tipo!=='riposo'; });
-        if(pt){ prossimo = pt; break; }
-      }
-      var heroHtml3 = '';
-      if(prossimo){
-        var dPross = new Date(prossimo.data+'T00:00:00');
-        var diffDays = Math.round((dPross - new Date(oggi+'T00:00:00'))/(1000*60*60*24));
-        var tipoNomeP = {mattina:'Mattina',ml:'Mattina Lunga',pomeriggio:'Pomeriggio',pl:'Pomeriggio Lungo',
-          notte:'Notte',sera:'Sera'}[prossimo.tipo] || prossimo.tipo;
-        heroHtml3 = '<div style="'+_subStyle+'margin-bottom:4px">Prossimo turno</div>';
-        heroHtml3 += '<div style="'+_txtStyle+'font-size:20px;font-weight:900">'
-          + tipoNomeP
-          + (prossimo.orario ? ' <span style="font-size:13px;opacity:.8">'+prossimo.orario+'</span>' : '')
-          + '</div>';
-        heroHtml3 += '<div style="'+_subStyle+'margin-top:3px">tra '+diffDays+' giorn'+(diffDays===1?'o':'i')+' · '+prossimo.data.split('-').reverse().join('/')+'</div>';
-      } else {
-        heroHtml3 = '<div style="'+_subStyle+'">Nessun turno nei prossimi 30 giorni</div>';
-      }
-      heroHtml3 += '<div id="focus-clock" style="'+_txtStyle+'font-size:13px;font-weight:700;margin-top:8px;letter-spacing:.5px;opacity:.85"></div>';
-      hero.innerHTML = heroHtml3;
-    }
-  }
-
-  // Avvia orologio LIVE con funzione dedicata
-  startFocusTimer(fase, oraFine, oraInizio);
-
-  // To-Do in sospeso (solo in servizio)
-  var tdWrap = document.getElementById('focus-todo-wrap');
-  var tdList = document.getElementById('focus-todo-list');
-  if(tdWrap && tdList){
-    if(fase === 'servizio'){
-      var TD = lsG('ct_td',[]).filter(function(t){ return !t.done && t.data === oggi; });
-      if(TD.length){
-        tdWrap.style.display = 'block';
-        tdList.innerHTML = TD.slice(0,3).map(function(t){
-          return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.08)">'
-            +'<button onclick="toggleTodo('+t.id+');aggiornaFocus()" style="width:20px;height:20px;border-radius:50%;border:1.5px solid rgba(255,255,255,.4);background:none;cursor:pointer;flex-shrink:0;appearance:none;-webkit-appearance:none;color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center"></button>'
-            +'<span style="font-size:12px;font-weight:600;color:var(--txt);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+t.tit+'</span>'
-            +'</div>';
-        }).join('');
-      } else { tdWrap.style.display = 'none'; }
-    } else { tdWrap.style.display = 'none'; }
-  }
-
-  // Smart Snooze (to-do scaduti non completati)
-  var snWrap = document.getElementById('focus-snooze-wrap');
-  var snList = document.getElementById('focus-snooze-list');
-  if(snWrap && snList){
-    var snoozeEnabled = lsG('ct_prefs',{}).snooze !== false;
-    var scaduti = snoozeEnabled ? lsG('ct_td',[]).filter(function(t){ return !t.done && t.data && t.data < oggi; }) : [];
-    if(scaduti.length){
-      snWrap.style.display = 'block';
-      snList.innerHTML = scaduti.slice(0,3).map(function(t){
-        return '<div style="display:flex;align-items:center;gap:8px;padding:4px 0">'
-          +'<span style="font-size:11px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.8">'+t.tit+'</span>'
-          +'<button onclick="_snoozeSmartTodo('+t.id+')" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:3px 8px;font-size:10px;font-weight:700;color:#fff;cursor:pointer;appearance:none;-webkit-appearance:none;white-space:nowrap">🕒 Domani</button>'
-          +'</div>';
-      }).join('');
-    } else { snWrap.style.display = 'none'; }
+    var startParts = parts[0].trim().split(':');
+    var endParts = parts[1].trim().split(':');
+    var startMin = parseInt(startParts[0])*60 + parseInt(startParts[1]||0);
+    var endMin = parseInt(endParts[0])*60 + parseInt(endParts[1]||0);
+    if(endMin < startMin) endMin += 1440;
+    var nowMin = now.getHours()*60 + now.getMinutes();
+    var elapsed = nowMin - startMin;
+    if(elapsed < 0) elapsed = 0;
+    var total = endMin - startMin;
+    var pct = total > 0 ? Math.min(1, elapsed / total) : 0;
+    var circumference = 326.7;
+    ring.style.strokeDashoffset = circumference * (1 - pct);
+  } else if(ring){
+    ring.style.strokeDashoffset = 326.7;
   }
 }
 
-// ── Orologio LIVE Modalità Focus ─────────────────────────────
-function startFocusTimer(fase, oraFine, oraInizio){
-  // Pulisci timer precedente
-  if(window._focusClockTimer){ clearInterval(window._focusClockTimer); window._focusClockTimer = null; }
-  window._focusClockTimer = setInterval(function(){
-    var clk = document.getElementById('focus-clock');
-    // Se il widget non è più nel DOM, ferma il timer
-    if(!clk || !document.getElementById('widget-focus') || document.getElementById('widget-focus').style.display === 'none'){
-      clearInterval(window._focusClockTimer); window._focusClockTimer = null; return;
+// ---- SQUADRA IBRIDA (Task 4) ----
+function aggiornaSquadra(){
+  var me = lsG('ct_me', null);
+  if(!me) return;
+  var now = new Date();
+  var oggi = now.getFullYear()+'-'+('0'+(now.getMonth()+1)).slice(-2)+'-'+('0'+now.getDate()).slice(-2);
+  var T = lsG('ct_t', []);
+  var P = lsG('ct_p', []);
+  var container = document.getElementById('w-squadra-list');
+  if(!container) return;
+
+  var turniOggi = T.filter(function(t){ return t.data === oggi; });
+  var pidInServizio = {};
+  turniOggi.forEach(function(t){ pidInServizio[t.pid] = t; });
+
+  var persone = [];
+  var visti = {};
+
+  P.forEach(function(p){
+    if(visti[p.id]) return;
+    visti[p.id] = true;
+    var inServizio = !!pidInServizio[p.id] || !!pidInServizio[p.uid];
+    persone.push({ nome: p.nome||'', cognome: p.cognome||'', ava: p.ava||null, inServizio: inServizio, fromFirestore: true });
+  });
+
+  turniOggi.forEach(function(t){
+    if(visti[t.pid]) return;
+    visti[t.pid] = true;
+    var nomeBreve = t.pnome || t.nome || '';
+    if(!nomeBreve) return;
+    persone.push({ nome: nomeBreve, cognome: '', ava: null, inServizio: true, fromFirestore: false });
+  });
+
+  if(!persone.length){
+    container.innerHTML = '<div style="font-size:12px;color:var(--txt2);padding:8px 0">Nessun collega trovato</div>';
+    return;
+  }
+
+  persone.sort(function(a,b){ return (b.inServizio?1:0) - (a.inServizio?1:0); });
+
+  container.innerHTML = persone.slice(0,12).map(function(p){
+    var ini = ((p.nome||'?').charAt(0) + (p.cognome||'').charAt(0)).toUpperCase() || '?';
+    var nomeBreve = (p.nome||'').split(' ')[0];
+    var avatarContent = '';
+    if(p.ava && p.fromFirestore){
+      avatarContent = '<img src="'+p.ava+'" alt="'+ini+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+    } else {
+      avatarContent = '<span>'+ini+'</span>';
     }
-    var n = new Date();
-    clk.innerHTML = '🕐 ' + ('0'+n.getHours()).slice(-2) + ':' + ('0'+n.getMinutes()).slice(-2) + ':' + ('0'+n.getSeconds()).slice(-2);
-    // Aggiorna countdown
-    var cdH = document.getElementById('focus-cd-h');
-    var cdM = document.getElementById('focus-cd-m');
-    if(cdH && cdM){
-      var targetStr = (fase === 'servizio') ? oraFine : oraInizio;
-      if(targetStr){
-        var tp = targetStr.split(':');
-        var targetMin = parseInt(tp[0])*60 + parseInt(tp[1]||0);
-        var nowMin = n.getHours()*60 + n.getMinutes();
-        var diff = targetMin - nowMin;
-        if(diff < 0) diff += 1440;
-        cdH.innerHTML = Math.floor(diff/60);
-        cdM.innerHTML = ('0'+(diff%60)).slice(-2);
-      }
-    }
-  }, 1000);
+    var liveBadge = p.inServizio ? '<div class="squadra-live-badge"></div>' : '';
+    return '<div class="squadra-avatar">'
+      + '<div class="squadra-avatar-circle" style="'+(p.inServizio?'border-color:rgba(6,214,160,.5)':'')+'">'+avatarContent+liveBadge+'</div>'
+      + '<div class="squadra-nome">'+nomeBreve+'</div>'
+      + '</div>';
+  }).join('');
 }
 
-function _snoozeSmartTodo(id){
-  var TD = lsG('ct_td', []);
-  var t = TD.find(function(x){ return x.id === id; });
-  if(!t) return;
-  var dom = new Date(); dom.setDate(dom.getDate()+1);
-  t.data = dom.toISOString().slice(0,10);
-  t.done = false;
-  lsS('ct_td', TD);
-  if(window.FirebaseModule) window.FirebaseModule.saveTodo(TD);
-  aggiornaFocus();
-  toast('🕒 Spostato a domani', 'ok');
+// ---- MODALITÀ FOCUS (RIMOSSA — Task 1) ----
+// La funzione è mantenuta come stub per retrocompatibilità con eventuali chiamate residue
+function aggiornaFocus(){
+  // Focus Mode rimossa — la Hero Card sostituisce questa funzionalità
+  aggiornaHeroCard();
+  var focusEl = document.getElementById('widget-focus');
+  if(focusEl) focusEl.style.display='none';
 }
 
 // ---- PWA ----
@@ -4797,9 +4659,6 @@ function aggUI(){
     // Nascondi intera sezione Gestione Reparto per gli addetti
     var secGestRep = document.getElementById('sec-gestione-reparto');
     if(secGestRep) secGestRep.style.display = isCom ? 'block' : 'none';
-    // Mostra sezione trasferimento solo se utente approvato
-    var secTrasf = document.getElementById('sec-trasferimento');
-    if(secTrasf) secTrasf.style.display = (u && u.stato === 'approved') ? 'block' : 'none';
     // Tasto invita collega: visibile solo se in un reparto
     var btnInvita = document.getElementById('btn-invita-collega');
     if(btnInvita) btnInvita.style.display = (u && u.reparto) ? 'inline-flex' : 'none';
@@ -4815,16 +4674,17 @@ function aggUI(){
     var togTess = document.getElementById('tog-tesserino');
     if(togTess) togTess.checked = prefs.tesserino !== false; // default ON
     var tessSt = document.getElementById('tess-sticky');
-    if(tessSt) tessSt.style.display = (prefs.tesserino !== false) ? '' : 'none';
+    if(tessSt) tessSt.style.display = 'none'; // Task 6: tesserino rimosso dalla dashboard
+    // Popola tesserino in Impostazioni > Profilo (Task 6)
+    var tessImp = document.getElementById('tess-sticky-imp');
+    var tessOrig = document.getElementById('tess-sticky');
+    if(tessImp && tessOrig) tessImp.innerHTML = tessOrig.innerHTML;
     var togDino = document.getElementById('tog-dino');
     if(togDino) togDino.checked = !!prefs.dino;
     var togSuoni = document.getElementById('tog-suoni');
     if(togSuoni) togSuoni.checked = prefs.suoni !== false; // default ON
     var togConfetti = document.getElementById('tog-confetti');
     if(togConfetti) togConfetti.checked = prefs.confetti !== false; // default ON
-    // Toggles Focus e Snooze
-    var togFocus = document.getElementById('tog-focus');
-    if(togFocus) togFocus.checked = prefs.focus !== false; // default ON
     var togSnooze = document.getElementById('tog-snooze');
     if(togSnooze) togSnooze.checked = prefs.snooze !== false; // default ON
     // Comportamento tema
@@ -5638,161 +5498,10 @@ function renderRepData(){
   d.innerHTML=h;
 }
 
-// ---- STRAORDINARI & INDENNIT ----
-var _straordMese = new Date().getMonth();
-var _straordAnno = new Date().getFullYear();
-
-var _TARIFFE = {
-  notte:        { label: "Indennità Notte",           ico: "&#127769;", euro: 10.33 },
-  festivo:      { label: "Indennità Festivo",          ico: "&#127881;", euro: 12.91 },
-  notte_fest:   { label: "Notte Festiva",              ico: "&#127769;&#127881;", euro: 23.24 },
-  straord_h:    { label: "Straordinario",              ico: "&#9201;", euro: 3.20  },
-  straord_fest: { label: "Straordinario Festivo",      ico: "&#9201;&#127881;", euro: 4.80 },
-  reperibilita: { label: "Reperibilità (12h)",         ico: "&#128223;", euro: 5.16  },
-  rischio:      { label: "Indennità Rischio/giorno",   ico: "&#9888;", euro: 0.52  },
-  vitto:        { label: "Indennità Vitto",            ico: "&#127869;", euro: 5.29  },
-};
-var _ORE_TURNO = { mattina: 8, pomeriggio: 8, notte: 8, ml: 10, pl: 10 };
-
-
-function straordCambiaMese(delta) {
-  _straordMese += delta;
-  if(_straordMese > 11) { _straordMese = 0; _straordAnno++; }
-  if(_straordMese < 0)  { _straordMese = 11; _straordAnno--; }
-  renderStraord();
-}
-
-function renderStraord() {
-  var me = lsG("ct_me", null);
-  if(!me) return;
-  var mN = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno",
-            "Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
-  var lbl = document.getElementById("straord-mese-lbl");
-  if(lbl) lbl.textContent = mN[_straordMese] + " " + _straordAnno;
-
-  var T = lsG("ct_t", []).filter(function(t) {
-    if(t.pid !== me.id) return false;
-    var d = new Date(t.data + "T00:00:00");
-    return d.getFullYear() === _straordAnno && d.getMonth() === _straordMese;
-  });
-
-  var nNotti = 0, nFestivi = 0, nNotteFest = 0;
-  var oreStraord = 0, oreStraordFest = 0;
-  var nGiorniServizio = 0;
-  var dettaglio = [];
-
-  T.forEach(function(t) {
-    var tipo = t.tipo;
-    var isTurnoLav = ["mattina","pomeriggio","notte","ml","pl"].indexOf(tipo) !== -1;
-    if(!isTurnoLav) return;
-
-    nGiorniServizio++;
-    var fest = isFestivo(t.data);
-    var isNotte = (tipo === "notte");
-    var oreT = _ORE_TURNO[tipo] || 8;
-    var oreStraordT = Math.max(0, oreT - 8);
-
-    // Indennità vitto per ogni giorno di servizio
-    dettaglio.push({ data: t.data, ico: "&#127860;", label: "Indennità Vitto", euro: _TARIFFE.vitto.euro, cat: "vitto" });
-
-    if(isNotte && fest) {
-      nNotteFest++;
-      dettaglio.push({ data: t.data, ico: "&#127769;&#127881;", label: "Notte Festiva", euro: _TARIFFE.notte_fest.euro, cat: "notte_fest" });
-      if(oreStraordT > 0) {
-        oreStraordFest += oreStraordT;
-        dettaglio.push({ data: t.data, ico: "&#9201;&#127881;", label: "Straord. Festivo +" + oreStraordT + "h", euro: oreStraordT * _TARIFFE.straord_fest.euro, cat: "straord" });
-      }
-    } else if(isNotte) {
-      nNotti++;
-      dettaglio.push({ data: t.data, ico: "&#127769;", label: "Indennità Notte", euro: _TARIFFE.notte.euro, cat: "notte" });
-      if(oreStraordT > 0) {
-        oreStraord += oreStraordT;
-        dettaglio.push({ data: t.data, ico: "&#9201;", label: "Straordinario +" + oreStraordT + "h", euro: oreStraordT * _TARIFFE.straord_h.euro, cat: "straord" });
-      }
-    } else if(fest) {
-      nFestivi++;
-      dettaglio.push({ data: t.data, ico: "&#127769;", label: "Indennità Festivo", euro: _TARIFFE.festivo.euro, cat: "festivo" });
-      if(oreStraordT > 0) {
-        oreStraordFest += oreStraordT;
-        dettaglio.push({ data: t.data, ico: "&#9201;&#127881;", label: "Straord. Festivo +" + oreStraordT + "h", euro: oreStraordT * _TARIFFE.straord_fest.euro, cat: "straord" });
-      }
-    } else {
-      if(oreStraordT > 0) {
-        oreStraord += oreStraordT;
-        dettaglio.push({ data: t.data, ico: "&#9201;", label: "Straordinario +" + oreStraordT + "h", euro: oreStraordT * _TARIFFE.straord_h.euro, cat: "straord" });
-      }
-    }
-  });
-
-  var totNotti     = nNotti * _TARIFFE.notte.euro;
-  var totFestivi   = nFestivi * _TARIFFE.festivo.euro;
-  var totNotteFest = nNotteFest * _TARIFFE.notte_fest.euro;
-  var totStraord   = oreStraord * _TARIFFE.straord_h.euro + oreStraordFest * _TARIFFE.straord_fest.euro;
-  var totVitto     = nGiorniServizio * _TARIFFE.vitto.euro;
-  var totale       = totNotti + totFestivi + totNotteFest + totStraord + totVitto;
-
-  // Header totale
-  var hdr = document.getElementById("straord-totale-hdr");
-  if(hdr) hdr.textContent = " " + totale.toFixed(2).replace(".", ",");
-
-  // Netto stimato
-  var netto = document.getElementById("straord-netto-hdr");
-  if(netto) netto.textContent = "  " + (totale * 0.72).toFixed(2).replace(".", ",") + " netto";
-
-  // Cards riepilogo
-  var cards = document.getElementById("straord-cards");
-  if(cards) {
-    var cardData = [
-      { ico:"&#127769;", val: nNotti,          lbl:"Notti",          euro: totNotti,     col:"var(--purple,#a78bfa)" },
-      { ico:"&#127881;", val: nFestivi,        lbl:"Festivi",         euro: totFestivi,   col:"var(--gold)" },
-      { ico:"&#127769;&#127881;",val: nNotteFest,     lbl:"Notti Festive",   euro: totNotteFest, col:"var(--orange)" },
-      { ico:"&#9201;", val: (oreStraord+oreStraordFest)+"h", lbl:"Straordinari", euro: totStraord, col:"var(--teal)" },
-      { ico:"&#127860;", val: nGiorniServizio, lbl:"Vitto",           euro: totVitto,     col:"var(--green)" },
-    ];
-    cards.innerHTML = cardData.map(function(c) {
-      return '<div class="straord-card">' +
-        '<div class="straord-card-ico">'+c.ico+'</div>' +
-        '<div class="straord-card-val" style="color:'+c.col+'">'+c.val+'</div>' +
-        '<div class="straord-card-lbl">'+c.lbl+'</div>' +
-        '<div class="straord-card-euro"> '+c.euro.toFixed(2).replace(".",",")+'</div>' +
-        '</div>';
-    }).join("");
-  }
-
-  // Dettaglio
-  var det = document.getElementById("straord-detail");
-  if(det) {
-    if(!dettaglio.length) {
-      det.innerHTML = '<div style="text-align:center;color:var(--txt2);padding:24px;font-size:13px">Nessuna indennità nel periodo selezionato</div>';
-    } else {
-      dettaglio.sort(function(a,b){ return a.data > b.data ? 1 : -1; });
-      // Raggruppa per data
-      var byDate = {};
-      dettaglio.forEach(function(r) {
-        if(!byDate[r.data]) byDate[r.data] = [];
-        byDate[r.data].push(r);
-      });
-      var html = "";
-      Object.keys(byDate).sort().forEach(function(ds) {
-        var d = new Date(ds + "T00:00:00");
-        var gN = ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
-        var dStr = gN[d.getDay()] + " " + ("0"+d.getDate()).slice(-2) + "/" + ("0"+(d.getMonth()+1)).slice(-2);
-        var dayTotal = byDate[ds].reduce(function(s,r){ return s+r.euro; }, 0);
-        html += '<div style="margin-bottom:8px">';
-        html += '<div style="font-size:10px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px;padding:4px 0 6px;border-bottom:1px solid var(--border);margin-bottom:6px">'+dStr+'   '+dayTotal.toFixed(2).replace(".",",")+'</div>';
-        byDate[ds].forEach(function(r) {
-          html += '<div class="straord-detail-row">' +
-            '<span style="font-size:15px;margin-right:8px;flex-shrink:0">'+r.ico+'</span>' +
-            '<span style="flex:1;color:var(--txt);font-size:12px">'+r.label+'</span>' +
-            '<span style="font-weight:700;color:var(--green);font-size:13px"> '+r.euro.toFixed(2).replace(".",",")+'</span>' +
-            '</div>';
-        });
-        html += '</div>';
-      });
-      det.innerHTML = html;
-    }
-  }
-}
+// ---- STRAORDINARI (RIMOSSI — Task 3) ----
+// Stub per retrocompatibilità con eventuali chiamate residue
+function straordCambiaMese(delta) {}
+function renderStraord() {}
 
 // ---- CONDIVISIONE TURNI SETTIMANALI (WhatsApp) ----
 // apriSheetWA: condivide i turni del giorno corrente (chiamato dallo sheet-giorno) o settimanali
@@ -7189,6 +6898,7 @@ var METEO_DESC = {
 /* ---------- WIDGET CONF ---------- */
 var WIDGET_DEF = {
   turno:       { label: "&#9728; Turno oggi",      default: true },
+  squadra:     { label: "&#128101; La Squadra",    default: true },
   prossimo:    { label: "&#9200; Prossimo turno",  default: true },
   'turni-oggi':{ label: "&#128203; Turni di Oggi", default: true },
   meteo:       { label: "&#127781; Meteo reparto", default: true },
@@ -7212,7 +6922,7 @@ function getWidgetCfg() {
 }
 
 var WIDGET_ID_MAP = {
-  turno:"widget-oggi", prossimo:"widget-prossimo", 'turni-oggi':"widget-turni-oggi",
+  turno:"widget-oggi", squadra:"widget-squadra", prossimo:"widget-prossimo", 'turni-oggi':"widget-turni-oggi",
   meteo:"widget-meteo", alert:"widget-alert", scadenze:"widget-scadenze",
   agenda:"widget-agenda", todo:"widget-todo", dino:"widget-dino-dash"
 };
@@ -7353,18 +7063,21 @@ function renderDash() {
   if(window._widgetSyncPending) skeletonDash();
   var cfg = getWidgetCfg();
   aggiornaWidget();
+  aggiornaHeroCard();
+  aggiornaSquadra();
   if (cfg.prossimo) renderWidgetProssimo(me);
   if (cfg.meteo)    renderWidgetMeteo(me);
   if (cfg.alert)    renderWidgetAlert();
   if (cfg.scadenze) renderWidgetScadenze();
   if (cfg.agenda)   renderWidgetAgenda();
   if (cfg.todo)     renderWidgetTodo();
-  // Modalità Focus — sempre ri-renderizzata quando si torna in Dashboard
-  if(typeof aggiornaFocus === 'function') aggiornaFocus();
+  // Hero Card aggiornata ogni minuto per l'Active Ring
+  if(window._heroRingTimer) clearInterval(window._heroRingTimer);
+  window._heroRingTimer = setInterval(aggiornaHeroCard, 60000);
   var map = {
     turno:"widget-oggi", prossimo:"widget-prossimo", 'turni-oggi':"widget-turni-oggi",
     meteo:"widget-meteo", alert:"widget-alert", scadenze:"widget-scadenze",
-    agenda:"widget-agenda", todo:"widget-todo", dino:"widget-dino-dash"
+    agenda:"widget-agenda", todo:"widget-todo", dino:"widget-dino-dash", squadra:"widget-squadra"
   };
   Object.keys(map).forEach(function(k) {
     var el = document.getElementById(map[k]);
