@@ -1390,7 +1390,7 @@ function aggiornaHeroCard(){
   // Foto profilo utente
   var heroAva = document.getElementById('hero-user-ava');
   if(heroAva){
-    if(me.ava && me.ava.startsWith('http')){
+    if(me.ava && (me.ava.startsWith('http') || me.ava.startsWith('data:'))){
       heroAva.style.backgroundImage = 'url('+me.ava+')';
       heroAva.style.backgroundSize = 'cover';
       heroAva.style.backgroundPosition = 'center';
@@ -7092,6 +7092,8 @@ function getWidgetCfg() {
     Object.keys(WIDGET_DEF).forEach(function(k){ def[k] = WIDGET_DEF[k].default; });
     return def;
   }
+  // Rimuovi chiavi non più presenti in WIDGET_DEF (widget eliminati)
+  Object.keys(saved).forEach(function(k){ if(!(k in WIDGET_DEF)) delete saved[k]; });
   // Aggiungi chiavi nuove con valore default
   Object.keys(WIDGET_DEF).forEach(function(k){ if (!(k in saved)) saved[k] = WIDGET_DEF[k].default; });
   return saved;
@@ -8731,25 +8733,106 @@ function aggOraNativaDaTipo(tipo) {
 
 
 // ── FOTO PROFILO — riscritta v4.1 ────────────────────────────
-// Flusso: selezione file → anteprima immediata → salva con profilo
+// Flusso: selezione file → editor crop → salva con profilo
+
+var _ave = { img:null, x:0, y:0, scale:1, lx:0, ly:0, pd:0, prevId:'pf-ava-prev' };
 
 function prevFotoFile(input) {
   if(!input || !input.files || !input.files[0]) return;
-  var file = input.files[0];
-  // Determina quale preview aggiornare
-  var prevId = input.id === 'mpf-ava-file' ? 'mpf-ava-prev' : 'pf-ava-prev';
-  // Ridimensiona e mostra anteprima
-  _ridimensionaFoto(file, function(dataUrl) {
-    if(!dataUrl) return;
-    window._tempAva = dataUrl;
-    var prev = document.getElementById(prevId);
-    if(prev) {
-      prev.style.backgroundImage = 'url(' + dataUrl + ')';
-      prev.style.backgroundSize = 'cover';
-      prev.style.backgroundPosition = 'center';
-      prev.textContent = '';
+  _ave.prevId = input.id === 'mpf-ava-file' ? 'mpf-ava-prev' : 'pf-ava-prev';
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      _ave.img = img;
+      var minSide = Math.min(img.width, img.height);
+      _ave.scale = 300 / minSide;
+      _ave.x = (300 - img.width  * _ave.scale) / 2;
+      _ave.y = (300 - img.height * _ave.scale) / 2;
+      _aveDraw();
+      _aveBindEvents();
+      openM('m-avatar-editor');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function _aveDraw() {
+  var cv = document.getElementById('ava-editor-canvas');
+  if(!cv || !_ave.img) return;
+  var ctx = cv.getContext('2d');
+  cv.width = 300; cv.height = 300;
+  ctx.clearRect(0, 0, 300, 300);
+  ctx.drawImage(_ave.img, _ave.x, _ave.y, _ave.img.width * _ave.scale, _ave.img.height * _ave.scale);
+}
+
+function confermaAvatarCrop() {
+  if(!_ave.img) { closeM('m-avatar-editor'); return; }
+  var cv = document.createElement('canvas');
+  cv.width = 300; cv.height = 300;
+  var ctx = cv.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, 300, 300);
+  ctx.drawImage(_ave.img, _ave.x, _ave.y, _ave.img.width * _ave.scale, _ave.img.height * _ave.scale);
+  var data = cv.toDataURL('image/jpeg', 0.75);
+  window._tempAva = data;
+  var prev = document.getElementById(_ave.prevId);
+  if(prev) {
+    prev.style.backgroundImage = 'url(' + data + ')';
+    prev.style.backgroundSize = 'cover';
+    prev.style.backgroundPosition = 'center';
+    prev.textContent = '';
+  }
+  closeM('m-avatar-editor');
+  toast('Foto ritagliata ✓', 'ok');
+}
+
+var _aveBound = false;
+function _aveBindEvents() {
+  if(_aveBound) return;
+  _aveBound = true;
+  var cv = document.getElementById('ava-editor-canvas');
+  if(!cv) return;
+  var ptrs = {};
+  function dist(p) {
+    var k = Object.keys(p);
+    if(k.length < 2) return 0;
+    return Math.hypot(p[k[0]].x - p[k[1]].x, p[k[0]].y - p[k[1]].y);
+  }
+  function getXY(e) {
+    var r = cv.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * (300/r.width), y: (e.clientY - r.top) * (300/r.height) };
+  }
+  cv.addEventListener('pointerdown', function(e) {
+    e.preventDefault(); cv.setPointerCapture(e.pointerId);
+    ptrs[e.pointerId] = getXY(e);
+    if(Object.keys(ptrs).length === 1) { _ave.lx = ptrs[e.pointerId].x; _ave.ly = ptrs[e.pointerId].y; }
+    else { _ave.pd = dist(ptrs); }
+  }, {passive:false});
+  cv.addEventListener('pointermove', function(e) {
+    e.preventDefault();
+    if(!ptrs[e.pointerId]) return;
+    ptrs[e.pointerId] = getXY(e);
+    var k = Object.keys(ptrs);
+    if(k.length === 1) {
+      var cx = ptrs[e.pointerId].x, cy = ptrs[e.pointerId].y;
+      _ave.x += cx - _ave.lx; _ave.y += cy - _ave.ly;
+      _ave.lx = cx; _ave.ly = cy; _aveDraw();
+    } else if(k.length >= 2) {
+      var nd = dist(ptrs);
+      if(_ave.pd > 0) {
+        var ns = Math.max(0.2, Math.min(6, _ave.scale * (nd/_ave.pd)));
+        _ave.x = 150 - (150 - _ave.x) * (ns/_ave.scale);
+        _ave.y = 150 - (150 - _ave.y) * (ns/_ave.scale);
+        _ave.scale = ns; _aveDraw();
+      }
+      _ave.pd = nd;
     }
-  });
+  }, {passive:false});
+  function ep(e) { delete ptrs[e.pointerId]; if(!Object.keys(ptrs).length) _ave.pd = 0; }
+  cv.addEventListener('pointerup', ep);
+  cv.addEventListener('pointercancel', ep);
 }
 
 function _ridimensionaFoto(file, cb) {
@@ -8761,7 +8844,6 @@ function _ridimensionaFoto(file, cb) {
       var cv = document.createElement('canvas');
       cv.width = SIZE; cv.height = SIZE;
       var ctx = cv.getContext('2d');
-      // Crop quadrato centrato
       var side = Math.min(img.width, img.height);
       var sx = (img.width - side) / 2;
       var sy = (img.height - side) / 2;
