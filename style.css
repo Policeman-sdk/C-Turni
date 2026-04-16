@@ -3517,14 +3517,14 @@ body[data-atmosfera="oasi"]       .hero-ring-fill { stroke: #00C853; }
 }
 .hero-info { flex: 1; min-width: 0; }
 .hero-sigla {
-  font-size: 64px;
+  font-size: 44px;
   font-weight: 900;
   color: #fff;
   line-height: 1;
-  letter-spacing: -2px;
+  letter-spacing: -1px;
 }
 .hero-orario {
-  font-size: 15px;
+  font-size: 14px;
   color: rgba(255,255,255,0.65);
   font-weight: 600;
   margin-top: 4px;
@@ -3730,8 +3730,8 @@ body[data-atmosfera="oasi"]       .hero-ring-fill { stroke: #00C853; }
   gap: 5px;
   flex-wrap: nowrap;
 }
-.hero-meteo-ico  { font-size: 16px; line-height: 1; flex-shrink: 0; }
-.hero-meteo-temp { font-size: 15px; font-weight: 800; color: #fff; }
+.hero-meteo-ico  { font-size: 20px; line-height: 1; flex-shrink: 0; }
+.hero-meteo-temp { font-size: 18px; font-weight: 800; color: #fff; }
 .hero-meteo-citta {
   font-size: 12px;
   font-weight: 600;
@@ -4076,3 +4076,107 @@ body[data-atmosfera="oasi"]       .hero-ring-fill { stroke: #00C853; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ── 3 colonne: limita su schermi piccoli ── */
+@media (max-width: 480px) {
+  /* Se la griglia è impostata a 3 colonne via JS, forza a 2 */
+  .wdg-container[style*="repeat(3"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  /* I widget con span 3 diventano span 2 */
+  .wdg-container[style*="repeat(3"] > [style*="grid-column: span 3"] {
+    grid-column: span 2 !important;
+  }
+  /* Hero card: sigla più piccola su mobile */
+  .hero-sigla { font-size: 36px !important; }
+  .hero-meteo-temp { font-size: 16px !important; }
+}
+
+/* ── SALUTO SOPRA LA HERO CARD ── */
+.dash-greeting {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 4px 12px;
+  position: relative;
+  z-index: 1;
+}
+/* Nascondi la vecchia riga saluto dentro la hero se rimasta */
+.hero-greeting-row { display: none !important; }
+
+/* ── HERO CARD — layout reinventato ── */
+
+/* Colonna destra: flex column con spazio tra turno e meteo */
+.hero-info {
+  flex: 1;
+  min-width: 0;
+  display: flex !important;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0;
+  height: 100%;
+}
+
+/* Blocco turno */
+.hero-turno-block {
+  flex: 1;
+}
+
+/* Separatore sottile */
+.hero-divider {
+  height: 1px;
+  background: rgba(255,255,255,0.1);
+  margin: 10px 0;
+  flex-shrink: 0;
+}
+
+/* Meteo — sezione prominente */
+.hero-meteo-block {
+  flex-shrink: 0;
+  margin-top: 0 !important;
+}
+.hero-meteo-main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+  margin-bottom: 4px;
+}
+.hero-meteo-ico   { font-size: 24px !important; line-height: 1; flex-shrink: 0; }
+.hero-meteo-temp  { font-size: 26px !important; font-weight: 900 !important; color: #fff; line-height: 1; }
+.hero-meteo-citta {
+  font-size: 13px !important;
+  font-weight: 600;
+  color: rgba(255,255,255,0.55);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100px;
+}
+.hero-meteo-detail-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  font-size: 11px !important;
+  color: rgba(255,255,255,0.45);
+  font-weight: 600;
+}
+
+/* Temi chiari */
+:root[data-theme=light] .hero-meteo-temp,
+:root[data-theme=rosa-light] .hero-meteo-temp,
+:root[data-theme=forestale-light] .hero-meteo-temp,
+:root[data-theme=carabinieri-light] .hero-meteo-temp { color: var(--txt) !important; }
+:root[data-theme=light] .hero-meteo-citta,
+:root[data-theme=rosa-light] .hero-meteo-citta,
+:root[data-theme=forestale-light] .hero-meteo-citta,
+:root[data-theme=carabinieri-light] .hero-meteo-citta { color: var(--txt2) !important; }
+:root[data-theme=light] .hero-meteo-detail-row,
+:root[data-theme=rosa-light] .hero-meteo-detail-row,
+:root[data-theme=forestale-light] .hero-meteo-detail-row,
+:root[data-theme=carabinieri-light] .hero-meteo-detail-row { color: var(--txt2) !important; }
+:root[data-theme=light] .hero-divider,
+:root[data-theme=rosa-light] .hero-divider,
+:root[data-theme=forestale-light] .hero-divider,
+:root[data-theme=carabinieri-light] .hero-divider { background: rgba(0,0,0,0.08); }

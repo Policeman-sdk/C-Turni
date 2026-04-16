@@ -460,20 +460,20 @@
       <!-- AMBIENT GLOW — Solid radial, no blur -->
       <div id="ambient-glow"></div>
 
+      <!-- SALUTO — fuori dalla Hero Card, sopra -->
+      <div class="dash-greeting">
+        <div class="hero-user-ava" id="hero-user-ava">&#128100;</div>
+        <div>
+          <div class="hero-greeting-sub" id="hero-greeting-sub">Buongiorno</div>
+          <div class="hero-greeting-name" id="hero-greeting-name">—</div>
+        </div>
+      </div>
+
       <!-- HERO CARD -->
       <div id="hero-card" class="hero-card">
-
-        <!-- Riga 1: Saluto grande a sinistra -->
-        <div class="hero-greeting-row">
-          <div class="hero-user-ava" id="hero-user-ava">&#128100;</div>
-          <div>
-            <div class="hero-greeting-sub" id="hero-greeting-sub">Buongiorno</div>
-            <div class="hero-greeting-name" id="hero-greeting-name">—</div>
-          </div>
-        </div>
-
-        <!-- Riga 2: Cerchio + sigla + orario + meteo -->
         <div class="hero-center">
+
+          <!-- Cerchio turno -->
           <div class="hero-tonal-wrap">
             <div class="hero-tonal-circle" id="hero-tonal-circle">
               <svg class="hero-ring-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
@@ -483,18 +483,25 @@
               <div class="hero-tonal-ico" id="hero-tonal-ico">🛋️</div>
             </div>
           </div>
+
+          <!-- Colonna destra: turno sopra, meteo sotto -->
           <div class="hero-info">
-            <div class="hero-sigla" id="hero-sigla">—</div>
-            <div class="hero-orario" id="hero-orario">Nessun turno</div>
+            <!-- Turno -->
+            <div class="hero-turno-block">
+              <div class="hero-sigla" id="hero-sigla">—</div>
+              <div class="hero-orario" id="hero-orario">Nessun turno</div>
+            </div>
+            <!-- Separatore -->
+            <div class="hero-divider"></div>
+            <!-- Meteo prominente -->
             <div class="hero-meteo-block" id="hero-meteo">
-              <div class="hero-meteo-row1">
+              <div class="hero-meteo-main">
                 <span class="hero-meteo-ico" id="hero-meteo-ico">🌤️</span>
                 <span class="hero-meteo-temp" id="hero-meteo-temp">—°</span>
-                <span class="hero-meteo-sep">·</span>
                 <span class="hero-meteo-citta" id="hero-meteo-citta">—</span>
               </div>
-              <div class="hero-meteo-row2">
-                <span id="hero-meteo-desc"></span>
+              <div class="hero-meteo-detail-row">
+                <span id="hero-meteo-desc">—</span>
                 <span class="hero-meteo-sep">·</span>
                 <span>💧<span id="hero-meteo-umi">—</span>%</span>
                 <span class="hero-meteo-sep">·</span>
@@ -502,8 +509,8 @@
               </div>
             </div>
           </div>
-        </div>
 
+        </div>
       </div>
 
       <!-- TESSERINO NUOVO (spostato in Impostazioni > Profilo, qui nascosto) -->
