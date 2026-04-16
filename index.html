@@ -457,26 +457,53 @@
     <!-- DASHBOARD -->
       <div id="pag-dash" class="pag on">
         
-      <!-- AMBIENT GLOW — Task 1 -->
+      <!-- AMBIENT GLOW — Solid radial, no blur -->
       <div id="ambient-glow"></div>
 
-      <!-- HERO CARD — Task 2 -->
+      <!-- HERO CARD -->
       <div id="hero-card" class="hero-card">
-        <div class="hero-tonal-wrap">
-          <!-- Tonal Circle con icona SVG -->
-          <div class="hero-tonal-circle" id="hero-tonal-circle">
-            <!-- Active Ring SVG -->
-            <svg class="hero-ring-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
-              <circle class="hero-ring-bg" cx="60" cy="60" r="52"/>
-              <circle class="hero-ring-fill" id="hero-ring-fill" cx="60" cy="60" r="52"/>
-            </svg>
-            <div class="hero-tonal-ico" id="hero-tonal-ico">🛋️</div>
+
+        <!-- Riga 1: Saluto grande a sinistra -->
+        <div class="hero-greeting-row">
+          <div class="hero-user-ava" id="hero-user-ava">&#128100;</div>
+          <div>
+            <div class="hero-greeting-sub" id="hero-greeting-sub">Buongiorno</div>
+            <div class="hero-greeting-name" id="hero-greeting-name">—</div>
           </div>
         </div>
-        <div class="hero-info">
-          <div class="hero-sigla" id="hero-sigla">—</div>
-          <div class="hero-orario" id="hero-orario">Nessun turno</div>
+
+        <!-- Riga 2: Cerchio + sigla + orario + meteo -->
+        <div class="hero-center">
+          <div class="hero-tonal-wrap">
+            <div class="hero-tonal-circle" id="hero-tonal-circle">
+              <svg class="hero-ring-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+                <circle class="hero-ring-bg" cx="60" cy="60" r="52"/>
+                <circle class="hero-ring-fill" id="hero-ring-fill" cx="60" cy="60" r="52"/>
+              </svg>
+              <div class="hero-tonal-ico" id="hero-tonal-ico">🛋️</div>
+            </div>
+          </div>
+          <div class="hero-info">
+            <div class="hero-sigla" id="hero-sigla">—</div>
+            <div class="hero-orario" id="hero-orario">Nessun turno</div>
+            <div class="hero-meteo-block" id="hero-meteo">
+              <div class="hero-meteo-row1">
+                <span class="hero-meteo-ico" id="hero-meteo-ico">🌤️</span>
+                <span class="hero-meteo-temp" id="hero-meteo-temp">—°</span>
+                <span class="hero-meteo-sep">·</span>
+                <span class="hero-meteo-citta" id="hero-meteo-citta">—</span>
+              </div>
+              <div class="hero-meteo-row2">
+                <span id="hero-meteo-desc"></span>
+                <span class="hero-meteo-sep">·</span>
+                <span>💧<span id="hero-meteo-umi">—</span>%</span>
+                <span class="hero-meteo-sep">·</span>
+                <span>💨<span id="hero-meteo-vento">—</span>km/h</span>
+              </div>
+            </div>
+          </div>
         </div>
+
       </div>
 
       <!-- TESSERINO NUOVO (spostato in Impostazioni > Profilo, qui nascosto) -->
@@ -612,62 +639,56 @@
         <!-- WIDGET CONTAINER (drag & drop) -->
         <div id="wdg-container" class="wdg-container">
 
-        <!-- WIDGET TURNO OGGI — Bento Card Task 3 -->
-        <div id="widget-oggi" class="wdg-wrap bento-card" data-wid="turno" onclick="if(navigator.vibrate)navigator.vibrate(15)">
-          <div id="w-inner" style="border-radius:24px;padding:16px 18px 14px;background:linear-gradient(135deg,#1a3a6e 0%,#0a1628 100%);color:#fff;position:relative;overflow:hidden;box-shadow:0 4px 20px rgba(10,22,40,.4)">
-            <div style="position:absolute;right:-8px;top:-8px;font-size:90px;opacity:.07;line-height:1;pointer-events:none" id="w-bg-ico">🛋️</div>
-            <!-- Header label + move buttons -->
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;opacity:.6">&#9889; Il tuo turno oggi</div>
-              <div style="display:flex;gap:4px">
-                <button onclick="moveWidget('turno',-1)" class="wdg-mv-btn" style="background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.2)">&#8593;</button>
-                <button onclick="moveWidget('turno',+1)" class="wdg-mv-btn" style="background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.2)">&#8595;</button>
+        <!-- WIDGET SQUADRA + TURNI OGGI (fusi) -->
+        <div id="widget-squadra-turni" class="wdg-wrap m3-card" data-wid="squadra-turni" onclick="if(navigator.vibrate)navigator.vibrate(15)">
+          <div class="wdg-drag-handle"></div>
+          <div class="wdg-body">
+            <div class="wdg-hdr">
+              <span class="wdg-lbl">&#128101; Squadra &amp; Turni di Oggi</span>
+              <div class="wdg-mv-btns">
+                <button onclick="moveWidget('squadra-turni',-1)" class="wdg-mv-btn">&#8593;</button>
+                <button onclick="moveWidget('squadra-turni',+1)" class="wdg-mv-btn">&#8595;</button>
               </div>
             </div>
-            <!-- Riga principale: avatar + turno + codice -->
-            <div style="display:flex;align-items:center;gap:14px">
-              <div id="w-ava" style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;overflow:hidden;background-size:cover;background-position:center">&#128100;</div>
-              <div style="flex:1;min-width:0">
-                <div id="w-nome-utente" style="font-size:11px;font-weight:700;opacity:.7;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
-                <div style="display:flex;align-items:center;gap:10px">
-                  <div id="w-ico" style="font-size:32px;line-height:1;flex-shrink:0">🛋️</div>
-                  <div>
-                    <div id="w-tipo" style="font-size:22px;font-weight:900;line-height:1.1">Riposo</div>
-                    <div id="w-orario" style="font-size:13px;opacity:.75;margin-top:2px"></div>
-                  </div>
-                </div>
-              </div>
-              <div id="w-codice" style="background:rgba(255,255,255,.12);border-radius:8px;padding:5px 10px;font-size:16px;font-weight:900;letter-spacing:1px;flex-shrink:0"></div>
-            </div>
-            <div id="w-nota" style="display:none;margin-top:8px;font-size:11px;opacity:.65;border-top:1px solid rgba(255,255,255,.15);padding-top:8px"></div>
-            <!-- Colleghi in servizio oggi -->
-            <div id="w-colleghi-wrap" style="display:none;margin-top:10px;border-top:1px solid rgba(255,255,255,.12);padding-top:8px">
-              <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;opacity:.5;margin-bottom:6px">In servizio oggi</div>
-              <div id="w-colleghi" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+            <!-- Avatar colleghi -->
+            <div id="w-squadra-list" style="display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch;scrollbar-width:none"></div>
+            <!-- Separatore -->
+            <div style="height:1px;background:rgba(255,255,255,0.06);margin:8px 0"></div>
+            <!-- Tabella turni oggi -->
+            <div class="tscr" style="max-height:180px">
+              <table>
+                <thead><tr><th>Nome</th><th>Grado</th><th>Turno</th><th>Orario</th></tr></thead>
+                <tbody id="tb-oggi"><tr><td colspan="4" class="empty">Nessun turno oggi</td></tr></tbody>
+              </table>
             </div>
           </div>
         </div>
 
-        <!-- WIDGET SQUADRA IBRIDA — Task 4 -->
-        <div id="widget-squadra" class="wdg-wrap bento-card" data-wid="squadra" onclick="if(navigator.vibrate)navigator.vibrate(15)">
-          <div style="border-radius:24px;padding:14px 16px;background:rgba(15,23,42,0.5);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--border2)">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--txt2)">&#128101; La Squadra</div>
-              <div style="display:flex;gap:4px">
-                <button onclick="moveWidget('squadra',-1)" class="wdg-mv-btn">&#8593;</button>
-                <button onclick="moveWidget('squadra',+1)" class="wdg-mv-btn">&#8595;</button>
+        <!-- WIDGET TURNI SETTIMANA -->
+        <div id="widget-settimana" class="wdg-wrap m3-card" data-wid="settimana" onclick="if(navigator.vibrate)navigator.vibrate(15)">
+          <div class="wdg-drag-handle"></div>
+          <div class="wdg-body">
+            <div class="wdg-hdr">
+              <span class="wdg-lbl">&#128197; Turni della Settimana</span>
+              <div class="wdg-mv-btns">
+                <button onclick="moveWidget('settimana',-1)" class="wdg-mv-btn">&#8593;</button>
+                <button onclick="moveWidget('settimana',+1)" class="wdg-mv-btn">&#8595;</button>
               </div>
             </div>
-            <div id="w-squadra-list" style="display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none"></div>
+            <div id="w-settimana-list"></div>
           </div>
         </div>
 
-        <!-- WIDGET PROSSIMO TURNO — Bento Card -->
-        <div id="widget-prossimo" class="wdg-wrap bento-card" data-wid="prossimo" onclick="if(navigator.vibrate)navigator.vibrate(15)">
-          <div style="border-radius:24px;padding:14px 16px;background:rgba(15,23,42,0.5);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--border);display:flex;align-items:center;gap:14px">
+        <!-- WIDGET PROSSIMO TURNO -->
+        <div id="widget-prossimo" class="wdg-wrap m3-card" data-wid="prossimo" onclick="if(navigator.vibrate)navigator.vibrate(15)">
+          <div class="wdg-drag-handle"></div>
+          <div class="wdg-body" style="display:flex;align-items:center;gap:14px">
             <div style="font-size:36px;line-height:1;flex-shrink:0">&#9200;</div>
             <div style="flex:1;min-width:0">
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--txt2)">Prossimo turno</div><div style="display:flex;gap:4px"><button onclick="moveWidget('prossimo',-1)" class="wdg-mv-btn">&#8593;</button><button onclick="moveWidget('prossimo',+1)" class="wdg-mv-btn">&#8595;</button></div></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">
+                <span class="wdg-lbl">Prossimo turno</span>
+                <div class="wdg-mv-btns"><button onclick="moveWidget('prossimo',-1)" class="wdg-mv-btn">&#8593;</button><button onclick="moveWidget('prossimo',+1)" class="wdg-mv-btn">&#8595;</button></div>
+              </div>
               <div id="wp-tipo" style="font-size:15px;font-weight:800;color:var(--txt)"></div>
               <div id="wp-data" style="font-size:11px;color:var(--txt2);margin-top:2px"></div>
             </div>
@@ -678,84 +699,46 @@
           </div>
         </div>
 
-        <!-- WIDGET METEO — Bento Card -->
-        <div id="widget-meteo" class="wdg-wrap bento-card" data-wid="meteo" onclick="if(navigator.vibrate)navigator.vibrate(15)">
-          <div style="border-radius:24px;padding:14px 16px;background:rgba(15,23,42,0.5);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--border)">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--txt2)">&#127781; Meteo reparto</div><div style="display:flex;gap:4px"><button onclick="moveWidget('meteo',-1)" class="wdg-mv-btn">&#8593;</button><button onclick="moveWidget('meteo',+1)" class="wdg-mv-btn">&#8595;</button></div></div>
-            <div style="display:flex;align-items:center;gap:14px">
-              <div id="wm-ico" style="font-size:42px;line-height:1;flex-shrink:0">🌤️</div>
-              <div style="flex:1">
-                <div id="wm-temp" style="font-size:24px;font-weight:900;color:var(--txt)"></div>
-                <div id="wm-desc" style="font-size:11px;color:var(--txt2);margin-top:2px">Caricamento...</div>
-                <div id="wm-citta" style="font-size:10px;color:var(--txt3);margin-top:2px"></div>
-              </div>
-              <div style="text-align:right;font-size:10px;color:var(--txt2)">
-                <div>&#128197; <span id="wm-umi"></span>% umidit</div>
-                <div style="margin-top:3px">&#128168; <span id="wm-vento"></span> km/h</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- WIDGET ALERT — Bento Card -->
-        <div id="widget-alert" class="wdg-wrap bento-card" data-wid="alert" onclick="if(navigator.vibrate)navigator.vibrate(15)">
-          <div id="widget-alert-inner" style="border-radius:24px;padding:14px 16px;background:rgba(200,16,46,.08);border:1px solid rgba(200,16,46,.25)">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--red)">&#128680; Alert attivi</div><div style="display:flex;gap:4px"><button onclick="moveWidget('alert',-1)" class="wdg-mv-btn">&#8593;</button><button onclick="moveWidget('alert',+1)" class="wdg-mv-btn">&#8595;</button></div></div>
+        <!-- WIDGET ALERT -->
+        <div id="widget-alert" class="wdg-wrap m3-card" data-wid="alert" onclick="if(navigator.vibrate)navigator.vibrate(15)">
+          <div class="wdg-drag-handle"></div>
+          <div id="widget-alert-inner" class="wdg-body" style="border-left:3px solid var(--red)">
+            <div class="wdg-hdr"><span class="wdg-lbl" style="color:var(--red)">&#128680; Alert attivi</span><div class="wdg-mv-btns"><button onclick="moveWidget('alert',-1)" class="wdg-mv-btn">&#8593;</button><button onclick="moveWidget('alert',+1)" class="wdg-mv-btn">&#8595;</button></div></div>
             <div id="wale-list"></div>
             <button class="btn btn-sm" onclick="openM('m-alert')" style="width:auto;font-size:11px;margin-top:8px;background:rgba(200,16,46,.12);color:var(--red);border-color:rgba(200,16,46,.3)">Gestisci alert</button>
           </div>
         </div>
 
-        <!-- WIDGET SCADENZE — Bento Card -->
-        <div id="widget-scadenze" class="wdg-wrap bento-card" data-wid="scadenze" onclick="if(navigator.vibrate)navigator.vibrate(15)">
-          <div style="border-radius:24px;padding:14px 16px;background:rgba(15,23,42,0.5);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--border)">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--txt2)">&#128197; Scadenze</div>
-              <button class="btn btn-sm" onclick="openM('m-scadenza')" style="width:auto;font-size:10px;padding:3px 10px">+ Aggiungi</button>
-            </div>
+        <!-- WIDGET SCADENZE -->
+        <div id="widget-scadenze" class="wdg-wrap m3-card" data-wid="scadenze" onclick="if(navigator.vibrate)navigator.vibrate(15)">
+          <div class="wdg-drag-handle"></div>
+          <div class="wdg-body">
+            <div class="wdg-hdr"><span class="wdg-lbl">&#128197; Scadenze</span><button class="btn btn-sm" onclick="openM('m-scadenza')" style="width:auto;font-size:10px;padding:3px 10px">+ Aggiungi</button></div>
             <div id="wsc-list"><div style="font-size:12px;color:var(--txt2)">Nessuna scadenza</div></div>
           </div>
         </div>
 
-        <!-- WIDGET AGENDA OGGI — Bento Card -->
-        <div id="widget-agenda" class="wdg-wrap bento-card" data-wid="agenda" onclick="if(navigator.vibrate)navigator.vibrate(15)">
-          <div style="border-radius:24px;padding:14px 16px;background:rgba(15,23,42,0.5);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--border)">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--txt2)">&#128467; Agenda oggi</div>
-              <button class="btn btn-sm" onclick="vaiAgenda()" style="width:auto;font-size:10px;padding:3px 10px">Vedi tutto</button>
-            </div>
+        <!-- WIDGET AGENDA OGGI -->
+        <div id="widget-agenda" class="wdg-wrap m3-card" data-wid="agenda" onclick="if(navigator.vibrate)navigator.vibrate(15)">
+          <div class="wdg-drag-handle"></div>
+          <div class="wdg-body">
+            <div class="wdg-hdr"><span class="wdg-lbl">&#128467; Agenda oggi</span><button class="btn btn-sm" onclick="vaiAgenda()" style="width:auto;font-size:10px;padding:3px 10px">Vedi tutto</button></div>
             <div id="wag-list"><div style="font-size:12px;color:var(--txt2)">Nessun appuntamento oggi</div></div>
           </div>
         </div>
 
-        <!-- WIDGET TODO — Bento Card -->
-        <div id="widget-todo" class="wdg-wrap bento-card" data-wid="todo" onclick="if(navigator.vibrate)navigator.vibrate(15)">
-          <div style="border-radius:24px;padding:14px 16px;background:rgba(15,23,42,0.5);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--border)">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--txt2)">&#9989; To-Do aperti</div>
+        <!-- WIDGET TODO -->
+        <div id="widget-todo" class="wdg-wrap m3-card" data-wid="todo" onclick="if(navigator.vibrate)navigator.vibrate(15)">
+          <div class="wdg-drag-handle"></div>
+          <div class="wdg-body">
+            <div class="wdg-hdr">
+              <span class="wdg-lbl">&#9989; To-Do aperti</span>
               <div style="display:flex;gap:6px">
                 <button class="btn btn-sm" onclick="openM('m-todo')" style="width:auto;font-size:10px;padding:3px 10px">+ Nuovo</button>
                 <button class="btn btn-sm" onclick="vaiTodo()" style="width:auto;font-size:10px;padding:3px 10px">Vedi tutto</button>
               </div>
             </div>
             <div id="wtd-list"><div style="font-size:12px;color:var(--txt2)">Nessun to-do aperto</div></div>
-          </div>
-        </div>
-
-        <!-- WIDGET TURNI OGGI — Bento Card -->
-        <div id="widget-turni-oggi" class="wdg-wrap bento-card" data-wid="turni-oggi" onclick="if(navigator.vibrate)navigator.vibrate(15)">
-          <div style="border-radius:24px;overflow:hidden;background:rgba(15,23,42,0.5);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--border)">
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px 8px">
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--txt2)">&#128203; Turni di Oggi</div>
-              <div style="display:flex;gap:4px">
-                <button onclick="moveWidget('turni-oggi',-1)" class="wdg-mv-btn">&#8593;</button>
-                <button onclick="moveWidget('turni-oggi',+1)" class="wdg-mv-btn">&#8595;</button>
-              </div>
-            </div>
-            <div class="tscr"><table>
-              <thead><tr><th>Nome</th><th>Grado</th><th>Turno</th><th>Orario</th></tr></thead>
-              <tbody id="tb-oggi"><tr><td colspan="4" class="empty">Nessun turno oggi</td></tr></tbody>
-            </table></div>
           </div>
         </div>
 
@@ -1539,23 +1522,29 @@
           <div id="sec-changelog" class="imp-sub">
             <div style="padding:14px;border-top:1px solid var(--border);font-size:12px;color:var(--txt2)">
 
+              <!-- v4.1 -->
+              <div style="font-weight:800;color:var(--blue);margin-bottom:6px;font-size:13px">v4.1 — Apr 2026</div>
+              <div style="padding-left:10px;border-left:2px solid var(--blue);margin-bottom:14px;line-height:1.7">
+                <div>&#127775; <strong>M3 Expressive Solid</strong> — Superfici solide, niente glassmorphism, ambient glow radiale per ogni tipo di turno</div>
+                <div>&#128100; <strong>Hero Card ridisegnata</strong> — Saluto personale con foto profilo, sigla turno gigante, Active Ring temporale, meteo integrato</div>
+                <div>&#128101; <strong>Widget Squadra + Turni</strong> — Avatar grandi con pulse live, tabella turni del giorno fusa in un unico widget</div>
+                <div>&#128197; <strong>Widget Turni Settimana</strong> — Griglia 7 giorni con chip colorati per tipo turno</div>
+                <div>&#128202; <strong>Ridimensionamento widget</strong> — Ogni widget è ridimensionabile S/M/L dal pannello Organizza</div>
+                <div>&#127781; <strong>Meteo in Hero Card</strong> — Temperatura, città e dettagli meteo direttamente nella card principale</div>
+                <div>&#128247; <strong>Foto profilo riscritta</strong> — Flusso semplificato: selezione → crop automatico → upload Firebase Storage</div>
+                <div>&#128260; <strong>Trasferimento reparto</strong> — Spostato in Opzioni Avanzate per evitare click accidentali</div>
+                <div>&#127959; <strong>Tesserino ATE</strong> — Spostato in Impostazioni &gt; Profilo</div>
+                <div>&#9989; <strong>Fix sincronizzazione turni</strong> — Listener Firebase riavviato correttamente dopo trasferimento reparto</div>
+                <div>&#9989; <strong>Fix profilo reparto</strong> — Auto-ripristino profilo se eliminato accidentalmente da Firestore</div>
+                <div>&#9989; <strong>Fix duplicati picker</strong> — Nessun profilo duplicato all'apertura del selettore persona</div>
+              </div>
+
               <!-- v4.0 -->
               <div style="font-weight:800;color:var(--teal);margin-bottom:6px;font-size:13px">v4.0 — Material 3 Expressive</div>
               <div style="padding-left:10px;border-left:2px solid var(--teal);margin-bottom:14px;line-height:1.7">
-                <div>&#127775; <strong>Design M3 Expressive</strong> — Navbar a pillola, FAB squircle, card bombate, temi ridisegnati con card grandi e dots colore</div>
-                <div>&#128203; <strong>Agenda dedicata</strong> — Pagina Agenda con Bento Box riepilogo, filter chips, card To-Do M3 con snooze e priorità</div>
-                <div>&#128467; <strong>Calendario pulito</strong> — Rimossi To-Do e Agenda dal calendario; sheet giorno con prospetto turni raggruppati per tipo</div>
-                <div>&#127769; <strong>9 temi</strong> — Notte, Giorno, Arma, Arma Giorno, Forestale, Forestale Giorno, Rosa, Rosa Giorno, Auto</div>
-                <div>&#129430; <strong>Dino Game</strong> — Widget nella Dashboard, ordinabile con gli altri widget, attivabile da Impostazioni</div>
-                <div>&#127881; <strong>Confetti To-Do</strong> — Animazione festa al completamento di un compito</div>
-                <div>&#128266; <strong>Suoni UI</strong> — Feedback sonoro per azioni, salvataggi ed errori (Web Audio API)</div>
-                <div>&#128197; <strong>Turni Personalizzati</strong> — Crea tipi di turno custom con nome, codice, orario, emoji e colore</div>
-                <div>&#128218; <strong>Guida interattiva</strong> — 10 guide tematiche espandibili in Impostazioni</div>
-                <div>&#128081; <strong>Multi-Vice Comandante</strong> — Possibilità di avere più Vice nello stesso reparto</div>
-                <div>&#128274; <strong>Sicurezza</strong> — Regole Firestore blindate, controllo ruolo su salvataggio/eliminazione turni, push senza duplicati</div>
-                <div>&#128276; <strong>Notifiche fix</strong> — Tag fisso per tipo, niente notifiche doppie, token FCM morti rimossi automaticamente</div>
-                <div>&#128736; <strong>Tesserino M3</strong> — Restyling completo con header navy, label bordeaux, border-radius 24px</div>
-                <div>&#9989; <strong>Fix iOS/Safari</strong> — Date parse locale, nessuno sfasamento di giorno su dispositivi Apple</div>
+                <div>&#127775; Design M3 Expressive, navbar pillola, FAB squircle, 9 temi</div>
+                <div>&#128203; Agenda dedicata, calendario pulito, Dino Game, turni personalizzati</div>
+                <div>&#128081; Multi-Vice Comandante, sicurezza Firestore, notifiche push FCM</div>
               </div>
 
               <!-- v3.5.1 -->
@@ -1591,7 +1580,7 @@
           </div>
           <div class="m3-row">
             <div class="m3-row-ico" style="background:rgba(41,121,255,.12)">&#128736;</div>
-            <div class="m3-row-body"><div class="m3-row-title">Versione</div><div class="m3-row-sub">C-TURNI v4.0 — Emanuele Di Leo</div></div>
+            <div class="m3-row-body"><div class="m3-row-title">Versione</div><div class="m3-row-sub">C-TURNI v4.1 — Emanuele Di Leo</div></div>
           </div>
           <div class="m3-row tap" onclick="if(typeof AuthModule!=='undefined')AuthModule.logout()" style="border-top:1px solid var(--border)">
             <div class="m3-row-ico" style="background:rgba(200,16,46,.12)">&#128682;</div>

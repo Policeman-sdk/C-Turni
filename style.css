@@ -3406,3 +3406,673 @@ body[data-atmosfera="oasi"] .hero-ring-fill { stroke: #06D6A0; }
 .hero-card.frost-reveal {
   animation: frostReveal 0.6s cubic-bezier(0.4,0,0.2,1) forwards;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   M3 EXPRESSIVE — SOLID SURFACES REDESIGN
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── AMBIENT GLOW — solido, niente blur ── */
+#ambient-glow {
+  position: fixed;
+  top: -20%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120%;
+  height: 55vh;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.12;
+  border-radius: 50%;
+  transition: background 1.4s ease;
+}
+body[data-atmosfera="alba"]      #ambient-glow { background: radial-gradient(ellipse, #FF8C00 0%, #FF4500 50%, transparent 80%); }
+body[data-atmosfera="tramonto"]  #ambient-glow { background: radial-gradient(ellipse, #FF6B35 0%, #C2185B 50%, transparent 80%); }
+body[data-atmosfera="crepuscolo"]#ambient-glow { background: radial-gradient(ellipse, #00E5FF 0%, #1565C0 50%, transparent 80%); }
+body[data-atmosfera="eclissi"]   #ambient-glow { background: radial-gradient(ellipse, #D32F2F 0%, #7B0000 50%, transparent 80%); }
+body[data-atmosfera="oasi"]      #ambient-glow { background: radial-gradient(ellipse, #00C853 0%, #00695C 50%, transparent 80%); }
+body[data-atmosfera="riposo"]    #ambient-glow { background: radial-gradient(ellipse, #3949AB 0%, #1A237E 50%, transparent 80%); }
+
+/* ── HERO CARD — Asimmetrica, Solid Surface ── */
+.hero-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  border-radius: 40px 40px 16px 40px;
+  background: #1E1E24;
+  border: 1px solid rgba(255,255,255,0.05);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.3);
+  padding: 20px 20px 22px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  transition: background 0.8s ease;
+}
+/* Tinta atmosfera sulla hero card */
+body[data-atmosfera="alba"]       .hero-card { background: #221A10; }
+body[data-atmosfera="tramonto"]   .hero-card { background: #1F1218; }
+body[data-atmosfera="crepuscolo"] .hero-card { background: #0E1A22; }
+body[data-atmosfera="eclissi"]    .hero-card { background: #1C0A0A; }
+body[data-atmosfera="oasi"]       .hero-card { background: #0D1C14; }
+
+/* Header personale */
+.hero-header { display: none; } /* rimosso — integrato in hero-center */
+
+/* Riga saluto — grande, a sinistra, sopra tutto */
+.hero-greeting-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.hero-greeting {
+  min-width: 0;
+}
+
+/* Centro hero */
+.hero-center {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.hero-tonal-wrap {
+  flex-shrink: 0;
+}
+.hero-tonal-circle {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.hero-ring-svg {
+  position: absolute;
+  top: -12px; left: -12px;
+  width: 120px; height: 120px;
+  transform: rotate(-90deg);
+}
+.hero-ring-bg  { fill: none; stroke: rgba(255,255,255,0.08); stroke-width: 5; }
+.hero-ring-fill {
+  fill: none;
+  stroke: rgba(255,255,255,0.7);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 326.7;
+  stroke-dashoffset: 326.7;
+  transition: stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1), stroke 0.8s ease;
+}
+body[data-atmosfera="alba"]       .hero-ring-fill { stroke: #FF8C00; }
+body[data-atmosfera="tramonto"]   .hero-ring-fill { stroke: #FF6B35; }
+body[data-atmosfera="crepuscolo"] .hero-ring-fill { stroke: #00E5FF; }
+body[data-atmosfera="eclissi"]    .hero-ring-fill { stroke: #FF1744; }
+body[data-atmosfera="oasi"]       .hero-ring-fill { stroke: #00C853; }
+
+.hero-tonal-ico {
+  font-size: 36px;
+  line-height: 1;
+  position: relative;
+  z-index: 1;
+}
+.hero-info { flex: 1; min-width: 0; }
+.hero-sigla {
+  font-size: 64px;
+  font-weight: 900;
+  color: #fff;
+  line-height: 1;
+  letter-spacing: -2px;
+}
+.hero-orario {
+  font-size: 15px;
+  color: rgba(255,255,255,0.65);
+  font-weight: 600;
+  margin-top: 4px;
+  letter-spacing: .3px;
+}
+
+/* ── M3 CARD — Solid Surface Widget ── */
+.m3-card {
+  background: #1E1E24 !important;
+  border: 1px solid rgba(255,255,255,0.05) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.25) !important;
+  overflow: hidden;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+}
+.m3-card:active {
+  transform: scale(0.985) !important;
+}
+
+/* Drag handle */
+.wdg-drag-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.18);
+  margin: 10px auto 0;
+  cursor: grab;
+}
+.wdg-drag-handle:active { cursor: grabbing; }
+
+/* Widget body */
+.wdg-body {
+  padding: 12px 16px 14px;
+}
+.wdg-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.wdg-lbl {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: var(--txt2);
+}
+.wdg-mv-btns { display: flex; gap: 4px; }
+
+/* Widget turno oggi — sfondo dinamico */
+.wdg-turno-inner {
+  background: linear-gradient(135deg, #1a3a6e 0%, #0a1628 100%);
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+.wdg-watermark {
+  position: absolute;
+  right: -8px;
+  top: -8px;
+  font-size: 90px;
+  opacity: .05;
+  line-height: 1;
+  pointer-events: none;
+}
+.w-ava-circle {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.12);
+  border: 2px solid rgba(255,255,255,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+}
+.w-codice-chip {
+  background: rgba(255,255,255,0.12);
+  border-radius: 10px;
+  padding: 5px 10px;
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  flex-shrink: 0;
+  color: #fff;
+}
+.wdg-mv-light {
+  background: rgba(255,255,255,0.12) !important;
+  color: #fff !important;
+  border-color: rgba(255,255,255,0.2) !important;
+}
+
+/* ── SQUADRA — Avatar grandi con Pulse ── */
+.squadra-avatar-circle {
+  width: 56px !important;
+  height: 56px !important;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.1);
+  border: 2px solid rgba(255,255,255,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  overflow: hidden;
+  position: relative;
+  background-size: cover;
+  background-position: center;
+}
+.squadra-in-servizio {
+  border-color: #00C853 !important;
+  box-shadow: 0 0 0 0 rgba(0,200,83,0.5);
+  animation: squadraPulse 2.2s ease-in-out infinite;
+}
+@keyframes squadraPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0,200,83,0.5); }
+  50%       { box-shadow: 0 0 0 6px rgba(0,200,83,0); }
+}
+.squadra-live-badge {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  background: #00C853;
+  border-radius: 50%;
+  border: 2px solid #1E1E24;
+  animation: livePulse 2.4s ease-in-out infinite;
+}
+.squadra-nome {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--txt2);
+  text-align: center;
+  max-width: 56px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 5px;
+}
+
+/* ── DRAG MAGNETICO ── */
+.wdg-wrap.dragging-active {
+  transform: scale(1.03) !important;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.6), 0 0 0 2px rgba(91,159,255,0.5) !important;
+  z-index: 100;
+}
+
+/* ── TEMI CHIARI — override solid surfaces ── */
+:root[data-theme=light] .m3-card,
+:root[data-theme=rosa-light] .m3-card,
+:root[data-theme=forestale-light] .m3-card,
+:root[data-theme=carabinieri-light] .m3-card {
+  background: var(--card) !important;
+  border-color: var(--border) !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08) !important;
+}
+:root[data-theme=light] .hero-card,
+:root[data-theme=rosa-light] .hero-card,
+:root[data-theme=forestale-light] .hero-card,
+:root[data-theme=carabinieri-light] .hero-card {
+  background: var(--card) !important;
+  border-color: var(--border) !important;
+}
+:root[data-theme=light] .hero-sigla,
+:root[data-theme=rosa-light] .hero-sigla,
+:root[data-theme=forestale-light] .hero-sigla,
+:root[data-theme=carabinieri-light] .hero-sigla { color: var(--txt) !important; }
+:root[data-theme=light] .hero-orario,
+:root[data-theme=rosa-light] .hero-orario,
+:root[data-theme=forestale-light] .hero-orario,
+:root[data-theme=carabinieri-light] .hero-orario { color: var(--txt2) !important; }
+:root[data-theme=light] .hero-greeting-name,
+:root[data-theme=rosa-light] .hero-greeting-name,
+:root[data-theme=forestale-light] .hero-greeting-name,
+:root[data-theme=carabinieri-light] .hero-greeting-name { color: var(--txt) !important; }
+:root[data-theme=light] .wdg-drag-handle,
+:root[data-theme=rosa-light] .wdg-drag-handle,
+:root[data-theme=forestale-light] .wdg-drag-handle,
+:root[data-theme=carabinieri-light] .wdg-drag-handle { background: rgba(0,0,0,0.15); }
+:root[data-theme=light] .squadra-live-badge,
+:root[data-theme=rosa-light] .squadra-live-badge,
+:root[data-theme=forestale-light] .squadra-live-badge,
+:root[data-theme=carabinieri-light] .squadra-live-badge { border-color: var(--card); }
+
+/* ── METEO NELLA HERO CARD — blocco unificato sotto l'orario ── */
+.hero-meteo-block {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.hero-meteo-row1 {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: nowrap;
+}
+.hero-meteo-ico  { font-size: 16px; line-height: 1; flex-shrink: 0; }
+.hero-meteo-temp { font-size: 15px; font-weight: 800; color: #fff; }
+.hero-meteo-citta {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.55);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 90px;
+}
+.hero-meteo-row2 {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  font-size: 10px;
+  color: rgba(255,255,255,0.4);
+  font-weight: 600;
+}
+.hero-meteo-sep { opacity: 0.35; }
+
+/* Temi chiari */
+:root[data-theme=light] .hero-meteo-temp,
+:root[data-theme=rosa-light] .hero-meteo-temp,
+:root[data-theme=forestale-light] .hero-meteo-temp,
+:root[data-theme=carabinieri-light] .hero-meteo-temp { color: var(--txt) !important; }
+:root[data-theme=light] .hero-meteo-citta,
+:root[data-theme=rosa-light] .hero-meteo-citta,
+:root[data-theme=forestale-light] .hero-meteo-citta,
+:root[data-theme=carabinieri-light] .hero-meteo-citta { color: var(--txt2) !important; }
+:root[data-theme=light] .hero-meteo-row2,
+:root[data-theme=rosa-light] .hero-meteo-row2,
+:root[data-theme=forestale-light] .hero-meteo-row2,
+:root[data-theme=carabinieri-light] .hero-meteo-row2 { color: var(--txt2) !important; }
+
+/* ── HERO CARD — saluto grande a sinistra ── */
+.hero-user-ava {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.12);
+  border: 2px solid rgba(255,255,255,0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+}
+.hero-greeting-sub {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: .2px;
+  line-height: 1.3;
+}
+.hero-greeting-name {
+  font-size: 20px;
+  font-weight: 900;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+  line-height: 1.2;
+  letter-spacing: -.3px;
+}
+/* Rimuovi padding-top aggiunto in precedenza */
+.hero-tonal-wrap {
+  padding-top: 0;
+}
+/* Temi chiari */
+:root[data-theme=light] .hero-user-ava,
+:root[data-theme=rosa-light] .hero-user-ava,
+:root[data-theme=forestale-light] .hero-user-ava,
+:root[data-theme=carabinieri-light] .hero-user-ava {
+  background: rgba(0,0,0,0.07);
+  border-color: rgba(0,0,0,0.12);
+  color: var(--txt);
+}
+:root[data-theme=light] .hero-greeting-sub,
+:root[data-theme=rosa-light] .hero-greeting-sub,
+:root[data-theme=forestale-light] .hero-greeting-sub,
+:root[data-theme=carabinieri-light] .hero-greeting-sub { color: var(--txt2) !important; }
+
+/* ── WIDGET TURNI SETTIMANA ── */
+.wdg-settimana-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.wdg-sett-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 2px;
+  border-radius: 12px;
+  transition: background 0.15s;
+}
+.wdg-sett-oggi {
+  background: rgba(91,159,255,0.1);
+}
+.wdg-sett-nome {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--txt2);
+}
+.wdg-sett-num {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--txt2);
+  line-height: 1;
+}
+.wdg-sett-num-oggi {
+  color: var(--blue);
+  font-weight: 900;
+}
+.wdg-sett-chip {
+  font-size: 10px;
+  font-weight: 800;
+  border-radius: 8px;
+  padding: 3px 5px;
+  letter-spacing: .3px;
+  text-align: center;
+  min-width: 24px;
+}
+.wdg-sett-ora {
+  font-size: 8px;
+  color: var(--txt2);
+  text-align: center;
+  line-height: 1.3;
+  white-space: pre;
+}
+
+/* ── WIDGET FORME ── */
+.wdg-shape-round   { border-radius: 40px !important; }
+.wdg-shape-default { border-radius: 24px !important; }
+.wdg-shape-sharp   { border-radius: 8px  !important; }
+
+/* Propaga il border-radius ai figli diretti */
+.wdg-shape-round   > .wdg-body,
+.wdg-shape-round   > .m3-card  { border-radius: 36px !important; }
+.wdg-shape-sharp   > .wdg-body,
+.wdg-shape-sharp   > .m3-card  { border-radius: 6px  !important; }
+
+/* ── WIDGET DIMENSIONI S / M / L ── */
+
+/* S — card compatta, altezza ridotta, contenuto essenziale */
+.wdg-size-s {
+  font-size: 0.82em;
+}
+.wdg-size-s .wdg-drag-handle {
+  margin-top: 6px;
+  width: 28px;
+  height: 3px;
+}
+.wdg-size-s .wdg-body {
+  padding: 6px 12px 10px;
+}
+.wdg-size-s .wdg-hdr {
+  margin-bottom: 6px;
+}
+/* Nasconde elementi secondari in S */
+.wdg-size-s .wdg-mv-btns,
+.wdg-size-s .wdg-sett-ora,
+.wdg-size-s .hero-meteo-row2,
+.wdg-size-s .tscr thead,
+.wdg-size-s #w-colleghi-wrap,
+.wdg-size-s #w-nota {
+  display: none !important;
+}
+.wdg-size-s .wdg-settimana-grid { gap: 2px; }
+.wdg-size-s .wdg-sett-chip { font-size: 9px; padding: 2px 4px; min-width: 20px; }
+.wdg-size-s .wdg-sett-num { font-size: 11px; }
+.wdg-size-s .wdg-sett-nome { font-size: 8px; }
+.wdg-size-s .squadra-avatar-circle { width: 40px !important; height: 40px !important; font-size: 14px !important; }
+.wdg-size-s .squadra-nome { font-size: 8px; max-width: 40px; }
+.wdg-size-s #wp-giorni { font-size: 22px !important; }
+.wdg-size-s .tscr { max-height: 100px; }
+
+/* M — dimensione default */
+.wdg-size-m { font-size: 1em; }
+
+/* L — card espansa, più alta, contenuto completo e spaziato */
+.wdg-size-l {
+  font-size: 1.08em;
+}
+.wdg-size-l .wdg-drag-handle {
+  width: 48px;
+  height: 5px;
+  margin-top: 14px;
+}
+.wdg-size-l .wdg-body {
+  padding: 14px 20px 20px;
+}
+.wdg-size-l .wdg-hdr {
+  margin-bottom: 14px;
+}
+.wdg-size-l .wdg-lbl { font-size: 11px; letter-spacing: .9px; }
+.wdg-size-l #wp-giorni { font-size: 40px !important; line-height: 1 !important; }
+.wdg-size-l .squadra-avatar-circle { width: 68px !important; height: 68px !important; font-size: 24px !important; }
+.wdg-size-l .squadra-nome { font-size: 11px; max-width: 68px; }
+.wdg-size-l .wdg-settimana-grid { gap: 6px; }
+.wdg-size-l .wdg-sett-chip { font-size: 13px; padding: 6px 8px; min-width: 32px; }
+.wdg-size-l .wdg-sett-nome { font-size: 10px; }
+.wdg-size-l .wdg-sett-num { font-size: 16px; }
+.wdg-size-l .wdg-sett-ora { font-size: 9px; }
+.wdg-size-l .tscr { max-height: 280px; }
+.wdg-size-l .tscr td, .wdg-size-l .tscr th { padding: 10px 12px; font-size: 13px; }
+
+/* ── GRIGLIA WIDGET — supporto 1/2/3 colonne con auto-fill ── */
+.wdg-container {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important; /* default, sovrascritto da JS */
+  grid-auto-flow: dense !important; /* riempie i buchi automaticamente */
+  gap: 12px !important;
+  align-items: start !important;
+}
+/* Span righe: widget che occupa 2 righe ha min-height per dare spazio */
+[style*="grid-row: span 2"] {
+  min-height: 200px;
+}
+
+/* ── BOTTONI PANNELLO ORGANIZZA ── */
+.dop-size-btn {
+  background: rgba(91,159,255,0.12);
+  color: var(--blue);
+  border: 1px solid rgba(91,159,255,0.25);
+  border-radius: 7px;
+  padding: 3px 7px;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+  min-width: 26px;
+  text-align: center;
+  transition: background 0.15s;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.dop-size-btn:active,
+.dop-btn-active {
+  background: var(--blue) !important;
+  color: #fff !important;
+  border-color: var(--blue) !important;
+}
+
+/* ── PANNELLO ORGANIZZA — nuovo design intuitivo ── */
+
+/* Nascondi tasti ↑↓ dai widget (riordino solo via drag nel pannello) */
+.wdg-mv-btns { display: none !important; }
+
+/* Selettore colonne griglia */
+.dop-grid-sel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  background: rgba(91,159,255,0.07);
+  border: 1px solid rgba(91,159,255,0.15);
+  border-radius: 14px;
+}
+.dop-grid-lbl {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--txt2);
+  flex: 1;
+}
+.dop-grid-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: rgba(255,255,255,0.05);
+  border: 1.5px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 6px 10px;
+  cursor: pointer;
+  color: var(--txt2);
+  font-size: 10px;
+  font-weight: 700;
+  transition: all 0.15s;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.dop-grid-btn.active {
+  background: rgba(91,159,255,0.2);
+  border-color: var(--blue);
+  color: var(--blue);
+}
+.dop-grid-btn:active { opacity: 0.7; }
+
+/* Preset visivi per ogni widget */
+.dop-presets {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.dop-preset-btn {
+  background: rgba(255,255,255,0.05);
+  border: 1.5px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 4px 5px;
+  cursor: pointer;
+  color: var(--txt2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.dop-preset-btn.active {
+  background: rgba(91,159,255,0.2);
+  border-color: var(--blue);
+  color: var(--blue);
+}
+.dop-preset-btn:active { opacity: 0.7; }
+
+/* Riga widget nel pannello */
+.dop-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--border);
+}
+.dop-item:last-child { border-bottom: none; }
+.dop-label {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--txt);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -1378,6 +1378,29 @@ function aggiornaHeroCard(){
   var atmosfera = _TURNO_ATMOSFERA[tipo] || 'riposo';
   document.body.setAttribute('data-atmosfera', atmosfera);
 
+  // Saluto contestuale
+  var h = now.getHours();
+  var saluto = h < 12 ? 'Buongiorno' : h < 18 ? 'Buon pomeriggio' : 'Buonasera';
+  var nomeBreve = me.nome || (me.cognome||'').split(' ')[0] || '—';
+  var greetSub = document.getElementById('hero-greeting-sub');
+  var greetName = document.getElementById('hero-greeting-name');
+  if(greetSub) greetSub.textContent = saluto;
+  if(greetName) greetName.textContent = nomeBreve;
+
+  // Foto profilo utente
+  var heroAva = document.getElementById('hero-user-ava');
+  if(heroAva){
+    if(me.ava && me.ava.startsWith('http')){
+      heroAva.style.backgroundImage = 'url('+me.ava+')';
+      heroAva.style.backgroundSize = 'cover';
+      heroAva.style.backgroundPosition = 'center';
+      heroAva.textContent = '';
+    } else {
+      heroAva.style.backgroundImage = '';
+      heroAva.textContent = (nomeBreve.charAt(0)||'?').toUpperCase();
+    }
+  }
+
   // Icona e sigla
   var ico = _TURNO_ICO_HERO[tipo] || '🛋️';
   var sigla = (mioTurno && mioTurno.codice) ? mioTurno.codice : (_TURNO_SIGLA[tipo] || tipo.toUpperCase());
@@ -1386,7 +1409,6 @@ function aggiornaHeroCard(){
   var heroIco = document.getElementById('hero-tonal-ico');
   var heroSigla = document.getElementById('hero-sigla');
   var heroOrario = document.getElementById('hero-orario');
-  // Anima l'icona solo se è cambiata
   var prevIco = heroIco ? heroIco.getAttribute('data-prev-ico') : null;
   if(heroIco) heroIco.textContent = ico;
   if(heroSigla) heroSigla.textContent = sigla;
@@ -1396,7 +1418,7 @@ function aggiornaHeroCard(){
     if(typeof _animateHeroIcon === 'function') _animateHeroIcon();
   }
 
-  // Active Ring — calcola percentuale tempo trascorso
+  // Active Ring
   var ring = document.getElementById('hero-ring-fill');
   if(ring && mioTurno && mioTurno.orario && mioTurno.orario.indexOf('-') > 0){
     var parts = mioTurno.orario.split('-');
@@ -1410,8 +1432,7 @@ function aggiornaHeroCard(){
     if(elapsed < 0) elapsed = 0;
     var total = endMin - startMin;
     var pct = total > 0 ? Math.min(1, elapsed / total) : 0;
-    var circumference = 326.7;
-    ring.style.strokeDashoffset = circumference * (1 - pct);
+    ring.style.strokeDashoffset = 326.7 * (1 - pct);
   } else if(ring){
     ring.style.strokeDashoffset = 326.7;
   }
@@ -1427,7 +1448,6 @@ function aggiornaSquadra(){
   var P = lsG('ct_p', []);
   var container = document.getElementById('w-squadra-list');
   if(!container) return;
-
   var turniOggi = T.filter(function(t){ return t.data === oggi; });
   var pidInServizio = {};
   turniOggi.forEach(function(t){ pidInServizio[t.pid] = t; });
@@ -1468,7 +1488,7 @@ function aggiornaSquadra(){
     }
     var liveBadge = p.inServizio ? '<div class="squadra-live-badge"></div>' : '';
     return '<div class="squadra-avatar">'
-      + '<div class="squadra-avatar-circle" style="'+(p.inServizio?'border-color:rgba(6,214,160,.5)':'')+'">'+avatarContent+liveBadge+'</div>'
+      + '<div class="squadra-avatar-circle' + (p.inServizio ? ' squadra-in-servizio' : '') + '">'+avatarContent+liveBadge+'</div>'
       + '<div class="squadra-nome">'+nomeBreve+'</div>'
       + '</div>';
   }).join('');
@@ -4762,9 +4782,8 @@ function aggUI(){
 }
 
 // ---- NOVITÀ VERSIONE ----
-var _APP_VERSION = '4.0';
+var _APP_VERSION = '4.1';
 function _checkNovita(){
-  // Popup novità disabilitato dalla v4.0
   localStorage.setItem('ct_novita_v4', _APP_VERSION);
 }
 function chiudiNovita(){
@@ -6935,12 +6954,21 @@ function salvaProfilo(){
   }
 
   // Avvia il flusso con o senza nuova foto
-  if(fEl&&fEl.files[0]){
-    comprImg(fEl.files[0], function(d){ _salvaConFoto(d); });
-  } else if(window._tempAva){
-    var d=window._tempAva; window._tempAva=null;
+  var fEl = document.getElementById('pf-ava-file');
+  if(fEl && fEl.files[0]) {
+    // Nuova foto da file: ridimensiona e carica
+    _ridimensionaFoto(fEl.files[0], function(dataUrl) {
+      if(dataUrl) window._tempAva = dataUrl;
+      _salvaConFoto(dataUrl || null);
+    });
+  } else if(window._tempAva) {
+    var d = window._tempAva; window._tempAva = null;
     _salvaConFoto(d);
   } else {
+    // Controlla URL manuale nel campo testo
+    var nAvaEl = document.getElementById('pf-ava');
+    var urlManuale = nAvaEl && nAvaEl.value.trim() ? nAvaEl.value.trim() : null;
+    if(urlManuale) me.ava = urlManuale;
     _salvaConFoto(null);
   }
 }
@@ -7047,16 +7075,14 @@ var METEO_DESC = {
 
 /* ---------- WIDGET CONF ---------- */
 var WIDGET_DEF = {
-  turno:       { label: "&#9728; Turno oggi",      default: true },
-  squadra:     { label: "&#128101; La Squadra",    default: true },
-  prossimo:    { label: "&#9200; Prossimo turno",  default: true },
-  'turni-oggi':{ label: "&#128203; Turni di Oggi", default: true },
-  meteo:       { label: "&#127781; Meteo reparto", default: true },
-  alert:       { label: "&#128680; Alert",         default: true },
-  scadenze:    { label: "&#128197; Scadenze",      default: true },
-  agenda:      { label: "&#128467; Agenda oggi",   default: true },
-  todo:        { label: "&#9989; To-Do",           default: true },
-  dino:        { label: "&#129430; Dino Game",     default: false }
+  'squadra-turni': { label: "&#128101; Squadra &amp; Turni",  default: true },
+  settimana:       { label: "&#128197; Turni Settimana",       default: true },
+  prossimo:        { label: "&#9200; Prossimo turno",          default: true },
+  alert:           { label: "&#128680; Alert",                 default: true },
+  scadenze:        { label: "&#128197; Scadenze",              default: true },
+  agenda:          { label: "&#128467; Agenda oggi",           default: true },
+  todo:            { label: "&#9989; To-Do",                   default: true },
+  dino:            { label: "&#129430; Dino Game",             default: false }
 };
 
 function getWidgetCfg() {
@@ -7072,9 +7098,14 @@ function getWidgetCfg() {
 }
 
 var WIDGET_ID_MAP = {
-  turno:"widget-oggi", squadra:"widget-squadra", prossimo:"widget-prossimo", 'turni-oggi':"widget-turni-oggi",
-  meteo:"widget-meteo", alert:"widget-alert", scadenze:"widget-scadenze",
-  agenda:"widget-agenda", todo:"widget-todo", dino:"widget-dino-dash"
+  'squadra-turni': 'widget-squadra-turni',
+  settimana:       'widget-settimana',
+  prossimo:        'widget-prossimo',
+  alert:           'widget-alert',
+  scadenze:        'widget-scadenze',
+  agenda:          'widget-agenda',
+  todo:            'widget-todo',
+  dino:            'widget-dino-dash'
 };
 
 function getWidgetOrder() {
@@ -7090,6 +7121,83 @@ function saveWidgetOrder(order) {
   lsS('ct_dash_order', order);
 }
 
+// ══════════════════════════════════════════════════════════════
+// WIDGET CUSTOMIZATION — Dimensione, Forma, Colonne, Righe
+// ══════════════════════════════════════════════════════════════
+
+function getWidgetSizes()  { return lsG('ct_dash_sizes',  {}); }
+function getWidgetShapes() { return lsG('ct_dash_shapes', {}); }
+function getWidgetSpans()  { return lsG('ct_dash_spans',  {}); }
+
+function saveWidgetSize(k, v)  { var d=getWidgetSizes();  d[k]=v; lsS('ct_dash_sizes',  d); }
+function saveWidgetShape(k, v) { var d=getWidgetShapes(); d[k]=v; lsS('ct_dash_shapes', d); }
+function saveWidgetSpan(k, v)  { var d=getWidgetSpans();  d[k]=v; lsS('ct_dash_spans',  d); }
+
+// Numero di colonne della griglia (2 o 3)
+function getGridCols() { return lsG('ct_dash_cols', 2); }
+function setGridCols(n) {
+  lsS('ct_dash_cols', n);
+  var c = document.getElementById('wdg-container');
+  if(c) c.style.gridTemplateColumns = 'repeat(' + n + ', 1fr)';
+  applyWidgetSizes();
+}
+
+function applyWidgetSizes() {
+  var sizes  = getWidgetSizes();
+  var shapes = getWidgetShapes();
+  var spans  = getWidgetSpans();
+  var cols   = getGridCols();
+  // Aggiorna griglia
+  var c = document.getElementById('wdg-container');
+  if(c) c.style.gridTemplateColumns = 'repeat(' + cols + ', 1fr)';
+
+  Object.keys(WIDGET_ID_MAP).forEach(function(k) {
+    var el = document.getElementById(WIDGET_ID_MAP[k]);
+    if(!el) return;
+    // Dimensione
+    el.classList.remove('wdg-size-s', 'wdg-size-m', 'wdg-size-l');
+    el.classList.add('wdg-size-' + (sizes[k] || 'm'));
+    // Forma
+    el.classList.remove('wdg-shape-round', 'wdg-shape-default', 'wdg-shape-sharp');
+    el.classList.add('wdg-shape-' + (shapes[k] || 'default'));
+    // Span — clamp al numero di colonne disponibili
+    var sp = spans[k] || {col:1, row:1};
+    var colSpan = Math.min(sp.col || 1, cols);
+    el.style.gridColumn = 'span ' + colSpan;
+    el.style.gridRow    = 'span ' + (sp.row || 1);
+  });
+}
+
+function cycleWidgetSize(key) {
+  var cur = getWidgetSizes()[key] || 'm';
+  saveWidgetSize(key, cur==='s'?'m':cur==='m'?'l':'s');
+  applyWidgetSizes(); renderDopList();
+  if(navigator.vibrate) navigator.vibrate(10);
+}
+function cycleWidgetShape(key) {
+  var cur = getWidgetShapes()[key] || 'default';
+  saveWidgetShape(key, cur==='round'?'default':cur==='default'?'sharp':'round');
+  applyWidgetSizes(); renderDopList();
+  if(navigator.vibrate) navigator.vibrate(10);
+}
+function cycleWidgetCol(key) {
+  var sp = getWidgetSpans()[key] || {col:1,row:1};
+  var cols = getGridCols();
+  // Cicla: 1 → 2 → (3 se griglia a 3) → 1
+  var maxCol = cols;
+  sp.col = (sp.col || 1) >= maxCol ? 1 : (sp.col || 1) + 1;
+  saveWidgetSpan(key, sp);
+  applyWidgetSizes(); renderDopList();
+  if(navigator.vibrate) navigator.vibrate(10);
+}
+function cycleWidgetRow(key) {
+  var sp = getWidgetSpans()[key] || {col:1,row:1};
+  sp.row = (sp.row || 1) >= 2 ? 1 : 2;
+  saveWidgetSpan(key, sp);
+  applyWidgetSizes(); renderDopList();
+  if(navigator.vibrate) navigator.vibrate(10);
+}
+
 function applyWidgetOrder() {
   var order = getWidgetOrder();
   var container = document.getElementById('wdg-container');
@@ -7098,6 +7206,7 @@ function applyWidgetOrder() {
     var el = document.getElementById(WIDGET_ID_MAP[k]);
     if (el) container.appendChild(el);
   });
+  applyWidgetSizes();
 }
 
 function moveWidget(key, dir) {
@@ -7123,22 +7232,83 @@ function toggleDashOrganizza(btn) {
 function renderDopList() {
   var el = document.getElementById('dop-list');
   if (!el) return;
-  var order = getWidgetOrder();
-  var cfg = getWidgetCfg();
-  el.innerHTML = order.map(function(k) {
-    var on = cfg[k];
+  var order  = getWidgetOrder();
+  var cfg    = getWidgetCfg();
+  var sizes  = getWidgetSizes();
+  var spans  = getWidgetSpans();
+  var cols   = getGridCols();
+
+  // Selettore colonne griglia — bottoni visivi con SVG
+  var gridHtml = '<div class="dop-grid-sel">'
+    + '<span class="dop-grid-lbl">&#9783; Colonne griglia</span>'
+    + [1,2,3].map(function(n){
+        var rects = Array(n).fill(0).map(function(_,i){
+          var w = Math.floor(26/n)-2;
+          var x = 1 + i*(w+2);
+          return '<rect x="'+x+'" y="2" width="'+w+'" height="12" rx="2" fill="currentColor"/>';
+        }).join('');
+        return '<button class="dop-grid-btn' + (cols===n?' active':'') + '" onclick="setGridCols('+n+')" title="'+n+' colonne">'
+          + '<svg width="30" height="16" viewBox="0 0 30 16">'+rects+'</svg>'
+          + '<span>'+n+'</span>'
+          + '</button>';
+      }).join('')
+    + '</div>';
+
+  // Lista widget — ogni riga ha 4 preset visivi
+  var listHtml = order.map(function(k) {
+    var on    = cfg[k];
     var label = WIDGET_DEF[k] ? WIDGET_DEF[k].label : k;
+    var sp    = spans[k] || {col:1, row:1};
+    var sz    = sizes[k] || 'm';
+
+    // Preset: compatto / normale / largo / grande
+    // Ogni preset è un mini-rettangolo SVG che mostra visivamente la forma
+    var presets = [
+      { id:'compact', col:1, row:1, size:'s',
+        svg:'<rect x="1" y="4" width="12" height="8" rx="2" fill="currentColor"/>' },
+      { id:'normal',  col:1, row:1, size:'m',
+        svg:'<rect x="1" y="2" width="12" height="12" rx="2" fill="currentColor"/>' },
+      { id:'wide',    col:Math.min(2,cols), row:1, size:'m',
+        svg:'<rect x="1" y="4" width="22" height="8" rx="2" fill="currentColor"/>' },
+      { id:'full',    col:cols, row:2, size:'l',
+        svg:'<rect x="1" y="1" width="22" height="14" rx="2" fill="currentColor"/>' }
+    ];
+
+    var activePre = 'normal';
+    if(sz==='s') activePre = 'compact';
+    else if(sz==='l' && sp.row>=2) activePre = 'full';
+    else if((sp.col||1)>=2) activePre = 'wide';
+
+    var titles = { compact:'Compatto', normal:'Normale', wide:'Largo', full:'Grande' };
+
     return '<div class="dop-item" draggable="true" data-wid="' + k + '">'
       + '<span class="dop-handle">&#8801;</span>'
       + '<span class="dop-label">' + label + '</span>'
-      + '<div style="display:flex;gap:4px;flex-shrink:0">'
-      + '<button class="wdg-mv-btn" onclick="moveWidget(\'' + k + '\',-1)">&#8593;</button>'
-      + '<button class="wdg-mv-btn" onclick="moveWidget(\'' + k + '\',+1)">&#8595;</button>'
+      + '<div class="dop-presets">'
+      + presets.map(function(p){
+          return '<button class="dop-preset-btn' + (activePre===p.id?' active':'') + '" '
+            + 'title="' + titles[p.id] + '" '
+            + 'onclick="applyWidgetPreset(\'' + k + '\',\'' + p.id + '\',' + p.col + ',' + p.row + ',\'' + p.size + '\')">'
+            + '<svg width="26" height="16" viewBox="0 0 26 16">' + p.svg + '</svg>'
+            + '</button>';
+        }).join('')
       + '</div>'
       + '<button class="dop-toggle' + (on ? ' on' : '') + '" onclick="toggleWidgetDash(\'' + k + '\',this)"></button>'
       + '</div>';
   }).join('');
+
+  el.innerHTML = gridHtml + listHtml;
   initDopDrag();
+}
+
+// Applica preset combinato (span + size) in un click
+function applyWidgetPreset(key, presetId, col, row, size) {
+  var cols = getGridCols();
+  saveWidgetSpan(key, { col: Math.min(col, cols), row: row });
+  saveWidgetSize(key, size);
+  applyWidgetSizes();
+  renderDopList();
+  if(navigator.vibrate) navigator.vibrate(12);
 }
 
 function initDopDrag() {
@@ -7215,19 +7385,19 @@ function renderDash() {
   aggiornaWidget();
   aggiornaHeroCard();
   aggiornaSquadra();
-  if (cfg.prossimo) renderWidgetProssimo(me);
-  if (cfg.meteo)    renderWidgetMeteo(me);
-  if (cfg.alert)    renderWidgetAlert();
-  if (cfg.scadenze) renderWidgetScadenze();
-  if (cfg.agenda)   renderWidgetAgenda();
-  if (cfg.todo)     renderWidgetTodo();
-  // Hero Card aggiornata ogni minuto per l'Active Ring
+  renderWidgetMeteo(me); // meteo sempre — popola la Hero Card
+  if (cfg.prossimo)        renderWidgetProssimo(me);
+  if (cfg.alert)           renderWidgetAlert();
+  if (cfg.scadenze)        renderWidgetScadenze();
+  if (cfg.agenda)          renderWidgetAgenda();
+  if (cfg.todo)            renderWidgetTodo();
+  if (cfg.settimana)       renderWidgetSettimana(me);  // Hero Card aggiornata ogni minuto per l'Active Ring
   if(window._heroRingTimer) clearInterval(window._heroRingTimer);
   window._heroRingTimer = setInterval(aggiornaHeroCard, 60000);
   var map = {
-    turno:"widget-oggi", prossimo:"widget-prossimo", 'turni-oggi':"widget-turni-oggi",
-    meteo:"widget-meteo", alert:"widget-alert", scadenze:"widget-scadenze",
-    agenda:"widget-agenda", todo:"widget-todo", dino:"widget-dino-dash", squadra:"widget-squadra"
+    'squadra-turni':'widget-squadra-turni', settimana:'widget-settimana',
+    prossimo:'widget-prossimo', alert:'widget-alert', scadenze:'widget-scadenze',
+    agenda:'widget-agenda', todo:'widget-todo', dino:'widget-dino-dash', squadra:'widget-squadra'
   };
   Object.keys(map).forEach(function(k) {
     var el = document.getElementById(map[k]);
@@ -7277,6 +7447,53 @@ function renderWidgetProssimo(me) {
   if (wg) wg.textContent = diff;
 }
 
+/* ---------- WIDGET SETTIMANA ---------- */
+function renderWidgetSettimana(me) {
+  var el = document.getElementById('w-settimana-list');
+  if(!el) return;
+  if(!me) { el.innerHTML = ''; return; }
+
+  var now = new Date();
+  // Lunedì della settimana corrente
+  var lun = new Date(now);
+  lun.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  lun.setHours(0,0,0,0);
+
+  var T = lsG('ct_t', []);
+  var giorniNomi = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
+  var colori = {
+    mattina:'#FF8C00', ml:'#FF8C00',
+    pomeriggio:'#E91E63', pl:'#E91E63',
+    notte:'#1565C0', sera:'#1565C0',
+    riposo:'#37474F', recupero:'#37474F',
+    ferie:'#00897B', licenza:'#00897B',
+    permesso:'#7B1FA2', '937':'#7B1FA2', '104':'#7B1FA2',
+    ls:'#C62828', fest:'#F57F17', corso:'#1976D2', esame:'#1976D2'
+  };
+
+  var html = '<div class="wdg-settimana-grid">';
+  for(var i = 0; i < 7; i++) {
+    var giorno = new Date(lun);
+    giorno.setDate(lun.getDate() + i);
+    var ds = giorno.getFullYear()+'-'+('0'+(giorno.getMonth()+1)).slice(-2)+'-'+('0'+giorno.getDate()).slice(-2);
+    var isOggi = ds === (now.getFullYear()+'-'+('0'+(now.getMonth()+1)).slice(-2)+'-'+('0'+now.getDate()).slice(-2));
+    var mioT = T.find(function(t){ return _isMyTurno(t, me) && t.data === ds; });
+    var tipo = mioT ? (_codiceToTipo[mioT.codice] || mioT.tipo || 'riposo') : 'riposo';
+    var sigla = mioT ? (mioT.codice || (_TURNO_SIGLA[tipo] || tipo.slice(0,2).toUpperCase())) : 'R';
+    var col = colori[tipo] || '#37474F';
+    var orario = mioT && mioT.orario ? mioT.orario.replace('-','\n') : '';
+
+    html += '<div class="wdg-sett-day' + (isOggi ? ' wdg-sett-oggi' : '') + '">';
+    html += '<div class="wdg-sett-nome">' + giorniNomi[i] + '</div>';
+    html += '<div class="wdg-sett-num' + (isOggi ? ' wdg-sett-num-oggi' : '') + '">' + giorno.getDate() + '</div>';
+    html += '<div class="wdg-sett-chip" style="background:' + col + '22;color:' + col + ';border:1px solid ' + col + '55">' + sigla + '</div>';
+    if(orario) html += '<div class="wdg-sett-ora">' + orario + '</div>';
+    html += '</div>';
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
 /* ---------- WIDGET METEO ---------- */
 var _meteoCache = null;
 function renderWidgetMeteo(me){
@@ -7298,6 +7515,8 @@ function renderWidgetMeteo(me){
     _aggiornaUIMeteo(cached.data);
     var cEl=document.getElementById('wm-citta');
     if(cEl)cEl.textContent=cached.citta;
+    var heroCitta=document.getElementById('hero-meteo-citta');
+    if(heroCitta)heroCitta.textContent=cached.citta||'';
     return;
   }
 
@@ -7308,8 +7527,11 @@ function renderWidgetMeteo(me){
     if(!geo.results||!geo.results.length)throw new Error('citta non trovata');
     var loc=geo.results[0];
     var lat=loc.latitude,lon=loc.longitude,nomeCitta=loc.name;
+    // Aggiorna città nel widget e nella Hero Card
     var cEl=document.getElementById('wm-citta');
     if(cEl)cEl.textContent=nomeCitta;
+    var heroCitta=document.getElementById('hero-meteo-citta');
+    if(heroCitta)heroCitta.textContent=nomeCitta;
     var meteoUrl='https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon
       +'&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&wind_speed_unit=kmh&timezone=Europe%2FRome';
     return fetch(meteoUrl).then(function(r){return r.json();}).then(function(data){
@@ -7319,18 +7541,41 @@ function renderWidgetMeteo(me){
   }).catch(function(){
     var el=document.getElementById('wm-desc');
     if(el)el.textContent='Meteo non disponibile';
+    var heroDesc=document.getElementById('hero-meteo-desc');
+    if(heroDesc)heroDesc.textContent='—';
   });
 }
 
 function _aggiornaUIMeteo(data) {
   var c = data.current;
   var wc = c.weather_code;
+  var icoHtml = METEO_WMO[wc] || '<span class="meteo-cloud">🌤️</span>';
+  var temp = Math.round(c.temperature_2m) + '°C';
+  var desc = METEO_DESC[wc] || '';
+  var umi  = c.relative_humidity_2m;
+  var vento = Math.round(c.wind_speed_10m);
+
+  // Widget meteo separato (se visibile)
   var icoEl = document.getElementById('wm-ico');
-  if(icoEl) icoEl.innerHTML = METEO_WMO[wc] || '<span class="meteo-cloud">🌤️</span>';
-  document.getElementById('wm-temp').textContent = Math.round(c.temperature_2m) + '°C';
-  document.getElementById('wm-desc').textContent = METEO_DESC[wc] || '';
-  document.getElementById('wm-umi').textContent = c.relative_humidity_2m;
-  document.getElementById('wm-vento').textContent = Math.round(c.wind_speed_10m);
+  if(icoEl) icoEl.innerHTML = icoHtml;
+  var tempEl = document.getElementById('wm-temp'); if(tempEl) tempEl.textContent = temp;
+  var descEl = document.getElementById('wm-desc'); if(descEl) descEl.textContent = desc;
+  var umiEl  = document.getElementById('wm-umi');  if(umiEl)  umiEl.textContent  = umi;
+  var ventoEl= document.getElementById('wm-vento');if(ventoEl)ventoEl.textContent= vento;
+
+  // Hero Card — meteo compatto
+  var heroIco  = document.getElementById('hero-meteo-ico');
+  var heroTemp = document.getElementById('hero-meteo-temp');
+  var heroDesc = document.getElementById('hero-meteo-desc');
+  var heroUmi  = document.getElementById('hero-meteo-umi');
+  var heroVento= document.getElementById('hero-meteo-vento');
+  // Estrai solo l'emoji dall'html dell'icona
+  var icoText = icoHtml.replace(/<[^>]+>/g,'').trim() || '🌤️';
+  if(heroIco)   heroIco.textContent  = icoText;
+  if(heroTemp)  heroTemp.textContent = temp;
+  if(heroDesc)  heroDesc.textContent = desc;
+  if(heroUmi)   heroUmi.textContent  = umi;
+  if(heroVento) heroVento.textContent= vento;
 }
 
 function salvaMeteoCity() {
@@ -8485,122 +8730,50 @@ function aggOraNativaDaTipo(tipo) {
 }
 
 
-// TASK B: EDITOR AVATAR TOUCH
-var _ave = { img:null, x:0, y:0, scale:1, lx:0, ly:0, pd:0, prevId:'pf-ava-prev' };
+// ── FOTO PROFILO — riscritta v4.1 ────────────────────────────
+// Flusso: selezione file → anteprima immediata → salva con profilo
 
 function prevFotoFile(input) {
-    if (!input || !input.files || !input.files[0]) return;
-    _ave.prevId = (input.id === 'mpf-ava-file') ? 'mpf-ava-prev'
-                 : (input.id === 'reg-foto')     ? 'reg-ava-prev'
-                 : 'pf-ava-prev';
-    var reader = new FileReader();
-    reader.onload = function(e) {
-        var img = new Image();
-        img.onload = function() {
-            _ave.img = img;
-            var minSide = Math.min(img.width, img.height);
-            _ave.scale = 300 / minSide;
-            _ave.x = (300 - img.width  * _ave.scale) / 2;
-            _ave.y = (300 - img.height * _ave.scale) / 2;
-            _aveBindEvents();
-            openM('m-avatar-editor');
-        };
-        img.src = e.target.result;
+  if(!input || !input.files || !input.files[0]) return;
+  var file = input.files[0];
+  // Determina quale preview aggiornare
+  var prevId = input.id === 'mpf-ava-file' ? 'mpf-ava-prev' : 'pf-ava-prev';
+  // Ridimensiona e mostra anteprima
+  _ridimensionaFoto(file, function(dataUrl) {
+    if(!dataUrl) return;
+    window._tempAva = dataUrl;
+    var prev = document.getElementById(prevId);
+    if(prev) {
+      prev.style.backgroundImage = 'url(' + dataUrl + ')';
+      prev.style.backgroundSize = 'cover';
+      prev.style.backgroundPosition = 'center';
+      prev.textContent = '';
+    }
+  });
+}
+
+function _ridimensionaFoto(file, cb) {
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      var SIZE = 300;
+      var cv = document.createElement('canvas');
+      cv.width = SIZE; cv.height = SIZE;
+      var ctx = cv.getContext('2d');
+      // Crop quadrato centrato
+      var side = Math.min(img.width, img.height);
+      var sx = (img.width - side) / 2;
+      var sy = (img.height - side) / 2;
+      ctx.drawImage(img, sx, sy, side, side, 0, 0, SIZE, SIZE);
+      cb(cv.toDataURL('image/jpeg', 0.75));
     };
-    reader.readAsDataURL(input.files[0]);
+    img.onerror = function() { cb(null); };
+    img.src = e.target.result;
+  };
+  reader.onerror = function() { cb(null); };
+  reader.readAsDataURL(file);
 }
-
-function _aveDraw() {
-    var cv = document.getElementById('ava-editor-canvas');
-    if (!cv || !_ave.img) return;
-    var ctx = cv.getContext('2d');
-    cv.width = 300;
-    cv.height = 300;
-    ctx.clearRect(0, 0, 300, 300);
-    ctx.drawImage(_ave.img, _ave.x, _ave.y, _ave.img.width * _ave.scale, _ave.img.height * _ave.scale);
-}
-
-function confermaAvatarCrop() {
-    if (!_ave.img) { closeM('m-avatar-editor'); return; }
-    // Crop quadrato: output 300x300, fedele a quello che si vede nell'editor
-    var size = 300;
-    var cv = document.createElement('canvas');
-    cv.width = size; cv.height = size;
-    var ctx = cv.getContext('2d');
-    // Sfondo bianco per JPEG (evita trasparenza nera)
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, size, size);
-    // Disegna esattamente come nell'editor (stesso canvas 300x300)
-    ctx.drawImage(_ave.img, _ave.x, _ave.y, _ave.img.width * _ave.scale, _ave.img.height * _ave.scale);
-    var data = cv.toDataURL('image/jpeg', 0.65);
-    window._tempAva = data;
-    // Aggiorna anteprima
-    var prev = document.getElementById(_ave.prevId);
-    if (prev) {
-        prev.style.backgroundImage = 'url(' + data + ')';
-        prev.style.backgroundSize = 'cover';
-        prev.style.backgroundPosition = 'center';
-        prev.style.borderRadius = '8px'; // quadrato per tesserino
-        prev.innerHTML = '';
-    }
-    closeM('m-avatar-editor');
-    toast('Foto ritagliata!', 'ok');
-}
-
-var _aveBound = false;
-function _aveBindEvents() {
-    if (_aveBound) return;
-    _aveBound = true;
-    var cv = document.getElementById('ava-editor-canvas');
-    if (!cv) return;
-    var ptrs = {};
-    function dist(p) {
-        var k = Object.keys(p);
-        if (k.length < 2) return 0;
-        return Math.hypot(p[k[0]].x - p[k[1]].x, p[k[0]].y - p[k[1]].y);
-    }
-    function getXY(e) {
-        var r = cv.getBoundingClientRect();
-        var scaleX = 300 / r.width;
-        var scaleY = 300 / r.height;
-        return { x: (e.clientX - r.left) * scaleX, y: (e.clientY - r.top) * scaleY };
-    }
-    cv.addEventListener('pointerdown', function(e) {
-        e.preventDefault();
-        cv.setPointerCapture(e.pointerId);
-        ptrs[e.pointerId] = getXY(e);
-        if (Object.keys(ptrs).length === 1) { _ave.lx = ptrs[e.pointerId].x; _ave.ly = ptrs[e.pointerId].y; }
-        else { _ave.pd = dist(ptrs); }
-    }, { passive: false });
-    cv.addEventListener('pointermove', function(e) {
-        e.preventDefault();
-        if (!ptrs[e.pointerId]) return;
-        ptrs[e.pointerId] = getXY(e);
-        var k = Object.keys(ptrs);
-        if (k.length === 1) {
-            var cx = ptrs[e.pointerId].x, cy = ptrs[e.pointerId].y;
-            _ave.x += cx - _ave.lx;
-            _ave.y += cy - _ave.ly;
-            _ave.lx = cx; _ave.ly = cy;
-            _aveDraw();
-        } else if (k.length >= 2) {
-            var nd = dist(ptrs);
-            if (_ave.pd > 0) {
-                var r2 = nd / _ave.pd;
-                var ns = Math.max(0.2, Math.min(6, _ave.scale * r2));
-                _ave.x = 150 - (150 - _ave.x) * (ns / _ave.scale);
-                _ave.y = 150 - (150 - _ave.y) * (ns / _ave.scale);
-                _ave.scale = ns;
-                _aveDraw();
-            }
-            _ave.pd = nd;
-        }
-    }, { passive: false });
-    function ep(e) { delete ptrs[e.pointerId]; if (!Object.keys(ptrs).length) _ave.pd = 0; }
-    cv.addEventListener('pointerup',     ep);
-    cv.addEventListener('pointercancel', ep);
-}
-
 
 // ── GOOGLE SYNC MODULE ──
 // Feature: google-sync
