@@ -2360,5 +2360,27 @@ function chiudiSheetGiorno() {
 </script>
 <script src="app.js"></script>
 <script type="module" src="firebase-manager.js"></script>
+
+<!-- MODAL CONFIRM CUSTOM -->
+<div id="m-confirm" class="modal" style="z-index:99999">
+  <div class="mbox" style="max-width:340px;border-radius:20px">
+    <div class="mbod" style="padding:24px 20px 16px;text-align:center">
+      <div id="m-confirm-ico" style="font-size:36px;margin-bottom:12px">⚠️</div>
+      <div id="m-confirm-title" style="font-size:16px;font-weight:800;color:var(--txt);margin-bottom:8px"></div>
+      <div id="m-confirm-msg" style="font-size:13px;color:var(--txt2);line-height:1.6"></div>
+    </div>
+    <div class="mfoo" style="gap:10px">
+      <button id="m-confirm-cancel" class="btn btn-g" style="flex:1" onclick="ctConfirmResolve(false)">Annulla</button>
+      <button id="m-confirm-ok" class="btn btn-p" style="flex:1" onclick="ctConfirmResolve(true)">Conferma</button>
+    </div>
+  </div>
+</div>
+
+<!-- SPINNER CARICAMENTO -->
+<div id="ct-spinner" style="display:none;position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,0.45);align-items:center;justify-content:center;flex-direction:column;gap:12px">
+  <div class="ct-spin-ring"></div>
+  <div id="ct-spinner-msg" style="color:#fff;font-size:13px;font-weight:700;letter-spacing:.3px">Caricamento...</div>
+</div>
+
 </body>
 </html>

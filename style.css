@@ -505,6 +505,8 @@ tbody tr:last-child td{border-bottom:none}
 .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9990;
   align-items:flex-end;justify-content:center;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
 .modal.on{display:flex}
+#m-grado-picker { z-index: 100001 !important; }
+#m-grado-picker .mbox { z-index: 100002 !important; }
 .mbox{background:var(--card);border-radius:var(--radius) var(--radius) 0 0;width:100%;max-width:520px;
   max-height:calc(85vh - env(safe-area-inset-bottom,0px));overflow-y:auto;-webkit-overflow-scrolling:touch;
   box-shadow:var(--elevation-3);animation:mUp .28s var(--motion-decel)}
@@ -3956,6 +3958,10 @@ body[data-atmosfera="oasi"]       .hero-ring-fill { stroke: #00C853; }
   gap: 12px !important;
   align-items: start !important;
 }
+/* 3 widget: prevent orphan */
+.wdg-container > .wdg-wrap:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
 /* Span righe: widget che occupa 2 righe ha min-height per dare spazio */
 [style*="grid-row: span 2"] {
   min-height: 200px;
@@ -4180,3 +4186,15 @@ body[data-atmosfera="oasi"]       .hero-ring-fill { stroke: #00C853; }
 :root[data-theme=rosa-light] .hero-divider,
 :root[data-theme=forestale-light] .hero-divider,
 :root[data-theme=carabinieri-light] .hero-divider { background: rgba(0,0,0,0.08); }
+
+/* ── SPINNER ── */
+#ct-spinner { display: none; }
+#ct-spinner.on { display: flex !important; }
+.ct-spin-ring {
+  width: 48px; height: 48px;
+  border: 4px solid rgba(255,255,255,0.2);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: ctSpin 0.7s linear infinite;
+}
+@keyframes ctSpin { to { transform: rotate(360deg); } }

@@ -110,6 +110,7 @@ function _stopListeners() {
 function _startListeners(reparto) {
   _stopListeners();
   if(!reparto) return;
+  console.log('[Firebase] Avvio listener real-time per reparto:', reparto);
 
   // Turni
   var turniRef = collection(db, 'reparti', reparto, 'turni');
@@ -435,6 +436,11 @@ window.FirebaseModule = {
         if(prof.fotoURL && prof.fotoURL.startsWith('https')) prof.ava = prof.fotoURL;
         else if(prof.ava && prof.ava.startsWith('data:')) delete prof.ava; // rimuovi base64 vecchio
         localStorage.setItem('ct_me', JSON.stringify(prof));
+        // Persist ava in ct_session for immediate display on reload
+        try {
+          var _sess2 = JSON.parse(localStorage.getItem('ct_session') || 'null');
+          if(_sess2 && prof.ava) { _sess2.ava = prof.ava; _sess2.fotoURL = prof.ava; localStorage.setItem('ct_session', JSON.stringify(_sess2)); }
+        } catch(e2) {}
         // Aggiorna ct_session con il nuovo ava
         try {
           var sess3 = JSON.parse(localStorage.getItem('ct_session') || 'null');
@@ -608,18 +614,22 @@ window.FirebaseModule = {
   // ── Salva array turni su Firestore ──────────────────────────
   saveTurni: async function(turniArr) {
     var rep = _reparto();
-    if(!rep || !turniArr) return;
+    if(!rep || !turniArr) { console.warn('[saveTurni] rep o turniArr mancante', {rep: rep, turniArr: turniArr}); return; }
     try {
       var arr = typeof turniArr === 'string' ? JSON.parse(turniArr) : turniArr;
       if(!arr.length) return;
-
-      // Scrivi ogni turno direttamente — semplice e affidabile
-      var writes = arr.map(function(t){
-        if(!t.id || !t.data) return Promise.resolve();
-        return setDoc(doc(db, 'reparti', rep, 'turni', String(t.id)), t);
-      });
+      var writes = arr
+        .filter(function(t){ return t.id && t.data; }) // skip invalid
+        .map(function(t){
+          return setDoc(doc(db, 'reparti', rep, 'turni', String(t.id)), t);
+        });
+      if(!writes.length) { console.warn('[saveTurni] nessun turno valido da salvare'); return; }
       await Promise.all(writes);
-    } catch(e) { console.warn('saveTurni:', e.message); _toast('Errore sync turni', 'err'); }
+      console.log('[saveTurni] OK —', writes.length, 'turni salvati su', rep);
+    } catch(e) {
+      console.error('[saveTurni] ERRORE:', e.code, e.message, e);
+      _toast('Errore sync turni: ' + (e.code || e.message), 'err');
+    }
   },
 
   // ── Riavvia i listener sul nuovo reparto dopo trasferimento ──
