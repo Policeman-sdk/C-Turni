@@ -266,6 +266,87 @@ function _collegaPlaceholder(nome, cognome, uid, reparto) {
   } catch(e) { console.warn('_collegaPlaceholder:', e.message); }
 }
 
+// ── Helper: seleziona tipo struttura reparto (bottoni in-app) ──
+function selTipoRep(prefix, val, btn) {
+  var inp = document.getElementById(prefix + '-tipo-struttura') || document.getElementById(prefix + '-tipo');
+  if(inp) inp.value = val;
+  // Evidenzia bottone selezionato
+  var container = btn ? btn.parentElement : null;
+  if(container) container.querySelectorAll('.tipo-rep-btn').forEach(function(b){ b.classList.remove('sel'); });
+  if(btn) btn.classList.add('sel');
+  // Aggiorna preview ID
+  if(prefix === 'trasf') aggiornaTrasferimentoId();
+  else if(prefix === 'uniti') aggiornaUnitiId();
+  else if(prefix === 'reg') aggiornaRepartoId();
+}
+
+// ── Helper: seleziona specialità reparto (bottoni in-app) ──
+function selSpecRep(prefix, val, btn) {
+  var inp = document.getElementById(prefix + '-specialita') || document.getElementById(prefix + '-spec');
+  if(inp) inp.value = val;
+  var container = btn ? btn.parentElement : null;
+  if(container) container.querySelectorAll('.tipo-rep-btn').forEach(function(b){ b.classList.remove('sel'); });
+  if(btn) btn.classList.add('sel');
+  if(prefix === 'trasf') aggiornaTrasferimentoId();
+  else if(prefix === 'uniti') aggiornaUnitiId();
+  else if(prefix === 'reg') aggiornaRepartoId();
+}
+
+// ── Turni Custom in Impostazioni (sezione inline) ──
+function selTcColImp(btn) {
+  document.querySelectorAll('.tc-col-btn-imp').forEach(function(b){
+    b.style.border = '3px solid transparent';
+    b.style.transform = 'scale(1)';
+  });
+  btn.style.border = '3px solid var(--txt)';
+  btn.style.transform = 'scale(1.2)';
+  var col = btn.getAttribute('data-col');
+  var inp = document.getElementById('tc-col-sel-imp');
+  if(inp) inp.value = col;
+}
+
+function renderTurniCustomImp() {
+  var el = document.getElementById('tc-list-imp');
+  if(!el) return;
+  var TC = lsG('ct_turni_custom', []);
+  if(!TC.length) {
+    el.innerHTML = '<div style="text-align:center;color:var(--txt2);padding:12px;font-size:13px">Nessun turno personalizzato.</div>';
+    return;
+  }
+  el.innerHTML = TC.map(function(tc) {
+    var bg = _TC_COLORI[tc.col] || _TC_COLORI.mattina;
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:6px">'
+      + '<div style="width:36px;height:36px;border-radius:10px;background:'+bg+';display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">'+(tc.emoji||'⏰')+'</div>'
+      + '<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:var(--txt)">'+tc.nome+' <span style="font-size:10px;background:var(--bg2);padding:1px 5px;border-radius:5px;color:var(--txt2)">'+tc.codice+'</span></div>'
+      + '<div style="font-size:11px;color:var(--txt2)">'+tc.oraIn+' – '+tc.oraFi+'</div></div>'
+      + '<button onclick="delTurnoCustom('+tc.id+');renderTurniCustomImp();" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:14px;padding:4px;appearance:none;-webkit-appearance:none">&#128465;</button>'
+      + '</div>';
+  }).join('');
+}
+
+function salvaTurnoCustomImp() {
+  var nome   = (document.getElementById('tc-nome-imp')||{}).value.trim();
+  var codice = ((document.getElementById('tc-codice-imp')||{}).value||'').trim().toUpperCase();
+  var oraIn  = (document.getElementById('tc-ora-in-imp')||{}).value || '08:00';
+  var oraFi  = (document.getElementById('tc-ora-fi-imp')||{}).value || '16:00';
+  var emoji  = (document.getElementById('tc-emoji-imp')||{}).value.trim() || '⏰';
+  var col    = (document.getElementById('tc-col-sel-imp')||{}).value || 'mattina';
+  if(!nome) { toast('Inserisci un nome','err'); return; }
+  if(!codice || codice.length < 2) { toast('Inserisci un codice (min 2 car.)','err'); return; }
+  var TC = lsG('ct_turni_custom', []);
+  if(TC.find(function(x){ return x.codice === codice; })) { toast('Codice già usato','err'); return; }
+  TC.push({id:Date.now(),nome:nome,codice:codice,oraIn:oraIn,oraFi:oraFi,emoji:emoji,col:col});
+  lsS('ct_turni_custom', TC);
+  ['tc-nome-imp','tc-codice-imp','tc-emoji-imp'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+  var oi = document.getElementById('tc-ora-in-imp'); if(oi) oi.value='08:00';
+  var of = document.getElementById('tc-ora-fi-imp'); if(of) of.value='16:00';
+  var oi_lbl = document.getElementById('tc-ora-in-imp-lbl'); if(oi_lbl) oi_lbl.textContent='08:00';
+  var of_lbl = document.getElementById('tc-ora-fi-imp-lbl'); if(of_lbl) of_lbl.textContent='16:00';
+  renderTurniCustomImp();
+  _aggiungiOpzioniCustomAlSelect();
+  toast('Turno personalizzato aggiunto ✓','ok');
+}
+
 function aggiornaStatoReparto(){
   var me = lsG('ct_me', null);
   var info = document.getElementById('stato-reparto-info');
@@ -2329,9 +2410,21 @@ function _applyTemaVariant(isDark){
 function _applicaComportamentoTema(){
   var comp = lsG('ct_tema_comp','manuale');
 
-  // Aggiorna UI selettore
+  // Aggiorna UI selettore (hidden input + bottoni)
   var sel = document.getElementById('sel-tema-comportamento');
   if(sel) sel.value = comp;
+  // Aggiorna bottoni comportamento tema
+  ['manuale','sistema','orario'].forEach(function(c){
+    var btn = document.getElementById('tcb-'+c);
+    if(!btn) return;
+    if(c === comp) {
+      btn.style.borderColor = 'var(--blue)';
+      btn.style.background = 'rgba(41,121,255,.12)';
+    } else {
+      btn.style.borderColor = 'var(--border)';
+      btn.style.background = 'var(--bg2)';
+    }
+  });
   var desc = document.getElementById('tema-comp-desc');
   var descs = {
     manuale:'Scegli il tema manualmente dalle card sopra.',
@@ -3507,6 +3600,7 @@ function delRecuperi(){
     _syncFerieFirebase();
     toast("🗑️ "+da_cancellare+" recupero/i eliminato/i","ok");
   });
+}
 
 function aggRecuperoManuale(){
   var oggi = new Date().toISOString().slice(0,10);
@@ -3695,27 +3789,31 @@ function delTurnoCustom(id) {
 }
 
 // Aggiunge le opzioni custom al select #mt-tipo nel modal turno
+// Aggiunge bottoni turni custom nel modal turno (sostituisce il vecchio select)
 function _aggiungiOpzioniCustomAlSelect() {
-  var sel = document.getElementById('mt-tipo');
-  if(!sel) return;
-  // Rimuovi opzioni custom precedenti
-  var toRemove = sel.querySelectorAll('option[data-custom]');
-  toRemove.forEach(function(o){ o.remove(); });
-  // Aggiungi quelle nuove
+  // Rimuovi bottoni custom precedenti
+  document.querySelectorAll('.btn-turno-r[data-custom]').forEach(function(b){ b.remove(); });
   var TC = lsG('ct_turni_custom', []);
   if(!TC.length) return;
-  var sep = document.createElement('option');
-  sep.disabled = true; sep.textContent = '── Personalizzati ──'; sep.setAttribute('data-custom','sep');
-  sel.appendChild(sep);
+  // Trova il contenitore dei bottoni rapidi (ultima riga)
+  var container = document.querySelector('#m-turno .btn-turno-r:last-of-type');
+  if(!container) return;
+  var parent = container.parentElement;
+  if(!parent) return;
+  // Crea una nuova riga per i custom
+  var row = document.createElement('div');
+  row.style.cssText = 'display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:4px';
   TC.forEach(function(tc){
-    var opt = document.createElement('option');
-    opt.value = 'custom_'+tc.codice;
-    opt.textContent = (tc.emoji||'⏰')+' '+tc.nome+' ('+tc.codice+')';
-    opt.setAttribute('data-custom','1');
-    opt.setAttribute('data-ora-in', tc.oraIn);
-    opt.setAttribute('data-ora-fi', tc.oraFi);
-    sel.appendChild(opt);
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn-turno-r';
+    b.setAttribute('data-custom','1');
+    b.textContent = (tc.emoji||'⏰')+' '+tc.codice;
+    b.title = tc.nome;
+    b.onclick = function(){ setTurnoRapido('custom', 'custom_'+tc.codice, b); };
+    row.appendChild(b);
   });
+  parent.appendChild(row);
 }
 
 // Apre il modal turni custom e carica la lista
@@ -3820,8 +3918,6 @@ function resetOrariPreset(){
     renderOrariPreset();
     toast('Orari ripristinati','ok');
   });
-}
-  toast("Orari ripristinati","ok");
 }
 function orarioFromPreset(tipo){
   var o = getOrariPreset();
@@ -4367,20 +4463,123 @@ function scegliDate(dStr) {
 }
 // -----------------------------------
 
-function apriPersPicker(targetId) {
+function apriPersPicker(targetId, lblId) {
   window._persTarget = targetId;
+  window._persLblId  = lblId || null;
   aggSel(); // Rigenera la lista aggiornata
   openM('m-pers-picker');
+}
+
+// ── Wrapper apriDatePicker per il nuovo form turno ────────────
+// Usa il datepicker esistente ma aggiorna anche il bottone label
+function apriDatePicker(hiddenId, lblId) {
+  window._dateTarget = hiddenId;
+  window._dateLblId  = lblId || ('lbl-' + hiddenId);
+  var cur = (document.getElementById(hiddenId)||{}).value;
+  if(cur) {
+    var pts = cur.split('-');
+    _dpDate = new Date(parseInt(pts[0]), parseInt(pts[1])-1, parseInt(pts[2]));
+  } else {
+    _dpDate = new Date();
+  }
+  renderDatePicker();
+  openM('m-datepicker');
+}
+
+// Override scegliDate per aggiornare anche il bottone label
+scegliDate = function(dStr) {
+  var t = document.getElementById(window._dateTarget);
+  if(t) t.value = dStr;
+  var lblId = window._dateLblId || ('lbl-' + window._dateTarget);
+  var lbl = document.getElementById(lblId);
+  if(lbl) { lbl.textContent = dStr.split('-').reverse().join('/'); lbl.style.color = 'var(--txt)'; }
+  closeM('m-datepicker');
+};
+
+// ── TIME PICKER IN-APP ────────────────────────────────────────
+var _tp = { h:0, m:0, hiddenId:'', lblId:'', title:'' };
+
+function apriTimePicker(hiddenId, lblId, title) {
+  _tp.hiddenId = hiddenId;
+  _tp.lblId    = lblId;
+  _tp.title    = title || 'Orario';
+  var cur = (document.getElementById(hiddenId)||{}).value || '';
+  if(cur && cur.indexOf(':') > 0) {
+    var pts = cur.split(':');
+    _tp.h = parseInt(pts[0])||0;
+    _tp.m = parseInt(pts[1])||0;
+  } else {
+    _tp.h = 0; _tp.m = 0;
+  }
+  var titleEl = document.getElementById('m-time-picker-title');
+  if(titleEl) titleEl.textContent = '⏰ ' + _tp.title;
+  _tpRender();
+  openM('m-time-picker');
+}
+function _tpRender() {
+  var hStr = String(_tp.h).padStart(2,'0');
+  var mStr = String(_tp.m).padStart(2,'0');
+  var hEl = document.getElementById('tp-h');
+  var mEl = document.getElementById('tp-m');
+  var hDisp = document.getElementById('tp-h-display');
+  var mDisp = document.getElementById('tp-m-display');
+  if(hEl) hEl.textContent = hStr;
+  if(mEl) mEl.textContent = mStr;
+  if(hDisp) hDisp.textContent = hStr;
+  if(mDisp) mDisp.textContent = mStr;
+}
+function tpChangeH(d) {
+  _tp.h = ((_tp.h + d) + 24) % 24;
+  _tpRender();
+  if(navigator.vibrate) navigator.vibrate(5);
+}
+function tpChangeM(d) {
+  _tp.m = ((_tp.m + d) + 60) % 60;
+  _tpRender();
+  if(navigator.vibrate) navigator.vibrate(5);
+}
+function tpSetOra(h, m) {
+  _tp.h = h; _tp.m = m;
+  _tpRender();
+  if(navigator.vibrate) navigator.vibrate(10);
+}
+function tpConferma() {
+  var val = String(_tp.h).padStart(2,'0') + ':' + String(_tp.m).padStart(2,'0');
+  var hidden = document.getElementById(_tp.hiddenId);
+  if(hidden) hidden.value = val;
+  var lbl = document.getElementById(_tp.lblId);
+  if(lbl) { lbl.textContent = val; lbl.style.color = 'var(--txt)'; }
+  closeM('m-time-picker');
+  if(navigator.vibrate) navigator.vibrate(15);
 }
 
 function selezionaPersona(id, nome) {
   var target = document.getElementById(window._persTarget);
   if(target) {
-    target.value = id; // Salva l'ID nell'input nascosto per il salvataggio
-    var lbl = document.getElementById('lbl-' + window._persTarget);
+    target.value = id;
+    // Aggiorna label del bottone — supporta sia lbl- che _persLblId
+    var lblId = window._persLblId || ('lbl-' + window._persTarget);
+    var lbl = document.getElementById(lblId);
     if(lbl) { lbl.textContent = nome; lbl.style.color = 'var(--txt)'; }
+    // Aggiorna anche mt-pers-sel per compatibilità con salvaTurno
+    var sel = document.getElementById('mt-pers-sel');
+    if(sel) sel.value = id;
   }
   closeM('m-pers-picker');
+}
+
+// Aggiorna il label del bottone persona nel form turno
+function _aggiornaPersBtnLabel() {
+  var persId = (document.getElementById('mt-pers')||{}).value;
+  var btnLbl = document.getElementById('mt-pers-btn-lbl');
+  if(!btnLbl) return;
+  if(persId) {
+    var P = lsG('ct_p', []);
+    var p = P.find(function(x){ return String(x.id) === String(persId); });
+    if(p) { btnLbl.textContent = p.nome; btnLbl.style.color = 'var(--txt)'; return; }
+  }
+  btnLbl.textContent = 'Scegli collega...';
+  btnLbl.style.color = 'var(--txt2)';
 }
 // ------------------------------------------
 
@@ -5072,23 +5271,29 @@ function renderPers(){
 function salvaPersona(){
   var n=document.getElementById("mp-nome").value.trim();
   var g=document.getElementById("mp-grado").value;
-  var r=document.getElementById("mp-rep").value.trim();
-  if(!n||!g||!r){toast("Compila tutti i campi","err");return;}
-  var P=lsG("ct_p",[]);P.push({id:Date.now(),nome:n,grado:g,reparto:r,ferieRes:30});lsS("ct_p",P);
+  var r=(document.getElementById("mp-rep")||{value:''}).value.trim();
+  if(!n){toast("Inserisci il nome","err");return;}
+  if(!g){toast("Seleziona il grado","err");return;}
+  var P=lsG("ct_p",[]);
+  P.push({id:Date.now(),nome:n,grado:g,reparto:r||'',ferieRes:30});
+  lsS("ct_p",P);
   if(window.FirebaseModule)window.FirebaseModule.savePersona();
   renderPers();aggSel();stats();closeM("m-persona");
-  document.getElementById("mp-nome").value="";document.getElementById("mp-grado").value="";
-  document.getElementById("mp-rep").value="";toast("Persona aggiunta","ok");
+  document.getElementById("mp-nome").value="";
+  document.getElementById("mp-grado").value="";
+  var lblGrado=document.getElementById("lbl-mp-grado");
+  if(lblGrado)lblGrado.textContent="Seleziona grado...";
+  if(document.getElementById("mp-rep"))document.getElementById("mp-rep").value="";
+  toast("Persona aggiunta","ok");
 }
 function salvaTurno(){
   // Controllo ruolo: solo comandante, vice o l'utente stesso può salvare turni
   var _me = lsG('ct_me', null);
   var _isCom = _me && (_me.ruolo === 'comandante' || _me.ruolo === 'vice' || _me.id === 1);
+  // Leggi persona: prima da mt-pers (hidden), poi da mt-pers-sel (select legacy)
   var _pSel=document.getElementById("mt-pers-sel");
   if(_pSel&&_pSel.value)document.getElementById("mt-pers").value=_pSel.value;
   var pid=parseInt(document.getElementById("mt-pers").value);
-  // Se non è comandante/vice, verifica che il turno sia dell'utente stesso
-  // Controlla ct_my_pid, me.id e me.uid per massima compatibilità
   if(!_isCom && pid) {
     var _myPidCheck = parseInt(localStorage.getItem('ct_my_pid')||'0');
     var _isMe = (_myPidCheck && pid === _myPidCheck)
@@ -5101,8 +5306,9 @@ function salvaTurno(){
   }
   var dt=document.getElementById("mt-data").value;
   var tp=document.getElementById("mt-tipo").value;
-  if(!pid||!dt||!tp){toast("Compila tutti i campi","err");return;}
-  // Normalizza tipo custom: custom_XXX → tipo='custom', codice=XXX
+  if(!pid){toast("Seleziona una persona","err");return;}
+  if(!dt){toast("Seleziona la data","err");return;}
+  if(!tp){toast("Seleziona il tipo di turno","err");return;}
   var _customCodice = null;
   if(tp && tp.indexOf('custom_') === 0) {
     _customCodice = tp.replace('custom_','');
@@ -5207,6 +5413,12 @@ function salvaTurno(){
   if(_ri)_ri.value="";if(_rf)_rf.value="";
   var _rc=document.getElementById("mt-turno-codice");if(_rc)_rc.value="";
   document.querySelectorAll(".btn-turno-r").forEach(function(b){b.classList.remove("sel");});
+  // Reset label bottoni
+  var lblOraIn=document.getElementById("mt-ora-in-btn-lbl"); if(lblOraIn){lblOraIn.textContent="Inizio";lblOraIn.style.color="var(--txt2)";}
+  var lblOraFi=document.getElementById("mt-ora-fi-btn-lbl"); if(lblOraFi){lblOraFi.textContent="Fine";lblOraFi.style.color="var(--txt2)";}
+  var lblPers=document.getElementById("mt-pers-btn-lbl"); if(lblPers){lblPers.textContent="Scegli collega...";lblPers.style.color="var(--txt2)";}
+  var lblData=document.getElementById("mt-data-btn-lbl"); if(lblData){lblData.textContent="Seleziona data...";lblData.style.color="var(--txt2)";}
+  var persH=document.getElementById("mt-pers"); if(persH)persH.value="";
   toast("Turno salvato","ok");
 }
 function delP(id){
@@ -6699,8 +6911,8 @@ async function richiestaTrasfRep() {
   var sede = ((document.getElementById('trasf-sede')||{}).value || '').trim().toLowerCase().replace(/\s+/g,'_');
   if(!tipo || !spec || !sede) { toast('Compila tutti i campi del trasferimento', 'err'); return; }
   var nuovoReparto = [tipo, spec, sede].join('_');
-  var session = getSession();
-  if(!session) return;
+  var session = lsG('ct_session', null);
+  if(!session || !session.userId) { toast('Sessione non trovata, rieffettua il login','err'); return; }
   if(!await ctConfirm('Confermi il trasferimento a "' + nuovoReparto.replace(/_/g,' ') + '"?<br><small>Perderai immediatamente l\'accesso al reparto attuale.</small>', {title:'Trasferimento', ico:'🏠', ok:'Conferma', danger:false})) return;
   try {
     ctSpinner(true, 'Trasferimento in corso...');
@@ -6712,23 +6924,20 @@ async function richiestaTrasfRep() {
     if(window.FirebaseModule) {
       try {
         var esistenti = await window.FirebaseModule.getUsersByReparto(nuovoReparto);
-        // Controlla sia 'approved' (inglese, standard Firebase) che 'approvato' (legacy)
         var haCmd = esistenti.some(function(u){
           return u.ruolo === 'comandante' && (u.stato === 'approved' || u.stato === 'approvato');
         });
         isPioniere = (esistenti.length === 0 || !haCmd);
       } catch(e) {
-        // Se Firebase non risponde, assume pioniere (reparto nuovo)
         isPioniere = true;
       }
     } else {
-      // Senza Firebase è sempre pioniere
       isPioniere = true;
     }
 
     me.reparto = nuovoReparto;
     if(isPioniere) {
-      me.stato = 'approved';   // usa 'approved' (standard)
+      me.stato = 'approved';
       me.ruolo = 'comandante';
     } else {
       me.stato = 'pending';
@@ -6738,6 +6947,7 @@ async function richiestaTrasfRep() {
     if(window.FirebaseModule) {
       await window.FirebaseModule.saveUserProfile(me.uid || session.userId, me, nuovoReparto);
     }
+    // Aggiorna sessione — PRESERVA userId e altri campi critici
     session.reparto = nuovoReparto;
     session.ruolo = me.ruolo;
     session.stato = me.stato;
@@ -6810,6 +7020,7 @@ function vaiBN(pg, idx) {
     aggNotifStatus();
     aggTemaUI(lsG("ct_tema","")||"");
     if(typeof renderOrariPreset === 'function') renderOrariPreset();
+    if(typeof renderTurniCustomImp === 'function') renderTurniCustomImp();
   }
   if(pg==="pers"){ renderPers(); if(typeof _renderStatoComando==='function') _renderStatoComando(); }
   if(pg==="cal") { renderCal(); renderTodo(); renderAgenda(); renderTodoCondivisi(); renderAgendaCondivisa(); }
@@ -7937,20 +8148,71 @@ function apriModTurno(id) {
   var t = T.find(function(x){ return x.id === id; });
   if (!t) return;
   document.getElementById('mmt-id').value = id;
-  document.getElementById('mmt-tipo').value = t.tipo || 'mattina';
-  document.getElementById('mmt-orario').value = t.orario || '';
+  // Imposta tipo via button grid
+  var tipo = t.tipo || 'mattina';
+  document.getElementById('mmt-tipo').value = tipo;
+  // Evidenzia il bottone corretto
+  document.querySelectorAll('#m-mod-turno .btn-turno-r').forEach(function(b){ b.classList.remove('sel'); });
+  // Mappa tipo → codice bottone
+  var tipoMap = {mattina:'M',ml:'ML',pomeriggio:'P',pl:'PL',notte:'N',sera:'S',riposo:'R',recupero:'RR',ferie:'L','104':'104','937':'937',licenza:'LICSTU',esame:'ESAME',ls:'LS',fest:'FEST',permesso:'PERM',corso:'CORSO'};
+  var cod = tipoMap[tipo];
+  if(cod) {
+    document.querySelectorAll('#m-mod-turno .btn-turno-r').forEach(function(b){
+      if(b.textContent.trim() === cod) b.classList.add('sel');
+    });
+  }
+  // Imposta orario
+  var orario = t.orario || '';
+  var parts = orario.split('-');
+  var oraIn = parts[0] ? parts[0].trim() : '';
+  var oraFi = parts[1] ? parts[1].trim() : '';
+  // Se vuoto, usa preset
+  if(!oraIn || !oraFi) {
+    var preset = getOrariPreset()[tipo === 'ml' ? 'ml' : tipo === 'pl' ? 'pl' : tipo];
+    if(preset) { oraIn = preset.in; oraFi = preset.out; }
+  }
+  var inHid = document.getElementById('mmt-ora-in');
+  var fiHid = document.getElementById('mmt-ora-fi');
+  var inLbl = document.getElementById('mmt-ora-in-btn-lbl');
+  var fiLbl = document.getElementById('mmt-ora-fi-btn-lbl');
+  if(inHid) inHid.value = oraIn;
+  if(fiHid) fiHid.value = oraFi;
+  if(inLbl) { inLbl.textContent = oraIn || 'Inizio'; inLbl.style.color = oraIn ? 'var(--txt)' : 'var(--txt2)'; }
+  if(fiLbl) { fiLbl.textContent = oraFi || 'Fine'; fiLbl.style.color = oraFi ? 'var(--txt)' : 'var(--txt2)'; }
   document.getElementById('mmt-note').value = t.note || '';
-  aggOraMod(t.tipo || 'mattina');
   openM('m-mod-turno');
+}
+
+// Seleziona tipo turno nel modal modifica
+function setModTurnoTipo(tipo, codice, btn) {
+  document.getElementById('mmt-tipo').value = tipo;
+  document.querySelectorAll('#m-mod-turno .btn-turno-r').forEach(function(b){ b.classList.remove('sel'); });
+  if(btn) btn.classList.add('sel');
+  // Aggiorna orario con preset se i campi sono vuoti
+  var inHid = document.getElementById('mmt-ora-in');
+  var fiHid = document.getElementById('mmt-ora-fi');
+  var inLbl = document.getElementById('mmt-ora-in-btn-lbl');
+  var fiLbl = document.getElementById('mmt-ora-fi-btn-lbl');
+  if(inHid && !inHid.value) {
+    var preset = getOrariPreset()[tipo === 'ml' ? 'ml' : tipo === 'pl' ? 'pl' : tipo];
+    if(preset) {
+      inHid.value = preset.in; fiHid.value = preset.out;
+      if(inLbl) { inLbl.textContent = preset.in; inLbl.style.color = 'var(--txt)'; }
+      if(fiLbl) { fiLbl.textContent = preset.out; fiLbl.style.color = 'var(--txt)'; }
+    }
+  }
 }
 
 function salvaModTurno() {
   var id = parseInt(document.getElementById('mmt-id').value);
   var T = lsG('ct_t', []);
+  var oraIn = (document.getElementById('mmt-ora-in')||{}).value || '';
+  var oraFi = (document.getElementById('mmt-ora-fi')||{}).value || '';
+  var orario = (oraIn && oraFi) ? oraIn + '-' + oraFi : '';
   for (var i=0; i<T.length; i++) {
     if (T[i].id === id) {
       T[i].tipo = document.getElementById('mmt-tipo').value;
-      T[i].orario = document.getElementById('mmt-orario').value.trim();
+      T[i].orario = orario;
       T[i].note = document.getElementById('mmt-note').value.trim();
       break;
     }
@@ -8415,19 +8677,49 @@ function guidaApri(id) {
 //  SISTEMA UNIFICATO: ASCENSORE MODALI, NOTIFICHE E PARSER EXCEL SMART
 // --------------------------------------------------------------------------
 
-var _zTop = 10000;
+var _zTop = 19000;
 
 // Funzione Universale Apertura Modali (L'Ascensore)
 function openM(id) {
     var m = document.getElementById(id);
     if (!m) return;
+    // Assegna z-index crescente — ogni modal aperto sta sopra il precedente
     _zTop += 10;
     m.style.zIndex = _zTop;
     m.classList.add('on');
     if (id === 'm-turno') {
-        popolaSelectPersone();
+        _aggiornaPersBtnLabel();
+        _aggiungiOpzioniCustomAlSelect();
         var _dtInp = document.getElementById('mt-data');
-        if (_dtInp && !_dtInp.value) _dtInp.value = new Date().toLocaleDateString('en-CA');
+        var _dtLbl = document.getElementById('mt-data-btn-lbl');
+        if(_dtInp && !_dtInp.value) {
+          var oggi = new Date().toLocaleDateString('en-CA');
+          _dtInp.value = oggi;
+          if(_dtLbl){ _dtLbl.textContent = oggi.split('-').reverse().join('/'); _dtLbl.style.color='var(--txt)'; }
+        }
+    }
+    if (id === 'm-mod-turno') {
+        // Aggiungi bottoni turni custom al modal modifica
+        document.querySelectorAll('#m-mod-turno .btn-turno-r[data-custom]').forEach(function(b){ b.remove(); });
+        var TC = lsG('ct_turni_custom', []);
+        if(TC.length) {
+          var lastRow = document.querySelector('#m-mod-turno .btn-turno-r:last-of-type');
+          if(lastRow && lastRow.parentElement) {
+            var customRow = document.createElement('div');
+            customRow.style.cssText = 'display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:4px';
+            TC.forEach(function(tc){
+              var b = document.createElement('button');
+              b.type = 'button';
+              b.className = 'btn-turno-r';
+              b.setAttribute('data-custom','1');
+              b.textContent = (tc.emoji||'⏰')+' '+tc.codice;
+              b.title = tc.nome;
+              b.onclick = function(){ setModTurnoTipo('custom_'+tc.codice, tc.codice, b); };
+              customRow.appendChild(b);
+            });
+            lastRow.parentElement.appendChild(customRow);
+          }
+        }
     }
     if (id === 'm-avatar-editor') {
         setTimeout(_aveDraw, 100);
@@ -8631,30 +8923,45 @@ function apriNuovoTurno(ds) {
     _giornoSelezionato = ds || '';
     window._turnoFromCalendar = true; // flag: aperto dal calendario
     var inp = document.getElementById('mt-data');
-    if (inp) inp.value = ds || new Date().toLocaleDateString('en-CA');
-    var sel = document.getElementById('mt-tipo');
-    if (sel) sel.value = '';
-    var ini = document.getElementById('mt-ora-in'), fin = document.getElementById('mt-ora-fi');
-    if (ini) ini.value = ''; if (fin) fin.value = '';
+    var btnLbl = document.getElementById('mt-data-btn-lbl');
+    if(inp) inp.value = ds || new Date().toLocaleDateString('en-CA');
+    if(btnLbl && inp && inp.value) { btnLbl.textContent = inp.value.split('-').reverse().join('/'); btnLbl.style.color='var(--txt)'; }
+    // Reset tipo
+    var tipoHidden = document.getElementById('mt-tipo');
+    if(tipoHidden) tipoHidden.value = '';
     document.querySelectorAll('.btn-turno-r').forEach(function(b){ b.classList.remove('sel'); });
-    popolaSelectPersone();
+    // Reset orari
+    ['mt-ora-in','mt-ora-fi'].forEach(function(id){
+      var h = document.getElementById(id); if(h) h.value='';
+      var l = document.getElementById(id+'-btn-lbl'); if(l){l.textContent=id==='mt-ora-in'?'Inizio':'Fine';l.style.color='var(--txt2)';}
+    });
+    // Popola persona
+    _aggiornaPersBtnLabel();
     openM('m-turno');
 }
 
 function setTurnoRapido(tipo, codice, btn) {
-    _aggiornaPresetOra(); // aggiorna con preset configurabili
-    var sel = document.getElementById('mt-tipo');
-    if (sel) sel.value = tipo;
-    // salva codice per il salvataggio
-    document.getElementById('mt-turno-codice') && (document.getElementById('mt-turno-codice').value = codice || '');
+    _aggiornaPresetOra();
+    // Scrivi tipo e codice negli hidden
+    var tipoH = document.getElementById('mt-tipo');
+    if(tipoH) tipoH.value = tipo;
+    var codH = document.getElementById('mt-turno-codice');
+    if(codH) codH.value = codice || '';
+    // Evidenzia bottone
     document.querySelectorAll('.btn-turno-r').forEach(function(b){ b.classList.remove('sel'); });
-    if (btn) btn.classList.add('sel');
-    // applica orari dal preset
-    var ini = document.getElementById('mt-ora-in'), fin = document.getElementById('mt-ora-fi');
-    if (!ini || !fin) return;
+    if(btn) btn.classList.add('sel');
+    // Applica orari dal preset e aggiorna label bottoni
     var ore = _PRESET_ORA[codice];
-    if (ore) { ini.value = ore[0]; fin.value = ore[1]; }
-    else { ini.value = ''; fin.value = ''; }
+    var oraIn = ore ? ore[0] : '';
+    var oraFi = ore ? ore[1] : '';
+    var hIn = document.getElementById('mt-ora-in');
+    var hFi = document.getElementById('mt-ora-fi');
+    if(hIn) hIn.value = oraIn;
+    if(hFi) hFi.value = oraFi;
+    var lblIn = document.getElementById('mt-ora-in-btn-lbl');
+    var lblFi = document.getElementById('mt-ora-fi-btn-lbl');
+    if(lblIn){ lblIn.textContent = oraIn || 'Inizio'; lblIn.style.color = oraIn ? 'var(--txt)' : 'var(--txt2)'; }
+    if(lblFi){ lblFi.textContent = oraFi || 'Fine';   lblFi.style.color = oraFi ? 'var(--txt)' : 'var(--txt2)'; }
 }
 
 function popolaSelectPersone() {
@@ -8769,10 +9076,8 @@ function apriModificaTurnoGiorno(tid) {
     if(!t)return;
     closeM("m-giorno");
     if(typeof chiudiSheetGiorno === 'function') chiudiSheetGiorno();
-    document.getElementById('mmt-id').value = tid;
-    document.getElementById('mmt-tipo').value = t.tipo || 'mattina';
-    document.getElementById('mmt-orario').value = t.orario && t.orario.indexOf('-')>0 ? t.orario : '';
-    document.getElementById('mmt-note').value = t.note || '';
+    // Usa apriModTurno che gestisce già tutto il nuovo UI
+    apriModTurno(tid);
     // Aggiorna titolo con nome persona e data
     var P=lsG("ct_p",[]);
     var p=P.find(function(x){return x.id===t.pid;});
@@ -8780,9 +9085,8 @@ function apriModificaTurnoGiorno(tid) {
     var mN=["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
     var dParts = t.data ? t.data.split('-') : [];
     var dataTit = dParts.length===3 ? dParts[2]+' '+mN[parseInt(dParts[1])-1] : t.data;
-    document.querySelector('#m-mod-turno .mtit').innerHTML = '&#9998; ' + nomeTit + ' &mdash; ' + dataTit;
-    aggOraMod(t.tipo || 'mattina');
-    openM('m-mod-turno');
+    var titEl = document.querySelector('#m-mod-turno .mtit');
+    if(titEl) titEl.innerHTML = '&#9998; ' + nomeTit + ' &mdash; ' + dataTit;
 }
 
 function aggOraNativaDaTipo(tipo) {
