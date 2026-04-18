@@ -1,7 +1,8 @@
 ﻿
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html{--fs-base:14px;font-size:var(--fs-base)}
-body{height:100%;overflow-x:hidden;font-size:var(--fs-base)}
+/* overflow-x:hidden su body rompe position:fixed nei WebView — usare clip invece */
+body{height:100%;overflow-x:clip;font-size:var(--fs-base)}
 /* -- Material 3 Design Tokens -- */
 :root{
   /* Surface */
@@ -505,6 +506,38 @@ tbody tr:last-child td{border-bottom:none}
 .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9990;
   align-items:flex-end;justify-content:center;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
 .modal.on{display:flex}
+
+/* ═══ FIX STACKING CONTEXT ═══
+   backdrop-filter, filter, transform e will-change creano nuovi stacking context
+   che intrappolano i modal position:fixed rendendoli invisibili o inaccessibili.
+   Soluzione: rimuovere queste proprietà dagli elementi che contengono i modal
+   oppure assicurarsi che i modal abbiano z-index abbastanza alto.
+   Usiamo z-index molto alti per i modal secondari (picker). */
+#m-pers-picker  { z-index: 20010 !important; }
+#m-datepicker   { z-index: 20020 !important; }
+#m-grado-picker { z-index: 20030 !important; }
+#m-time-picker  { z-index: 20040 !important; }
+#m-tema         { z-index: 20050 !important; }
+#m-confirm      { z-index: 20060 !important; }
+#ct-spinner     { z-index: 20070 !important; }
+
+/* Rimuovi backdrop-filter dai widget — crea stacking context */
+.m3-card,
+.bento-card > div,
+.wdg-wrap {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Rimuovi filter dalle animazioni che potrebbero intrappolare */
+.wdg-wrap.frost-hidden,
+.wdg-wrap.frost-reveal {
+  filter: none !important;
+}
+.hero-card.frost-hidden,
+.hero-card.frost-reveal {
+  filter: none !important;
+}
 #m-grado-picker { z-index: 100001 !important; }
 #m-grado-picker .mbox { z-index: 100002 !important; }
 .mbox{background:var(--card);border-radius:var(--radius) var(--radius) 0 0;width:100%;max-width:520px;
@@ -763,16 +796,13 @@ tr.t-corso td:first-child{border-left:3px solid #2979ff}
 @keyframes eggBounce{from{transform:translateX(-8px) rotate(-3deg)}to{transform:translateX(8px) rotate(3deg)}}
 @keyframes eggLamp{from{background:linear-gradient(90deg,#0022ff 0%,transparent 50%,#8b0000 100%)}to{background:linear-gradient(90deg,#8b0000 0%,transparent 50%,#0022ff 100%)}}
 
-/* Scala testo  applica zoom al contenuto app */
-[data-font="sm"] .pg-app-wrap { zoom: 0.85 }
-[data-font="md"] .pg-app-wrap { zoom: 1.0  }
-[data-font="lg"] .pg-app-wrap { zoom: 1.14 }
-[data-font="xl"] .pg-app-wrap { zoom: 1.28 }
-
-/* Scala testo globale */
-html[data-font="sm"] #pg-app { zoom: 0.85 }
-html[data-font="lg"] #pg-app { zoom: 1.14 }
-html[data-font="xl"] #pg-app { zoom: 1.28 }
+/* Scala testo — usa font-size, mai zoom (crea stacking context e rompe position:fixed) */
+html[data-font="sm"] { font-size: 12px; }
+html[data-font="lg"] { font-size: 16px; }
+html[data-font="xl"] { font-size: 18px; }
+html[data-font="sm"] #pg-app, html[data-font="sm"] .pg-app-wrap { zoom: unset !important; font-size: 0.85em; }
+html[data-font="lg"] #pg-app, html[data-font="lg"] .pg-app-wrap { zoom: unset !important; font-size: 1.14em; }
+html[data-font="xl"] #pg-app, html[data-font="xl"] .pg-app-wrap { zoom: unset !important; font-size: 1.28em; }
 
 
 .notif-tab.sel{background:var(--blue)!important;color:#fff!important}
@@ -1118,12 +1148,20 @@ html[data-font="xl"] #pg-app { zoom: 1.28 }
 
 #tess-grado-svg img { width: 50px; height: 30px; object-fit: contain; display: block; }
 
-/* FIX Z-INDEX PER I MODALI SOVRAPPOSTI */
-#m-datepicker, #m-pers-picker, #m-grado-picker, #m-tema { z-index: 9995 !important; }
+/* z-index picker — già definiti sopra nel fix stacking context */
 
 .btn-turno-r { border:1px solid var(--border); background:var(--bg2); padding:10px 4px; border-radius:12px; font-weight:700; font-size:12px; cursor:pointer; transition:all .15s; color:var(--txt); appearance:none;-webkit-appearance:none; }
 .btn-turno-r:active, .btn-turno-r.sel { background:var(--blue); color:#fff; border-color:var(--blue); transform:scale(0.96); }
 .btn-turno-r-red.sel { background:#ff5252 !important; border-color:#ff5252 !important; }
+
+/* Bottoni tipo reparto (trasferimento/unisciti) */
+.tipo-rep-btn { border:1.5px solid var(--border); background:var(--bg2); padding:7px 12px; border-radius:20px; font-weight:600; font-size:12px; cursor:pointer; transition:all .15s; color:var(--txt2); appearance:none;-webkit-appearance:none; }
+.tipo-rep-btn.sel { background:var(--blue); color:#fff; border-color:var(--blue); }
+
+/* Bottoni comportamento tema */
+.tema-comp-btn { transition:all .2s; }
+.tema-comp-btn.on { border-color:var(--blue) !important; background:rgba(41,121,255,.12) !important; }
+.tema-comp-btn.on div:first-child { color:var(--blue) !important; }
 .login-tab { flex:1; padding:14px; background:transparent; border:none; border-bottom:2px solid transparent; color:var(--txt2); font-size:14px; font-weight:600; cursor:pointer; appearance:none;-webkit-appearance:none; transition:color .2s,border-color .2s; }
 .login-tab.on { color:var(--blue); border-bottom-color:var(--blue); font-weight:700; }
 #ava-editor-canvas { cursor: grab; }
@@ -4198,3 +4236,55 @@ body[data-atmosfera="oasi"]       .hero-ring-fill { stroke: #00C853; }
   animation: ctSpin 0.7s linear infinite;
 }
 @keyframes ctSpin { to { transform: rotate(360deg); } }
+
+/* ── TIME PICKER IN-APP ── */
+.tp-preset {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--txt);
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.tp-preset:active {
+  background: var(--blue);
+  color: #fff;
+  border-color: var(--blue);
+  transform: scale(0.95);
+}
+.tp-arrow {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  width: 44px;
+  height: 44px;
+  font-size: 18px;
+  color: var(--txt);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  transition: all 0.15s;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.tp-arrow:active {
+  background: var(--blue);
+  color: #fff;
+  border-color: var(--blue);
+  transform: scale(0.92);
+}
+
+/* ── FORM TURNO — bottoni picker ── */
+#m-turno .fc[id$="-btn"],
+#m-turno button.fc {
+  min-height: 46px;
+  font-size: 14px;
+}

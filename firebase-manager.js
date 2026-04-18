@@ -118,11 +118,8 @@ function _startListeners(reparto) {
     var arr = [];
     snap.forEach(function(d){ arr.push(d.data()); });
     // Merge intelligente: non sovrascrivere turni locali più recenti
-    // Se Firebase ha meno turni del locale (es. appena salvato), aspetta la conferma
     var localT = [];
     try { localT = JSON.parse(localStorage.getItem('ct_t') || '[]'); } catch(e) {}
-    // Usa Firebase come fonte di verità, ma aggiungi turni locali non ancora sincronizzati
-    // (turni con id > timestamp di 5 secondi fa = appena creati)
     var now5s = Date.now() - 5000;
     var turniRecenti = localT.filter(function(t){
       return t.id > now5s && !arr.some(function(fb){ return String(fb.id) === String(t.id); });
@@ -133,6 +130,10 @@ function _startListeners(reparto) {
     if(typeof window.renderOggi  === 'function') window.renderOggi();
     if(typeof window.stats       === 'function') window.stats();
     if(typeof window.aggiornaWidget === 'function') window.aggiornaWidget();
+    if(typeof window.renderDash  === 'function') window.renderDash();
+    // Aggiorna calendario se visibile
+    var calPag = document.getElementById('pag-cal');
+    if(calPag && calPag.classList.contains('on') && typeof window.renderCal === 'function') window.renderCal();
   }, function(e){ console.warn('onSnapshot turni:', e.message); }));
 
   // Todo e Agenda (personali per utente, non per reparto)
@@ -363,7 +364,18 @@ window.FirebaseModule = {
         var prof = profSnap.data();
         if(!prof.id) prof.id = prof.uid || uid;
         prof.uid = uid;
+        // Preserva ava locale se Firestore non ha ancora l'URL
+        var localMe = JSON.parse(localStorage.getItem('ct_me') || 'null');
+        if(!prof.ava && localMe && localMe.ava) prof.ava = localMe.ava;
         localStorage.setItem('ct_me', JSON.stringify(prof));
+        // Aggiorna sessione con reparto aggiornato da Firestore
+        if(prof.reparto && prof.reparto !== session.reparto) {
+          session.reparto = prof.reparto;
+          session.ruolo = prof.ruolo || session.ruolo;
+          session.stato = prof.stato || session.stato;
+          localStorage.setItem('ct_session', JSON.stringify(session));
+          rep = prof.reparto.toLowerCase().replace(/\s+/g,'_');
+        }
         if(typeof aggUI === 'function') aggUI();
       }
       // Carica snapshot iniziale turni
@@ -371,8 +383,25 @@ window.FirebaseModule = {
         var turniSnap = await getDocs(collection(db, 'reparti', rep, 'turni'));
         var turni = []; turniSnap.forEach(function(d){ turni.push(d.data()); });
         if(turni.length > 0) localStorage.setItem('ct_t', JSON.stringify(turni));
+        // Carica utenti del reparto
+        var usersSnap = await getDocs(collection(db, 'reparti', rep, 'utenti'));
+        var users = []; usersSnap.forEach(function(d){ users.push(d.data()); });
+        if(users.length > 0) localStorage.setItem('ct_users', JSON.stringify(users));
       }
-      // Carica utenti
+      // Carica todo e agenda personali
+      var todoSnap = await getDocs(collection(db, 'utenti', uid, 'todo'));
+      var todo = []; todoSnap.forEach(function(d){ todo.push(d.data()); });
+      if(todo.length > 0) localStorage.setItem('ct_td', JSON.stringify(todo));
+      var agendaSnap = await getDocs(collection(db, 'utenti', uid, 'agenda'));
+      var agenda = []; agendaSnap.forEach(function(d){ agenda.push(d.data()); });
+      if(agenda.length > 0) localStorage.setItem('ct_ag', JSON.stringify(agenda));
+      // Ri-renderizza tutto
+      if(typeof window.aggUI          === 'function') window.aggUI();
+      if(typeof window.renderTurni    === 'function') window.renderTurni();
+      if(typeof window.renderOggi     === 'function') window.renderOggi();
+      if(typeof window.stats          === 'function') window.stats();
+      if(typeof window.aggiornaWidget === 'function') window.aggiornaWidget();
+      if(typeof window.renderDash     === 'function') window.renderDash();
       await this.syncUsers();
       _toast('Dati sincronizzati dal cloud', 'ok');
     } catch(e) {

@@ -1092,10 +1092,35 @@
             <!-- Form unisciti reparto — visibile direttamente, non dentro Opzioni Avanzate -->
             <div id="uniti-reparto-form" style="display:none;margin-top:14px;padding:14px;background:var(--bg2);border-radius:14px;border:1px solid var(--border)">
               <div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:12px">&#127968; Unisciti a un Reparto</div>
-              <div class="fg" style="margin-bottom:8px"><label>Tipo Struttura</label>
-                <select class="fc" id="uniti-tipo" onchange="aggiornaUnitiId()"><option value="">-- Seleziona --</option><option value="stazione">Stazione</option><option value="nucleo">Nucleo</option><option value="compagnia">Compagnia</option><option value="distaccamento">Distaccamento</option><option value="tenenza">Tenenza</option><option value="gruppo">Gruppo</option><option value="legione">Legione</option></select></div>
-              <div class="fg" style="margin-bottom:8px"><label>Specialità</label>
-                <select class="fc" id="uniti-spec" onchange="aggiornaUnitiId()"><option value="">-- Seleziona --</option><option value="territoriale">Territoriale</option><option value="forestale">Forestale</option><option value="radiomobile">Radiomobile</option><option value="norm">N.O.R.M.</option><option value="sis">S.I.S.</option><option value="cacciatori">Cacciatori</option><option value="paracadutisti">Paracadutisti</option><option value="ros">R.O.S.</option><option value="gis">G.I.S.</option><option value="noe">N.O.E.</option><option value="nas">N.A.S.</option><option value="nit">N.I.T.</option></select></div>
+              <div class="fg" style="margin-bottom:8px">
+                <label>Tipo Struttura</label>
+                <div style="display:flex;flex-wrap:wrap;gap:6px">
+                  <button type="button" class="tipo-rep-btn" data-val="stazione" onclick="selTipoRep('uniti','stazione',this)">Stazione</button>
+                  <button type="button" class="tipo-rep-btn" data-val="nucleo" onclick="selTipoRep('uniti','nucleo',this)">Nucleo</button>
+                  <button type="button" class="tipo-rep-btn" data-val="compagnia" onclick="selTipoRep('uniti','compagnia',this)">Compagnia</button>
+                  <button type="button" class="tipo-rep-btn" data-val="distaccamento" onclick="selTipoRep('uniti','distaccamento',this)">Distaccamento</button>
+                  <button type="button" class="tipo-rep-btn" data-val="tenenza" onclick="selTipoRep('uniti','tenenza',this)">Tenenza</button>
+                  <button type="button" class="tipo-rep-btn" data-val="gruppo" onclick="selTipoRep('uniti','gruppo',this)">Gruppo</button>
+                  <button type="button" class="tipo-rep-btn" data-val="legione" onclick="selTipoRep('uniti','legione',this)">Legione</button>
+                </div>
+                <input type="hidden" id="uniti-tipo" value="">
+              </div>
+              <div class="fg" style="margin-bottom:8px">
+                <label>Specialità</label>
+                <div style="display:flex;flex-wrap:wrap;gap:6px">
+                  <button type="button" class="tipo-rep-btn" data-val="territoriale" onclick="selSpecRep('uniti','territoriale',this)">Territoriale</button>
+                  <button type="button" class="tipo-rep-btn" data-val="forestale" onclick="selSpecRep('uniti','forestale',this)">Forestale</button>
+                  <button type="button" class="tipo-rep-btn" data-val="radiomobile" onclick="selSpecRep('uniti','radiomobile',this)">Radiomobile</button>
+                  <button type="button" class="tipo-rep-btn" data-val="norm" onclick="selSpecRep('uniti','norm',this)">N.O.R.M.</button>
+                  <button type="button" class="tipo-rep-btn" data-val="sis" onclick="selSpecRep('uniti','sis',this)">S.I.S.</button>
+                  <button type="button" class="tipo-rep-btn" data-val="ros" onclick="selSpecRep('uniti','ros',this)">R.O.S.</button>
+                  <button type="button" class="tipo-rep-btn" data-val="gis" onclick="selSpecRep('uniti','gis',this)">G.I.S.</button>
+                  <button type="button" class="tipo-rep-btn" data-val="noe" onclick="selSpecRep('uniti','noe',this)">N.O.E.</button>
+                  <button type="button" class="tipo-rep-btn" data-val="nas" onclick="selSpecRep('uniti','nas',this)">N.A.S.</button>
+                  <button type="button" class="tipo-rep-btn" data-val="nit" onclick="selSpecRep('uniti','nit',this)">N.I.T.</button>
+                </div>
+                <input type="hidden" id="uniti-spec" value="">
+              </div>
               <div class="fg" style="margin-bottom:8px"><label>Sede / Città</label><input type="text" class="fc" id="uniti-sede" placeholder="Es. Varazze" oninput="aggiornaUnitiId()"></div>
               <div style="margin-bottom:12px;padding:8px 12px;background:rgba(41,121,255,.07);border-radius:10px;border:1px solid rgba(41,121,255,.15)">
                 <div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">ID Reparto generato</div>
@@ -1127,10 +1152,35 @@
                   <!-- Form trasferimento inline -->
                   <div style="padding:12px;background:var(--bg2);border-radius:12px;border:1px solid var(--border)">
                     <div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:10px">&#128260; Trasferimento Reparto</div>
-                    <div class="fg" style="margin-bottom:8px"><label>Tipo Struttura</label>
-                      <select class="fc" id="trasf-tipo-struttura" onchange="aggiornaTrasferimentoId()"><option value="">-- Seleziona --</option><option value="stazione">Stazione</option><option value="nucleo">Nucleo</option><option value="compagnia">Compagnia</option><option value="distaccamento">Distaccamento</option><option value="tenenza">Tenenza</option><option value="gruppo">Gruppo</option><option value="legione">Legione</option></select></div>
-                    <div class="fg" style="margin-bottom:8px"><label>Specialità</label>
-                      <select class="fc" id="trasf-specialita" onchange="aggiornaTrasferimentoId()"><option value="">-- Seleziona --</option><option value="territoriale">Territoriale</option><option value="forestale">Forestale</option><option value="radiomobile">Radiomobile</option><option value="norm">N.O.R.M.</option><option value="sis">S.I.S.</option><option value="cacciatori">Cacciatori</option><option value="paracadutisti">Paracadutisti</option><option value="ros">R.O.S.</option><option value="gis">G.I.S.</option><option value="noe">N.O.E.</option><option value="nas">N.A.S.</option><option value="nit">N.I.T.</option></select></div>
+                    <div class="fg" style="margin-bottom:8px">
+                      <label>Tipo Struttura</label>
+                      <div id="trasf-tipo-btns" style="display:flex;flex-wrap:wrap;gap:6px">
+                        <button type="button" class="tipo-rep-btn" data-val="stazione" onclick="selTipoRep('trasf','stazione',this)">Stazione</button>
+                        <button type="button" class="tipo-rep-btn" data-val="nucleo" onclick="selTipoRep('trasf','nucleo',this)">Nucleo</button>
+                        <button type="button" class="tipo-rep-btn" data-val="compagnia" onclick="selTipoRep('trasf','compagnia',this)">Compagnia</button>
+                        <button type="button" class="tipo-rep-btn" data-val="distaccamento" onclick="selTipoRep('trasf','distaccamento',this)">Distaccamento</button>
+                        <button type="button" class="tipo-rep-btn" data-val="tenenza" onclick="selTipoRep('trasf','tenenza',this)">Tenenza</button>
+                        <button type="button" class="tipo-rep-btn" data-val="gruppo" onclick="selTipoRep('trasf','gruppo',this)">Gruppo</button>
+                        <button type="button" class="tipo-rep-btn" data-val="legione" onclick="selTipoRep('trasf','legione',this)">Legione</button>
+                      </div>
+                      <input type="hidden" id="trasf-tipo-struttura" value="">
+                    </div>
+                    <div class="fg" style="margin-bottom:8px">
+                      <label>Specialità</label>
+                      <div id="trasf-spec-btns" style="display:flex;flex-wrap:wrap;gap:6px">
+                        <button type="button" class="tipo-rep-btn" data-val="territoriale" onclick="selSpecRep('trasf','territoriale',this)">Territoriale</button>
+                        <button type="button" class="tipo-rep-btn" data-val="forestale" onclick="selSpecRep('trasf','forestale',this)">Forestale</button>
+                        <button type="button" class="tipo-rep-btn" data-val="radiomobile" onclick="selSpecRep('trasf','radiomobile',this)">Radiomobile</button>
+                        <button type="button" class="tipo-rep-btn" data-val="norm" onclick="selSpecRep('trasf','norm',this)">N.O.R.M.</button>
+                        <button type="button" class="tipo-rep-btn" data-val="sis" onclick="selSpecRep('trasf','sis',this)">S.I.S.</button>
+                        <button type="button" class="tipo-rep-btn" data-val="ros" onclick="selSpecRep('trasf','ros',this)">R.O.S.</button>
+                        <button type="button" class="tipo-rep-btn" data-val="gis" onclick="selSpecRep('trasf','gis',this)">G.I.S.</button>
+                        <button type="button" class="tipo-rep-btn" data-val="noe" onclick="selSpecRep('trasf','noe',this)">N.O.E.</button>
+                        <button type="button" class="tipo-rep-btn" data-val="nas" onclick="selSpecRep('trasf','nas',this)">N.A.S.</button>
+                        <button type="button" class="tipo-rep-btn" data-val="nit" onclick="selSpecRep('trasf','nit',this)">N.I.T.</button>
+                      </div>
+                      <input type="hidden" id="trasf-specialita" value="">
+                    </div>
                     <div class="fg" style="margin-bottom:8px"><label>Sede / Città</label><input type="text" class="fc" id="trasf-sede" placeholder="Es. Varazze" oninput="aggiornaTrasferimentoId()"></div>
                     <div style="margin-bottom:10px;padding:8px 12px;background:rgba(41,121,255,.07);border-radius:10px;border:1px solid rgba(41,121,255,.15)">
                       <div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Nuovo Reparto</div>
@@ -1232,14 +1282,23 @@
 
           <!-- Comportamento tema -->
           <div style="border-top:1px solid var(--border);padding:14px 18px">
-            <div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:8px">&#9881; Comportamento tema</div>
-            <select id="sel-tema-comportamento" class="fc" style="font-size:13px"
-              onchange="setTemaComportamento(this.value)">
-              <option value="manuale">&#9998; Manuale — scelgo io</option>
-              <option value="sistema">&#128241; Segui sistema (chiaro/scuro)</option>
-              <option value="orario">&#127769; Segui orario (scuro 19:00–07:00)</option>
-            </select>
-            <div id="tema-comp-desc" style="font-size:11px;color:var(--txt2);margin-top:6px"></div>
+            <div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:10px">&#9881; Comportamento tema</div>
+            <div style="display:flex;flex-direction:column;gap:8px" id="tema-comp-btns">
+              <button id="tcb-manuale" class="tema-comp-btn on" onclick="setTemaComportamento('manuale')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;border:2px solid var(--blue);background:rgba(41,121,255,.1);cursor:pointer;appearance:none;-webkit-appearance:none;text-align:left;transition:all .2s">
+                <span style="font-size:18px">&#9998;</span>
+                <div><div style="font-size:13px;font-weight:700;color:var(--txt)">Manuale</div><div style="font-size:11px;color:var(--txt2)">Scelgo io il tema</div></div>
+              </button>
+              <button id="tcb-sistema" class="tema-comp-btn" onclick="setTemaComportamento('sistema')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;border:2px solid var(--border);background:var(--bg2);cursor:pointer;appearance:none;-webkit-appearance:none;text-align:left;transition:all .2s">
+                <span style="font-size:18px">&#128241;</span>
+                <div><div style="font-size:13px;font-weight:700;color:var(--txt)">Segui sistema</div><div style="font-size:11px;color:var(--txt2)">Chiaro/scuro automatico</div></div>
+              </button>
+              <button id="tcb-orario" class="tema-comp-btn" onclick="setTemaComportamento('orario')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;border:2px solid var(--border);background:var(--bg2);cursor:pointer;appearance:none;-webkit-appearance:none;text-align:left;transition:all .2s">
+                <span style="font-size:18px">&#127769;</span>
+                <div><div style="font-size:13px;font-weight:700;color:var(--txt)">Segui orario</div><div style="font-size:11px;color:var(--txt2)">Scuro 19:00–07:00</div></div>
+              </button>
+            </div>
+            <input type="hidden" id="sel-tema-comportamento" value="manuale">
+            <div id="tema-comp-desc" style="font-size:11px;color:var(--txt2);margin-top:8px"></div>
           </div>
 
           <!-- Slider dimensione testo -->
@@ -1435,7 +1494,7 @@
           </div>
 
           <!-- Orari preset turni -->
-          <div class="m3-row tap" onclick="toggleImpSec('orari-body','arr-orari')">
+          <div class="m3-row tap" onclick="toggleImpSec('orari-body','arr-orari');renderOrariPreset();">
             <div class="m3-row-ico" style="background:rgba(0,188,212,.12)">&#9200;</div>
             <div class="m3-row-body"><div class="m3-row-title">Orari preset turni</div><div class="m3-row-sub">Personalizza gli orari di ogni tipo di turno</div></div>
             <div class="m3-row-right" id="arr-orari">&#8250;</div>
@@ -1444,10 +1503,10 @@
             <div style="padding:14px;border-top:1px solid var(--border)">
               <div style="font-size:11px;color:var(--txt2);margin-bottom:10px">&#9200; Modifica gli orari preset per ogni tipo di turno e premi Salva.</div>
               <div id="orari-preset-list"></div>
+              <div id="orari-ok" class="smsg" style="margin-top:8px">&#10003; Salvato!</div>
+              <button onclick="resetOrariPreset()" style="width:100%;padding:10px;border-radius:10px;background:rgba(200,16,46,.08);color:var(--red);border:1px solid rgba(200,16,46,.25);font-size:12px;font-weight:700;cursor:pointer;appearance:none;-webkit-appearance:none;margin-top:8px">&#8635; Ripristina default</button>
             </div>
           </div>
-
-          <!-- Gestione Turni Custom -->
           <div class="m3-row tap" onclick="apriTurniCustom()">
             <div class="m3-row-ico" style="background:rgba(255,159,67,.12)">&#128197;</div>
             <div class="m3-row-body"><div class="m3-row-title">Turni Personalizzati</div><div class="m3-row-sub">Crea e gestisci tipi di turno custom</div></div>
@@ -1513,7 +1572,7 @@
           </div>
         </div>
 
-        <!-- ═══ ISOLA 6: INFO APP ═══ -->
+        <!-- ═══ ISOLA 6: GESTIONE REPARTO ═══ -->
         <div class="m3-list-group-title">&#8505; Info</div>
         <div class="m3-list-group">
           <div class="m3-row tap" onclick="vaiBN('rep',99)">
@@ -1759,27 +1818,51 @@
   <div class="mhd"><div class="mtit">&#9998; Modifica turno</div><button class="mcl" onclick="closeM('m-mod-turno')">&#10005;</button></div>
   <div class="mbod" style="display:grid;gap:12px">
     <input type="hidden" id="mmt-id">
-    <div class="fg" style="margin-bottom:0"><label>Tipo turno</label>
-      <select class="fc app-fc" id="mmt-tipo" onchange="aggOraMod(this.value)">
-        <option value="mattina">&#127749; Mattina</option>
-        <option value="ml">&#127749; Mattina Lunga (ML)</option>
-        <option value="pomeriggio">&#9728;&#65039; Pomeriggio</option>
-        <option value="pl">&#9728;&#65039; Pomeriggio Lungo (PL)</option>
-        <option value="notte">&#127769; Notte</option>
-        <option value="sera">&#127769; Sera</option>
-        <option value="riposo">&#128164; Riposo</option>
-        <option value="recupero">&#128260; Recupero Riposo</option>
-        <option value="ferie">&#127958; Ferie/Licenza</option>
-        <option value="licenza">&#128218; Licenza Studio</option>
-        <option value="104">&#9855; Permesso 104</option>
-        <option value="937">&#127958; Licenza 937</option>
-        <option value="ls">&#129656; Donaz. Sangue / Malattia</option>
-        <option value="permesso">&#128336; Permesso</option>
-        <option value="fest">&#127881; Festivit&#224;</option>
-        <option value="corso">&#127891; Corso</option>
-        <option value="esame">&#128221; Esame</option>
-      </select></div>
-    <div class="fg" style="margin-bottom:0"><label>Orario <span id="mmt-orario-hint" style="font-size:10px;color:var(--txt2);font-weight:400"></span></label><input type="text" class="fc app-fc" id="mmt-orario" placeholder="Es. 07:00&#8211;15:00"></div>
+    <input type="hidden" id="mmt-tipo" value="mattina">
+    <div class="fg" style="margin-bottom:0">
+      <label>Tipo turno</label>
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:6px">
+        <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('mattina','M',this)">M</button>
+        <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('ml','ML',this)">ML</button>
+        <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('pomeriggio','P',this)">P</button>
+        <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('pl','PL',this)">PL</button>
+        <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('notte','N',this)">N</button>
+        <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('sera','S',this)">S</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:6px">
+        <button type="button" class="btn-turno-r btn-turno-r-red" onclick="setModTurnoTipo('riposo','R',this)">R</button>
+        <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('recupero','RR',this)">RR</button>
+        <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('ferie','L',this)">L</button>
+        <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('104','104',this)">104</button>
+        <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('937','937',this)">937</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:6px">
+        <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('licenza','LICSTU',this)">LICSTU</button>
+        <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('esame','ESAME',this)">ESAME</button>
+        <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('ls','LS',this)">LS</button>
+        <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('fest','FEST',this)">FEST</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+        <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('permesso','PERM',this)">PERM</button>
+        <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('corso','CORSO',this)">CORSO</button>
+        <button type="button" class="btn-turno-r" id="mmt-custom-row-placeholder"></button>
+      </div>
+    </div>
+    <div class="fg" style="margin-bottom:0"><label>Orario <span id="mmt-orario-hint" style="font-size:10px;color:var(--txt2);font-weight:400"></span></label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <button class="fc" id="mmt-ora-in-btn" style="text-align:left;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="apriTimePicker('mmt-ora-in','mmt-ora-in-btn-lbl','Ora inizio')">
+          <span id="mmt-ora-in-btn-lbl" style="font-weight:600;color:var(--txt2)">Inizio</span>
+          <span>&#9200;</span>
+        </button>
+        <button class="fc" id="mmt-ora-fi-btn" style="text-align:left;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="apriTimePicker('mmt-ora-fi','mmt-ora-fi-btn-lbl','Ora fine')">
+          <span id="mmt-ora-fi-btn-lbl" style="font-weight:600;color:var(--txt2)">Fine</span>
+          <span>&#9200;</span>
+        </button>
+      </div>
+      <input type="hidden" id="mmt-ora-in" value="">
+      <input type="hidden" id="mmt-ora-fi" value="">
+      <input type="hidden" id="mmt-orario" value="">
+    </div>
     <div class="fg" style="margin-bottom:0"><label>Note</label><input type="text" class="fc app-fc" id="mmt-note" placeholder="Note..."></div>
   </div>
   <div class="mfoo">
@@ -1841,7 +1924,7 @@
 </div>
 
 <!-- MODAL GRADO PICKER -->
-<div id="m-grado-picker" class="modal" style="z-index: 100000 !important;">
+<div id="m-grado-picker" class="modal" style="z-index: 100001 !important;">
   <div class="mbox" style="max-width:420px">
     <div class="mhan"><div></div></div>
     <div class="mhd">
@@ -1853,6 +1936,51 @@
     </div>
     <div class="mfoo">
       <button class="btn btn-g btn-sm" onclick="closeM('m-grado-picker')">Annulla</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL TIME PICKER IN-APP -->
+<div id="m-time-picker" class="modal" style="z-index:99990">
+  <div class="mbox" style="max-width:320px;border-radius:24px 24px 0 0;position:fixed;bottom:0;left:0;right:0;margin:0 auto">
+    <div class="mhan"></div>
+    <div class="mhd">
+      <div class="mtit" id="m-time-picker-title">&#9200; Seleziona Orario</div>
+      <button class="mcl" onclick="closeM('m-time-picker')">&#10005;</button>
+    </div>
+    <div class="mbod" style="padding:16px">
+      <div style="text-align:center;font-size:52px;font-weight:900;color:var(--txt);letter-spacing:-2px;margin-bottom:16px">
+        <span id="tp-h-display">00</span><span style="opacity:.3">:</span><span id="tp-m-display">00</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">
+        <button class="tp-preset" onclick="tpSetOra(6,0)">06:00</button>
+        <button class="tp-preset" onclick="tpSetOra(7,0)">07:00</button>
+        <button class="tp-preset" onclick="tpSetOra(8,0)">08:00</button>
+        <button class="tp-preset" onclick="tpSetOra(14,0)">14:00</button>
+        <button class="tp-preset" onclick="tpSetOra(16,0)">16:00</button>
+        <button class="tp-preset" onclick="tpSetOra(20,0)">20:00</button>
+        <button class="tp-preset" onclick="tpSetOra(22,0)">22:00</button>
+        <button class="tp-preset" onclick="tpSetOra(0,0)">00:00</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 24px 1fr;gap:8px;align-items:center">
+        <div style="text-align:center">
+          <div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Ore</div>
+          <button onclick="tpChangeH(+1)" class="tp-arrow">&#8593;</button>
+          <div id="tp-h" style="font-size:32px;font-weight:900;color:var(--txt);margin:6px 0">00</div>
+          <button onclick="tpChangeH(-1)" class="tp-arrow">&#8595;</button>
+        </div>
+        <div style="font-size:28px;font-weight:900;color:var(--txt2);text-align:center;padding-bottom:2px">:</div>
+        <div style="text-align:center">
+          <div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Minuti</div>
+          <button onclick="tpChangeM(+5)" class="tp-arrow">&#8593;</button>
+          <div id="tp-m" style="font-size:32px;font-weight:900;color:var(--txt);margin:6px 0">00</div>
+          <button onclick="tpChangeM(-5)" class="tp-arrow">&#8595;</button>
+        </div>
+      </div>
+    </div>
+    <div class="mfoo">
+      <button class="btn btn-g btn-sm" onclick="closeM('m-time-picker')">Annulla</button>
+      <button class="btn btn-p btn-sm" onclick="tpConferma()" style="width:auto">&#10003; Conferma</button>
     </div>
   </div>
 </div>
@@ -1954,61 +2082,74 @@
 <div id="m-turno" class="modal"><div class="mbox">
   <div class="mhan"></div>
   <div class="mhd"><div class="mtit">&#10133; Nuovo Turno</div><button class="mcl" onclick="closeM('m-turno')">&#10005;</button></div>
-  <div class="mbod"><div style="display:grid;gap:12px">
-    <div class="fg" style="margin-bottom:0"><label>Persona</label>
-      <select class="fc" id="mt-pers-sel"><option value="">Scegli collega...</option></select>
+  <div class="mbod"><div style="display:grid;gap:14px">
+
+    <!-- Persona — picker in-app -->
+    <div class="fg" style="margin-bottom:0">
+      <label>Persona</label>
+      <button class="fc" id="mt-pers-btn" style="text-align:left;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="apriPersPicker('mt-pers','mt-pers-btn-lbl')">
+        <span id="mt-pers-btn-lbl" style="font-weight:600;color:var(--txt2)">Scegli collega...</span>
+        <span style="font-size:14px">&#8250;</span>
+      </button>
       <input type="hidden" id="mt-pers" value="">
       <input type="hidden" id="mt-turno-codice" value="">
       <input type="hidden" id="mt-edit-id" value="">
     </div>
-    <div class="fg" style="margin-bottom:0"><label>Data</label>
-      <input type="date" class="fc" id="mt-data">
+
+    <!-- Data — picker in-app -->
+    <div class="fg" style="margin-bottom:0">
+      <label>Data</label>
+      <button class="fc" id="mt-data-btn" style="text-align:left;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="apriDatePicker('mt-data','mt-data-btn-lbl')">
+        <span id="mt-data-btn-lbl" style="font-weight:600;color:var(--txt2)">Seleziona data...</span>
+        <span style="font-size:14px">&#128197;</span>
+      </button>
+      <input type="hidden" id="mt-data" value="">
     </div>
-    <div class="fg" style="margin-bottom:0"><label>Tipo Turno</label>
-      <select class="fc" id="mt-tipo" onchange="aggOraNativaDaTipo(this.value)">
-        <option value="">Seleziona...</option>
-        <option value="mattina">&#127749; Mattina (M)</option>
-        <option value="mattina">&#127749; Mattina Lunga (ML)</option>
-        <option value="pomeriggio">&#9728;&#65039; Pomeriggio (P)</option>
-        <option value="pomeriggio">&#9728;&#65039; Pomeriggio Lungo (PL)</option>
-        <option value="notte">&#127769; Notte (N)</option>
-        <option value="sera">&#127769; Sera (S)</option>
-        <option value="riposo">? Riposo (R)</option>
-        <option value="recupero">&#128260; Recupero Riposo (RR)</option>
-        <option value="ferie">&#127958; Ferie / Licenza (L)</option>
-        <option value="licenza">&#128218; Licenza Studio (LICSTU)</option>
-        <option value="104">&#9855; Permesso 104</option>
-        <option value="937">&#127958; Licenza 937</option>
-        <option value="ls">&#129656; Donaz./Malattia (LS)</option>
-        <option value="fest">&#127881; Festivo (FEST)</option>
-        <option value="corso">&#127891; Corso (CORSO)</option>
-        <option value="esame">&#128221; Esame (ESAME)</option>
-      </select></div>
-    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:5px;margin-top:-4px">
-      <button type="button" class="btn-turno-r" onclick="setTurnoRapido('mattina','M',this)">M</button>
-      <button type="button" class="btn-turno-r" onclick="setTurnoRapido('mattina','ML',this)">ML</button>
-      <button type="button" class="btn-turno-r" onclick="setTurnoRapido('pomeriggio','P',this)">P</button>
-      <button type="button" class="btn-turno-r" onclick="setTurnoRapido('pomeriggio','PL',this)">PL</button>
-      <button type="button" class="btn-turno-r" onclick="setTurnoRapido('notte','N',this)">N</button>
-      <button type="button" class="btn-turno-r" onclick="setTurnoRapido('sera','S',this)">S</button>
+
+    <!-- Tipo Turno — bottoni rapidi (già in-app, ottimo) -->
+    <div class="fg" style="margin-bottom:0">
+      <label>Tipo Turno</label>
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:6px">
+        <button type="button" class="btn-turno-r" onclick="setTurnoRapido('mattina','M',this)">M</button>
+        <button type="button" class="btn-turno-r" onclick="setTurnoRapido('ml','ML',this)">ML</button>
+        <button type="button" class="btn-turno-r" onclick="setTurnoRapido('pomeriggio','P',this)">P</button>
+        <button type="button" class="btn-turno-r" onclick="setTurnoRapido('pl','PL',this)">PL</button>
+        <button type="button" class="btn-turno-r" onclick="setTurnoRapido('notte','N',this)">N</button>
+        <button type="button" class="btn-turno-r" onclick="setTurnoRapido('sera','S',this)">S</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:6px">
+        <button type="button" class="btn-turno-r btn-turno-r-red" onclick="setTurnoRapido('riposo','R',this)">R</button>
+        <button type="button" class="btn-turno-r" onclick="setTurnoRapido('recupero','RR',this)">RR</button>
+        <button type="button" class="btn-turno-r" onclick="setTurnoRapido('ferie','L',this)">L</button>
+        <button type="button" class="btn-turno-r" onclick="setTurnoRapido('104','104',this)">104</button>
+        <button type="button" class="btn-turno-r" onclick="setTurnoRapido('937','937',this)">937</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+        <button type="button" class="btn-turno-r" onclick="setTurnoRapido('licenza','LICSTU',this)">LICSTU</button>
+        <button type="button" class="btn-turno-r" onclick="setTurnoRapido('esame','ESAME',this)">ESAME</button>
+        <button type="button" class="btn-turno-r" onclick="setTurnoRapido('ls','LS',this)">LS</button>
+        <button type="button" class="btn-turno-r" onclick="setTurnoRapido('fest','FEST',this)">FEST</button>
+      </div>
+      <input type="hidden" id="mt-tipo" value="">
     </div>
-    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-top:-8px">
-      <button type="button" class="btn-turno-r btn-turno-r-red" onclick="setTurnoRapido('riposo','R',this)">R</button>
-      <button type="button" class="btn-turno-r" onclick="setTurnoRapido('recupero','RR',this)">RR</button>
-      <button type="button" class="btn-turno-r" onclick="setTurnoRapido('ferie','L',this)">L</button>
-      <button type="button" class="btn-turno-r" onclick="setTurnoRapido('104','104',this)">104</button>
-      <button type="button" class="btn-turno-r" onclick="setTurnoRapido('937','937',this)">937</button>
+
+    <!-- Orario — picker in-app a rullo -->
+    <div class="fg" style="margin-bottom:0">
+      <label>Orario</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <button class="fc" id="mt-ora-in-btn" style="text-align:left;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="apriTimePicker('mt-ora-in','mt-ora-in-btn-lbl','Ora inizio')">
+          <span id="mt-ora-in-btn-lbl" style="font-weight:600;color:var(--txt2)">Inizio</span>
+          <span>&#9200;</span>
+        </button>
+        <button class="fc" id="mt-ora-fi-btn" style="text-align:left;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="apriTimePicker('mt-ora-fi','mt-ora-fi-btn-lbl','Ora fine')">
+          <span id="mt-ora-fi-btn-lbl" style="font-weight:600;color:var(--txt2)">Fine</span>
+          <span>&#9200;</span>
+        </button>
+      </div>
+      <input type="hidden" id="mt-ora-in" value="">
+      <input type="hidden" id="mt-ora-fi" value="">
     </div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:-8px">
-      <button type="button" class="btn-turno-r" onclick="setTurnoRapido('licenza','LICSTU',this)">LICSTU</button>
-      <button type="button" class="btn-turno-r" onclick="setTurnoRapido('esame','ESAME',this)">ESAME</button>
-      <button type="button" class="btn-turno-r" onclick="setTurnoRapido('ls','LS',this)">LS</button>
-      <button type="button" class="btn-turno-r" onclick="setTurnoRapido('fest','FEST',this)">FEST</button>
-    </div>
-    <div class="g2" style="margin-bottom:0">
-      <div class="fg" style="margin-bottom:0"><label>Ora inizio</label><input type="time" class="fc" id="mt-ora-in"></div>
-      <div class="fg" style="margin-bottom:0"><label>Ora fine</label><input type="time" class="fc" id="mt-ora-fi"></div>
-    </div>
+
     <div class="fg" style="margin-bottom:0"><label>Note</label>
       <input type="text" class="fc" id="mt-note" placeholder="Eventuali note..."></div>
   </div></div>
@@ -2018,26 +2159,21 @@
   </div>
 </div></div>
 
-<!-- MODAL PERSONA -->
+<!-- MODAL PERSONA — fix bug grado -->
 <div id="m-persona" class="modal"><div class="mbox">
   <div class="mhan"></div>
   <div class="mhd"><div class="mtit">&#128100; Aggiungi Persona</div><button class="mcl" onclick="closeM('m-persona')">&#10005;</button></div>
-  <div class="mbod"><div style="display:grid;gap:12px">
+  <div class="mbod"><div style="display:grid;gap:14px">
     <div class="fg" style="margin-bottom:0"><label>Nome Completo</label>
-      <input type="text" class="fc" id="mp-nome" placeholder="Mario Rossi"></div>
-    <div class="fg" style="margin-bottom:0"><label>Grado</label>
+      <input type="text" class="fc" id="mp-nome" placeholder="Es. Rossi Mario"></div>
+    <div class="fg" style="margin-bottom:0">
+      <label>Grado</label>
       <input type="hidden" id="mp-grado" value="">
-      <button class="fc app-fc" style="text-align:left; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="apriGradoPicker('mp-grado')" id="btn-mp-grado">
-        <span id="lbl-mp-grado" style="font-weight:600; color:var(--txt2)">Seleziona grado...</span>
+      <button class="fc app-fc" style="text-align:left;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="apriGradoPicker('mp-grado')" id="btn-mp-grado">
+        <span id="lbl-mp-grado" style="font-weight:600;color:var(--txt2)">Seleziona grado...</span>
         <span style="font-size:14px">&#8250;</span>
-      </button></div>
-    <div class="fg" style="margin-bottom:0"><label>Tipo Reparto</label>
-      <input type="hidden" id="mp-trep" value="Territoriale">
-      <div style="display:flex; background:var(--card); border-radius:12px; padding:4px; gap:4px; border:1px solid var(--border)">
-        <div onclick="selezionaTipoReparto('mp-trep', 'Territoriale', this)" class="trep-pill" style="flex:1; text-align:center; padding:10px 4px; border-radius:8px; font-size:12px; font-weight:800; background:var(--blue); color:#fff; cursor:pointer; transition:all .2s">Territoriale</div>
-        <div onclick="selezionaTipoReparto('mp-trep', 'Forestale', this)" class="trep-pill" style="flex:1; text-align:center; padding:10px 4px; border-radius:8px; font-size:12px; font-weight:600; background:transparent; color:var(--txt); cursor:pointer; transition:all .2s">Forestale</div>
-        <div onclick="selezionaTipoReparto('mp-trep', 'Speciale', this)" class="trep-pill" style="flex:1; text-align:center; padding:10px 4px; border-radius:8px; font-size:12px; font-weight:600; background:transparent; color:var(--txt); cursor:pointer; transition:all .2s">Speciale</div>
-      </div>
+      </button>
+    </div>
     <div class="fg" style="margin-bottom:0"><label>Reparto</label>
       <input type="text" class="fc" id="mp-rep" placeholder="Stazione di..."></div>
   </div></div>
