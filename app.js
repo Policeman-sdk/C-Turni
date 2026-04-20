@@ -347,6 +347,25 @@ function salvaTurnoCustomImp() {
   toast('Turno personalizzato aggiunto ✓','ok');
 }
 
+// ── Helper: priorità todo (bottoni in-app) ──
+function setTdPrio(val, btn) {
+  var inp = document.getElementById('td-prio');
+  if(inp) inp.value = val;
+  document.querySelectorAll('#m-todo .tipo-rep-btn').forEach(function(b){ b.classList.remove('sel'); });
+  if(btn) btn.classList.add('sel');
+}
+
+// ── Helper: avviso agenda (bottoni in-app) ──
+function setAgNotif(val, btn) {
+  var inp = document.getElementById('ag-notif');
+  if(inp) inp.value = String(val);
+  document.querySelectorAll('#m-agenda .tipo-rep-btn').forEach(function(b){ b.classList.remove('sel'); });
+  if(btn) btn.classList.add('sel');
+}
+
+// ── Reset m-todo quando si apre ──
+var _origOpenM_todo = null; // gestito in openM
+
 function aggiornaStatoReparto(){
   var me = lsG('ct_me', null);
   var info = document.getElementById('stato-reparto-info');
@@ -1425,7 +1444,8 @@ function aggiornaWidget(){
     notte:"Notte",sera:"Sera",riposo:"Riposo",recupero:"Recupero Riposo",
     ferie:"Ferie","937":"Licenza 937",licenza:"Lic. Studio",
     "104":"Art. 104","ls":"Donaz. Sangue / Malattia",
-    permesso:"Permesso",fest:"Festivit",corso:"Corso",esame:"Esame"
+    permesso:"Permesso",fest:"Festivit",corso:"Corso",esame:"Esame",
+    obbm:"Obbligatorio Mattina",obbp:"Obbligatorio Pomeriggio"
   };
   // Risolvi tipo da codice se disponibile
   var tipoRisolto = mioTurno ? (_codiceToTipo[mioTurno.codice] || mioTurno.tipo) : "riposo";
@@ -1504,24 +1524,46 @@ var _TURNO_ATMOSFERA = {
   notte:'crepuscolo', sera:'crepuscolo',
   riposo:'riposo', recupero:'riposo', ferie:'oasi',
   '937':'oasi', '104':'oasi', ls:'oasi', licenza:'oasi',
-  permesso:'oasi', fest:'oasi', corso:'oasi', esame:'oasi'
+  permesso:'oasi', fest:'oasi', corso:'oasi', esame:'oasi',
+  obbm:'alba', obbp:'tramonto'
 };
 var _TURNO_ICO_HERO = {
   mattina:'☀️', ml:'🌅', pomeriggio:'🌆', pl:'🌇',
   notte:'🌙', sera:'🌃', riposo:'🛋️', recupero:'🛋️',
   ferie:'🏖️', '937':'📋', '104':'📋', ls:'🩸',
-  licenza:'📚', permesso:'📝', fest:'🎉', corso:'📖', esame:'✏️'
+  licenza:'📚', permesso:'📝', fest:'🎉', corso:'📖', esame:'✏️',
+  obbm:'🔶', obbp:'🔷'
 };
 var _TURNO_SIGLA = {
   mattina:'M', ml:'ML', pomeriggio:'P', pl:'PL',
   notte:'N', sera:'S', riposo:'R', recupero:'RR',
   ferie:'F', '937':'937', '104':'104', ls:'LS',
-  licenza:'LIC', permesso:'PER', fest:'FEST', corso:'COR', esame:'ES'
+  licenza:'LIC', permesso:'PER', fest:'FEST', corso:'COR', esame:'ES',
+  obbm:'OBBM', obbp:'OBBP'
 };
 
 function aggiornaHeroCard(){
   var me = lsG('ct_me', null);
   if(!me) return;
+
+  // ── Recupero foto robusto: ct_me → ct_session → ct_p ──
+  var ava = me.ava || me.fotoURL || null;
+  if(!ava || (!ava.startsWith('http') && !ava.startsWith('data:'))) {
+    var sess = lsG('ct_session', null);
+    if(sess && (sess.ava || sess.fotoURL)) ava = sess.ava || sess.fotoURL;
+  }
+  if(!ava || (!ava.startsWith('http') && !ava.startsWith('data:'))) {
+    var P = lsG('ct_p', []);
+    var myPid = localStorage.getItem('ct_my_pid');
+    var pMe = P.find(function(p){ return p.uid === me.uid || String(p.id) === String(myPid); });
+    if(pMe && pMe.ava && pMe.ava.startsWith('http')) ava = pMe.ava;
+  }
+  // Se trovata, aggiorna ct_me per i prossimi render
+  if(ava && ava.startsWith('http') && (!me.ava || !me.ava.startsWith('http'))) {
+    me.ava = ava;
+    lsS('ct_me', me);
+  }
+
   var now = new Date();
   var oggi = now.getFullYear()+'-'+('0'+(now.getMonth()+1)).slice(-2)+'-'+('0'+now.getDate()).slice(-2);
   var T = lsG('ct_t', []);
@@ -1544,8 +1586,8 @@ function aggiornaHeroCard(){
   // Foto profilo utente
   var heroAva = document.getElementById('hero-user-ava');
   if(heroAva){
-    if(me.ava && (me.ava.startsWith('http') || me.ava.startsWith('data:'))){
-      heroAva.style.backgroundImage = 'url('+me.ava+')';
+    if(ava && (ava.startsWith('http') || ava.startsWith('data:'))){
+      heroAva.style.backgroundImage = 'url('+ava+')';
       heroAva.style.backgroundSize = 'cover';
       heroAva.style.backgroundPosition = 'center';
       heroAva.textContent = '';
@@ -1600,28 +1642,79 @@ function aggiornaSquadra(){
   var oggi = now.getFullYear()+'-'+('0'+(now.getMonth()+1)).slice(-2)+'-'+('0'+now.getDate()).slice(-2);
   var T = lsG('ct_t', []);
   var P = lsG('ct_p', []);
+  // Arricchisci ct_p con utenti Firebase (ct_users) per avere foto aggiornate
+  var fbUsers = lsG('ct_users', []);
   var container = document.getElementById('w-squadra-list');
   if(!container) return;
   var turniOggi = T.filter(function(t){ return t.data === oggi; });
+
+  // Mappa pid → turno (supporta sia id numerico che uid stringa)
   var pidInServizio = {};
-  turniOggi.forEach(function(t){ pidInServizio[t.pid] = t; });
-
-  var persone = [];
-  var visti = {};
-
-  P.forEach(function(p){
-    if(visti[p.id]) return;
-    visti[p.id] = true;
-    var inServizio = !!pidInServizio[p.id] || !!pidInServizio[p.uid];
-    persone.push({ nome: p.nome||'', cognome: p.cognome||'', ava: p.ava||null, inServizio: inServizio, fromFirestore: true });
+  turniOggi.forEach(function(t){
+    pidInServizio[String(t.pid)] = t;
   });
 
+  // Costruisci lista persone deduplicata
+  // Chiave di dedup: uid Firebase se disponibile, altrimenti nome normalizzato
+  var persone = [];
+  var vistiUid  = {};  // uid Firebase
+  var vistiId   = {};  // id numerico ct_p
+  var vistiNome = {};  // nome normalizzato (fallback)
+
+  function _normNome(n){ return (n||'').toLowerCase().replace(/\s+/g,' ').trim(); }
+
+  // Funzione per trovare la foto aggiornata da ct_users
+  function _getAvaFromFb(p) {
+    if(p.ava && p.ava.startsWith('https')) return p.ava;
+    // Cerca in ct_users per uid o nome
+    var fbU = null;
+    if(p.uid) fbU = fbUsers.find(function(u){ return u.uid === p.uid; });
+    if(!fbU && p.nome) {
+      var pn = _normNome(p.nome);
+      fbU = fbUsers.find(function(u){
+        var un = _normNome((u.cognome||'')+' '+(u.nome||''));
+        var un2 = _normNome((u.nome||'')+' '+(u.cognome||''));
+        return un === pn || un2 === pn;
+      });
+    }
+    return (fbU && fbU.ava && fbU.ava.startsWith('https')) ? fbU.ava : (p.ava || null);
+  }
+
+  // 1. Aggiungi persone da ct_p
+  P.forEach(function(p){
+    var idStr = String(p.id);
+    var uid   = p.uid || null;
+    var nome  = _normNome(p.nome);
+    // Salta se già visto per uid o id
+    if(uid && vistiUid[uid]) return;
+    if(vistiId[idStr]) return;
+    if(nome && vistiNome[nome]) return;
+    if(uid)   vistiUid[uid]   = true;
+    vistiId[idStr] = true;
+    if(nome)  vistiNome[nome] = true;
+    var inServizio = !!pidInServizio[idStr] || (uid && !!pidInServizio[uid]);
+    var ava = _getAvaFromFb(p);
+    persone.push({ nome: p.nome||'', cognome: p.cognome||'', ava: ava, inServizio: inServizio });
+  });
+
+  // 2. Aggiungi persone dai turni di oggi non ancora in ct_p
   turniOggi.forEach(function(t){
-    if(visti[t.pid]) return;
-    visti[t.pid] = true;
+    var pidStr = String(t.pid);
     var nomeBreve = t.pnome || t.nome || '';
     if(!nomeBreve) return;
-    persone.push({ nome: nomeBreve, cognome: '', ava: null, inServizio: true, fromFirestore: false });
+    var nome = _normNome(nomeBreve);
+    // Salta se già visto per pid, uid o nome
+    if(vistiId[pidStr]) return;
+    if(vistiUid[pidStr]) return;
+    if(nome && vistiNome[nome]) return;
+    vistiId[pidStr] = true;
+    if(nome) vistiNome[nome] = true;
+    // Cerca foto in ct_users
+    var fbU = fbUsers.find(function(u){
+      return u.uid === pidStr || _normNome((u.cognome||'')+' '+(u.nome||'')) === nome || _normNome((u.nome||'')+' '+(u.cognome||'')) === nome;
+    });
+    var ava = (fbU && fbU.ava && fbU.ava.startsWith('https')) ? fbU.ava : null;
+    persone.push({ nome: nomeBreve, cognome: '', ava: ava, inServizio: true });
   });
 
   if(!persone.length){
@@ -1634,12 +1727,9 @@ function aggiornaSquadra(){
   container.innerHTML = persone.slice(0,12).map(function(p){
     var ini = ((p.nome||'?').charAt(0) + (p.cognome||'').charAt(0)).toUpperCase() || '?';
     var nomeBreve = (p.nome||'').split(' ')[0];
-    var avatarContent = '';
-    if(p.ava && p.fromFirestore){
-      avatarContent = '<img src="'+p.ava+'" alt="'+ini+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
-    } else {
-      avatarContent = '<span>'+ini+'</span>';
-    }
+    var avatarContent = p.ava
+      ? '<img src="'+p.ava+'" alt="'+ini+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">'
+      : '<span>'+ini+'</span>';
     var liveBadge = p.inServizio ? '<div class="squadra-live-badge"></div>' : '';
     return '<div class="squadra-avatar">'
       + '<div class="squadra-avatar-circle' + (p.inServizio ? ' squadra-in-servizio' : '') + '">'+avatarContent+liveBadge+'</div>'
@@ -3661,12 +3751,15 @@ var _ORARI_DEFAULT = {
   notte:      {in:"22:00", out:"06:00"},
   sera:       {in:"20:00", out:"02:00"},
   ml:         {in:"06:00", out:"16:00"},
-  pl:         {in:"12:00", out:"22:00"}
+  pl:         {in:"12:00", out:"22:00"},
+  obbm:       {in:"07:00", out:"13:00"},
+  obbp:       {in:"13:00", out:"19:00"}
 };
 var _ORARI_LABELS = {
   mattina:"🌅 Mattina (M)", pomeriggio:"☀️ Pomeriggio (P)",
   notte:"🌙 Notte (N)", sera:"🌙 Sera (S)",
-  ml:"🌅 Mattina Lunga (ML)", pl:"☀️ Pomeriggio Lungo (PL)"
+  ml:"🌅 Mattina Lunga (ML)", pl:"☀️ Pomeriggio Lungo (PL)",
+  obbm:"🔶 Obbligatorio Mattina (OBBM)", obbp:"🔷 Obbligatorio Pomeriggio (OBBP)"
 };
 function getOrariPreset(){
   return lsG("ct_orari", _ORARI_DEFAULT);
@@ -4829,11 +4922,22 @@ function segnaTutteLette(){segnaLetteTutte();}
 function salvaNuovoAnnoLic(){_confermaAggiungiAnno();}
 
 // -- Hook turni --
-function notificaTurno(pnome,tipo,data){
+function notificaTurno(pnome, tipo, data) {
+  var me = lsG('ct_me', null);
+  // Non notificare se l'utente si è autoassegnato il turno
+  // (il turno è dell'utente loggato E non è comandante/vice che assegna ad altri)
+  var myNome = me ? ((me.nome||'') + ' ' + (me.cognome||'')).trim().toLowerCase() : '';
+  var turnoNome = (pnome||'').toLowerCase().trim();
+  var isSelf = myNome && turnoNome && (myNome === turnoNome || turnoNome.indexOf(myNome) !== -1 || myNome.indexOf(turnoNome) !== -1);
+  var isCom = me && (me.ruolo === 'comandante' || me.ruolo === 'vice');
+  // Se è autoassegnazione (non comandante che assegna ad altri) → non notificare
+  if(isSelf && !isCom) return;
   var mN=["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
   var d=new Date(data+"T00:00:00");
   var ds=d.getDate()+" "+mN[d.getMonth()];
-  var tl={mattina:"Mattina",pomeriggio:"Pomeriggio",notte:"Notte",riposo:"Riposo",ferie:"Ferie",recupero:"Recupero",licenza:"Licenza",permesso:"Permesso",corso:"Corso"}[tipo]||tipo;
+  var tl={mattina:"Mattina",pomeriggio:"Pomeriggio",notte:"Notte",riposo:"Riposo",ferie:"Ferie",
+    recupero:"Recupero",licenza:"Licenza",permesso:"Permesso",corso:"Corso",
+    obbm:"Obbligatorio Mattina",obbp:"Obbligatorio Pomeriggio"}[tipo]||tipo;
   aggiungiNotifica("turni","Turno assegnato",pnome+"  "+tl+" del "+ds,"&#128197;","var(--blue)");
 }
 
@@ -4875,10 +4979,30 @@ function aggUI(){
   try{
     var u = lsG("ct_me", null);
     if(!u) return;
-    // Fallback: usa ava da ct_session se ct_me non ce l'ha
-    if(u && !u.ava) {
+    // Recupero foto robusto: ct_me → ct_session → ct_p → ct_users
+    if(!u.ava || !u.ava.startsWith('http')) {
       var _sess = lsG('ct_session', null);
-      if(_sess && _sess.ava) u.ava = _sess.ava;
+      if(_sess && (_sess.ava || _sess.fotoURL) && (_sess.ava||_sess.fotoURL).startsWith('http'))
+        u.ava = _sess.ava || _sess.fotoURL;
+    }
+    if(!u.ava || !u.ava.startsWith('http')) {
+      var _myPidAv = localStorage.getItem('ct_my_pid');
+      var _Pav = lsG('ct_p', []);
+      var _pMeAv = _Pav.find(function(p){ return p.uid === u.uid || String(p.id) === String(_myPidAv); });
+      if(_pMeAv && _pMeAv.ava && _pMeAv.ava.startsWith('http')) u.ava = _pMeAv.ava;
+    }
+    if(!u.ava || !u.ava.startsWith('http')) {
+      var _fbUsAv = lsG('ct_users', []);
+      var _fbMeAv = _fbUsAv.find(function(x){ return x.uid === u.uid || x.email === (lsG('ct_session',null)||{}).email; });
+      if(_fbMeAv && _fbMeAv.ava && _fbMeAv.ava.startsWith('http')) u.ava = _fbMeAv.ava;
+    }
+    // Persisti se trovata
+    if(u.ava && u.ava.startsWith('http')) {
+      var _ctMe = lsG('ct_me', null);
+      if(_ctMe && (!_ctMe.ava || !_ctMe.ava.startsWith('http'))) {
+        _ctMe.ava = u.ava;
+        lsS('ct_me', _ctMe);
+      }
     }
 
     var g  = GR[u.grado] || {nome:u.grado,col:"#8faac8",svg:""};
@@ -6139,6 +6263,10 @@ function confermImportF(modoSost){
   if(_me3&&typeof renderWidgetProssimo==='function') renderWidgetProssimo(_me3);
   var modo=modoSost?"sostituiti":"aggiunti";
   toast("&#9989; "+tot+" turni "+modo+" da "+selezionati.length+" foglio/i","ok");
+  // Notifica import turni
+  if(tot > 0) {
+    aggiungiNotifica("turni","Turni importati","&#128229; "+tot+" turni "+modo+" da Excel ("+selezionati.length+" foglio/i)","&#128229;","var(--teal)");
+  }
 }
 function parseSheet(rows, sn) {
 
@@ -8724,6 +8852,39 @@ function openM(id) {
     if (id === 'm-avatar-editor') {
         setTimeout(_aveDraw, 100);
     }
+    if (id === 'm-todo') {
+        // Reset campi e bottoni priorità
+        ['td-tit','td-note','td-data','td-ora'].forEach(function(fid){
+          var el=document.getElementById(fid); if(el) el.value='';
+        });
+        var tdNote = document.getElementById('td-note'); if(tdNote) tdNote.value='';
+        var tdRicor = document.getElementById('td-ricor'); if(tdRicor) tdRicor.value='';
+        var tdCond = document.getElementById('td-condividi'); if(tdCond) tdCond.checked=false;
+        // Reset label pickers
+        var dl=document.getElementById('td-data-btn-lbl'); if(dl){dl.textContent='Seleziona...';dl.style.color='var(--txt2)';}
+        var ol=document.getElementById('td-ora-btn-lbl');  if(ol){ol.textContent='—';ol.style.color='var(--txt2)';}
+        // Reset priorità a bassa (default)
+        document.querySelectorAll('#m-todo .tipo-rep-btn').forEach(function(b){ b.classList.remove('sel'); });
+        var pb=document.getElementById('td-prio-bassa'); if(pb) pb.classList.add('sel');
+        var pi=document.getElementById('td-prio'); if(pi) pi.value='bassa';
+        var err=document.getElementById('todo-err'); if(err) err.classList.remove('on');
+    }
+    if (id === 'm-agenda') {
+        // Reset campi
+        ['ag-tit','ag-data','ag-ora','ag-luogo','ag-note'].forEach(function(fid){
+          var el=document.getElementById(fid); if(el) el.value='';
+        });
+        var agNote = document.getElementById('ag-note'); if(agNote) agNote.value='';
+        var agCond = document.getElementById('ag-condividi'); if(agCond) agCond.checked=false;
+        // Reset label pickers
+        var adl=document.getElementById('ag-data-btn-lbl'); if(adl){adl.textContent='Seleziona...';adl.style.color='var(--txt2)';}
+        var aol=document.getElementById('ag-ora-btn-lbl');  if(aol){aol.textContent='—';aol.style.color='var(--txt2)';}
+        // Reset avviso a "Nessuno"
+        document.querySelectorAll('#m-agenda .tipo-rep-btn').forEach(function(b){ b.classList.remove('sel'); });
+        var an0=document.getElementById('ag-notif-0'); if(an0) an0.classList.add('sel');
+        var ani=document.getElementById('ag-notif'); if(ani) ani.value='0';
+        var aerr=document.getElementById('agenda-err'); if(aerr) aerr.classList.remove('on');
+    }
     // Fix tastiera mobile: scroll input in vista al focus
     setTimeout(function(){
       m.querySelectorAll('input,textarea,select').forEach(function(el){
@@ -9034,26 +9195,31 @@ function popolaSelectPersone() {
 var _PRESET_ORA = {
     M:      null, ML:     null,
     P:      null, PL:     null,
-    N:      null,
+    N:      null, S:      null,
     R:      null, RR:     null, L:      null, LICSTU: null,
     ESAME:  null, '104':  null, '937':  null, LS:     null,
-    FEST:   null, CORSO:  null
+    FEST:   null, CORSO:  null,
+    OBBM:   ['07:00','13:00'],
+    OBBP:   ['13:00','19:00']
 };
 // Aggiorna _PRESET_ORA dai preset configurabili
 function _aggiornaPresetOra(){
   var o = (typeof getOrariPreset === 'function') ? getOrariPreset() : {};
-  _PRESET_ORA.M  = o.mattina    ? [o.mattina.in,    o.mattina.out]    : ['06:00','14:00'];
-  _PRESET_ORA.ML = o.ml         ? [o.ml.in,         o.ml.out]         : ['06:00','16:00'];
-  _PRESET_ORA.P  = o.pomeriggio ? [o.pomeriggio.in, o.pomeriggio.out] : ['14:00','22:00'];
-  _PRESET_ORA.PL = o.pl         ? [o.pl.in,         o.pl.out]         : ['12:00','22:00'];
-  _PRESET_ORA.N  = o.notte      ? [o.notte.in,      o.notte.out]      : ['22:00','06:00'];
-  _PRESET_ORA.S  = o.sera       ? [o.sera.in,       o.sera.out]       : ['20:00','02:00'];
+  _PRESET_ORA.M    = o.mattina    ? [o.mattina.in,    o.mattina.out]    : ['06:00','14:00'];
+  _PRESET_ORA.ML   = o.ml         ? [o.ml.in,         o.ml.out]         : ['06:00','16:00'];
+  _PRESET_ORA.P    = o.pomeriggio ? [o.pomeriggio.in, o.pomeriggio.out] : ['14:00','22:00'];
+  _PRESET_ORA.PL   = o.pl         ? [o.pl.in,         o.pl.out]         : ['12:00','22:00'];
+  _PRESET_ORA.N    = o.notte      ? [o.notte.in,      o.notte.out]      : ['22:00','06:00'];
+  _PRESET_ORA.S    = o.sera       ? [o.sera.in,       o.sera.out]       : ['20:00','02:00'];
+  _PRESET_ORA.OBBM = o.obbm       ? [o.obbm.in,       o.obbm.out]       : ['07:00','13:00'];
+  _PRESET_ORA.OBBP = o.obbp       ? [o.obbp.in,       o.obbp.out]       : ['13:00','19:00'];
 }
 var _PRESET_TIPO = {
-    M:'mattina', ML:'ml', P:'pomeriggio', PL:'pl', N:'notte',
+    M:'mattina', ML:'ml', P:'pomeriggio', PL:'pl', N:'notte', S:'sera',
     R:'riposo', RR:'recupero', L:'ferie', LICSTU:'licenza',
     ESAME:'corso', '104':'permesso', '937':'permesso',
-    LS:'permesso', FEST:'permesso', CORSO:'corso'
+    LS:'permesso', FEST:'permesso', CORSO:'corso',
+    OBBM:'obbm', OBBP:'obbp'
 };
 function eliminaTurnoDaGiorno(tid, ds) {
     ctConfirm('Eliminare questo turno?', {title:'Elimina Turno', ico:'📅', ok:'Elimina', danger:true}).then(function(ok){

@@ -495,6 +495,8 @@ tbody tr:last-child td{border-bottom:none}
 .tb.recupero{background:rgba(212,175,55,.15);color:var(--gold);border:1px solid rgba(212,175,55,.25)}
 .tb.permesso{background:rgba(233,30,140,.15);color:#e91e8c;border:1px solid rgba(233,30,140,.25)}
 .tb.corso{background:rgba(41,121,255,.15);color:var(--blue);border:1px solid rgba(41,121,255,.25)}
+.tb.obbm{background:rgba(255,159,67,.2);color:#ff9800;border:1px solid rgba(255,159,67,.4);font-weight:800}
+.tb.obbp{background:rgba(79,158,255,.2);color:#4f9eff;border:1px solid rgba(79,158,255,.4);font-weight:800}
 .tb.altro{background:rgba(100,100,100,.15);color:var(--txt2);border:1px solid var(--border)}
 .sb{display:inline-block;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700}
 .sb.ok{background:rgba(0,200,83,.15);color:var(--green)}

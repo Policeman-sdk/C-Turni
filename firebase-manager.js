@@ -256,7 +256,12 @@ function _startListeners(reparto) {
         });
         if(myProfile && myProfile.ruolo) {
           var oldMe = JSON.parse(localStorage.getItem('ct_me') || 'null');
-          // Aggiorna ct_users con il profilo aggiornato
+          // Preserva ava da ct_me locale se myProfile non ce l'ha
+          if(oldMe && oldMe.ava && oldMe.ava.startsWith('https') && (!myProfile.ava || !myProfile.ava.startsWith('https'))) {
+            myProfile.ava = oldMe.ava;
+            myProfile.fotoURL = oldMe.ava;
+          }
+          // Aggiorna ct_me con il profilo aggiornato
           localStorage.setItem('ct_me', JSON.stringify(myProfile));
           if(myProfile.ruolo !== session.ruolo || myProfile.stato !== session.stato) {
             session.ruolo = myProfile.ruolo;
@@ -281,7 +286,11 @@ function _startListeners(reparto) {
           if(p.uid) return;
           var pn = (p.nome||'').toLowerCase().trim();
           if(pn===uN||pn===uNi||uN.indexOf(pn)!==-1||pn.indexOf(uN)!==-1||uNi.indexOf(pn)!==-1){
-            p.uid=u.uid; if(u.grado&&!p.grado)p.grado=u.grado; if(u.ava&&!p.ava)p.ava=u.ava; _chg=true;
+            p.uid=u.uid; if(u.grado&&!p.grado)p.grado=u.grado;
+            // Aggiorna sempre ava se l'utente Firebase ha un URL https più recente
+            if(u.ava && u.ava.startsWith('https')) p.ava=u.ava;
+            else if(u.ava&&!p.ava) p.ava=u.ava;
+            _chg=true;
           }
         });
       });
@@ -463,7 +472,18 @@ window.FirebaseModule = {
         var prof = profSnap.data();
         // Se Firestore ha fotoURL (URL Storage), usalo come ava — ha priorità assoluta
         if(prof.fotoURL && prof.fotoURL.startsWith('https')) prof.ava = prof.fotoURL;
-        else if(prof.ava && prof.ava.startsWith('data:')) delete prof.ava; // rimuovi base64 vecchio
+        else if(prof.ava && prof.ava.startsWith('data:')) {
+          // Rimuovi base64 vecchio ma recupera da ct_session se disponibile
+          var _sessAva = JSON.parse(localStorage.getItem('ct_session') || 'null');
+          if(_sessAva && (_sessAva.ava || _sessAva.fotoURL) && (_sessAva.ava||_sessAva.fotoURL).startsWith('https'))
+            prof.ava = _sessAva.ava || _sessAva.fotoURL;
+          else delete prof.ava;
+        }
+        // Preserva ava locale se Firestore non ha ancora l'URL
+        if(!prof.ava || !prof.ava.startsWith('https')) {
+          var _localMeAva = JSON.parse(localStorage.getItem('ct_me') || 'null');
+          if(_localMeAva && _localMeAva.ava && _localMeAva.ava.startsWith('https')) prof.ava = _localMeAva.ava;
+        }
         localStorage.setItem('ct_me', JSON.stringify(prof));
         // Persist ava in ct_session for immediate display on reload
         try {

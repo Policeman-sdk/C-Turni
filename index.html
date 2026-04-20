@@ -1695,17 +1695,31 @@
     <div class="fg" style="margin-bottom:0"><label>Note</label>
       <textarea class="fc app-fc" id="td-note" rows="2" style="resize:none" placeholder="Dettagli..."></textarea></div>
     <div class="g2">
-      <div class="fg" style="margin-bottom:0"><label>&#128197; Data scadenza</label>
-        <input type="date" class="fc app-fc" id="td-data"></div>
-      <div class="fg" style="margin-bottom:0"><label>&#9201; Sveglia (ora)</label>
-        <input type="time" class="fc app-fc" id="td-ora"></div>
+      <div class="fg" style="margin-bottom:0">
+        <label>&#128197; Data scadenza</label>
+        <button class="fc" id="td-data-btn" style="text-align:left;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="apriDatePicker('td-data','td-data-btn-lbl')">
+          <span id="td-data-btn-lbl" style="font-weight:600;color:var(--txt2)">Seleziona...</span>
+          <span>&#128197;</span>
+        </button>
+        <input type="hidden" id="td-data" value="">
+      </div>
+      <div class="fg" style="margin-bottom:0">
+        <label>&#9201; Sveglia (ora)</label>
+        <button class="fc" id="td-ora-btn" style="text-align:left;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="apriTimePicker('td-ora','td-ora-btn-lbl','Ora sveglia')">
+          <span id="td-ora-btn-lbl" style="font-weight:600;color:var(--txt2)">—</span>
+          <span>&#9200;</span>
+        </button>
+        <input type="hidden" id="td-ora" value="">
+      </div>
     </div>
     <div class="fg" style="margin-bottom:0"><label>Priorit&#224;</label>
-      <select class="fc app-fc" id="td-prio">
-        <option value="bassa">&#128994; Bassa</option>
-        <option value="media" selected>&#128993; Media</option>
-        <option value="alta">&#128308; Alta</option>
-      </select></div>
+      <div style="display:flex;gap:8px">
+        <button type="button" id="td-prio-bassa" class="tipo-rep-btn sel" onclick="setTdPrio('bassa',this)" style="flex:1">&#128994; Bassa</button>
+        <button type="button" id="td-prio-media" class="tipo-rep-btn" onclick="setTdPrio('media',this)" style="flex:1">&#128993; Media</button>
+        <button type="button" id="td-prio-alta"  class="tipo-rep-btn" onclick="setTdPrio('alta',this)"  style="flex:1">&#128308; Alta</button>
+      </div>
+      <input type="hidden" id="td-prio" value="bassa">
+    </div>
     <div class="fg" style="margin-bottom:0"><label>Ricorrenza</label>
       <select class="fc app-fc" id="td-ricor">
         <option value="">Nessuna</option>
@@ -1738,24 +1752,39 @@
     <div class="fg" style="margin-bottom:0"><label>Titolo *</label>
       <input type="text" class="fc app-fc" id="ag-tit" placeholder="Es. Visita medica..."></div>
     <div class="g2">
-      <div class="fg" style="margin-bottom:0"><label>Data *</label>
-        <input type="date" class="fc app-fc" id="ag-data"></div>
-      <div class="fg" style="margin-bottom:0"><label>Ora</label>
-        <input type="time" class="fc app-fc" id="ag-ora"></div>
+      <div class="fg" style="margin-bottom:0">
+        <label>Data *</label>
+        <button class="fc" id="ag-data-btn" style="text-align:left;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="apriDatePicker('ag-data','ag-data-btn-lbl')">
+          <span id="ag-data-btn-lbl" style="font-weight:600;color:var(--txt2)">Seleziona...</span>
+          <span>&#128197;</span>
+        </button>
+        <input type="hidden" id="ag-data" value="">
+      </div>
+      <div class="fg" style="margin-bottom:0">
+        <label>Ora</label>
+        <button class="fc" id="ag-ora-btn" style="text-align:left;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="apriTimePicker('ag-ora','ag-ora-btn-lbl','Ora appuntamento')">
+          <span id="ag-ora-btn-lbl" style="font-weight:600;color:var(--txt2)">—</span>
+          <span>&#9200;</span>
+        </button>
+        <input type="hidden" id="ag-ora" value="">
+      </div>
     </div>
     <div class="fg" style="margin-bottom:0"><label>Luogo</label>
       <input type="text" class="fc app-fc" id="ag-luogo" placeholder="Es. Ospedale..."></div>
     <div class="fg" style="margin-bottom:0"><label>Note</label>
       <textarea class="fc app-fc" id="ag-note" rows="2" style="resize:none" placeholder="Dettagli..."></textarea></div>
-    <div class="fg" style="margin-bottom:0"><label>Avviso anticipato</label>
-      <select class="fc app-fc" id="ag-notif">
-        <option value="0">Nessuno</option>
-        <option value="15">15 minuti prima</option>
-        <option value="30" selected>30 minuti prima</option>
-        <option value="60">1 ora prima</option>
-        <option value="120">2 ore prima</option>
-        <option value="1440">1 giorno prima</option>
-      </select></div>
+    <div class="fg" style="margin-bottom:0">
+      <label>Avviso anticipato</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button type="button" class="tipo-rep-btn sel" id="ag-notif-0"   onclick="setAgNotif(0,this)">Nessuno</button>
+        <button type="button" class="tipo-rep-btn"    id="ag-notif-15"  onclick="setAgNotif(15,this)">15 min</button>
+        <button type="button" class="tipo-rep-btn"    id="ag-notif-30"  onclick="setAgNotif(30,this)">30 min</button>
+        <button type="button" class="tipo-rep-btn"    id="ag-notif-60"  onclick="setAgNotif(60,this)">1 ora</button>
+        <button type="button" class="tipo-rep-btn"    id="ag-notif-120" onclick="setAgNotif(120,this)">2 ore</button>
+        <button type="button" class="tipo-rep-btn"    id="ag-notif-1440" onclick="setAgNotif(1440,this)">1 giorno</button>
+      </div>
+      <input type="hidden" id="ag-notif" value="0">
+    </div>
     <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(66,133,244,.08);border:1px solid rgba(66,133,244,.25);border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;color:var(--blue)">
       <input type="checkbox" id="ag-condividi" style="width:18px;height:18px;accent-color:var(--blue);cursor:pointer">
       &#128101; Condividi con il reparto
@@ -1829,21 +1858,23 @@
         <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('notte','N',this)">N</button>
         <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('sera','S',this)">S</button>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:6px">
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:6px">
         <button type="button" class="btn-turno-r btn-turno-r-red" onclick="setModTurnoTipo('riposo','R',this)">R</button>
         <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('recupero','RR',this)">RR</button>
         <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('ferie','L',this)">L</button>
         <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('104','104',this)">104</button>
         <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('937','937',this)">937</button>
+        <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('obbm','OBBM',this)" style="background:rgba(255,159,67,.15);border-color:rgba(255,159,67,.4)">OBBM</button>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:6px">
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:6px">
         <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('licenza','LICSTU',this)">LICSTU</button>
         <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('esame','ESAME',this)">ESAME</button>
         <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('ls','LS',this)">LS</button>
         <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('fest','FEST',this)">FEST</button>
+        <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('permesso','PERM',this)">PERM</button>
+        <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('obbp','OBBP',this)" style="background:rgba(79,158,255,.15);border-color:rgba(79,158,255,.4)">OBBP</button>
       </div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
-        <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('permesso','PERM',this)">PERM</button>
         <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('corso','CORSO',this)">CORSO</button>
         <button type="button" class="btn-turno-r" id="mmt-custom-row-placeholder"></button>
       </div>
@@ -2117,18 +2148,20 @@
         <button type="button" class="btn-turno-r" onclick="setTurnoRapido('notte','N',this)">N</button>
         <button type="button" class="btn-turno-r" onclick="setTurnoRapido('sera','S',this)">S</button>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:6px">
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:6px">
         <button type="button" class="btn-turno-r btn-turno-r-red" onclick="setTurnoRapido('riposo','R',this)">R</button>
         <button type="button" class="btn-turno-r" onclick="setTurnoRapido('recupero','RR',this)">RR</button>
         <button type="button" class="btn-turno-r" onclick="setTurnoRapido('ferie','L',this)">L</button>
         <button type="button" class="btn-turno-r" onclick="setTurnoRapido('104','104',this)">104</button>
         <button type="button" class="btn-turno-r" onclick="setTurnoRapido('937','937',this)">937</button>
+        <button type="button" class="btn-turno-r" onclick="setTurnoRapido('obbm','OBBM',this)" style="background:rgba(255,159,67,.15);border-color:rgba(255,159,67,.4)">OBBM</button>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px">
         <button type="button" class="btn-turno-r" onclick="setTurnoRapido('licenza','LICSTU',this)">LICSTU</button>
         <button type="button" class="btn-turno-r" onclick="setTurnoRapido('esame','ESAME',this)">ESAME</button>
         <button type="button" class="btn-turno-r" onclick="setTurnoRapido('ls','LS',this)">LS</button>
         <button type="button" class="btn-turno-r" onclick="setTurnoRapido('fest','FEST',this)">FEST</button>
+        <button type="button" class="btn-turno-r" onclick="setTurnoRapido('obbp','OBBP',this)" style="background:rgba(79,158,255,.15);border-color:rgba(79,158,255,.4)">OBBP</button>
       </div>
       <input type="hidden" id="mt-tipo" value="">
     </div>
