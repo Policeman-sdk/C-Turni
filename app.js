@@ -991,6 +991,7 @@ function aggiungiRimanenzaAnnoUtente(){
           if(!ok) return;
           es.giorni=giorni;
           lsS("ct_p",P); caricaPoolLicenzeMe(); caricaSaldoFerie();
+          _syncFerieFirebase();
           toast('Rimanenza aggiornata','ok');
         });
         return;
@@ -1282,7 +1283,9 @@ function _salvaScalaManuale(){
     ctConfirm('Stai scalando '+giorni+' giorni ma ne hai solo '+entry.giorni+' per il '+anno+'. Continui?', {title:'Conferma Scala', ico:'⚠️', ok:'Continua'}).then(function(ok){
       if(!ok) return;
       entry.giorni=Math.max(0,entry.giorni-giorni);
-      lsS("ct_p",P); caricaPoolLicenzeMe(); caricaSaldoFerie();
+      saveFeriePool(me.id,pool);
+      renderFeriePool();
+      _syncFerieFirebase();
       toast("Giorni scalati","ok");
     });
     return;
@@ -1587,12 +1590,25 @@ function aggiornaHeroCard(){
   var heroAva = document.getElementById('hero-user-ava');
   if(heroAva){
     if(ava && (ava.startsWith('http') || ava.startsWith('data:'))){
-      heroAva.style.backgroundImage = 'url('+ava+')';
-      heroAva.style.backgroundSize = 'cover';
-      heroAva.style.backgroundPosition = 'center';
-      heroAva.textContent = '';
+      // Mostra shimmer durante il caricamento
+      heroAva.classList.add('ava-loading');
+      var _heroImg = new Image();
+      _heroImg.onload = function(){
+        heroAva.style.backgroundImage = 'url('+ava+')';
+        heroAva.style.backgroundSize = 'cover';
+        heroAva.style.backgroundPosition = 'center';
+        heroAva.textContent = '';
+        heroAva.classList.remove('ava-loading');
+      };
+      _heroImg.onerror = function(){
+        heroAva.classList.remove('ava-loading');
+        heroAva.style.backgroundImage = '';
+        heroAva.textContent = (nomeBreve.charAt(0)||'?').toUpperCase();
+      };
+      _heroImg.src = ava;
     } else {
       heroAva.style.backgroundImage = '';
+      heroAva.classList.remove('ava-loading');
       heroAva.textContent = (nomeBreve.charAt(0)||'?').toUpperCase();
     }
   }
@@ -1947,89 +1963,13 @@ function _isFestivoCalc(ds){
   return d.toDateString()===pasqua.toDateString()||d.toDateString()===lp.toDateString();
 }
 
-function checkFestivoTurno(t){
-  if(!t) return;
-  var me = lsG("ct_me", null); if(!me) return;
-  var myPid = parseInt(localStorage.getItem('ct_my_pid')||'0');
-  if(t.pid !== me.id && t.pid !== myPid && !(me.uid && t.uid === me.uid)) return;
-
-  var d = _parseDate(t.data);
-  var isDomenica = (d.getDay() === 0);
-
-  // Festività infrasettimanali (getNomeFestivo esclude domeniche)
-  var nomeFest = getNomeFestivo(t.data);
-  // Patrono: leggi da impostazioni
-  var patrono = lsG('ct_patrono', null);
-  if(patrono && t.data === patrono && !isDomenica) nomeFest = nomeFest || 'Patrono';
-
-  var tipiLavorativi = {mattina:1, ml:1, pomeriggio:1, pl:1, notte:1, sera:1};
-  var tipiRiposo = {riposo:1, recupero:1};
-  var matura = false;
-  var motivo = '';
-
-  if(nomeFest){
-    // REGOLA 1: Festivo/Patrono + Turno lavorativo → +1 recupero maturato
-    if(tipiLavorativi[t.tipo]){
-      matura = true;
-      motivo = 'Lavoro festivo: ' + nomeFest;
-    }
-    // REGOLA 2: Festivo/Patrono + Riposo + NON domenica → +1 recupero maturato
-    else if(tipiRiposo[t.tipo] && !isDomenica){
-      matura = true;
-      motivo = 'Riposo festivo: ' + nomeFest;
-    }
-    // REGOLA 3: Festivo + Riposo + Domenica → Festività Pagata (nessun recupero)
-    else if(tipiRiposo[t.tipo] && isDomenica){
-      var keyPag = 'ct_festpag_' + t.id;
-      if(!localStorage.getItem(keyPag)){
-        localStorage.setItem(keyPag, '1');
-        var prefs2 = lsG("ct_notif_prefs", {festivi:true});
-        if(prefs2.festivi !== false) toast('📅 Festività Pagata: ' + nomeFest + ' (domenica)', 'ok');
-      }
-      return;
-    }
-  }
-
-  if(!matura) return;
-
-  var key = "ct_rec_" + t.id;
-  if(localStorage.getItem(key)) return;
-  localStorage.setItem(key, "1");
-  var REC = lsG("ct_recuperi", []);
-  REC.push({
-    id: t.id,
-    data: t.data,
-    tipo: t.tipo,
-    nomeFest: nomeFest,
-    label: motivo,
-    usato: false
-  });
-  lsS("ct_recuperi", REC);
-  me.recuperiExtra = REC.filter(function(r){ return !r.usato; }).length;
-  lsS("ct_me", me);
-  var U = lsG("ct_u", []);
-  for(var i=0; i<U.length; i++){
-    if(U[i].id===me.id || U[i].uid===me.uid){ U[i].recuperiExtra = me.recuperiExtra; break; }
-  }
-  lsS("ct_u", U);
-  var prefs = lsG("ct_notif_prefs", {festivi:true});
-  if(prefs.festivi !== false) toast('🏅 +1 Recupero: ' + motivo, 'ok');
-}
+// checkFestivoTurno definita più avanti con logica completa + Firebase sync
 
 // ---- TEMA ----
 function aggThemeColor(t){
   var colors={"":"#0d1b2a","light":"#f0f4f8","rosa":"#2a0a18","forestale":"#1c1f1c","carabinieri":"#080b10"};
   var meta=document.getElementById("theme-color-meta");
   if(meta)meta.content=colors[t]||"#0d1b2a";
-}
-
-function caricaTema(){
-  var t=lsG("ct_tema",null);
-  if(t===null)t="";
-  if(t)document.documentElement.setAttribute("data-theme",t);
-  else document.documentElement.removeAttribute("data-theme");
-  aggTemaUI(t);
-  aggThemeColor(t);
 }
 
 // ═══ SUONI UI ═══
@@ -2052,6 +1992,7 @@ function _playUiSound(tipo) {
     gain.connect(ctx.destination);
     var now = ctx.currentTime;
     if (tipo === 'complete') {
+      // Doppio bip ascendente — completamento to-do
       osc.type = 'sine';
       osc.frequency.setValueAtTime(520, now);
       osc.frequency.setValueAtTime(780, now + 0.12);
@@ -2059,24 +2000,70 @@ function _playUiSound(tipo) {
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
       osc.start(now); osc.stop(now + 0.35);
     } else if (tipo === 'click') {
+      // Click leggero — tap generico
       osc.type = 'sine';
       osc.frequency.setValueAtTime(440, now);
-      gain.gain.setValueAtTime(0.08, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-      osc.start(now); osc.stop(now + 0.08);
+      gain.gain.setValueAtTime(0.07, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+      osc.start(now); osc.stop(now + 0.07);
     } else if (tipo === 'error') {
+      // Bip discendente — errore
       osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(220, now);
-      osc.frequency.setValueAtTime(180, now + 0.1);
-      gain.gain.setValueAtTime(0.12, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-      osc.start(now); osc.stop(now + 0.25);
+      osc.frequency.setValueAtTime(260, now);
+      osc.frequency.setValueAtTime(180, now + 0.12);
+      gain.gain.setValueAtTime(0.14, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+      osc.start(now); osc.stop(now + 0.28);
     } else if (tipo === 'save') {
+      // Bip breve positivo — salvataggio
       osc.type = 'sine';
       osc.frequency.setValueAtTime(660, now);
       gain.gain.setValueAtTime(0.1, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+      osc.start(now); osc.stop(now + 0.18);
+    } else if (tipo === 'open') {
+      // Bip morbido ascendente — apertura modal
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(380, now);
+      osc.frequency.linearRampToValueAtTime(480, now + 0.1);
+      gain.gain.setValueAtTime(0.06, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+      osc.start(now); osc.stop(now + 0.15);
+    } else if (tipo === 'close') {
+      // Bip discendente morbido — chiusura modal
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(480, now);
+      osc.frequency.linearRampToValueAtTime(360, now + 0.1);
+      gain.gain.setValueAtTime(0.06, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+      osc.start(now); osc.stop(now + 0.15);
+    } else if (tipo === 'notif') {
+      // Doppio bip — notifica in arrivo
+      var osc2 = ctx.createOscillator();
+      var gain2 = ctx.createGain();
+      osc2.connect(gain2); gain2.connect(ctx.destination);
+      osc.type = 'sine'; osc.frequency.setValueAtTime(600, now);
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+      osc.start(now); osc.stop(now + 0.12);
+      osc2.type = 'sine'; osc2.frequency.setValueAtTime(750, now + 0.18);
+      gain2.gain.setValueAtTime(0.12, now + 0.18);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+      osc2.start(now + 0.18); osc2.stop(now + 0.32);
+    } else if (tipo === 'delete') {
+      // Bip breve basso — eliminazione
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(200, now);
+      gain.gain.setValueAtTime(0.1, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
       osc.start(now); osc.stop(now + 0.2);
+    } else if (tipo === 'nav') {
+      // Click ultra-leggero — navigazione tab
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(500, now);
+      gain.gain.setValueAtTime(0.04, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+      osc.start(now); osc.stop(now + 0.05);
     }
   } catch(e) {}
 }
@@ -2181,6 +2168,20 @@ function delTodo(id){
   lsS("ct_td",TD.filter(function(x){return x.id!==id;}));
   if(window.FirebaseModule) window.FirebaseModule.deleteTodo(id).catch(function(){});
   renderTodo();
+}
+
+// Menu tre puntini per i todo nella pagina Agenda
+function _openTodoMenu(id, filtro) {
+  var existing = document.getElementById('_todo-menu-sheet');
+  if(existing) existing.remove();
+  var html = '<div id="_todo-menu-sheet" style="display:flex;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)" onclick="if(event.target===this)this.remove()">'
+    +'<div style="background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:520px;padding:8px 0 calc(16px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 32px rgba(0,0,0,.4)">'
+    +'<div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:10px auto 14px"></div>'
+    +'<button onclick="rinviaTodo('+id+');document.getElementById(\'_todo-menu-sheet\').remove()" style="display:flex;align-items:center;gap:14px;width:100%;padding:14px 20px;background:none;border:none;color:var(--txt);font-size:14px;font-weight:600;cursor:pointer;text-align:left;appearance:none;-webkit-appearance:none"><span style="font-size:20px">&#128336;</span> Rinvia</button>'
+    +'<button onclick="delTodo('+id+');renderTodoAg(\''+filtro+'\');document.getElementById(\'_todo-menu-sheet\').remove()" style="display:flex;align-items:center;gap:14px;width:100%;padding:14px 20px;background:none;border:none;color:var(--red);font-size:14px;font-weight:600;cursor:pointer;text-align:left;appearance:none;-webkit-appearance:none"><span style="font-size:20px">&#128465;</span> Elimina</button>'
+    +'<button onclick="document.getElementById(\'_todo-menu-sheet\').remove()" style="display:flex;align-items:center;justify-content:center;width:calc(100% - 32px);margin:8px 16px 0;padding:14px;background:var(--bg2);border:none;border-radius:14px;color:var(--txt2);font-size:14px;font-weight:700;cursor:pointer;appearance:none;-webkit-appearance:none">Annulla</button>'
+    +'</div></div>';
+  document.body.insertAdjacentHTML('beforeend', html);
 }
 
 function rinviaTodo(id){
@@ -2292,31 +2293,6 @@ function renderTodo(){
   }).join("");
   setTimeout(initSwipeTodo, 50);
 }
-
-// ---- AGENDA ----
-function salvaAgenda(){
-  var tit=document.getElementById("ag-tit").value.trim();
-  var dt=document.getElementById("ag-data").value;
-  var err=document.getElementById("agenda-err");
-  err.classList.remove("on");
-  if(!tit||!dt){err.classList.add("on");return;}
-  var item={id:Date.now(),tit:tit,data:dt,
-    ora:document.getElementById("ag-ora").value||"",
-    luogo:document.getElementById("ag-luogo").value.trim()||"",
-    note:document.getElementById("ag-note").value.trim()||"",
-    notif:parseInt(document.getElementById("ag-notif").value)||0};
-  var AG=lsG("ct_ag",[]);AG.push(item);AG.sort(function(a,b){return a.data>b.data?1:-1;});lsS("ct_ag",AG);
-  // Schedula notifica
-  if(item.notif>0)schedulaNotifAgenda(item);
-  closeM("m-agenda");renderAgenda();notificaAgenda(item.tit,item.data,item.ora);
-  ["ag-tit","ag-data","ag-ora","ag-luogo","ag-note"].forEach(function(id){var e=document.getElementById(id);if(e)e.value="";});
-  toast("Appuntamento salvato","ok");
-}
-function delAgenda(id){
-  var AG=lsG("ct_ag",[]).filter(function(x){return x.x!==id;});
-  lsS("ct_ag",AG.filter(function(x){return x.id!==id;}));renderAgenda();
-}
-
 
 // ---- TEMI ----
 var _TEMI_CFG={
@@ -2869,18 +2845,7 @@ function inviaNotifTest(){
 }
 
 // ---- FESTIVIT ----
-function isFestivo(ds){
-  var d=_parseDate(ds);
-  if(d.getDay()===0)return true;
-  var mm=("0"+(d.getMonth()+1)).slice(-2),gg=("0"+d.getDate()).slice(-2);
-  if(["01-01","06-01","04-25","05-01","06-02","08-15","11-01","12-08","12-25","12-26"].indexOf(mm+"-"+gg)!==-1)return true;
-  var y=d.getFullYear(),a=y%19,b=Math.floor(y/100),c=y%100,d2=Math.floor(b/4),e=b%4;
-  var f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d2-g+15)%30;
-  var i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451);
-  var month=Math.floor((h+l-7*m+114)/31),day=((h+l-7*m+114)%31)+1;
-  var pasqua=new Date(y,month-1,day),lp=new Date(y,month-1,day+1);
-  return d.toDateString()===pasqua.toDateString()||d.toDateString()===lp.toDateString();
-}
+// (isFestivo e checkFestivoTurno definiti sopra con logica completa)
 function checkFestivoTurno(t){
   if(!t) return;
   var me = lsG("ct_me", null);
@@ -2958,7 +2923,7 @@ function checkFestivoTurno(t){
 }
 
 // ---- TODO ----
-var _tdFiltro="tutti";
+// (var _tdFiltro già dichiarata sopra)
 function schedulaNotifTodo(item){
   var prefs=lsG("ct_notif_prefs",{todo:true});if(prefs.todo===false)return;
   if(!item.data)return;
@@ -3246,7 +3211,19 @@ function renderAgendaPg(filtro) {
   var AG = lsG("ct_ag",[]).filter(function(x){ return x.data >= oggi; });
   var mN = ["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
   if(!AG.length){
-    el.innerHTML='<div style="text-align:center;color:var(--txt2);padding:40px;font-size:13px">Nessun appuntamento &#128197;</div>';
+    el.innerHTML='<div class="ag-empty-state">'
+      +'<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">'
+      +'<rect x="8" y="12" width="40" height="44" rx="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'
+      +'<path d="M8 22h40" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'
+      +'<path d="M20 8v8M36 8v8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'
+      +'<circle cx="46" cy="46" r="12" fill="var(--bg)" stroke="currentColor" stroke-width="2"/>'
+      +'<path d="M46 41v5l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
+      +'<rect x="16" y="30" width="12" height="2" rx="1" fill="currentColor" opacity=".4"/>'
+      +'<rect x="16" y="36" width="18" height="2" rx="1" fill="currentColor" opacity=".3"/>'
+      +'</svg>'
+      +'<div class="ag-empty-title">Nessun appuntamento</div>'
+      +'<div class="ag-empty-sub">Aggiungi il tuo primo appuntamento</div>'
+      +'</div>';
   } else {
     el.innerHTML = AG.map(function(a){
       var d = new Date(a.data+"T00:00:00");
@@ -3283,8 +3260,8 @@ function renderAgendaPg(filtro) {
   }
   // Aggiorna bento box
   _aggiornaBentoAg();
-  // Render anche i To-Do
-  renderTodoAg('tutti');
+  // Render anche i To-Do preservando il filtro attivo
+  renderTodoAg(_tdFiltroAg||'tutti');
 }
 
 // Filter chips agenda pagina
@@ -3316,45 +3293,41 @@ function renderTodoAg(filtro) {
   var TD = lsG("ct_td",[]);
   if(filtro === 'oggi') TD = TD.filter(function(t){ return t.data === oggi; });
   else if(filtro === 'alta') TD = TD.filter(function(t){ return t.prio === 'alta' && !t.done; });
-  if(!TD.length){ el.innerHTML='<div style="text-align:center;color:var(--txt2);padding:32px;font-size:13px">Nessun compito &#9989;</div>'; return; }
+  if(!TD.length){
+    el.innerHTML='<div class="ag-empty-state">'
+      +'<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">'
+      +'<rect x="8" y="8" width="40" height="48" rx="6" stroke="currentColor" stroke-width="2"/>'
+      +'<path d="M18 22h20M18 30h20M18 38h12" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".5"/>'
+      +'<circle cx="46" cy="46" r="12" fill="var(--bg)" stroke="currentColor" stroke-width="2"/>'
+      +'<path d="M41 46l3 3 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
+      +'</svg>'
+      +'<div class="ag-empty-title">Nessun compito</div>'
+      +'<div class="ag-empty-sub">Aggiungi il tuo primo compito</div>'
+      +'</div>';
+    return;
+  }
   var mN = ["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
-  var prioCol  = {alta:'#f2453d', media:'#ffd166', bassa:'#06d6a0'};
-  var prioBg   = {alta:'rgba(242,69,61,.15)', media:'rgba(255,209,102,.15)', bassa:'rgba(6,214,160,.15)'};
-  var prioIco  = {alta:'🔴', media:'🟡', bassa:'🟢'};
   el.innerHTML = TD.map(function(t){
-    var col   = prioCol[t.prio]  || 'var(--blue)';
-    var bg    = prioBg[t.prio]   || 'rgba(91,159,255,.12)';
-    var ico   = prioIco[t.prio]  || '⚪';
-    var dataStr = '';
-    if(t.data){ var d=new Date(t.data+"T00:00:00"); dataStr='<span style="font-size:10px;background:var(--bg2);padding:2px 7px;border-radius:8px;color:var(--txt2)">&#128197; '+d.getDate()+' '+mN[d.getMonth()]+'</span>'; }
-    var noteStr = t.note ? '<div style="font-size:11px;color:var(--txt2);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+t.note+'</div>' : '';
     var done = t.done;
-    return '<div style="background:var(--card);border:1.5px solid '+(done?'var(--border)':col+'44')+';border-radius:20px;padding:0;margin-bottom:10px;overflow:hidden;'+(done?'opacity:.55':'')+'">'+
-      // Barra colore sinistra
-      '<div style="display:flex;align-items:stretch">'+
-        '<div style="width:5px;background:'+(done?'var(--border)':col)+';flex-shrink:0;border-radius:20px 0 0 20px"></div>'+
-        '<div style="flex:1;padding:12px 12px 12px 14px;min-width:0">'+
-          // Riga titolo + check
-          '<div style="display:flex;align-items:flex-start;gap:10px">'+
-            // Check button M3
-            '<button onclick="toggleTodo('+t.id+');renderTodoAg(\''+(_tdFiltroAg||'tutti')+'\')" style="width:26px;height:26px;border-radius:50%;border:2px solid '+(done?'var(--green)':col)+';background:'+(done?'var(--green)':'transparent')+';color:#fff;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;appearance:none;-webkit-appearance:none;transition:all .2s;margin-top:1px">'+(done?'✓':'')+'</button>'+
-            '<div style="flex:1;min-width:0">'+
-              '<div style="font-size:14px;font-weight:700;color:var(--txt);'+(done?'text-decoration:line-through;':'')+'white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+t.tit+'</div>'+
-              noteStr+
-              '<div style="display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap">'+
-                '<span style="font-size:10px;font-weight:800;background:'+bg+';color:'+col+';padding:2px 8px;border-radius:8px;text-transform:uppercase">'+ico+' '+(t.prio||'—')+'</span>'+
-                dataStr+
-              '</div>'+
-            '</div>'+
-            // Azioni destra
-            '<div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0">'+
-              '<button onclick="rinviaTodo('+t.id+')" title="Snooze" style="width:32px;height:32px;border-radius:10px;border:1px solid var(--border);background:var(--bg2);color:var(--blue);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;appearance:none;-webkit-appearance:none;transition:background .15s">&#128336;</button>'+
-              '<button onclick="delTodo('+t.id+');renderTodoAg(\''+(_tdFiltroAg||'tutti')+'\')" title="Elimina" style="width:32px;height:32px;border-radius:10px;border:1px solid var(--border);background:var(--bg2);color:var(--txt3);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;appearance:none;-webkit-appearance:none;transition:background .15s">&#128465;</button>'+
-            '</div>'+
-          '</div>'+
-        '</div>'+
-      '</div>'+
-    '</div>';
+    var isAlta = t.prio === 'alta';
+    var dataStr = '';
+    if(t.data){ var d=new Date(t.data+"T00:00:00"); dataStr='<span class="ag-todo-date">&#128197; '+d.getDate()+' '+mN[d.getMonth()]+'</span>'; }
+    var noteStr = t.note ? '<div class="ag-todo-note">'+t.note+'</div>' : '';
+    var prioBadge = t.prio ? '<span class="ag-todo-prio ag-todo-prio-'+t.prio+'">'+(t.prio==='alta'?'Alta':t.prio==='media'?'Media':'Bassa')+'</span>' : '';
+    return '<div class="ag-todo-card'+(done?' ag-todo-done':'')+(isAlta?' ag-todo-alta':'')+'">'
+      +'<button class="ag-todo-chk'+(done?' on':'')+'" onclick="toggleTodo('+t.id+');renderTodoAg(\''+(filtro||'tutti')+'\')">'+(done?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>':'')+'</button>'
+      +'<div class="ag-todo-body">'
+        +'<div class="ag-todo-title'+(done?' ag-todo-done-txt':'')+'">'+t.tit+'</div>'
+        +noteStr
+        +'<div class="ag-todo-meta">'
+          +prioBadge
+          +dataStr
+        +'</div>'
+      +'</div>'
+      +'<button class="ag-todo-menu" onclick="event.stopPropagation();_openTodoMenu('+t.id+',\''+(filtro||'tutti')+'\')" aria-label="Opzioni">'
+        +'<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>'
+      +'</button>'
+    +'</div>';
   }).join('');
 }
 
@@ -3514,19 +3487,7 @@ function delAgendaCondivisa(id){
 }
 
 // ---- FERIE ----
-function stepFerie(d){
-  var el=document.getElementById("ferie-saldo-n");if(!el)return;
-  var n=Math.max(0,parseInt(el.textContent||"0")+d);
-  el.textContent=n;el.style.color=n<5?"var(--red)":n<15?"var(--gold)":"var(--green)";
-}
-function salvaFerie(){
-  var el=document.getElementById("ferie-saldo-n");if(!el)return;
-  var me=lsG("ct_me",null);if(!me)return;
-  me.ferie=parseInt(el.textContent||"0");lsS("ct_me",me);
-  var U=lsG("ct_u",[]);for(var i=0;i<U.length;i++){if(U[i].id===me.id){U[i].ferie=me.ferie;break;}}lsS("ct_u",U);
-  var ok=document.getElementById("ferie-ok");if(ok){ok.classList.add("on");setTimeout(function(){ok.classList.remove("on");},2000);}
-  toast("Saldo ferie salvato &#10003;","ok");
-}
+// stepFerie e salvaFerie definiti sopra con logica pool completa
 
 // ---- PASSWORD ----
 function cambiaPwd(){
@@ -4466,47 +4427,11 @@ function selezionaTipoReparto(targetId, val, btnEl) {
 // --- GESTIONE SELEZIONE PERSONALE IN-APP ---
 window._persTarget = null;
 
-function aggSel() {
-  var P = lsG("ct_p", []);
-  var listEl = document.getElementById("pers-picker-list");
-  if(!listEl) return;
-  
-  if(P.length === 0) {
-    listEl.innerHTML = '<div style="padding:30px 20px;text-align:center;color:var(--txt2);font-size:13px">Nessuna persona inserita.<br>Vai su "Personale" per aggiungerla.</div>';
-    return;
-  }
-
-  listEl.innerHTML = P.map(function(p) {
-    var g = GR[p.grado] || {nome: p.grado, svg: ""};
-    var img = g.svg ? '<img src="'+g.svg+'" style="height:20px;object-fit:contain">' : '';
-    // Escapi il nome per evitare errori se ci sono apostrofi (es. D'Angelo)
-    var safeNome = p.nome.replace(/'/g, "\\'");
-    return '<div onclick="selezionaPersona(\''+p.id+'\', \''+safeNome+'\')" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .2s" onmousedown="this.style.background=\'var(--card2)\'" onmouseup="this.style.background=\'none\'">' +
-           '<div style="width:38px;height:38px;border-radius:50%;background:var(--bg);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">&#128100;</div>' +
-           '<div style="flex:1;min-width:0">' +
-             '<div style="font-size:14px;font-weight:700;color:var(--txt)">' + p.nome + '</div>' +
-             '<div style="font-size:11px;color:var(--txt2);display:flex;align-items:center;gap:6px;margin-top:2px">' + img + g.nome + '</div>' +
-           '</div>' +
-           '</div>';
-  }).join('');
-}
+// aggSel completa definita più avanti (con Firebase users, dedup, picker)
 
 // --- GESTIONE DATE PICKER IN-APP ---
 window._dateTarget = null;
 var _dpDate = new Date();
-
-function apriDatePicker(targetId) {
-  window._dateTarget = targetId;
-  var cur = document.getElementById(targetId).value;
-  if(cur) {
-    var pts = cur.split('-');
-    _dpDate = new Date(pts[0], pts[1]-1, pts[2]);
-  } else {
-    _dpDate = new Date();
-  }
-  renderDatePicker();
-  openM('m-datepicker');
-}
 
 function renderDatePicker() {
   var y = _dpDate.getFullYear();
@@ -4547,11 +4472,11 @@ function dpMese(dir) {
 
 function scegliDate(dStr) {
   var t = document.getElementById(window._dateTarget);
-  if(t) {
-    t.value = dStr;
-    var lbl = document.getElementById('lbl-' + window._dateTarget);
-    if(lbl) lbl.textContent = dStr.split('-').reverse().join('/');
-  }
+  if(t) t.value = dStr;
+  // Supporta sia lbl- prefisso che _dateLblId esplicito
+  var lblId = window._dateLblId || ('lbl-' + window._dateTarget);
+  var lbl = document.getElementById(lblId);
+  if(lbl) { lbl.textContent = dStr.split('-').reverse().join('/'); lbl.style.color = 'var(--txt)'; }
   closeM('m-datepicker');
 }
 // -----------------------------------
@@ -4578,16 +4503,6 @@ function apriDatePicker(hiddenId, lblId) {
   renderDatePicker();
   openM('m-datepicker');
 }
-
-// Override scegliDate per aggiornare anche il bottone label
-scegliDate = function(dStr) {
-  var t = document.getElementById(window._dateTarget);
-  if(t) t.value = dStr;
-  var lblId = window._dateLblId || ('lbl-' + window._dateTarget);
-  var lbl = document.getElementById(lblId);
-  if(lbl) { lbl.textContent = dStr.split('-').reverse().join('/'); lbl.style.color = 'var(--txt)'; }
-  closeM('m-datepicker');
-};
 
 // ── TIME PICKER IN-APP ────────────────────────────────────────
 var _tp = { h:0, m:0, hiddenId:'', lblId:'', title:'' };
@@ -4924,14 +4839,15 @@ function salvaNuovoAnnoLic(){_confermaAggiungiAnno();}
 // -- Hook turni --
 function notificaTurno(pnome, tipo, data) {
   var me = lsG('ct_me', null);
-  // Non notificare se l'utente si è autoassegnato il turno
-  // (il turno è dell'utente loggato E non è comandante/vice che assegna ad altri)
+  // Non notificare MAI per autoassegnazione (indipendentemente dal ruolo)
   var myNome = me ? ((me.nome||'') + ' ' + (me.cognome||'')).trim().toLowerCase() : '';
   var turnoNome = (pnome||'').toLowerCase().trim();
-  var isSelf = myNome && turnoNome && (myNome === turnoNome || turnoNome.indexOf(myNome) !== -1 || myNome.indexOf(turnoNome) !== -1);
-  var isCom = me && (me.ruolo === 'comandante' || me.ruolo === 'vice');
-  // Se è autoassegnazione (non comandante che assegna ad altri) → non notificare
-  if(isSelf && !isCom) return;
+  var isSelf = myNome && turnoNome && (
+    myNome === turnoNome ||
+    turnoNome.indexOf(myNome) !== -1 ||
+    myNome.indexOf(turnoNome) !== -1
+  );
+  if(isSelf) return;
   var mN=["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
   var d=new Date(data+"T00:00:00");
   var ds=d.getDate()+" "+mN[d.getMonth()];
@@ -5151,6 +5067,8 @@ function aggUI(){
     if(togDino) togDino.checked = !!prefs.dino;
     var togSuoni = document.getElementById('tog-suoni');
     if(togSuoni) togSuoni.checked = prefs.suoni !== false; // default ON
+    var togVibra = document.getElementById('tog-vibra');
+    if(togVibra) togVibra.checked = prefs.vibra !== false; // default ON
     var togConfetti = document.getElementById('tog-confetti');
     if(togConfetti) togConfetti.checked = prefs.confetti !== false; // default ON
     var togSnooze = document.getElementById('tog-snooze');
@@ -5337,6 +5255,23 @@ function renderPers(){
     if(p.tipo==="legenda") return false;
     return true;
   });
+
+  // Deduplicazione ct_p per nome normalizzato (rimuove cloni creati da assegnazione turni)
+  var _normN = function(s){ return (s||'').toLowerCase().replace(/\s+/g,' ').trim(); };
+  var _seenNomi = {};
+  P = P.filter(function(p){
+    var k = _normN(p.nome);
+    if(!k) return true;
+    if(_seenNomi[k]) {
+      // Tieni quello con uid (più completo), scarta il duplicato senza uid
+      if(p.uid && !_seenNomi[k].uid) { _seenNomi[k].uid = p.uid; }
+      if(p.ava && !_seenNomi[k].ava) { _seenNomi[k].ava = p.ava; }
+      return false;
+    }
+    _seenNomi[k] = p;
+    return true;
+  });
+
   // Aggiungi utenti Firebase approvati che non sono già in ct_p
   var me = lsG('ct_me', null);
   var myRep = (me && me.reparto) ? me.reparto.toLowerCase() : '';
@@ -5346,8 +5281,14 @@ function renderPers(){
     if(u.stato === 'pending' || u.stato === 'rejected') return;
     var uRep = (u.reparto||'').toLowerCase();
     if(myRep && uRep !== myRep) return;
-    // Controlla se già presente in ct_p tramite uid
-    var exists = P.some(function(p){ return p.uid === u.uid; });
+    // Controlla se già presente per uid O per nome normalizzato
+    var nomeCompleto = _normN((u.cognome||'') + ' ' + (u.nome||''));
+    var nomeInv = _normN((u.nome||'') + ' ' + (u.cognome||''));
+    var exists = P.some(function(p){
+      return p.uid === u.uid
+        || _normN(p.nome) === nomeCompleto
+        || _normN(p.nome) === nomeInv;
+    });
     if(!exists){
       P.push({
         id: u.id || u.uid,
@@ -5362,9 +5303,10 @@ function renderPers(){
     } else {
       // Aggiorna foto e dati da Firebase anche se già presente in ct_p
       for(var _pi=0;_pi<P.length;_pi++){
-        if(P[_pi].uid===u.uid){
-          if(u.ava) P[_pi].ava=u.ava;
+        if(P[_pi].uid===u.uid || _normN(P[_pi].nome)===nomeCompleto || _normN(P[_pi].nome)===nomeInv){
+          if(u.ava && u.ava.startsWith('https')) P[_pi].ava=u.ava;
           if(u.grado) P[_pi].grado=u.grado;
+          if(!P[_pi].uid && u.uid) P[_pi].uid=u.uid;
           break;
         }
       }
@@ -5408,6 +5350,7 @@ function salvaPersona(){
   var lblGrado=document.getElementById("lbl-mp-grado");
   if(lblGrado)lblGrado.textContent="Seleziona grado...";
   if(document.getElementById("mp-rep"))document.getElementById("mp-rep").value="";
+  _playUiSound('save'); haptic('success');
   toast("Persona aggiunta","ok");
 }
 function salvaTurno(){
@@ -5543,6 +5486,7 @@ function salvaTurno(){
   var lblPers=document.getElementById("mt-pers-btn-lbl"); if(lblPers){lblPers.textContent="Scegli collega...";lblPers.style.color="var(--txt2)";}
   var lblData=document.getElementById("mt-data-btn-lbl"); if(lblData){lblData.textContent="Seleziona data...";lblData.style.color="var(--txt2)";}
   var persH=document.getElementById("mt-pers"); if(persH)persH.value="";
+  _playUiSound('save'); haptic('success');
   toast("Turno salvato","ok");
 }
 function delP(id){
@@ -5550,11 +5494,12 @@ function delP(id){
     if(!ok) return;
     lsS("ct_p",lsG("ct_p",[]).filter(function(p){return p.id!==id;}));
     lsS("ct_t",lsG("ct_t",[]).filter(function(t){return t.pid!==id;}));
-    renderPers();renderTurni();renderOggi();stats();aggSel();toast("Eliminato","ok");
+    renderPers();renderTurni();renderOggi();stats();aggSel();
+    _playUiSound('delete'); haptic('warning');
+    toast("Eliminato","ok");
   });
 }
 function delT(id){
-  // Controllo ruolo: solo comandante/vice o il proprietario del turno
   var _me = lsG('ct_me', null);
   var _myPid = parseInt(localStorage.getItem('ct_my_pid')||'0');
   var _isCom = _me && (_me.ruolo === 'comandante' || _me.ruolo === 'vice' || _me.id === 1);
@@ -5569,7 +5514,9 @@ function delT(id){
     if(!ok) return;
     lsS("ct_t",lsG("ct_t",[]).filter(function(t){return t.id!==id;}));
     if(window.FirebaseModule) window.FirebaseModule.deleteTurno(id);
-    renderTurni();renderOggi();stats();toast("Eliminato","ok");
+    renderTurni();renderOggi();stats();
+    _playUiSound('delete'); haptic('warning');
+    toast("Eliminato","ok");
   });
 }
 function aggSel(){
@@ -5652,9 +5599,23 @@ function renderCal(){
   var nG=new Date(cYR,cMO+1,0).getDate();
   var off=(new Date(cYR,cMO,1).getDay()+6)%7;
   var T=lsG("ct_t",[]);
-  var cols={mattina:"#ffb300",pomeriggio:"#ff6d00",notte:"#7c4dff",riposo:"#c8102e",
-    ferie:"#00c853",licenza:"#00c853",recupero:"#00c853",permesso:"#00c853",corso:"#00c853",
-    ml:"#ffb300",pl:"#ff6d00"};
+  var me=lsG("ct_me",null);
+  var myPid=parseInt(localStorage.getItem("ct_my_pid")||"0");
+  var myUid=(me&&(me.uid||me.id))||null;
+
+  var cols={
+    mattina:"#ffb300",pomeriggio:"#ff6d00",notte:"#7c4dff",
+    riposo:"#c8102e",ferie:"#00c853",licenza:"#00c853",
+    recupero:"#00c853",permesso:"#00c853",corso:"#2979ff",
+    ml:"#ffb300",pl:"#ff6d00"
+  };
+  var labels={
+    mattina:"M",pomeriggio:"P",notte:"N",riposo:"R",
+    ferie:"F",licenza:"L",recupero:"Rec",permesso:"Per",corso:"C",
+    ml:"ML",pl:"PL"
+  };
+  var ord=['mattina','ml','pomeriggio','pl','notte','riposo','ferie','licenza','recupero','permesso','corso'];
+
   var h="";
   h+="<div style=\"background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:12px\">";
   h+="<div style=\"padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between\">";
@@ -5667,21 +5628,70 @@ function renderCal(){
   h+="</div>";
   h+="<div class=\"cal-grid\" style=\"padding:6px;gap:3px\">";
   for(var i=0;i<off;i++)h+="<div class=\"cal-cell empty\"></div>";
+
   for(var g=1;g<=nG;g++){
     var ds=cYR+"-"+pad(cMO+1)+"-"+pad(g);
     var tg=T.filter(function(t){return t.data===ds;});
     var isO=(g===og.getDate()&&cMO===og.getMonth()&&cYR===og.getFullYear());
+
+    // Trova il turno dell'utente corrente per questo giorno
+    var mioTurno=null;
+    if(tg.length>0){
+      mioTurno=tg.find(function(t){
+        return (myPid && t.pid===myPid) ||
+               (myUid && (t.uid===myUid || t.pid===myUid));
+      })||null;
+    }
+
     h+="<div class=\"cal-cell"+(isO?" today":"")+"\" onclick=\"mostraGiorno('"+ds+"')\">";
     h+="<div style=\"display:flex;align-items:center;justify-content:space-between\">";
     h+="<div class=\"cal-day-n\" style=\""+(isO?"color:var(--blue);font-weight:800":"")+"\">"+g+"</div>";
     h+="<button type=\"button\" onclick=\"event.stopPropagation();apriNuovoTurno('"+ds+"')\" style=\"background:none;border:none;color:var(--txt3);font-size:14px;line-height:1;padding:0 1px;cursor:pointer;appearance:none;-webkit-appearance:none\">+</button>";
     h+="</div>";
-    tg.slice(0,2).forEach(function(t){
-      var c=cols[t.tipo]||"#aaa";
-      h+="<div class=\"cal-badge\" style=\"background:"+c+"22;color:"+c+"\">"+
-        (t.codice||t.pnome.split(" ")[0])+"</div>";
-    });
-    if(tg.length>2)h+="<div style=\"font-size:7px;color:var(--txt2)\">+"+(tg.length-2)+"</div>";
+
+    if(tg.length>0){
+      // 1. Badge del turno dell'utente — sempre in primo piano, evidenziato
+      if(mioTurno){
+        var c=cols[mioTurno.tipo]||'#8faac8';
+        var lbl=labels[mioTurno.tipo]||mioTurno.tipo.slice(0,2).toUpperCase();
+        h+="<div class=\"cal-badge\" style=\"background:"+c+"33;color:"+c+";border:1px solid "+c+"88;font-weight:900\">"
+          +"<span class=\"cal-badge-dot\" style=\"background:"+c+"\"></span>"
+          +"<span>"+lbl+"</span>"
+          +"</div>";
+      }
+
+      // 2. Raggruppa gli altri turni per tipo (escluso il mio)
+      var altriTurni=tg.filter(function(t){
+        if(!mioTurno) return true;
+        return t!==mioTurno;
+      });
+      if(altriTurni.length>0){
+        var gruppi={};
+        altriTurni.forEach(function(t){
+          var tipo=t.tipo||'altro';
+          if(!gruppi[tipo]) gruppi[tipo]=0;
+          gruppi[tipo]++;
+        });
+        var tipiOrdinati=Object.keys(gruppi).sort(function(a,b){
+          return (ord.indexOf(a)+1||99)-(ord.indexOf(b)+1||99);
+        });
+        // Max 2 tipi degli altri (se ho già il mio badge) oppure 3 se non ho turno
+        var maxAltri=mioTurno?2:3;
+        tipiOrdinati.slice(0,maxAltri).forEach(function(tipo){
+          var c=cols[tipo]||'#8faac8';
+          var lbl=labels[tipo]||tipo.slice(0,2).toUpperCase();
+          var cnt=gruppi[tipo];
+          h+="<div class=\"cal-badge\" style=\"background:"+c+"18;color:"+c+"\">"
+            +"<span class=\"cal-badge-dot\" style=\"background:"+c+";opacity:.7\"></span>"
+            +(cnt>1?"<span class=\"cal-badge-cnt\">"+cnt+"</span>":"")
+            +"<span style=\"overflow:hidden;text-overflow:ellipsis;opacity:.85\">"+lbl+"</span>"
+            +"</div>";
+        });
+        if(tipiOrdinati.length>maxAltri){
+          h+="<div style=\"font-size:7px;color:var(--txt2)\">+altro</div>";
+        }
+      }
+    }
     h+="</div>";
   }
   h+="</div></div>";
@@ -7114,6 +7124,8 @@ async function richiestaTrasfRep() {
 var _bnOrder = ['dash','ag','cal','imp'];
 function vaiBN(pg, idx) {
   console.log('[Nav] vaiBN chiamata:', pg);
+  _playUiSound('nav');
+  haptic('light');
   document.querySelectorAll(".bn-item").forEach(function(b){ b.classList.remove("on"); });
   var bnEl = document.getElementById("bn-"+pg);
   if(bnEl) bnEl.classList.add("on");
@@ -7183,11 +7195,17 @@ function pad(n){return n<10?"0"+n:""+n;}
 // ── Vibrazione aptica sicura ──────────────────────────────────
 window.haptic = function(type) {
   if (!navigator.vibrate) return;
+  var prefs = (typeof lsG === 'function') ? lsG('ct_prefs', {}) : {};
+  if (prefs.vibra === false) return; // rispetta preferenza utente
   try {
-    if (type === 'light')   navigator.vibrate(15);
-    else if (type === 'success') navigator.vibrate([15, 60, 20]);
-    else if (type === 'error')   navigator.vibrate([50, 50, 50]);
-    else                    navigator.vibrate(15);
+    if (type === 'light')        navigator.vibrate(12);
+    else if (type === 'medium')  navigator.vibrate(25);
+    else if (type === 'success') navigator.vibrate([10, 40, 15]);
+    else if (type === 'error')   navigator.vibrate([60, 40, 60]);
+    else if (type === 'warning') navigator.vibrate([30, 20, 30]);
+    else if (type === 'double')  navigator.vibrate([15, 60, 15]);
+    else if (type === 'heavy')   navigator.vibrate(50);
+    else                         navigator.vibrate(12);
   } catch(e) {}
 };
 
@@ -7394,6 +7412,26 @@ function _syncAvaAllSections(avaUrl){
     if(avaUrl){ hAva.style.backgroundImage='url('+avaUrl+')'; hAva.style.backgroundSize='cover'; hAva.style.backgroundPosition='center'; hAva.innerHTML=''; }
     else { hAva.style.backgroundImage=''; hAva.innerHTML='&#128100;'; }
   }
+  // Hero dashboard avatar (fix: era mancante)
+  var heroAva = document.getElementById('hero-user-ava');
+  if(heroAva){
+    if(avaUrl){
+      heroAva.classList.add('ava-loading');
+      var _img = new Image();
+      _img.onload = function(){
+        heroAva.style.backgroundImage='url('+avaUrl+')';
+        heroAva.style.backgroundSize='cover';
+        heroAva.style.backgroundPosition='center';
+        heroAva.textContent='';
+        heroAva.classList.remove('ava-loading');
+      };
+      _img.onerror = function(){ heroAva.classList.remove('ava-loading'); };
+      _img.src = avaUrl;
+    } else {
+      heroAva.style.backgroundImage='';
+      heroAva.classList.remove('ava-loading');
+    }
+  }
   // Impostazioni avatar
   var impAva = document.getElementById('imp-ava');
   if(impAva){
@@ -7422,9 +7460,7 @@ function _syncAvaAllSections(avaUrl){
    MEGA-PATCH JS  c_turni_v3.1.0
    ============================================================ */
 
-/* ---------- LS HELPERS (alias sicuri) ---------- */
-function lsG(k, d) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch(e) { return d; } }
-function lsS(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch(e) { return false; } }
+/* ---------- LS HELPERS (alias sicuri) — definiti all'inizio del file ---------- */
 
 /* ---------- MAPPA CITT ? COORDINATE (meteo) ---------- */
 var METEO_CITTA = {
@@ -8261,15 +8297,6 @@ function _schedulaNotifPrecisa(titolo, data, ora) {
   }
 }
 
-/* ---------- SALVA TODO con sveglia ---------- */
-// Estendi salvaTodo per supportare reset campo ora dopo salvataggio
-var _origSalvaTodo = salvaTodo;
-salvaTodo = function() {
-  var oraEl = document.getElementById('td-ora');
-  _origSalvaTodo();
-  if (oraEl) oraEl.value = '';
-};
-
 /* ---------- MODIFICA ORARIO TURNO ---------- */
 function apriModTurno(id) {
   var T = lsG('ct_t', []);
@@ -8316,18 +8343,17 @@ function setModTurnoTipo(tipo, codice, btn) {
   document.getElementById('mmt-tipo').value = tipo;
   document.querySelectorAll('#m-mod-turno .btn-turno-r').forEach(function(b){ b.classList.remove('sel'); });
   if(btn) btn.classList.add('sel');
-  // Aggiorna orario con preset se i campi sono vuoti
+  // Aggiorna SEMPRE orario con preset quando si cambia tipo
   var inHid = document.getElementById('mmt-ora-in');
   var fiHid = document.getElementById('mmt-ora-fi');
   var inLbl = document.getElementById('mmt-ora-in-btn-lbl');
   var fiLbl = document.getElementById('mmt-ora-fi-btn-lbl');
-  if(inHid && !inHid.value) {
-    var preset = getOrariPreset()[tipo === 'ml' ? 'ml' : tipo === 'pl' ? 'pl' : tipo];
-    if(preset) {
-      inHid.value = preset.in; fiHid.value = preset.out;
-      if(inLbl) { inLbl.textContent = preset.in; inLbl.style.color = 'var(--txt)'; }
-      if(fiLbl) { fiLbl.textContent = preset.out; fiLbl.style.color = 'var(--txt)'; }
-    }
+  var preset = getOrariPreset()[tipo === 'ml' ? 'ml' : tipo === 'pl' ? 'pl' : tipo];
+  if(preset) {
+    if(inHid) inHid.value = preset.in;
+    if(fiHid) fiHid.value = preset.out;
+    if(inLbl) { inLbl.textContent = preset.in; inLbl.style.color = 'var(--txt)'; }
+    if(fiLbl) { fiLbl.textContent = preset.out; fiLbl.style.color = 'var(--txt)'; }
   }
 }
 
@@ -8337,11 +8363,18 @@ function salvaModTurno() {
   var oraIn = (document.getElementById('mmt-ora-in')||{}).value || '';
   var oraFi = (document.getElementById('mmt-ora-fi')||{}).value || '';
   var orario = (oraIn && oraFi) ? oraIn + '-' + oraFi : '';
+  var nuovoTipo = document.getElementById('mmt-tipo').value;
   for (var i=0; i<T.length; i++) {
     if (T[i].id === id) {
-      T[i].tipo = document.getElementById('mmt-tipo').value;
+      T[i].tipo = nuovoTipo;
       T[i].orario = orario;
       T[i].note = document.getElementById('mmt-note').value.trim();
+      // Aggiorna anche il codice in base al tipo
+      var tipoToCod = {mattina:'M',ml:'ML',pomeriggio:'P',pl:'PL',notte:'N',sera:'S',
+        riposo:'R',recupero:'RR',ferie:'L','104':'104','937':'937',licenza:'LICSTU',
+        esame:'ESAME',ls:'LS',fest:'FEST',permesso:'PERM',corso:'CORSO',
+        obbm:'OBBM',obbp:'OBBP'};
+      if(tipoToCod[nuovoTipo]) T[i].codice = tipoToCod[nuovoTipo];
       break;
     }
   }
@@ -8350,6 +8383,11 @@ function salvaModTurno() {
   closeM('m-mod-turno');
   renderTurni(); aggiornaWidget(); renderDash(); renderOggi();
   if(typeof renderCal === 'function') renderCal();
+  // Aggiorna anche il sheet del giorno se aperto
+  var sgData = document.getElementById('sg-data');
+  if(sgData && sgData.value && typeof mostraGiorno === 'function') mostraGiorno(sgData.value);
+  _playUiSound('save');
+  haptic('success');
   toast('Turno aggiornato', 'ok');
 }
 
@@ -8430,21 +8468,21 @@ var _origRenderPers = renderPers;
 renderPers = function() {
   _origRenderPers();
   var me = lsG('ct_me', null); if (!me) return;
-  var isCom = (me.ruolo === 'comandante' || me.ruolo === 'vice') && (me.stato === 'attivo' || me.stato === 'approved' || me.stato === 'approvato');
+  var isCom = (me.ruolo === 'comandante' || me.ruolo === 'vice') && (me.stato === 'approved' || me.stato === 'approvato');
   if (!isCom) return;
   var U = lsG('ct_u', []);
   var pending = U.filter(function(u){ return u.reparto && u.reparto.toLowerCase() === (me.reparto||'').toLowerCase() && (u.stato === 'pending' || u.stato === 'pending_com'); });
   if (!pending.length) return;
   var cont = document.getElementById('tb-pers');
   if (!cont) return;
-  var header = '<tr style="background:rgba(255,180,0,.08)"><td colspan="8" style="font-size:11px;font-weight:700;color:var(--gold);padding:8px 10px">? In attesa di approvazione (' + pending.length + ')</td></tr>';
+  var header = '<tr style="background:rgba(255,180,0,.08)"><td colspan="8" style="font-size:11px;font-weight:700;color:var(--gold);padding:8px 10px">&#9203; In attesa di approvazione (' + pending.length + ')</td></tr>';
   var rows = pending.map(function(u){
     return '<tr style="opacity:.75">'
       + '<td>' + u.nome + '</td><td>' + u.grado + '</td><td></td><td>' + (u.reparto||'') + '</td>'
-      + '<td><span style="background:rgba(255,180,0,.15);color:var(--gold);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">' + (u.stato==='pending_com'?'&#9203; Com. richiesto':'? Pending') + '</span></td>'
+      + '<td><span style="background:rgba(255,180,0,.15);color:var(--gold);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">' + (u.stato==='pending_com'?'&#9203; Com. richiesto':'&#9203; Pending') + '</span></td>'
       + '<td colspan="3" style="text-align:right">'
-      + '<button onclick="approvaUtente(' + u.id + ')" style="background:rgba(0,200,83,.15);color:var(--green);border:1px solid rgba(0,200,83,.3);border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;appearance:none;-webkit-appearance:none;margin-right:4px">? Approva</button>'
-      + '<button onclick="rifiutaUtente(' + u.id + ')" style="background:rgba(200,16,46,.1);color:var(--red);border:1px solid rgba(200,16,46,.3);border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;appearance:none;-webkit-appearance:none">? Rifiuta</button>'
+      + '<button onclick="approvaUtente(' + u.id + ')" style="background:rgba(0,200,83,.15);color:var(--green);border:1px solid rgba(0,200,83,.3);border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;appearance:none;-webkit-appearance:none;margin-right:4px">&#10003; Approva</button>'
+      + '<button onclick="rifiutaUtente(' + u.id + ')" style="background:rgba(200,16,46,.1);color:var(--red);border:1px solid rgba(200,16,46,.3);border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;appearance:none;-webkit-appearance:none">&#10005; Rifiuta</button>'
       + '</td></tr>';
   }).join('');
   cont.innerHTML = header + rows + cont.innerHTML;
@@ -8499,29 +8537,6 @@ function rifiutaUtente(id) {
 
 /* ---------- MODIFICA ORARIO (tasto inline in tabella turni) ---------- */
 // Aggiunge pulsante modifica nella renderTurni  hook
-var _origRenderTurni = typeof renderTurni !== 'undefined' ? renderTurni : null;
-if (_origRenderTurni) {
-  renderTurni = function() {
-    _origRenderTurni();
-    // Aggiunge pulsante modifica accanto ad ogni riga
-    var rows = document.querySelectorAll('#tb-turni tr:not(.empty-row)');
-    rows.forEach(function(row) {
-      var lastTd = row.querySelector('td:last-child');
-      if (lastTd && !lastTd.querySelector('.mod-btn')) {
-        var idAttr = row.getAttribute('data-id');
-        if (idAttr) {
-          var btn = document.createElement('button');
-          btn.className = 'mod-btn';
-          btn.innerHTML = '&#128190;';
-          btn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:14px;padding:0 4px;appearance:none;-webkit-appearance:none';
-          btn.onclick = function(){ apriModTurno(parseInt(idAttr)); };
-          lastTd.appendChild(btn);
-        }
-      }
-    });
-  };
-}
-
 /* ---------- GOOGLE CALENDAR - Aggiungi turno ---------- */
 function aggiungiTurnoCalendar(turnoId) {
   var T = lsG('ct_t', []);
@@ -8606,29 +8621,6 @@ function esportaAgendaGoogleTasks() {
   toast('Apertura Google Calendar...', 'ok');
 }
 
-/* ---------- AGENDA: aggiunge link Google Maps alla renderAgenda esistente ---------- */
-var _origRenderAgenda = renderAgenda;
-renderAgenda = function() {
-  _origRenderAgenda();
-  // Arricchisce ogni item con link Maps se ha luogo
-  var items = document.querySelectorAll('.ag-item');
-  items.forEach(function(item) {
-    var luogoEl = item.querySelector('[data-luogo]');
-    if (luogoEl && !luogoEl.querySelector('.maps-link')) {
-      var luogo = luogoEl.getAttribute('data-luogo');
-      if (luogo) {
-        var a = document.createElement('a');
-        a.className = 'maps-link';
-        a.href = 'https://www.google.com/maps/search/' + encodeURIComponent(luogo);
-        a.target = '_blank';
-        a.style.cssText = 'font-size:10px;color:var(--blue);text-decoration:none;margin-left:6px';
-        a.innerHTML = '&#128205; Maps';
-        luogoEl.appendChild(a);
-      }
-    }
-  });
-};
-
 /* ---------- GITHUB GIST BACKUP ---------- */
 // Offuscamento minimale: XOR con chiave fissa (non crittografia forte, ma non plain text)
 
@@ -8650,9 +8642,17 @@ aggUI = function() {
 
 
 
-// 6B SINGOLO  Auto-orari turni
-var ORARI_TURNO={"mattina":"06:00&#8211;14:00","ml":"06:00&#8211;14:00","pomeriggio":"14:00&#8211;22:00","pl":"14:00&#8211;22:00","notte":"22:00&#8211;06:00","sera":"20:00&#8211;24:00"};
-document.querySelectorAll("select[id*='tipo']").forEach(s=>s.onchange=function(){var t=this.value;var e=document.querySelector("input[id*='orario']");if(e&&ORARI_TURNO[t])e.value=ORARI_TURNO[t];});
+// 6B SINGOLO  Auto-orari turni (spostato in DOMContentLoaded per sicurezza)
+var ORARI_TURNO={"mattina":"06:00-14:00","ml":"06:00-16:00","pomeriggio":"14:00-22:00","pl":"12:00-22:00","notte":"22:00-06:00","sera":"20:00-02:00"};
+document.addEventListener('DOMContentLoaded', function(){
+  document.querySelectorAll("select[id*='tipo']").forEach(function(s){
+    s.addEventListener('change', function(){
+      var t=this.value;
+      var e=document.querySelector("input[id*='orario']");
+      if(e&&ORARI_TURNO[t])e.value=ORARI_TURNO[t];
+    });
+  });
+});
 
 // ---- GUIDA INTERATTIVA ----
 var _GUIDE = {
@@ -8815,6 +8815,11 @@ function openM(id) {
     _zTop += 10;
     m.style.zIndex = _zTop;
     m.classList.add('on');
+    // Suono e vibrazione apertura modal
+    if(id !== 'm-egg' && id !== 'm-novita') {
+      _playUiSound('open');
+      haptic('light');
+    }
     if (id === 'm-turno') {
         _aggiornaPersBtnLabel();
         _aggiungiOpzioniCustomAlSelect();
@@ -8899,6 +8904,9 @@ function openM(id) {
 function closeM(id) {
     var m = document.getElementById(id);
     if (m) m.classList.remove('on');
+    // Suono chiusura (solo per modali principali, non per picker)
+    var _noSound = ['m-datepicker','m-time-picker','m-pers-picker','m-grado-picker','m-egg'];
+    if(_noSound.indexOf(id) === -1) _playUiSound('close');
     if (id === 'm-avatar-editor') _aveBound = false;
     if (id === 'm-egg') {
       if(typeof _eggLampTimer !== 'undefined' && _eggLampTimer){ clearInterval(_eggLampTimer); _eggLampTimer=null; }
@@ -8947,109 +8955,7 @@ window.addEventListener('DOMContentLoaded', function() {
 
     // Carica opzioni turni custom nel select
     if(typeof _aggiungiOpzioniCustomAlSelect === 'function') _aggiungiOpzioniCustomAlSelect();
-
-    // 2. PARSER EXCEL INTELLIGENTE
-    window.parseSheet = function(rows, sn) {
-        var anno = new Date().getFullYear(), mese = null;
-        var mM = {"gen":0,"gennaio":0,"jan":0,"january":0,"feb":1,"febbraio":1,"mar":2,"marzo":2,"apr":3,"aprile":3,"mag":4,"maggio":4,"giu":5,"giugno":5,"lug":6,"luglio":6,"ago":7,"agosto":7,"set":8,"settembre":8,"ott":9,"ottobre":9,"nov":10,"novembre":10,"dic":11,"dicembre":11,"01":0,"02":1,"03":2,"04":3,"05":4,"06":5,"07":6,"08":7,"09":8,"10":9,"11":10,"12":11};
-
-        var tokens = sn.toLowerCase().replace(/[-_\/\\.,]/g, ' ').split(/\s+/);
-        Object.keys(mM).forEach(function(k) {
-            if (mese !== null) return;
-            tokens.forEach(function(t) { if (t === k || t.indexOf(k) === 0) mese = mM[k]; });
-        });
-
-        for (var i = 0; i < Math.min(8, rows.length); i++) {
-            rows[i].forEach(function(v) {
-                var n = parseInt(v);
-                if (!isNaN(n) && n > 2000 && n < 2100) anno = n;
-                if (!isNaN(n) && n >= 1 && n <= 12 && mese === null) mese = n - 1;
-            });
-        }
-        if (mese === null) mese = new Date().getMonth();
-
-        var hR = -1;
-        for (var i = 0; i < Math.min(15, rows.length); i++) {
-            var cnt = 0;
-            rows[i].forEach(function(v) { var n = parseInt(v); if (!isNaN(n) && n >= 1 && n <= 31) cnt++; });
-            if (cnt >= 20) { hR = i; break; }
-        }
-        if (hR < 0) return 0;
-
-        var idxGrado = 0, idxNome = 1;
-        for (var scan = Math.max(0, hR - 3); scan <= hR; scan++) {
-            if (!rows[scan]) continue;
-            rows[scan].forEach(function(v, idx) {
-                var s = String(v).toLowerCase().trim();
-                if (s === 'grado' || s.indexOf('grado ') === 0) idxGrado = idx;
-                if (s.indexOf('nome') !== -1 || s.indexOf('cognome') !== -1) idxNome = idx;
-            });
-        }
-
-        var colD = {};
-        rows[hR].forEach(function(v, idx) { var n = parseInt(v); if (!isNaN(n) && n >= 1 && n <= 31) colD[idx] = n; });
-
-        var cM2 = {"M":"mattina","ML":"mattina","1515":"mattina","P":"pomeriggio","PL":"pomeriggio","N":"notte","NL":"notte","R":"riposo","RR":"recupero","L":"ferie","LICSTU":"licenza","104":"permesso","937":"permesso","FEST":"permesso","CORSO":"corso","LS":"permesso","ESAME":"corso"};
-        // Usa preset configurabili se disponibili, altrimenti fallback hardcoded
-        var _op = (typeof getOrariPreset === 'function') ? getOrariPreset() : {};
-        var oM  = {
-          "mattina":    (_op.mattina    ? _op.mattina.in+"-"+_op.mattina.out       : "06:00-14:00"),
-          "pomeriggio": (_op.pomeriggio ? _op.pomeriggio.in+"-"+_op.pomeriggio.out : "14:00-22:00"),
-          "notte":      (_op.notte      ? _op.notte.in+"-"+_op.notte.out           : "22:00-06:00"),
-          "riposo":"Riposo","recupero":"Recupero","ferie":"Ferie",
-          "licenza":"Lic. Studio","permesso":"Permesso","corso":"Corso"
-        };
-
-        var tot = 0;
-        var P = lsG('ct_p', []);
-        var T = lsG('ct_t', []);
-        var _COD = {};
-        Object.keys(cM2).forEach(function(k) { _COD[k] = true; });
-
-        for (var i = hR + 1; i < rows.length; i++) {
-            var r  = rows[i];
-            var nR = String(r[idxNome]  || '').trim();
-            var gR = String(r[idxGrado] || '').trim();
-
-            // A. Stop su legenda
-            if(nR.toLowerCase().indexOf('legenda') !== -1 || gR.toLowerCase().indexOf('legenda') !== -1) break;
-
-            // B. Salta righe vuote o troppo corte
-            if (!nR || nR.length < 3) continue;
-            if (_COD[nR.toUpperCase()]) continue;
-
-            var _pgPre = typeof parseGradoNome === 'function' ? parseGradoNome(gR, nR) : {grado: gR, nome: nR};
-            nR = _pgPre.nome;
-
-            // C. Crea placeholder se non trovata — verrà collegato all'uid reale alla registrazione
-            var persona = P.find(function(x) { return x.nome.toLowerCase() === nR.toLowerCase(); }) || null;
-            if (!persona) {
-                persona = {id: Date.now() + Math.floor(Math.random() * 9999), nome: nR, grado: _pgPre.grado, reparto: '', ferieRes: 30, uid: null, placeholder: true};
-                P.push(persona);
-            }
-            Object.keys(colD).forEach(function(col) {
-                var raw = String(r[parseInt(col)] || '').trim().toUpperCase();
-                if (!raw) return;
-                var tipo = cM2[raw];
-                if (!tipo) return;
-                var ds  = anno + '-' + pad(mese + 1) + '-' + pad(colD[col]);
-                var dup = T.some(function(t) { return t.pid === persona.id && t.data === ds; });
-                if (!dup) {
-                    var _catEv = ['riposo','ferie','recupero','licenza','permesso','937','104','ls','fest'].indexOf(tipo) !== -1 ? 'personale' : 'servizio';
-                    T.push({id: Date.now() + Math.floor(Math.random() * 99999), pid: persona.id, pnome: persona.nome, data: ds, tipo: tipo, orario: oM[tipo] || tipo, note: '', codice: raw, categoria_evento: _catEv});
-                    tot++;
-                }
-            });
-        }
-        lsS('ct_p', P);
-        lsS('ct_t', T);
-        // Sincronizza su Firebase dopo import Excel
-        if(window.FirebaseModule) {
-          window.FirebaseModule.saveTurni(T).catch(function(e){ console.warn('saveTurni post-import:', e.message); });
-          window.FirebaseModule.savePersonale().catch(function(e){ console.warn('savePersonale post-import:', e.message); });
-        }
-        return tot;
-    };
+    // parseSheet è già definita come funzione globale — non sovrascrivere qui
 });
 
 // --- LOGICA TASK 4: INSERIMENTO RAPIDO ---
@@ -9061,21 +8967,63 @@ var _giornoSelezionato = "";
 function setR(tipo) {
     var inpIn = document.getElementById('r-ora-in');
     var inpFi = document.getElementById('r-ora-fi');
-    if (tipo === 'M') { inpIn.value = "06:00"; inpFi.value = "14:00"; }
-    else if (tipo === 'P') { inpIn.value = "14:00"; inpFi.value = "22:00"; }
-    else if (tipo === 'N') { inpIn.value = "22:00"; inpFi.value = "06:00"; }
-    else if (tipo === 'R') { inpIn.value = ""; inpFi.value = ""; toast("Segnato come Riposo"); }
+    var tipoH = document.getElementById('r-tipo-hidden');
+    // Usa preset configurabili
+    var _op = (typeof getOrariPreset === 'function') ? getOrariPreset() : {};
+    var tipoMap = { M:'mattina', P:'pomeriggio', N:'notte', R:'riposo' };
+    var tipoNome = tipoMap[tipo] || tipo.toLowerCase();
+    var preset = _op[tipoNome];
+    if (tipo === 'M') {
+      if(inpIn) inpIn.value = preset ? preset.in : '06:00';
+      if(inpFi) inpFi.value = preset ? preset.out : '14:00';
+    } else if (tipo === 'P') {
+      if(inpIn) inpIn.value = preset ? preset.in : '14:00';
+      if(inpFi) inpFi.value = preset ? preset.out : '22:00';
+    } else if (tipo === 'N') {
+      if(inpIn) inpIn.value = preset ? preset.in : '22:00';
+      if(inpFi) inpFi.value = preset ? preset.out : '06:00';
+    } else if (tipo === 'R') {
+      if(inpIn) inpIn.value = '';
+      if(inpFi) inpFi.value = '';
+    }
+    if(tipoH) tipoH.value = tipoNome;
+    // Evidenzia bottone attivo
+    document.querySelectorAll('#m-rapido .btn-r').forEach(function(b){ b.style.background=''; b.style.color=''; });
+    var btn = document.querySelector('#m-rapido .btn-r[onclick*="\''+tipo+'\'"]');
+    if(btn){ btn.style.background='var(--blue)'; btn.style.color='#fff'; }
 }
 
 // 2. Funzione per salvare il turno rapido
 function salvaTurnoRapido() {
-    var pSel = document.getElementById('r-pers-sel').innerText;
-    var oraIn = document.getElementById('r-ora-in').value;
-    var oraFi = document.getElementById('r-ora-fi').value;
-    if (pSel === "Scegli...") { toast("Seleziona un collega!", "err"); return; }
-    console.log("Salvataggio:", pSel, _giornoSelezionato, oraIn, oraFi);
-    toast("Turno salvato con successo!");
+    var pid = parseInt((document.getElementById('r-pers-hidden')||{}).value||'0');
+    var oraIn = (document.getElementById('r-ora-in')||{}).value || '';
+    var oraFi = (document.getElementById('r-ora-fi')||{}).value || '';
+    var tipoEl = document.getElementById('r-tipo-hidden');
+    var tipo = tipoEl ? tipoEl.value : '';
+    if (!pid) { toast('Seleziona un collega!', 'err'); return; }
+    if (!tipo) { toast('Seleziona un tipo di turno (M/P/N/R)', 'err'); return; }
+    var ds = _giornoSelezionato || _oggi();
+    var P = lsG('ct_p', []);
+    var p = P.find(function(x){ return x.id === pid; });
+    if (!p) { toast('Persona non trovata', 'err'); return; }
+    var orario = (oraIn && oraFi) ? oraIn + '-' + oraFi : tipo;
+    var T = lsG('ct_t', []);
+    T.push({
+      id: Date.now(), pid: pid, pnome: p.nome,
+      data: ds, tipo: tipo, orario: orario, note: '', codice: tipo.toUpperCase().slice(0,2)
+    });
+    lsS('ct_t', T);
+    if(window.FirebaseModule) window.FirebaseModule.saveTurni(T);
+    renderTurni(); renderOggi(); stats(); aggiornaWidget();
+    if(typeof renderCal === 'function') renderCal();
+    // Reset modal
+    var persH = document.getElementById('r-pers-hidden'); if(persH) persH.value='';
+    var persSel = document.getElementById('r-pers-sel'); if(persSel){ persSel.textContent='Scegli...'; }
+    var tipoH = document.getElementById('r-tipo-hidden'); if(tipoH) tipoH.value='';
+    document.querySelectorAll('#m-rapido .btn-r').forEach(function(b){ b.style.background=''; b.style.color=''; });
     closeM('m-rapido');
+    toast('Turno salvato ✓', 'ok');
+    haptic('success');
 }
 
 // TASK A: PONTE CALENDARIO - TURNO NATIVO
@@ -9325,6 +9273,8 @@ function confermaAvatarCrop() {
   ctx.drawImage(_ave.img, _ave.x, _ave.y, _ave.img.width * _ave.scale, _ave.img.height * _ave.scale);
   var data = cv.toDataURL('image/jpeg', 0.75);
   window._tempAva = data;
+
+  // Mostra subito la preview
   var prev = document.getElementById(_ave.prevId);
   if(prev) {
     prev.style.backgroundImage = 'url(' + data + ')';
@@ -9333,7 +9283,63 @@ function confermaAvatarCrop() {
     prev.textContent = '';
   }
   closeM('m-avatar-editor');
-  toast('Foto ritagliata ✓', 'ok');
+
+  // Upload immediato su Firebase Storage — non aspettare "Salva"
+  var sess = lsG('ct_session', null);
+  var uid = sess && sess.userId;
+  if(uid && window.FirebaseModule && window.FirebaseModule.uploadFotoProfilo) {
+    toast('Caricamento foto...', 'ok');
+    ctSpinner(true, 'Caricamento foto...');
+    // Mostra shimmer sul preview avatar durante upload
+    var _pfPrev = document.getElementById('pf-ava-prev');
+    if(_pfPrev) _pfPrev.classList.add('ava-loading');
+    var _heroAvaUp = document.getElementById('hero-user-ava');
+    if(_heroAvaUp) _heroAvaUp.classList.add('ava-loading');
+    window.FirebaseModule.uploadFotoProfilo(uid, data)
+      .then(function(fotoUrl) {
+        ctSpinner(false);
+        if(_pfPrev) _pfPrev.classList.remove('ava-loading');
+        if(_heroAvaUp) _heroAvaUp.classList.remove('ava-loading');
+        if(!fotoUrl) { toast('Errore upload foto', 'err'); return; }
+        window._tempAva = null; // già caricata, non serve più
+        // Aggiorna ct_me, ct_session, ct_p
+        var me = lsG('ct_me', null);
+        if(me) { me.ava = fotoUrl; me.fotoURL = fotoUrl; lsS('ct_me', me); }
+        var s2 = lsG('ct_session', null);
+        if(s2) { s2.ava = fotoUrl; s2.fotoURL = fotoUrl; lsS('ct_session', s2); }
+        var myPid = localStorage.getItem('ct_my_pid');
+        var P = lsG('ct_p', []);
+        var changed = false;
+        for(var i=0;i<P.length;i++){
+          if(P[i].uid===uid || String(P[i].id)===String(myPid)){
+            P[i].ava = fotoUrl; changed = true; break;
+          }
+        }
+        if(changed) lsS('ct_p', P);
+        // Aggiorna tutte le preview nell'UI
+        if(typeof _syncAvaAllSections === 'function') _syncAvaAllSections(fotoUrl);
+        if(typeof aggUI === 'function') aggUI();
+        toast('Foto salvata ✓', 'ok');
+        haptic('success');
+      })
+      .catch(function(e) {
+        ctSpinner(false);
+        if(_pfPrev) _pfPrev.classList.remove('ava-loading');
+        if(_heroAvaUp) _heroAvaUp.classList.remove('ava-loading');
+        console.warn('upload foto:', e.message);
+        toast('Foto salvata localmente (upload fallito)', 'warn');
+        // Fallback: usa base64 localmente
+        var me = lsG('ct_me', null);
+        if(me) { me.ava = data; lsS('ct_me', me); }
+        if(typeof aggiornaHeroCard === 'function') aggiornaHeroCard();
+      });
+  } else {
+    // Nessun Firebase: usa base64 localmente
+    var me = lsG('ct_me', null);
+    if(me) { me.ava = data; lsS('ct_me', me); }
+    if(typeof aggiornaHeroCard === 'function') aggiornaHeroCard();
+    toast('Foto ritagliata ✓', 'ok');
+  }
 }
 
 var _aveBound = false;
@@ -10325,8 +10331,6 @@ var AuthModule = (function() {
 
     // ── Render Gestione Membri section (called from aggUI) ──
 
-
-    renderGestioneMembri: function() { AuthModule.renderGestioneMemebri(); },
     renderGestioneMemebri: function() {
 
       var container = document.getElementById('pg-membri-wrap') || document.getElementById('gestione-membri-section');
