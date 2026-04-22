@@ -1052,47 +1052,7 @@
         <div id="pg-membri-wrap" style="max-width:600px;margin:0 auto"></div>
       </div>
       <!-- STRAORDINARI & INDENNIT (nascosta) -->
-      <div id="pag-straord" class="pag" style="display:none">
-        <h1 class="ptit">&#128176; Straordinari &amp; Indennit&agrave;</h1>
-        <p class="psub">Stima personale delle indennit&agrave; maturate</p>
 
-        <!-- Selettore mese -->
-        <div class="straord-mese-sel">
-          <button class="btn btn-sm btn-g" id="straord-prev" onclick="straordCambiaMese(-1)" style="width:auto">&#8249;</button>
-          <div id="straord-mese-lbl" style="flex:1;text-align:center;font-weight:700;font-size:15px"></div>
-          <button class="btn btn-sm btn-g" id="straord-next" onclick="straordCambiaMese(+1)" style="width:auto">&#8250;</button>
-        </div>
-
-        <!-- Header totale stimato -->
-        <div class="straord-header">
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;opacity:.7;margin-bottom:4px">Stima indennit&agrave; lorde</div>
-          <div id="straord-totale-hdr" style="font-size:38px;font-weight:900;line-height:1.1"> 0,00</div>
-          <div id="straord-netto-hdr" style="font-size:13px;opacity:.75;margin-top:4px;font-weight:600">  0,00 netto</div>
-          <div style="font-size:10px;opacity:.5;margin-top:6px">Basato sui turni registrati nel mese</div>
-        </div>
-
-        <!-- Cards contatori -->
-        <div class="straord-grid" id="straord-cards"></div>
-
-        <!-- Dettaglio voci per giorno -->
-        <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px;box-shadow:var(--elevation-1)">
-          <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:var(--txt2);margin-bottom:12px">&#128203; Dettaglio per giorno</div>
-          <div id="straord-detail"></div>
-        </div>
-
-        <!-- Pulsante condivisione WhatsApp -->
-        <button class="straord-share-btn" onclick="condividiTurniWA()">
-          <span style="font-size:20px">&#128172;</span>
-          Condividi turni settimanali su WhatsApp
-        </button>
-
-        <!-- Disclaimer -->
-        <div class="straord-disclaimer">
-          &#9888;&#65039; Stima indicativa basata sulle tariffe standard Carabinieri 2024/2025.<br>
-          Valori lordi  netto stimato al 72%. Non sostituisce il cedolino ufficiale.<br>
-          Reperibilit&agrave; e indennit&agrave; rischio non calcolate automaticamente.
-        </div>
-      </div>
 
       <!-- IMPOSTAZIONI -->
       <div id="pag-imp" class="pag">

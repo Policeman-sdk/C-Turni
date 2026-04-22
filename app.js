@@ -2126,6 +2126,8 @@ function toggleTodo(id){
   lsS("ct_td",TD);
   if(window.FirebaseModule) window.FirebaseModule.saveTodo(TD).catch(function(){});
   renderTodo();
+  if(typeof renderTodoAg === 'function') renderTodoAg(_tdFiltroAg);
+  if(typeof renderWidgetTodo === 'function') renderWidgetTodo();
   if(typeof aggiornaFocus === 'function') aggiornaFocus();
   if(typeof aggiornaWidget === 'function') aggiornaWidget();
   // Effetti al completamento
@@ -2153,6 +2155,8 @@ function delTodo(id){
   lsS("ct_td",TD.filter(function(x){return x.id!==id;}));
   if(window.FirebaseModule) window.FirebaseModule.deleteTodo(id).catch(function(){});
   renderTodo();
+  if(typeof renderTodoAg === 'function') renderTodoAg(_tdFiltroAg);
+  if(typeof renderWidgetTodo === 'function') renderWidgetTodo();
 }
 
 // Menu tre puntini per i todo nella pagina Agenda
@@ -2956,6 +2960,8 @@ function salvaTodo(){
   schedulaNotifTodo(item);
   if(ora&&item.data)_schedulaNotifPrecisa("\u23F0 To-Do: "+tit,item.data,ora);
   closeM("m-todo");renderTodo();
+  if(typeof renderTodoAg === 'function') renderTodoAg(_tdFiltroAg);
+  if(typeof renderWidgetTodo === 'function') renderWidgetTodo();
   var chk=document.getElementById('td-condividi');if(chk)chk.checked=false;
   ["td-tit","td-note","td-data","td-ora"].forEach(function(id){var e=document.getElementById(id);if(e)e.value="";});
   var rep=(typeof _reparto==='function')?_reparto():(lsG('ct_me',null)||{}).reparto||'?';
@@ -3002,6 +3008,8 @@ function salvaAgenda(){
   if(item.notif>0)schedulaNotifAgenda(item);
   if(window.FirebaseModule) window.FirebaseModule.saveAgenda(AG).catch(function(){});
   closeM("m-agenda");renderAgenda();
+  if(typeof renderAgendaPg === 'function') renderAgendaPg();
+  if(typeof renderWidgetAgenda === 'function') renderWidgetAgenda();
   var chk=document.getElementById('ag-condividi');if(chk)chk.checked=false;
   ["ag-tit","ag-data","ag-ora","ag-luogo","ag-note"].forEach(function(id){var e=document.getElementById(id);if(e)e.value="";});
   var rep2=(typeof _reparto==='function')?_reparto():(lsG('ct_me',null)||{}).reparto||'?';
@@ -3012,6 +3020,8 @@ function delAgenda(id){
   lsS("ct_ag", AG);
   if(window.FirebaseModule) window.FirebaseModule.deleteAgenda(id).catch(function(){});
   renderAgenda();
+  if(typeof renderAgendaPg === 'function') renderAgendaPg();
+  if(typeof renderWidgetAgenda === 'function') renderWidgetAgenda();
 }
 
 function rinviaAgenda(id){
@@ -7623,13 +7633,13 @@ function vai(pg, btn) {
   // FAB: visibile SOLO sulla dashboard — gestito qui per coprire tutti i percorsi di navigazione
   _aggFabVisibility(pg);
   if(pg==="pers"){ renderPers(); if(typeof _renderStatoComando==='function') _renderStatoComando(); }
-  if(pg==="cal") { renderCal(); renderTodo(); renderAgenda(); renderTodoCondivisi(); renderAgendaCondivisa(); }
+  if(pg==="cal") { renderCal(); renderTodoAg(_tdFiltroAg); renderAgendaPg(); }
   if(pg==="ag")  { renderAgendaPg(); }
   if(pg==="rep") { renderRep(); renderStraord(); }
   if(pg==="straord") { renderStraord(); }
   if(pg==="imp"){ aggUI(); caricaSaldoFerie(); aggNotifStatus(); aggTemaUI(lsG("ct_tema","")||""); aggLastBackupDate(); caricaFontSize(); if(typeof GSync!=='undefined'&&GSync.ui) GSync.ui.renderPanel(); }
-  if(pg==="todo"){ renderTodo(); filtraTodo(_tdFiltro); renderTodoCondivisi(); }
-  if(pg==="agenda") { renderAgenda(); renderAgendaCondivisa(); }
+  if(pg==="todo"){ renderTodoAg(_tdFiltroAg); }
+  if(pg==="agenda") { renderAgendaPg(); }
   if(pg==="membri") renderGestioneNucleo();
 }
 
@@ -7820,11 +7830,11 @@ function vaiBN(pg, idx) {
     if(typeof renderTurniCustomImp === 'function') renderTurniCustomImp();
   }
   if(pg==="pers"){ renderPers(); if(typeof _renderStatoComando==='function') _renderStatoComando(); }
-  if(pg==="cal") { renderCal(); renderTodo(); renderAgenda(); renderTodoCondivisi(); renderAgendaCondivisa(); }
+  if(pg==="cal") { renderCal(); renderTodoAg(_tdFiltroAg); renderAgendaPg(); }
   if(pg==="ag")  { renderAgendaPg(); }
   if(pg==="rep") renderRep();
-  if(pg==="todo"){ renderTodo(); filtraTodo(_tdFiltro); renderTodoCondivisi(); }
-  if(pg==="agenda") { renderAgenda(); renderAgendaCondivisa(); }
+  if(pg==="todo"){ renderTodoAg(_tdFiltroAg); }
+  if(pg==="agenda") { renderAgendaPg(); }
   closeFab();
 }
 
@@ -8460,7 +8470,7 @@ function renderDash() {
   var map = {
     'squadra-turni':'widget-squadra-turni', settimana:'widget-settimana',
     prossimo:'widget-prossimo', alert:'widget-alert', scadenze:'widget-scadenze',
-    agenda:'widget-agenda', todo:'widget-todo', dino:'widget-dino-dash', squadra:'widget-squadra'
+    agenda:'widget-agenda', todo:'widget-todo', dino:'widget-dino-dash'
   };
   Object.keys(map).forEach(function(k) {
     var el = document.getElementById(map[k]);
@@ -8781,8 +8791,11 @@ function salvaScadenza() {
   SC.push(item);
   lsS('ct_scadenze', SC);
   // Schedula notifica browser precisa
-  if (ora) _schedulaNotifPrecisa('? Scadenza: ' + tit, data, ora);
+  if (ora) _schedulaNotifPrecisa('⏰ Scadenza: ' + tit, data, ora);
   ['sc-tit','sc-data','sc-ora','sc-note'].forEach(function(id){ var e = document.getElementById(id); if(e) e.value = ''; });
+  // Reset label picker
+  var scDataLbl = document.getElementById('sc-data-lbl'); if(scDataLbl){ scDataLbl.textContent='Seleziona...'; scDataLbl.style.color='var(--txt2)'; }
+  var scOraLbl  = document.getElementById('sc-ora-lbl');  if(scOraLbl) { scOraLbl.textContent='—'; scOraLbl.style.color='var(--txt2)'; }
   closeM('m-scadenza');
   renderWidgetScadenze();
   toast('Scadenza salvata', 'ok');
@@ -9495,6 +9508,7 @@ function openM(id) {
         document.querySelectorAll('#m-alert .straord-tipo-pill').forEach(function(b){ b.classList.toggle('active', b.dataset.tipo==='info'); });
         var alTipo = document.getElementById('al-tipo'); if(alTipo) alTipo.value='info';
         if(typeof renderAlertLista === 'function') renderAlertLista();
+        else if(typeof renderWidgetAlert === 'function') renderWidgetAlert();
     }
     if (id === 'm-avatar-editor') {
         setTimeout(_aveDraw, 100);
