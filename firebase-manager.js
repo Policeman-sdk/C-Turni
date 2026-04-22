@@ -194,12 +194,11 @@ function _startListeners(reparto) {
         var localAva = (oldMe && oldMe.ava) ? oldMe.ava : '';
         if(!firestoreAva && localAva) {
           prof.ava = localAva; // Firestore vuoto → tieni locale
-        } else if(firestoreAva.startsWith('data:') && localAva.startsWith('https')) {
-          prof.ava = localAva; // Firestore ha base64 vecchio → tieni URL https locale
         }
+        // In tutti gli altri casi usa l'ava di Firestore (path relativo, https, o data:)
         localStorage.setItem('ct_me', JSON.stringify(prof));
-        // Aggiorna ct_p con il nuovo ava (per i widget turni)
-        if(prof.ava && prof.ava.startsWith('https')) {
+        // Aggiorna ct_p con il nuovo ava
+        if(prof.ava) {
           try {
             var P = JSON.parse(localStorage.getItem('ct_p') || '[]');
             var uid2 = prof.uid || (JSON.parse(localStorage.getItem('ct_session')||'null')||{}).userId;
@@ -508,33 +507,23 @@ window.FirebaseModule = {
       var profSnap = await getDoc(doc(db, 'utenti', uid));
       if(profSnap.exists()) {
         var prof = profSnap.data();
-        // Se Firestore ha fotoURL (URL Storage), usalo come ava — ha priorità assoluta
-        if(prof.fotoURL && prof.fotoURL.startsWith('https')) prof.ava = prof.fotoURL;
-        else if(prof.ava && prof.ava.startsWith('data:')) {
-          // Rimuovi base64 vecchio ma recupera da ct_session se disponibile
-          var _sessAva = JSON.parse(localStorage.getItem('ct_session') || 'null');
-          if(_sessAva && (_sessAva.ava || _sessAva.fotoURL) && (_sessAva.ava||_sessAva.fotoURL).startsWith('https'))
-            prof.ava = _sessAva.ava || _sessAva.fotoURL;
-          else delete prof.ava;
-        }
-        // Preserva ava locale se Firestore non ha ancora l'URL
-        if(!prof.ava || !prof.ava.startsWith('https')) {
+        // Priorità ava: fotoURL https > ava da Firestore (path o https) > ava locale
+        if(prof.fotoURL && prof.fotoURL.startsWith('https')) {
+          prof.ava = prof.fotoURL;
+        } else if(!prof.ava) {
+          // Firestore non ha ava — recupera da locale
           var _localMeAva = JSON.parse(localStorage.getItem('ct_me') || 'null');
-          if(_localMeAva && _localMeAva.ava && _localMeAva.ava.startsWith('https')) prof.ava = _localMeAva.ava;
+          if(_localMeAva && _localMeAva.ava) prof.ava = _localMeAva.ava;
         }
+        // ava può essere: path relativo "avatars/...", URL https, o data: — tutti validi
         localStorage.setItem('ct_me', JSON.stringify(prof));
-        // Persist ava in ct_session for immediate display on reload
+        // Aggiorna ct_session con ava per display immediato al refresh
         try {
           var _sess2 = JSON.parse(localStorage.getItem('ct_session') || 'null');
           if(_sess2 && prof.ava) { _sess2.ava = prof.ava; _sess2.fotoURL = prof.ava; localStorage.setItem('ct_session', JSON.stringify(_sess2)); }
         } catch(e2) {}
-        // Aggiorna ct_session con il nuovo ava
-        try {
-          var sess3 = JSON.parse(localStorage.getItem('ct_session') || 'null');
-          if(sess3 && prof.ava) { sess3.ava = prof.ava; sess3.fotoURL = prof.ava; localStorage.setItem('ct_session', JSON.stringify(sess3)); }
-        } catch(e5) {}
         // Aggiorna ct_p con il nuovo ava
-        if(prof.ava && prof.ava.startsWith('https')) {
+        if(prof.ava) {
           try {
             var P2 = JSON.parse(localStorage.getItem('ct_p') || '[]');
             for(var pi2=0; pi2<P2.length; pi2++){
@@ -548,6 +537,8 @@ window.FirebaseModule = {
         }
         // Ripristina myPid (collegamento Excel → utente)
         if(prof.myPid) localStorage.setItem('ct_my_pid', String(prof.myPid));
+        // Carica straordinari personali
+        if(typeof window._straordLoadFirebase === 'function') window._straordLoadFirebase(prof);
         // Ripristina città meteo dal profilo
         if(prof.meteoCitta) lsS('ct_meteo_citta', prof.meteoCitta);
         // Ripristina tema
@@ -1061,28 +1052,32 @@ window.FirebaseModule = {
   saveUserProfile: async function(uid, profile, reparto) {
 
     try {
-      // Crea una copia pulita del profilo — rimuovi sempre il base64 prima di salvare su Firestore
       var profileClean = Object.assign({}, profile);
+
+      // Se ava è un data: base64 (foto scattata/caricata), prova upload su Storage
+      // Se ava è un path relativo (avatars/...), salvalo direttamente — l'immagine è su GitHub
       if(profileClean.ava && profileClean.ava.startsWith('data:')) {
-        // Se è ancora base64, prova a caricarla su Storage
         try {
           var fotoUrl = await window.FirebaseModule.uploadFotoProfilo(uid, profileClean.ava);
           if(fotoUrl) {
             profileClean.ava = fotoUrl;
             profileClean.fotoURL = fotoUrl;
-          } else {
-            delete profileClean.ava; // upload fallito: non salvare base64
+            // Aggiorna localStorage con URL https
+            try {
+              var _meUp = JSON.parse(localStorage.getItem('ct_me') || 'null');
+              if(_meUp) { _meUp.ava = fotoUrl; _meUp.fotoURL = fotoUrl; localStorage.setItem('ct_me', JSON.stringify(_meUp)); }
+              var _sessUp = JSON.parse(localStorage.getItem('ct_session') || 'null');
+              if(_sessUp) { _sessUp.ava = fotoUrl; _sessUp.fotoURL = fotoUrl; localStorage.setItem('ct_session', JSON.stringify(_sessUp)); }
+            } catch(e3) {}
           }
+          // Se upload fallisce, salva il data: così com'è
         } catch(e2) {
           console.warn('uploadFoto in saveUserProfile:', e2.message);
-          delete profileClean.ava; // non salvare base64 su Firestore
         }
       }
 
-      // Usa merge:true per non sovrascrivere ava/fotoURL già aggiornati da uploadFotoProfilo
       await window._fbSetDoc(window._fbDoc(db, 'utenti', uid), profileClean, { merge: true });
 
-      // Salva anche in /reparti/{reparto}/utenti/{uid}
       if(reparto) {
         var rep = reparto.toLowerCase().replace(/\s+/g,'_');
         await window._fbSetDoc(window._fbDoc(db, 'reparti', rep, 'utenti', uid), profileClean, { merge: true });

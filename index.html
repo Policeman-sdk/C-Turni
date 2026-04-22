@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>C-TURNI v4.0</title>
+<title>C-TURNI v4.2</title>
 <link rel="manifest" href="/C-Turni/manifest.json">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -474,7 +474,6 @@
             <div class="hero-greeting-name" id="hero-greeting-name">—</div>
             <div class="hero-grade-badge" id="hero-grade-badge" style="display:none">
               <img id="hero-grade-img" class="hero-grade-img" src="" alt="">
-              <span id="hero-grade-label" class="hero-grade-label"></span>
             </div>
           </div>
         </div>
@@ -697,22 +696,34 @@
           </div>
         </div>
 
-        <!-- WIDGET PROSSIMO TURNO -->
-        <div id="widget-prossimo" class="wdg-wrap m3-card" data-wid="prossimo" onclick="if(navigator.vibrate)navigator.vibrate(15)">
+        <!-- WIDGET STRAORDINARI OGGI -->
+        <div id="widget-prossimo" class="wdg-wrap m3-card" data-wid="prossimo">
           <div class="wdg-drag-handle"></div>
-          <div class="wdg-body" style="display:flex;align-items:center;gap:14px">
-            <div style="font-size:36px;line-height:1;flex-shrink:0">&#9200;</div>
-            <div style="flex:1;min-width:0">
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">
-                <span class="wdg-lbl">Prossimo turno</span>
-                <div class="wdg-mv-btns"><button onclick="moveWidget('prossimo',-1)" class="wdg-mv-btn">&#8593;</button><button onclick="moveWidget('prossimo',+1)" class="wdg-mv-btn">&#8595;</button></div>
+          <div class="wdg-body">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <span class="wdg-lbl">⏱️ Straordinari oggi</span>
+              <div class="wdg-mv-btns">
+                <button onclick="moveWidget('prossimo',-1)" class="wdg-mv-btn">&#8593;</button>
+                <button onclick="moveWidget('prossimo',+1)" class="wdg-mv-btn">&#8595;</button>
               </div>
-              <div id="wp-tipo" style="font-size:15px;font-weight:800;color:var(--txt)"></div>
-              <div id="wp-data" style="font-size:11px;color:var(--txt2);margin-top:2px"></div>
             </div>
-            <div style="text-align:center;flex-shrink:0">
-              <div id="wp-giorni" style="font-size:28px;font-weight:900;color:var(--blue);line-height:1"></div>
-              <div style="font-size:9px;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px">giorni</div>
+            <!-- Ore accumulate oggi -->
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+              <div style="flex:1">
+                <div id="wstr-ore-oggi" style="font-size:28px;font-weight:900;color:var(--blue);line-height:1">0h 00m</div>
+                <div id="wstr-mese-tot" style="font-size:11px;color:var(--txt2);margin-top:2px">Questo mese: <strong id="wstr-mese-val">0h</strong></div>
+              </div>
+              <button class="wstr-add-btn" onclick="apriModalStraord()" title="Aggiungi straordinario">
+                <span style="font-size:22px;line-height:1">+</span>
+              </button>
+            </div>
+            <!-- Barra progresso verso soglia mensile (es. 20h) -->
+            <div class="wstr-bar-wrap">
+              <div class="wstr-bar-fill" id="wstr-bar-fill"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:4px">
+              <span style="font-size:10px;color:var(--txt2)" id="wstr-bar-lbl">0 / 20h mensili</span>
+              <span style="font-size:10px;color:var(--txt2)" id="wstr-turno-lbl"></span>
             </div>
           </div>
         </div>
@@ -975,8 +986,52 @@
           <button onclick="vaiBN('imp',4)" style="background:var(--card);border:1px solid var(--border);border-radius:12px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--txt2);cursor:pointer;appearance:none;-webkit-appearance:none;flex-shrink:0;">&larr;</button>
           <h1 class="ptit" style="margin-bottom:0">Report</h1>
         </div>
-        <p class="psub">Statistiche turni</p>
-        <div id="rep-wrap"></div>
+        <p class="psub">Statistiche turni e straordinari</p>
+
+        <!-- Tab bar -->
+        <div class="rep-tabs" id="rep-tabs">
+          <button class="rep-tab active" onclick="switchRepTab('turni')">📊 Turni</button>
+          <button class="rep-tab" onclick="switchRepTab('straord')">⏱️ Straordinari</button>
+        </div>
+
+        <!-- Tab turni -->
+        <div id="rep-tab-turni">
+          <div id="rep-wrap"></div>
+        </div>
+
+        <!-- Tab straordinari -->
+        <div id="rep-tab-straord" style="display:none">
+          <!-- Selettore mese -->
+          <div class="rep-straord-mese">
+            <button class="btn btn-sm btn-g" onclick="straordCambiaMese(-1)" style="width:36px;height:36px;padding:0;flex-shrink:0">&#8249;</button>
+            <div id="straord-mese-lbl" style="flex:1;text-align:center;font-weight:700;font-size:15px"></div>
+            <button class="btn btn-sm btn-g" onclick="straordCambiaMese(+1)" style="width:36px;height:36px;padding:0;flex-shrink:0">&#8250;</button>
+          </div>
+
+          <!-- Riepilogo mese -->
+          <div class="rep-straord-summary" id="straord-summary">
+            <div class="rep-straord-total">
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;opacity:.7;margin-bottom:6px">Totale ore straordinario</div>
+              <div id="straord-totale-hdr" style="font-size:40px;font-weight:900;line-height:1">0h 00m</div>
+              <div id="straord-netto-hdr" style="font-size:12px;opacity:.65;margin-top:4px"></div>
+            </div>
+            <div id="straord-cards" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:14px"></div>
+          </div>
+
+          <!-- Lista dettaglio con modifica/elimina -->
+          <div class="m3-list-group" style="margin-top:14px">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border)">
+              <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--txt2)">📋 Voci registrate</span>
+              <button class="btn btn-p btn-sm" onclick="apriModalStraord()" style="width:auto;font-size:11px;padding:6px 14px">+ Aggiungi</button>
+            </div>
+            <div id="straord-detail"></div>
+          </div>
+
+          <!-- Condividi -->
+          <button class="btn btn-g" style="width:100%;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:8px;padding:14px" onclick="condividiStraordWA()">
+            <span>💬</span> Condividi su WhatsApp
+          </button>
+        </div>
       </div>
 
       <!-- GESTIONE NUCLEO (solo Comandante) -->
@@ -1064,16 +1119,11 @@
                   <div id="pf-ava-prev" style="width:60px;height:60px;border-radius:50%;background:var(--bg2);border:2px solid var(--blue);display:flex;align-items:center;justify-content:center;font-size:28px;overflow:hidden;flex-shrink:0;box-shadow:0 0 0 3px rgba(91,159,255,.2)">👤</div>
                   <div style="font-size:12px;color:var(--txt2);line-height:1.6">Scegli un avatar<br>dalla griglia qui sotto</div>
                 </div>
-                <!-- Nuovo picker a tab -->
-                <div id="avatar-picker-wrap">
-                  <div class="ava-tab-bar" id="ava-tabs-pf">
-                    <button class="ava-tab active" onclick="switchAvaTab('pf','truppa')">🎖️ Truppa</button>
-                    <button class="ava-tab" onclick="switchAvaTab('pf','ufficiali')">⭐ Ufficiali</button>
-                    <button class="ava-tab" onclick="switchAvaTab('pf','forestali')">🌲 Forestali</button>
-                  </div>
-                  <div id="ava-panel-pf-truppa" class="ava-panel active"></div>
-                  <div id="ava-panel-pf-ufficiali" class="ava-panel"></div>
-                  <div id="ava-panel-pf-forestali" class="ava-panel"></div>
+                <!-- Avatar picker M3 -->
+                <div class="avm3-picker" id="ava-picker-m3-pf"
+                  data-prev-id="pf-ava-prev"
+                  data-hidden-id="pf-ava"
+                  data-active-cat="truppa">
                 </div>
                 <input type="hidden" id="pf-ava" value="">
               </div>
@@ -1656,6 +1706,23 @@
           <div id="sec-changelog" class="imp-sub">
             <div style="padding:14px;border-top:1px solid var(--border);font-size:12px;color:var(--txt2)">
 
+              <!-- v4.2 -->
+              <div style="font-weight:800;color:var(--gold);margin-bottom:6px;font-size:13px">v4.2 — Apr 2026 &#127381;</div>
+              <div style="padding-left:10px;border-left:2px solid var(--gold);margin-bottom:14px;line-height:1.7">
+                <div>&#127894; <strong>Avatar PNG reali</strong> — Addio SVG: picker completamente ridisegnato con immagini PNG per Truppa, Ufficiali e Forestali (uomini e donne)</div>
+                <div>&#11088; <strong>Picker avatar M3 Expressive</strong> — Chip bar con contatore, griglia 4 colonne, check overlay animato, transizione fluida tra categorie</div>
+                <div>&#127894; <strong>Gradi come immagini</strong> — 19 PNG realistici per tutti i gradi, visibili nella dashboard affianco al nome e nel picker impostazioni</div>
+                <div>&#128100; <strong>Avatar in dashboard</strong> — Foto profilo 64px nella hero card, sincronizzata su Firebase tramite path relativo (niente base64)</div>
+                <div>&#9203; <strong>Widget Straordinari</strong> — Sostituisce "Prossimo turno": mostra ore del giorno, totale mese, barra progresso. Pulsante + per aggiunta rapida</div>
+                <div>&#128202; <strong>Report — tab Straordinari</strong> — Sezione dedicata con selettore mese, cards per tipo, lista modificabile ed eliminabile voce per voce</div>
+                <div>&#128172; <strong>Fix condivisione WhatsApp</strong> — Rimossi orari hardcoded dai tipi turno, testo più pulito, nessun preset forzato</div>
+                <div>&#127381; <strong>Dino Game</strong> — Corrette le emoji: 🦖 dino, 🌵 cactus, 🦅 pterodattilo, ☁️ nuvole (prima mostravano ⚠️)</div>
+                <div>&#127782; <strong>Meteo — icone SVG</strong> — Corretta visualizzazione nella Hero Card (prima mostrava 🗑️ di fallback)</div>
+                <div>&#9989; <strong>Fix bootloop</strong> — Rimosso il doppio hook su aggUI che causava un loop infinito renderDash → renderDashWidgetToggles</div>
+                <div>&#9989; <strong>Fix turni multi-device</strong> — Merge intelligente al login: i turni Firebase non sovrascrivono più quelli locali recenti</div>
+                <div>&#9989; <strong>Fix grado dashboard</strong> — Immagine grado ora affianco al nome, senza label testo ridondante, allineamento verticale corretto</div>
+              </div>
+
               <!-- v4.1 -->
               <div style="font-weight:800;color:var(--blue);margin-bottom:6px;font-size:13px">v4.1 — Apr 2026</div>
               <div style="padding-left:10px;border-left:2px solid var(--blue);margin-bottom:14px;line-height:1.7">
@@ -1714,7 +1781,7 @@
           </div>
           <div class="m3-row">
             <div class="m3-row-ico" style="background:rgba(41,121,255,.12)">&#128736;</div>
-            <div class="m3-row-body"><div class="m3-row-title">Versione</div><div class="m3-row-sub">C-TURNI v4.1 — Emanuele Di Leo</div></div>
+            <div class="m3-row-body"><div class="m3-row-title">Versione</div><div class="m3-row-sub">C-TURNI v4.2 — Emanuele Di Leo</div></div>
           </div>
           <div class="m3-row tap" onclick="if(typeof AuthModule!=='undefined')AuthModule.logout()" style="border-top:1px solid var(--border)">
             <div class="m3-row-ico" style="background:rgba(200,16,46,.12)">&#128682;</div>
@@ -1979,16 +2046,13 @@
     <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:8px 0 4px">
       <div id="mpf-ava-prev" style="width:80px;height:80px;border-radius:50%;background:var(--bg2);border:3px solid var(--blue);display:flex;align-items:center;justify-content:center;font-size:40px;overflow:hidden;flex-shrink:0;box-shadow:0 0 0 4px rgba(91,159,255,.2)">👤</div>
       <div style="font-size:11px;color:var(--txt2)">Scegli il tuo avatar</div>
-      <!-- Nuovo picker a tab -->
+      <!-- Avatar picker M3 -->
       <div style="width:100%">
-        <div class="ava-tab-bar" id="ava-tabs-mpf">
-          <button class="ava-tab active" onclick="switchAvaTab('mpf','truppa')">🎖️ Truppa</button>
-          <button class="ava-tab" onclick="switchAvaTab('mpf','ufficiali')">⭐ Ufficiali</button>
-          <button class="ava-tab" onclick="switchAvaTab('mpf','forestali')">🌲 Forestali</button>
+        <div class="avm3-picker" id="ava-picker-m3-mpf"
+          data-prev-id="mpf-ava-prev"
+          data-hidden-id="mpf-ava"
+          data-active-cat="truppa">
         </div>
-        <div id="ava-panel-mpf-truppa" class="ava-panel active"></div>
-        <div id="ava-panel-mpf-ufficiali" class="ava-panel"></div>
-        <div id="ava-panel-mpf-forestali" class="ava-panel"></div>
       </div>
     </div>
     <div class="fg" style="margin-bottom:0"><label>Nome</label><input type="text" class="fc app-fc" id="mpf-nome" placeholder="Il tuo nome"></div>
@@ -2423,6 +2487,77 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
   </div>
 </div>
 
+<!-- MODAL STRAORDINARI -->
+<div id="m-straord" class="modal" style="z-index:99995">
+  <div class="mbox" style="max-width:380px;border-radius:24px 24px 0 0;position:fixed;bottom:0;left:0;right:0;margin:0 auto">
+    <div class="mhan"></div>
+    <div class="mhd">
+      <div class="mtit" id="m-straord-titolo">⏱️ Aggiungi Straordinario</div>
+      <button class="mcl" onclick="closeM('m-straord')">&#10005;</button>
+    </div>
+    <div class="mbod" style="padding:16px;display:grid;gap:16px">
+      <input type="hidden" id="straord-edit-id" value="">
+      <input type="hidden" id="straord-data" value="">
+
+      <!-- Data — picker in-app -->
+      <div class="fg" style="margin:0">
+        <label>Data</label>
+        <button type="button" class="fc picker-btn" onclick="apriDatePicker('straord-data','straord-data-lbl')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;text-align:left">
+          <span id="straord-data-lbl" style="color:var(--txt2)">Seleziona data...</span>
+          <span style="font-size:16px">📅</span>
+        </button>
+      </div>
+
+      <!-- Ore — stepper in-app -->
+      <div class="fg" style="margin:0">
+        <label>Ore straordinario</label>
+        <div class="straord-stepper">
+          <button type="button" class="straord-step-btn" onclick="straordStepOre(-1)">−</button>
+          <div class="straord-step-val" id="straord-ore-lbl">1h</div>
+          <button type="button" class="straord-step-btn" onclick="straordStepOre(+1)">+</button>
+        </div>
+        <input type="hidden" id="straord-ore" value="1">
+      </div>
+
+      <!-- Minuti — pill buttons -->
+      <div class="fg" style="margin:0">
+        <label>Minuti aggiuntivi</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+          <button type="button" class="straord-min-pill active" data-min="0"  onclick="straordSetMin(0,this)">00</button>
+          <button type="button" class="straord-min-pill"        data-min="15" onclick="straordSetMin(15,this)">15</button>
+          <button type="button" class="straord-min-pill"        data-min="30" onclick="straordSetMin(30,this)">30</button>
+          <button type="button" class="straord-min-pill"        data-min="45" onclick="straordSetMin(45,this)">45</button>
+        </div>
+        <input type="hidden" id="straord-min" value="0">
+      </div>
+
+      <!-- Tipo — pill buttons -->
+      <div class="fg" style="margin:0">
+        <label>Tipo</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px">
+          <button type="button" class="straord-tipo-pill active" data-tipo="ordinario"    onclick="straordSetTipo('ordinario',this)">⏱️ Ordinario</button>
+          <button type="button" class="straord-tipo-pill"        data-tipo="festivo"      onclick="straordSetTipo('festivo',this)">🎉 Festivo</button>
+          <button type="button" class="straord-tipo-pill"        data-tipo="notturno"     onclick="straordSetTipo('notturno',this)">🌙 Notturno</button>
+          <button type="button" class="straord-tipo-pill"        data-tipo="reperibilita" onclick="straordSetTipo('reperibilita',this)">📡 Reperibilità</button>
+        </div>
+        <input type="hidden" id="straord-tipo" value="ordinario">
+      </div>
+
+      <!-- Note — input testo semplice -->
+      <div class="fg" style="margin:0">
+        <label>Note (opzionale)</label>
+        <input type="text" class="fc" id="straord-note" placeholder="Es. Servizio extra, pattuglia...">
+      </div>
+
+      <div id="straord-err" class="emsg" style="display:none">Seleziona una data e almeno 15 minuti</div>
+    </div>
+    <div class="mfoo">
+      <button class="btn btn-g btn-sm" onclick="closeM('m-straord')">Annulla</button>
+      <button class="btn btn-p btn-sm" onclick="salvaStraord()" style="width:auto">&#10003; Salva</button>
+    </div>
+  </div>
+</div>
+
 
 
 <!-- ═══════════════════════════════════════════════════════════════ -->
@@ -2435,24 +2570,21 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
   <div class="mbox" style="max-width:420px">
     <div class="mhan"></div>
     <div class="mhd">
-      <div class="mtit">&#127775; Novità in C-TURNI v4.0</div>
+      <div class="mtit">&#127775; Novità in C-TURNI v4.2</div>
     </div>
     <div class="mbod" style="padding:16px;max-height:65vh;overflow-y:auto">
-      <div style="font-size:13px;color:var(--txt2);margin-bottom:16px;line-height:1.6">Benvenuto in <strong style="color:var(--teal)">C-TURNI v4.0</strong> — il più grande aggiornamento dalla versione 3.0. Ecco le novità principali:</div>
+      <div style="font-size:13px;color:var(--txt2);margin-bottom:16px;line-height:1.6">Benvenuto in <strong style="color:var(--gold)">C-TURNI v4.2</strong> — avatar reali, widget straordinari e tanti fix. Ecco le novità:</div>
       <div style="display:flex;flex-direction:column;gap:12px;font-size:13px;color:var(--txt)">
-        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#127775;</span><div><strong>Design Material 3 Expressive</strong><br><span style="font-size:12px;color:var(--txt2)">Navbar a pillola, FAB squircle, card bombate con border-radius 24px, 9 temi con card grandi e dots colore.</span></div></div>
-        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#128203;</span><div><strong>Agenda dedicata con Bento Box</strong><br><span style="font-size:12px;color:var(--txt2)">Pagina Agenda separata con riepilogo Bento, filter chips, card To-Do M3 con snooze e priorità visiva.</span></div></div>
-        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#128467;</span><div><strong>Calendario semplificato</strong><br><span style="font-size:12px;color:var(--txt2)">Sheet giorno con prospetto turni raggruppati per tipo. Il tuo turno è evidenziato con bordo colorato.</span></div></div>
-        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#129430;</span><div><strong>Dino Game</strong><br><span style="font-size:12px;color:var(--txt2)">Widget giocabile nella Dashboard, ordinabile con gli altri widget. Attivalo da Impostazioni.</span></div></div>
-        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#127881;</span><div><strong>Confetti &amp; Suoni UI</strong><br><span style="font-size:12px;color:var(--txt2)">Animazione confetti al completamento di un To-Do. Feedback sonoro per azioni e notifiche.</span></div></div>
-        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#128197;</span><div><strong>Turni Personalizzati</strong><br><span style="font-size:12px;color:var(--txt2)">Crea tipi di turno custom con nome, codice, orario, emoji e colore. Appaiono nel menu inserimento turno.</span></div></div>
-        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#128081;</span><div><strong>Multi-Vice Comandante</strong><br><span style="font-size:12px;color:var(--txt2)">Ora puoi avere più Vice Comandanti nello stesso reparto.</span></div></div>
-        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#128274;</span><div><strong>Sicurezza &amp; Notifiche</strong><br><span style="font-size:12px;color:var(--txt2)">Regole Firestore blindate, controllo ruolo sui turni, notifiche senza duplicati, token FCM puliti automaticamente.</span></div></div>
-        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#128736;</span><div><strong>Tesserino M3 &amp; Fix iOS</strong><br><span style="font-size:12px;color:var(--txt2)">Tesserino ridisegnato. Fix date su Safari/iOS: nessuno sfasamento di giorno nei turni e festività.</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#127894;</span><div><strong>Avatar PNG reali</strong><br><span style="font-size:12px;color:var(--txt2)">Picker ridisegnato M3 Expressive con immagini PNG per Truppa, Ufficiali e Forestali. Chip bar, griglia 4 colonne, check animato.</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#127894;</span><div><strong>Gradi come immagini</strong><br><span style="font-size:12px;color:var(--txt2)">19 PNG realistici per tutti i gradi. Visibili nella dashboard affianco al nome e nel picker impostazioni.</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#9203;</span><div><strong>Widget Straordinari</strong><br><span style="font-size:12px;color:var(--txt2)">Nuovo widget in dashboard: ore del giorno, totale mese, barra progresso. Pulsante + per aggiunta rapida con controlli tutti in-app.</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#128202;</span><div><strong>Report — Straordinari</strong><br><span style="font-size:12px;color:var(--txt2)">Nuova tab in Report con selettore mese, cards per tipo, lista con modifica ed eliminazione voce per voce.</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#128172;</span><div><strong>Fix WhatsApp</strong><br><span style="font-size:12px;color:var(--txt2)">Rimossi orari hardcoded, testo più pulito, nessun preset forzato nel messaggio condiviso.</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#9989;</span><div><strong>Fix bootloop, meteo, dino</strong><br><span style="font-size:12px;color:var(--txt2)">Risolto loop infinito all'avvio. Icone meteo SVG corrette. Emoji dino/cactus/pterodattilo al posto di ⚠️.</span></div></div>
       </div>
     </div>
     <div class="mfoo">
-      <button class="btn btn-p" style="width:100%" onclick="chiudiNovita()">&#10004; Inizia a usare v4.0</button>
+      <button class="btn btn-p" style="width:100%" onclick="chiudiNovita()">&#10004; Scopri v4.2</button>
     </div>
   </div>
 </div>
@@ -2474,7 +2606,7 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
     <!-- Motto -->
     <div id="egg-motto" style="text-align:center;font-size:11px;color:rgba(255,255,255,.6);font-style:italic;padding:0 20px 10px">&#171;Nei Secoli Fedele&#187;</div>
     <!-- Versione -->
-    <div style="text-align:center;font-size:10px;color:rgba(212,175,55,.7);padding-bottom:14px;letter-spacing:2px">C-TURNI v4.0</div>
+    <div style="text-align:center;font-size:10px;color:rgba(212,175,55,.7);padding-bottom:14px;letter-spacing:2px">C-TURNI v4.2</div>
     <div class="mfoo" style="background:rgba(0,0,0,.3);border-top:1px solid rgba(212,175,55,.2)">
       <button class="btn btn-g btn-sm" onclick="closeM('m-egg');document.body.style.overflow=''" style="width:100%">&#10005; Chiudi</button>
     </div>

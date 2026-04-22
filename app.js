@@ -3701,13 +3701,33 @@ function aggAvaPreview(ava){
 // ── SISTEMA AVATAR PREIMPOSTATI ──────────────────────────────
 // File PNG in /avatars/ — { id, label, file, genere, categoria }
 var _AVATARS = [
-  // ── TRUPPA UOMINI ── (file in arrivo)
+  // ── TRUPPA UOMINI ──
+  { id:'tu1', label:'Truppa U1', file:'avatars/truppa-uomini/tu1.png', genere:'m', categoria:'truppa' },
+  { id:'tu2', label:'Truppa U2', file:'avatars/truppa-uomini/tu2.png', genere:'m', categoria:'truppa' },
+  { id:'tu3', label:'Truppa U3', file:'avatars/truppa-uomini/tu3.png', genere:'m', categoria:'truppa' },
+  { id:'tu4', label:'Truppa U4', file:'avatars/truppa-uomini/tu4.png', genere:'m', categoria:'truppa' },
+  { id:'tu5', label:'Truppa U5', file:'avatars/truppa-uomini/tu5.png', genere:'m', categoria:'truppa' },
 
-  // ── TRUPPA DONNE ── (file in arrivo)
+  // ── TRUPPA DONNE ──
+  { id:'td1', label:'Truppa D1', file:'avatars/truppa-donne/td1.png', genere:'f', categoria:'truppa' },
+  { id:'td2', label:'Truppa D2', file:'avatars/truppa-donne/td2.png', genere:'f', categoria:'truppa' },
+  { id:'td3', label:'Truppa D3', file:'avatars/truppa-donne/td3.png', genere:'f', categoria:'truppa' },
+  { id:'td4', label:'Truppa D4', file:'avatars/truppa-donne/td4.png', genere:'f', categoria:'truppa' },
+  { id:'td5', label:'Truppa D5', file:'avatars/truppa-donne/td5.png', genere:'f', categoria:'truppa' },
 
-  // ── UFFICIALI UOMINI ── (file in arrivo)
+  // ── UFFICIALI UOMINI ──
+  { id:'uu1', label:'Ufficiale U1', file:'avatars/ufficiali-uomini/uu1.png', genere:'m', categoria:'ufficiali' },
+  { id:'uu2', label:'Ufficiale U2', file:'avatars/ufficiali-uomini/uu2.png', genere:'m', categoria:'ufficiali' },
+  { id:'uu3', label:'Ufficiale U3', file:'avatars/ufficiali-uomini/uu3.png', genere:'m', categoria:'ufficiali' },
+  { id:'uu4', label:'Ufficiale U4', file:'avatars/ufficiali-uomini/uu4.png', genere:'m', categoria:'ufficiali' },
+  { id:'uu5', label:'Ufficiale U5', file:'avatars/ufficiali-uomini/uu5.png', genere:'m', categoria:'ufficiali' },
+  { id:'uu6', label:'Ufficiale U6', file:'avatars/ufficiali-uomini/uu6.png', genere:'m', categoria:'ufficiali' },
 
-  // ── UFFICIALI DONNE ── (file in arrivo)
+  // ── UFFICIALI DONNE ──
+  { id:'ud1', label:'Ufficiale D1', file:'avatars/ufficiali-donne/ud1.png', genere:'f', categoria:'ufficiali' },
+  { id:'ud2', label:'Ufficiale D2', file:'avatars/ufficiali-donne/ud2.png', genere:'f', categoria:'ufficiali' },
+  { id:'ud3', label:'Ufficiale D3', file:'avatars/ufficiali-donne/ud3.png', genere:'f', categoria:'ufficiali' },
+  { id:'ud4', label:'Ufficiale D4', file:'avatars/ufficiali-donne/ud4.png', genere:'f', categoria:'ufficiali' },
 
   // ── FORESTALI UOMINI ──
   { id:'for_m1', label:'Forestale U1', file:'avatars/forestali-uomini/f1.png', genere:'m', categoria:'forestali' },
@@ -3778,69 +3798,133 @@ function _getGradeImgSrc(gradoKey) {
 function _syncGradoHome(gradoKey) {
   var badge = document.getElementById('hero-grade-badge');
   var img   = document.getElementById('hero-grade-img');
-  var lbl   = document.getElementById('hero-grade-label');
-  if (!badge || !img || !lbl) return;
+  if (!badge || !img) return;
   if (!gradoKey) { badge.style.display = 'none'; return; }
-  var nomeGrado = GR[gradoKey] ? GR[gradoKey].nome : gradoKey;
   img.src = _getGradeImgSrc(gradoKey);
   img.alt = gradoKey;
   img.onerror = function(){ this.style.display='none'; };
   img.onload  = function(){ this.style.display=''; };
-  lbl.textContent = nomeGrado;
   badge.style.display = 'flex';
 }
 
-// ── RENDER PICKER A TAB ──────────────────────────────────────
+// ── AVATAR PICKER M3 EXPRESSIVE ──────────────────────────────
+var _AVA_CATS = [
+  { id:'truppa',    label:'Truppa',    emoji:'🎖️' },
+  { id:'ufficiali', label:'Ufficiali', emoji:'⭐' },
+  { id:'forestali', label:'Forestali', emoji:'🌲' }
+];
+
 function renderAvatarPickerNew(prefix, prevId, hiddenId) {
   var me = lsG('ct_me', null);
   var currentAva = me && me.ava ? me.ava : '';
-  ['truppa','ufficiali','forestali'].forEach(function(cat) {
-    var panel = document.getElementById('ava-panel-' + prefix + '-' + cat);
-    if (!panel) return;
-    var uomini = _AVATARS.filter(function(a){ return a.categoria===cat && a.genere==='m'; });
-    var donne  = _AVATARS.filter(function(a){ return a.categoria===cat && a.genere==='f'; });
-    var html = '';
-    function renderGroup(list, titolo, emoji) {
-      if (!list.length) return;
-      html += '<div class="ava-section-title">' + emoji + ' ' + titolo + '</div>';
-      html += '<div class="ava-grid">';
-      list.forEach(function(av) {
-        var sel = currentAva && (currentAva === av.file || currentAva.indexOf(av.id) !== -1);
-        html += '<div class="ava-item' + (sel?' selected':'') + '" '
-          + 'onclick="selezionaAvatarNew(\'' + av.id + '\',\'' + prevId + '\',\'' + hiddenId + '\',\'' + prefix + '\')" '
-          + 'title="' + av.label + '">'
-          + '<img src="' + av.file + '" alt="' + av.label + '" loading="lazy">'
-          + '</div>';
-      });
-      html += '</div>';
-    }
-    renderGroup(uomini, 'Uomini', '\u{1F468}');
-    renderGroup(donne,  'Donne',  '\u{1F469}');
-    if (!uomini.length && !donne.length) {
-      html = '<div style="text-align:center;padding:20px;color:var(--txt2);font-size:12px">\uD83D\uDEA7 Avatar in arrivo</div>';
-    }
-    panel.innerHTML = html;
+
+  // Trova il container del picker
+  var wrap = document.getElementById('ava-picker-m3-' + prefix);
+  if (!wrap) return;
+
+  // Leggi prevId/hiddenId dai data-* se non passati
+  prevId   = prevId   || wrap.dataset.prevId;
+  hiddenId = hiddenId || wrap.dataset.hiddenId;
+  // Aggiorna data-* per uso futuro (switchAvaTab)
+  if (prevId)   wrap.dataset.prevId   = prevId;
+  if (hiddenId) wrap.dataset.hiddenId = hiddenId;
+
+  // Determina categoria attiva (default: prima con avatar)
+  var activeCat = wrap.dataset.activeCat || 'truppa';
+
+  // Chip bar
+  var chipsHtml = '<div class="avm3-chips" id="avm3-chips-' + prefix + '">';
+  _AVA_CATS.forEach(function(cat) {
+    var count = _AVATARS.filter(function(a){ return a.categoria === cat.id; }).length;
+    var active = cat.id === activeCat;
+    chipsHtml += '<button class="avm3-chip' + (active ? ' active' : '') + '" '
+      + 'onclick="switchAvaTab(\'' + prefix + '\',\'' + cat.id + '\')">'
+      + cat.emoji + ' ' + cat.label
+      + (count ? '<span class="avm3-chip-count">' + count + '</span>' : '')
+      + '</button>';
   });
+  chipsHtml += '</div>';
+
+  // Grid per categoria attiva
+  var gridHtml = _renderAvaCatGrid(prefix, prevId, hiddenId, activeCat, currentAva);
+
+  wrap.innerHTML = chipsHtml + '<div class="avm3-grid-wrap" id="avm3-grid-' + prefix + '">' + gridHtml + '</div>';
+}
+
+function _renderAvaCatGrid(prefix, prevId, hiddenId, cat, currentAva) {
+  var uomini = _AVATARS.filter(function(a){ return a.categoria===cat && a.genere==='m'; });
+  var donne  = _AVATARS.filter(function(a){ return a.categoria===cat && a.genere==='f'; });
+
+  if (!uomini.length && !donne.length) {
+    return '<div class="avm3-empty">🚧 Avatar in arrivo</div>';
+  }
+
+  var html = '';
+
+  function renderGroup(list, label) {
+    if (!list.length) return;
+    html += '<div class="avm3-group-label">' + label + '</div>';
+    html += '<div class="avm3-grid">';
+    list.forEach(function(av) {
+      var sel = currentAva && (currentAva === av.file || currentAva.indexOf(av.id) !== -1);
+      html += '<button class="avm3-item' + (sel ? ' selected' : '') + '" '
+        + 'onclick="selezionaAvatarNew(\'' + av.id + '\',\'' + prevId + '\',\'' + hiddenId + '\',\'' + prefix + '\')" '
+        + 'title="' + av.label + '" type="button">'
+        + '<div class="avm3-img-wrap">'
+        + '<img src="' + av.file + '" alt="' + av.label + '" loading="lazy">'
+        + (sel ? '<div class="avm3-check">✓</div>' : '')
+        + '</div>'
+        + '</button>';
+    });
+    html += '</div>';
+  }
+
+  renderGroup(uomini, '👨 Uomini');
+  renderGroup(donne,  '👩 Donne');
+  return html;
 }
 
 // Compatibilità con vecchio renderAvatarPicker
 function renderAvatarPicker(gridId, prevId, hiddenId) {
-  var prefix = (gridId === 'avatar-picker-grid') ? 'pf' : 'mpf';
+  var prefix = (gridId === 'avatar-picker-grid' || gridId === 'pf') ? 'pf' : 'mpf';
+  // Aggiorna data-* sul container se passati
+  var wrap = document.getElementById('ava-picker-m3-' + prefix);
+  if (wrap) {
+    if (prevId)   wrap.dataset.prevId   = prevId;
+    if (hiddenId) wrap.dataset.hiddenId = hiddenId;
+  }
   renderAvatarPickerNew(prefix, prevId, hiddenId);
 }
 
 // ── SWITCH TAB ───────────────────────────────────────────────
 function switchAvaTab(prefix, cat) {
-  var tabBar = document.getElementById('ava-tabs-' + prefix);
-  if (tabBar) {
-    var cats = ['truppa','ufficiali','forestali'];
-    var tabs = tabBar.querySelectorAll('.ava-tab');
-    tabs.forEach(function(btn, i){ btn.classList.toggle('active', cats[i]===cat); });
+  var me = lsG('ct_me', null);
+  var currentAva = me && me.ava ? me.ava : '';
+
+  // Aggiorna chip attivo
+  var chips = document.querySelectorAll('#avm3-chips-' + prefix + ' .avm3-chip');
+  var cats = ['truppa','ufficiali','forestali'];
+  chips.forEach(function(btn, i){ btn.classList.toggle('active', cats[i] === cat); });
+
+  // Trova prevId e hiddenId dal wrapper
+  var wrap = document.getElementById('ava-picker-m3-' + prefix);
+  if (!wrap) return;
+  wrap.dataset.activeCat = cat;
+  var prevId   = wrap.dataset.prevId;
+  var hiddenId = wrap.dataset.hiddenId;
+
+  // Aggiorna grid con animazione
+  var gridWrap = document.getElementById('avm3-grid-' + prefix);
+  if (gridWrap) {
+    gridWrap.style.opacity = '0';
+    gridWrap.style.transform = 'translateY(6px)';
+    setTimeout(function() {
+      gridWrap.innerHTML = _renderAvaCatGrid(prefix, prevId, hiddenId, cat, currentAva);
+      gridWrap.style.transition = 'opacity .18s ease, transform .18s ease';
+      gridWrap.style.opacity = '1';
+      gridWrap.style.transform = 'translateY(0)';
+    }, 120);
   }
-  ['truppa','ufficiali','forestali'].forEach(function(c) {
-    var p = document.getElementById('ava-panel-' + prefix + '-' + c);
-    if (p) p.classList.toggle('active', c===cat);
-  });
 }
 
 // ── SELEZIONE AVATAR ─────────────────────────────────────────
@@ -3856,60 +3940,33 @@ function selezionaAvatarNew(id, prevId, hiddenId, prefix) {
   // Hidden input
   var hidden = document.getElementById(hiddenId);
   if (hidden) hidden.value = filePath;
-  // Evidenzia selezione
-  ['truppa','ufficiali','forestali'].forEach(function(cat) {
-    var panel = document.getElementById('ava-panel-'+(prefix||'pf')+'-'+cat);
-    if (!panel) return;
-    panel.querySelectorAll('.ava-item').forEach(function(el) {
+  // Evidenzia selezione nel nuovo picker M3
+  ['pf','mpf'].forEach(function(pfx) {
+    var wrap = document.getElementById('ava-picker-m3-' + pfx);
+    if (!wrap) return;
+    wrap.querySelectorAll('.avm3-item').forEach(function(el) {
       var img = el.querySelector('img');
-      el.classList.toggle('selected', !!(img && img.getAttribute('src') === filePath));
+      var isSel = !!(img && img.getAttribute('src') === filePath);
+      el.classList.toggle('selected', isSel);
+      var checkEl = el.querySelector('.avm3-check');
+      if (isSel && !checkEl) {
+        var imgWrap = el.querySelector('.avm3-img-wrap');
+        if (imgWrap) { var d = document.createElement('div'); d.className='avm3-check'; d.textContent='✓'; imgWrap.appendChild(d); }
+      } else if (!isSel && checkEl) {
+        checkEl.remove();
+      }
     });
   });
   // Salva
   var me = lsG('ct_me', null);
   if (me) {
-    // Se è un path locale (avatars/...) converti in base64 per Firebase e dashboard
-    if (filePath && !filePath.startsWith('http') && !filePath.startsWith('data:') && !filePath.startsWith('blob:')) {
-      var _avaImg = new Image();
-      _avaImg.crossOrigin = 'anonymous';
-      _avaImg.onload = function() {
-        try {
-          var canvas = document.createElement('canvas');
-          canvas.width = _avaImg.naturalWidth;
-          canvas.height = _avaImg.naturalHeight;
-          var ctx = canvas.getContext('2d');
-          ctx.drawImage(_avaImg, 0, 0);
-          var dataUrl = canvas.toDataURL('image/png');
-          me.ava = dataUrl;
-          lsS('ct_me', me);
-          var sess = lsG('ct_session', null);
-          if (sess) { sess.ava = dataUrl; lsS('ct_session', sess); }
-          if (typeof _syncAvaAllSections === 'function') _syncAvaAllSections(dataUrl);
-          if (window.FirebaseModule && sess && sess.userId) {
-            window.FirebaseModule.saveUserProfile(sess.userId, me, me.reparto).catch(function(){});
-          }
-        } catch(e) {
-          // Fallback: salva il path locale (funziona in locale ma non su Firebase)
-          me.ava = filePath;
-          lsS('ct_me', me);
-          if (typeof _syncAvaAllSections === 'function') _syncAvaAllSections(filePath);
-        }
-      };
-      _avaImg.onerror = function() {
-        me.ava = filePath;
-        lsS('ct_me', me);
-        if (typeof _syncAvaAllSections === 'function') _syncAvaAllSections(filePath);
-      };
-      _avaImg.src = filePath;
-    } else {
-      me.ava = filePath;
-      lsS('ct_me', me);
-      var sess = lsG('ct_session', null);
-      if (sess) { sess.ava = filePath; lsS('ct_session', sess); }
-      if (typeof _syncAvaAllSections === 'function') _syncAvaAllSections(filePath);
-      if (window.FirebaseModule && sess && sess.userId) {
-        window.FirebaseModule.saveUserProfile(sess.userId, me, me.reparto).catch(function(){});
-      }
+    me.ava = filePath;  // salva il path (es. "avatars/forestali-uomini/f1.png")
+    lsS('ct_me', me);
+    var sess = lsG('ct_session', null);
+    if (sess) { sess.ava = filePath; lsS('ct_session', sess); }
+    if (typeof _syncAvaAllSections === 'function') _syncAvaAllSections(filePath);
+    if (window.FirebaseModule && sess && sess.userId) {
+      window.FirebaseModule.saveUserProfile(sess.userId, me, me.reparto).catch(function(){});
     }
   }
   haptic('success');
@@ -5339,7 +5396,7 @@ function aggUI(){
 }
 
 // ---- NOVITÀ VERSIONE ----
-var _APP_VERSION = '4.1';
+var _APP_VERSION = '4.2';
 function _checkNovita(){
   localStorage.setItem('ct_novita_v4', _APP_VERSION);
 }
@@ -6296,43 +6353,376 @@ function renderRepData(){
   d.innerHTML=h;
 }
 
-// ---- STRAORDINARI (RIMOSSI — Task 3) ----
-// Stub per retrocompatibilità con eventuali chiamate residue
-function straordCambiaMese(delta) {}
-function renderStraord() {}
+// ---- STRAORDINARI PERSONALI ----
+// Storage: ct_straord = [ { id, data, ore, min, tipo, note } ]
+// Dati personali — salvati su Firebase in /utenti/{uid}/straordinari
 
-// ---- CONDIVISIONE TURNI SETTIMANALI (WhatsApp) ----
-// apriSheetWA: condivide i turni del giorno corrente (chiamato dallo sheet-giorno) o settimanali
-function apriSheetWA(){
-  // Se c'è una data selezionata nello sheet-giorno, condividi quel giorno
-  var sgData = document.getElementById('sg-data');
-  var ds = sgData && sgData.value ? sgData.value : null;
-  if(ds){
-    _condividiGiornoWA(ds);
+var _straordMese = null; // { y, m } — null = mese corrente
+
+function _straordGetMese() {
+  if (!_straordMese) {
+    var n = new Date();
+    _straordMese = { y: n.getFullYear(), m: n.getMonth() };
+  }
+  return _straordMese;
+}
+
+function straordCambiaMese(delta) {
+  var ms = _straordGetMese();
+  ms.m += delta;
+  if (ms.m > 11) { ms.m = 0; ms.y++; }
+  if (ms.m < 0)  { ms.m = 11; ms.y--; }
+  renderStraord();
+}
+
+// ── Tab switch Report ──────────────────────────────────────
+function switchRepTab(tab) {
+  var tabs = document.querySelectorAll('.rep-tab');
+  tabs.forEach(function(t, i){ t.classList.toggle('active', (i===0&&tab==='turni')||(i===1&&tab==='straord')); });
+  var turniEl  = document.getElementById('rep-tab-turni');
+  var straordEl = document.getElementById('rep-tab-straord');
+  if (turniEl)  turniEl.style.display  = tab === 'turni'  ? '' : 'none';
+  if (straordEl) straordEl.style.display = tab === 'straord' ? '' : 'none';
+  if (tab === 'straord') renderStraord();
+  if (tab === 'turni')   renderRep();
+}
+
+var _STRAORD_TIPI = {
+  ordinario:   { label:'Ordinario',   color:'var(--blue)',   icon:'⏱️' },
+  festivo:     { label:'Festivo',     color:'var(--gold)',   icon:'🎉' },
+  notturno:    { label:'Notturno',    color:'#9c27b0',       icon:'🌙' },
+  reperibilita:{ label:'Reperibilità',color:'var(--teal)',   icon:'📡' }
+};
+
+function renderStraord() {
+  var ms = _straordGetMese();
+  var mesi = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno',
+              'Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+  var lbl = document.getElementById('straord-mese-lbl');
+  if (lbl) lbl.textContent = mesi[ms.m] + ' ' + ms.y;
+
+  var tutti = lsG('ct_straord', []);
+  var mesePfx = ms.y + '-' + ('0'+(ms.m+1)).slice(-2);
+  var voci = tutti.filter(function(v){ return v.data && v.data.startsWith(mesePfx); });
+  voci.sort(function(a,b){ return a.data > b.data ? 1 : -1; });
+
+  // Totale minuti
+  var totMin = voci.reduce(function(acc,v){ return acc + (v.ore||0)*60 + (v.min||0); }, 0);
+  var totH = Math.floor(totMin/60), totM = totMin%60;
+
+  var totEl = document.getElementById('straord-totale-hdr');
+  if (totEl) totEl.textContent = totH + 'h ' + ('0'+totM).slice(-2) + 'm';
+
+  // Cards per tipo
+  var contatori = {};
+  voci.forEach(function(v){
+    var t = v.tipo || 'ordinario';
+    if (!contatori[t]) contatori[t] = 0;
+    contatori[t] += (v.ore||0)*60 + (v.min||0);
+  });
+  var cardsEl = document.getElementById('straord-cards');
+  if (cardsEl) {
+    if (!Object.keys(contatori).length) {
+      cardsEl.innerHTML = '<div style="grid-column:1/-1;padding:16px;text-align:center;color:var(--txt2);font-size:13px">Nessuno straordinario questo mese</div>';
+    } else {
+      cardsEl.innerHTML = Object.keys(contatori).map(function(t){
+        var m = contatori[t];
+        var h = Math.floor(m/60), mm = m%60;
+        var cfg = _STRAORD_TIPI[t] || { label:t, color:'var(--blue)', icon:'⏱️' };
+        return '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px">'
+          + '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--txt2);margin-bottom:4px">' + cfg.icon + ' ' + cfg.label + '</div>'
+          + '<div style="font-size:22px;font-weight:900;color:' + cfg.color + '">' + h + 'h ' + ('0'+mm).slice(-2) + 'm</div>'
+          + '</div>';
+      }).join('');
+    }
+  }
+
+  // Lista dettaglio con modifica/elimina
+  var detEl = document.getElementById('straord-detail');
+  if (detEl) {
+    if (!voci.length) {
+      detEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--txt2);font-size:13px">Nessuna voce — tocca + Aggiungi</div>';
+    } else {
+      var gN = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+      detEl.innerHTML = voci.map(function(v){
+        var d = new Date(v.data + 'T00:00:00');
+        var dLabel = gN[d.getDay()] + ' ' + d.getDate() + '/' + (d.getMonth()+1) + '/' + d.getFullYear();
+        var hStr = (v.ore||0) + 'h ' + ('0'+(v.min||0)).slice(-2) + 'm';
+        var cfg = _STRAORD_TIPI[v.tipo] || { label:v.tipo||'Ordinario', color:'var(--blue)', icon:'⏱️' };
+        return '<div class="straord-row">'
+          + '<div style="flex:1;min-width:0">'
+          + '<div style="font-size:13px;font-weight:700;color:var(--txt)">' + dLabel + '</div>'
+          + '<div style="font-size:11px;margin-top:2px">'
+          + '<span style="color:' + cfg.color + ';font-weight:700">' + cfg.icon + ' ' + cfg.label + '</span>'
+          + (v.note ? '<span style="color:var(--txt2)"> — ' + v.note + '</span>' : '')
+          + '</div>'
+          + '</div>'
+          + '<div style="font-size:16px;font-weight:900;color:var(--blue);flex-shrink:0;margin-right:8px">' + hStr + '</div>'
+          + '<div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">'
+          + '<button onclick="modificaStraord(\'' + v.id + '\')" class="straord-act-btn" style="color:var(--blue)">✏️</button>'
+          + '<button onclick="eliminaStraord(\'' + v.id + '\')" class="straord-act-btn" style="color:var(--red)">🗑️</button>'
+          + '</div>'
+          + '</div>';
+      }).join('');
+    }
+  }
+
+  // Aggiorna anche il widget dashboard
+  var me = lsG('ct_me', null);
+  if (me && typeof renderWidgetProssimo === 'function') renderWidgetProssimo(me);
+}
+
+function apriModalStraord(data) {
+  var titEl = document.getElementById('m-straord-titolo');
+  if (titEl) titEl.textContent = '⏱️ Aggiungi Straordinario';
+  var idEl = document.getElementById('straord-edit-id');
+  if (idEl) idEl.value = '';
+
+  // Data — usa oggi come default
+  var oggi = data || _oggi();
+  var dataEl = document.getElementById('straord-data');
+  if (dataEl) dataEl.value = oggi;
+  var dataLbl = document.getElementById('straord-data-lbl');
+  if (dataLbl) { dataLbl.textContent = oggi.split('-').reverse().join('/'); dataLbl.style.color = 'var(--txt)'; }
+
+  // Ore — reset a 1
+  var oreEl = document.getElementById('straord-ore');
+  if (oreEl) oreEl.value = '1';
+  var oreLbl = document.getElementById('straord-ore-lbl');
+  if (oreLbl) oreLbl.textContent = '1h';
+
+  // Minuti — reset a 0
+  _straordResetPills('straord-min-pill', 0);
+  var minEl = document.getElementById('straord-min');
+  if (minEl) minEl.value = '0';
+
+  // Tipo — reset a ordinario
+  _straordResetPills('straord-tipo-pill', 'ordinario');
+  var tipoEl = document.getElementById('straord-tipo');
+  if (tipoEl) tipoEl.value = 'ordinario';
+
+  // Note
+  var noteEl = document.getElementById('straord-note');
+  if (noteEl) noteEl.value = '';
+
+  var errEl = document.getElementById('straord-err');
+  if (errEl) errEl.style.display = 'none';
+  openM('m-straord');
+}
+
+function modificaStraord(id) {
+  var tutti = lsG('ct_straord', []);
+  var v = tutti.find(function(x){ return x.id === id; });
+  if (!v) return;
+
+  var titEl = document.getElementById('m-straord-titolo');
+  if (titEl) titEl.textContent = '✏️ Modifica Straordinario';
+  var idEl = document.getElementById('straord-edit-id');
+  if (idEl) idEl.value = id;
+
+  // Data
+  var d = v.data || _oggi();
+  var dataEl = document.getElementById('straord-data');
+  if (dataEl) dataEl.value = d;
+  var dataLbl = document.getElementById('straord-data-lbl');
+  if (dataLbl) { dataLbl.textContent = d.split('-').reverse().join('/'); dataLbl.style.color = 'var(--txt)'; }
+
+  // Ore
+  var ore = v.ore || 0;
+  var oreEl = document.getElementById('straord-ore');
+  if (oreEl) oreEl.value = String(ore);
+  var oreLbl = document.getElementById('straord-ore-lbl');
+  if (oreLbl) oreLbl.textContent = ore + 'h';
+
+  // Minuti
+  var min = v.min || 0;
+  _straordResetPills('straord-min-pill', min);
+  var minEl = document.getElementById('straord-min');
+  if (minEl) minEl.value = String(min);
+
+  // Tipo
+  var tipo = v.tipo || 'ordinario';
+  _straordResetPills('straord-tipo-pill', tipo);
+  var tipoEl = document.getElementById('straord-tipo');
+  if (tipoEl) tipoEl.value = tipo;
+
+  // Note
+  var noteEl = document.getElementById('straord-note');
+  if (noteEl) noteEl.value = v.note || '';
+
+  var errEl = document.getElementById('straord-err');
+  if (errEl) errEl.style.display = 'none';
+  openM('m-straord');
+}
+
+// Helper: attiva la pill con il valore dato, disattiva le altre
+function _straordResetPills(cls, val) {
+  document.querySelectorAll('.' + cls).forEach(function(btn) {
+    var bval = btn.dataset.min !== undefined ? parseInt(btn.dataset.min) : btn.dataset.tipo;
+    btn.classList.toggle('active', bval == val);
+  });
+}
+
+// Stepper ore
+function straordStepOre(delta) {
+  var el = document.getElementById('straord-ore');
+  var lbl = document.getElementById('straord-ore-lbl');
+  var val = parseInt(el.value || '0') + delta;
+  if (val < 0) val = 0;
+  if (val > 24) val = 24;
+  el.value = String(val);
+  if (lbl) lbl.textContent = val + 'h';
+  haptic('light');
+}
+
+// Selezione minuti
+function straordSetMin(min, btn) {
+  document.querySelectorAll('.straord-min-pill').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  var el = document.getElementById('straord-min');
+  if (el) el.value = String(min);
+  haptic('light');
+}
+
+// Selezione tipo
+function straordSetTipo(tipo, btn) {
+  document.querySelectorAll('.straord-tipo-pill').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  var el = document.getElementById('straord-tipo');
+  if (el) el.value = tipo;
+  haptic('light');
+}
+
+function salvaStraord() {
+  var editId = ((document.getElementById('straord-edit-id') || {}).value || '').trim();
+  var data  = (document.getElementById('straord-data')  || {}).value || '';
+  var ore   = parseInt((document.getElementById('straord-ore')  || {}).value || '0', 10);
+  var min   = parseInt((document.getElementById('straord-min')  || {}).value || '0', 10);
+  var tipo  = (document.getElementById('straord-tipo')  || {}).value || 'ordinario';
+  var note  = ((document.getElementById('straord-note') || {}).value || '').trim();
+  var errEl = document.getElementById('straord-err');
+
+  if (!data) {
+    if (errEl) { errEl.textContent = 'Seleziona una data'; errEl.style.display = ''; }
+    return;
+  }
+  if (!ore && !min) {
+    if (errEl) { errEl.textContent = 'Inserisci almeno 15 minuti'; errEl.style.display = ''; }
+    return;
+  }
+
+  var tutti = lsG('ct_straord', []);
+
+  if (editId) {
+    var idx = tutti.findIndex(function(x){ return x.id === editId; });
+    if (idx >= 0) tutti[idx] = { id: editId, data: data, ore: ore, min: min, tipo: tipo, note: note };
+    toast('Straordinario aggiornato ✓', 'ok');
   } else {
-    condividiTurniWA();
+    tutti.push({ id: String(Date.now()), data: data, ore: ore, min: min, tipo: tipo, note: note });
+    toast('Straordinario salvato ✓', 'ok');
+  }
+
+  lsS('ct_straord', tutti);
+  _straordSyncFirebase();
+  closeM('m-straord');
+  renderStraord();
+  haptic('success');
+}
+
+function eliminaStraord(id) {
+  ctConfirm('Eliminare questa voce?', { title:'Elimina', ico:'🗑️', ok:'Elimina', danger:true }).then(function(ok) {
+    if (!ok) return;
+    var tutti = lsG('ct_straord', []);
+    lsS('ct_straord', tutti.filter(function(v){ return v.id !== id; }));
+    _straordSyncFirebase();
+    renderStraord();
+    toast('Voce eliminata', 'ok');
+  });
+}
+
+function _straordSyncFirebase() {
+  var sess = lsG('ct_session', null);
+  if (!sess || !sess.userId || !window.FirebaseModule) return;
+  var uid = sess.userId;
+  var tutti = lsG('ct_straord', []);
+  if (window._fbSetDoc && window._fbDoc) {
+    var dbRef = window._fbDb || (typeof db !== 'undefined' ? db : null);
+    if (!dbRef) return;
+    window._fbSetDoc(window._fbDoc(dbRef, 'utenti', uid), { straordinari: tutti }, { merge: true })
+      .catch(function(e){ console.warn('straord sync:', e.message); });
   }
 }
+
+function _straordLoadFirebase(prof) {
+  if (prof && prof.straordinari && Array.isArray(prof.straordinari)) {
+    var locali = lsG('ct_straord', []);
+    var fbIds = prof.straordinari.map(function(v){ return v.id; });
+    var soloLocali = locali.filter(function(v){ return fbIds.indexOf(v.id) === -1; });
+    lsS('ct_straord', prof.straordinari.concat(soloLocali));
+  }
+}
+
+function condividiStraordWA() {
+  var ms = _straordGetMese();
+  var mesi = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno',
+              'Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+  var mesePfx = ms.y + '-' + ('0'+(ms.m+1)).slice(-2);
+  var tutti = lsG('ct_straord', []);
+  var voci = tutti.filter(function(v){ return v.data && v.data.startsWith(mesePfx); });
+  voci.sort(function(a,b){ return a.data > b.data ? 1 : -1; });
+
+  var me = lsG('ct_me', null);
+  var nome = me ? ((me.nome||'') + ' ' + (me.cognome||'')).trim() : '';
+  var gN = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+
+  var righe = ['⏱️ *Straordinari ' + mesi[ms.m] + ' ' + ms.y + (nome ? ' — ' + nome : '') + '*', '─────────────────'];
+
+  if (!voci.length) {
+    righe.push('Nessuno straordinario registrato');
+  } else {
+    var totMin = 0;
+    voci.forEach(function(v){
+      var d = new Date(v.data + 'T00:00:00');
+      var dLabel = gN[d.getDay()] + ' ' + d.getDate() + '/' + (d.getMonth()+1);
+      var hStr = (v.ore||0) + 'h ' + ('0'+(v.min||0)).slice(-2) + 'm';
+      var cfg = _STRAORD_TIPI[v.tipo] || { label:v.tipo||'Ordinario', icon:'⏱️' };
+      righe.push('*' + dLabel + '* — ' + hStr + ' ' + cfg.icon + ' ' + cfg.label + (v.note ? ' — ' + v.note : ''));
+      totMin += (v.ore||0)*60 + (v.min||0);
+    });
+    righe.push('─────────────────');
+    righe.push('*Totale: ' + Math.floor(totMin/60) + 'h ' + ('0'+(totMin%60)).slice(-2) + 'm*');
+  }
+  righe.push('_C-Turni_');
+  _apriWA(righe.join('\n'));
+}
+
+
+
+// ---- CONDIVISIONE TURNI (WhatsApp) ----
+function apriSheetWA(){
+  var sgData = document.getElementById('sg-data');
+  var ds = sgData && sgData.value ? sgData.value : null;
+  if(ds) _condividiGiornoWA(ds);
+  else condividiTurniWA();
+}
+
 function _condividiGiornoWA(ds){
   var me = lsG('ct_me', null);
   var T = lsG('ct_t', []).filter(function(t){ return t.data === ds; });
   var P = lsG('ct_p', []);
-  var mN = ["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
+  var mN = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
   var d = new Date(ds + 'T00:00:00');
-  var gN = ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
+  var gN = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
   var dataLabel = gN[d.getDay()] + ' ' + d.getDate() + ' ' + mN[d.getMonth()] + ' ' + d.getFullYear();
   var tipoLabel = {
     mattina:'🌅 Mattina', ml:'🌅 Mattina Lunga', pomeriggio:'☀️ Pomeriggio', pl:'☀️ Pomeriggio Lungo',
     notte:'🌙 Notte', riposo:'💤 Riposo', recupero:'🔄 Recupero', ferie:'🏖️ Ferie',
     permesso:'🕐 Permesso', corso:'🎓 Corso', licenza:'📚 Licenza'
   };
-  var righe = [];
-  righe.push('📅 *Turni ' + dataLabel + '*');
-  righe.push('-----------------');
+  var righe = ['📅 *Turni ' + dataLabel + '*', '─────────────────'];
   if(!T.length){
     righe.push('Nessun turno inserito');
   } else {
-    // Raggruppa per tipo
     var gruppi = {};
     T.forEach(function(t){
       var tipo = t.tipo || 'altro';
@@ -6345,67 +6735,58 @@ function _condividiGiornoWA(ds){
       righe.push('*' + (tipoLabel[tipo] || tipo) + '*: ' + gruppi[tipo].join(', '));
     });
   }
-  righe.push('-----------------');
-  righe.push('_Inviato da C-Turni_');
-  var testo = righe.join('\n');
-  var url = 'https://wa.me/?text=' + encodeURIComponent(testo);
-  if(navigator.share){
-    navigator.share({ title: 'Turni ' + dataLabel, text: testo }).catch(function(){ window.open(url, '_blank'); });
-  } else {
-    window.open(url, '_blank');
-  }
+  righe.push('─────────────────');
+  righe.push('_C-Turni_');
+  _apriWA(righe.join('\n'));
 }
+
 function condividiTurniWA() {
-  var me = lsG("ct_me", null);
-  if(!me) { toast("Accedi prima", "err"); return; }
+  var me = lsG('ct_me', null);
+  if(!me) { toast('Accedi prima', 'err'); return; }
 
   var oggi = new Date();
-  // Trova luned della settimana corrente
   var lun = new Date(oggi);
   lun.setDate(oggi.getDate() - ((oggi.getDay() + 6) % 7));
 
-  var T = lsG("ct_t", []);
-  var mN = ["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
-  var gN = ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
+  var T = lsG('ct_t', []);
+  var mN = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+  var gN = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
   var tipoLabel = {
-    mattina:"\uD83C\uDF05 Mattina (06-14)", ml:"\uD83C\uDF05 Mattina Lunga (06-16)",
-    pomeriggio:"\u2600\uFE0F Pomeriggio (14-22)", pl:"\u2600\uFE0F Pomeriggio Lungo (14-24)",
-    notte:"\uD83C\uDF19 Notte (22-06)", riposo:"\uD83D\uDCA4 Riposo",
-    recupero:"\uD83D\uDD04 Recupero", ferie:"\uD83C\uDFD6\uFE0F Ferie",
-    permesso:"\uD83D\uDD50 Permesso", corso:"\uD83C\uDF93 Corso", licenza:"\uD83D\uDCDA Licenza"
+    mattina:'🌅 Mattina', ml:'🌅 Mattina Lunga',
+    pomeriggio:'☀️ Pomeriggio', pl:'☀️ Pomeriggio Lungo',
+    notte:'🌙 Notte', riposo:'💤 Riposo',
+    recupero:'🔄 Recupero', ferie:'🏖️ Ferie',
+    permesso:'🕐 Permesso', corso:'🎓 Corso', licenza:'📚 Licenza'
   };
 
-  var righe = [];
-  righe.push("\uD83D\uDCC5 *Turni " + me.nome + " " + me.cognome + "*");
-  righe.push("Settimana " + ("0"+lun.getDate()).slice(-2) + "/" + ("0"+(lun.getMonth()+1)).slice(-2) +
-             "  " + (function(){ var d=new Date(lun); d.setDate(d.getDate()+6); return ("0"+d.getDate()).slice(-2)+"/"+("0"+(d.getMonth()+1)).slice(-2); })());
-  righe.push("-----------------");
+  var nome = ((me.nome||'') + ' ' + (me.cognome||'')).trim();
+  var fine = new Date(lun); fine.setDate(lun.getDate()+6);
+  var intestazione = ('0'+lun.getDate()).slice(-2)+'/'+('0'+(lun.getMonth()+1)).slice(-2)
+    + ' – ' + ('0'+fine.getDate()).slice(-2)+'/'+('0'+(fine.getMonth()+1)).slice(-2);
+
+  var righe = ['📅 *Turni ' + (nome ? nome + ' — ' : '') + 'Settimana ' + intestazione + '*', '─────────────────'];
 
   for(var i = 0; i < 7; i++) {
     var giorno = new Date(lun);
     giorno.setDate(lun.getDate() + i);
     var ds = giorno.toISOString().slice(0, 10);
-    var turno = null;
-    for(var j = 0; j < T.length; j++) {
-      if(_isMyTurno(T[j], me) && T[j].data === ds) { turno = T[j]; break; }
-    }
-    var gLabel = gN[giorno.getDay()] + " " + ("0"+giorno.getDate()).slice(-2) + " " + mN[giorno.getMonth()];
-    var tLabel = turno ? (tipoLabel[turno.tipo] || turno.tipo) : "\uD83D\uDCA4 Riposo";
-    if(turno && turno.orario && turno.orario !== "Riposo") tLabel += " (" + turno.orario + ")";
-    righe.push("*" + gLabel + "*: " + tLabel);
+    var turno = T.find(function(t){ return _isMyTurno(t, me) && t.data === ds; });
+    var gLabel = gN[giorno.getDay()] + ' ' + ('0'+giorno.getDate()).slice(-2) + ' ' + mN[giorno.getMonth()];
+    var tLabel = turno ? (tipoLabel[turno.tipo] || turno.tipo) : '💤 Riposo';
+    if(turno && turno.orario) tLabel += ' ' + turno.orario;
+    righe.push('*' + gLabel + '*: ' + tLabel);
   }
-  righe.push("-----------------");
-  righe.push("_Inviato da C-Turni_");
+  righe.push('─────────────────');
+  righe.push('_C-Turni_');
+  _apriWA(righe.join('\n'));
+}
 
-  var testo = righe.join("\n");
-  var url = "https://wa.me/?text=" + encodeURIComponent(testo);
-
-  // Prova Web Share API prima (pi nativa su mobile)
+function _apriWA(testo) {
+  var url = 'https://wa.me/?text=' + encodeURIComponent(testo);
   if(navigator.share) {
-    navigator.share({ title: "I miei turni", text: testo })
-      .catch(function(){ window.open(url, "_blank"); });
+    navigator.share({ text: testo }).catch(function(){ window.open(url, '_blank'); });
   } else {
-    window.open(url, "_blank");
+    window.open(url, '_blank');
   }
 }
 
@@ -7226,7 +7607,7 @@ function vai(pg, btn) {
   if(pg==="pers"){ renderPers(); if(typeof _renderStatoComando==='function') _renderStatoComando(); }
   if(pg==="cal") { renderCal(); renderTodo(); renderAgenda(); renderTodoCondivisi(); renderAgendaCondivisa(); }
   if(pg==="ag")  { renderAgendaPg(); }
-  if(pg==="rep") renderRep();
+  if(pg==="rep") { renderRep(); renderStraord(); }
   if(pg==="straord") { renderStraord(); }
   if(pg==="imp"){ aggUI(); caricaSaldoFerie(); aggNotifStatus(); aggTemaUI(lsG("ct_tema","")||""); aggLastBackupDate(); caricaFontSize(); if(typeof GSync!=='undefined'&&GSync.ui) GSync.ui.renderPanel(); }
   if(pg==="todo"){ renderTodo(); filtraTodo(_tdFiltro); renderTodoCondivisi(); }
@@ -8081,35 +8462,48 @@ function renderDash() {
   setTimeout(initPremiumEffects, 50);
 }
 
-/* ---------- WIDGET PROSSIMO TURNO ---------- */
+/* ---------- WIDGET STRAORDINARI OGGI ---------- */
 function renderWidgetProssimo(me) {
   var el = document.getElementById('widget-prossimo');
   if (!el) return;
+
   var oggi = _oggi();
-  var T = lsG('ct_t', []);
-  var futuri = T.filter(function(t){
-    return _isMyTurno(t, me) && t.data > oggi && !['riposo','ferie','recupero'].includes(t.tipo);
-  });
-  futuri.sort(function(a,b){ return a.data > b.data ? 1 : -1; });
-  var wp = document.getElementById('wp-tipo');
-  var wd = document.getElementById('wp-data');
-  var wg = document.getElementById('wp-giorni');
-  if (!futuri.length) {
-    if (wp) wp.textContent = 'Nessun turno in programma';
-    if (wd) wd.textContent = '';
-    if (wg) wg.textContent = '';
-    return;
+  var tutti = lsG('ct_straord', []);
+
+  // Ore oggi
+  var oggiVoci = tutti.filter(function(v){ return v.data === oggi; });
+  var oggiMin = oggiVoci.reduce(function(acc,v){ return acc + (v.ore||0)*60 + (v.min||0); }, 0);
+  var oggiH = Math.floor(oggiMin/60), oggiM = oggiMin%60;
+
+  // Totale mese corrente
+  var mesePfx = oggi.slice(0,7);
+  var meseMin = tutti.filter(function(v){ return v.data && v.data.startsWith(mesePfx); })
+    .reduce(function(acc,v){ return acc + (v.ore||0)*60 + (v.min||0); }, 0);
+  var meseH = Math.floor(meseMin/60);
+
+  // Soglia mensile (default 20h, configurabile)
+  var soglia = (lsG('ct_straord_soglia', null) || 20) * 60;
+  var pct = Math.min(100, Math.round(meseMin / soglia * 100));
+
+  var oreEl  = document.getElementById('wstr-ore-oggi');
+  var meseEl = document.getElementById('wstr-mese-val');
+  var barEl  = document.getElementById('wstr-bar-fill');
+  var barLbl = document.getElementById('wstr-bar-lbl');
+  var turnoLbl = document.getElementById('wstr-turno-lbl');
+
+  if (oreEl)  oreEl.textContent  = oggiH + 'h ' + ('0'+oggiM).slice(-2) + 'm';
+  if (meseEl) meseEl.textContent = meseH + 'h';
+  if (barEl)  { barEl.style.width = pct + '%'; barEl.style.background = pct >= 100 ? 'var(--green)' : 'var(--blue)'; }
+  if (barLbl) barLbl.textContent = meseH + 'h / ' + Math.floor(soglia/60) + 'h mensili';
+
+  // Turno di oggi
+  if (turnoLbl && me) {
+    var T = lsG('ct_t', []);
+    var turnoOggi = T.find(function(t){ return _isMyTurno(t, me) && t.data === oggi; });
+    turnoLbl.textContent = turnoOggi ? (turnoOggi.orario || turnoOggi.tipo || '') : '';
   }
-  var pross = futuri[0];
-  var tipoLabel = {mattina:"&#9728; Mattina",pomeriggio:"&#9728; Pomeriggio",notte:"&#127769; Notte",corso:"&#127891; Corso",permesso:"&#128203; Permesso"};
-  var d = new Date(pross.data + 'T00:00:00');
-  var now = new Date(); now.setHours(0,0,0,0);
-  var diff = Math.round((d - now) / 86400000);
-  var mN = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
-  if (wp) wp.innerHTML = tipoLabel[pross.tipo] || pross.tipo;
-  if (wd) wd.textContent = d.getDate() + ' ' + mN[d.getMonth()] + ' ' + d.getFullYear() + (pross.orario ? '  ' + pross.orario : '');
-  if (wg) wg.textContent = diff;
 }
+
 
 /* ---------- WIDGET SETTIMANA ---------- */
 function renderWidgetSettimana(me) {
