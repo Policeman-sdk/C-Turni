@@ -4213,6 +4213,19 @@ body[data-atmosfera="oasi"]       .hero-ring-fill { stroke: #00C853; }
   position: relative;
   z-index: 1;
 }
+.dash-greeting-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+/* Riga nome + badge grado affianco */
+.dash-greeting-name-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
 /* Nascondi la vecchia riga saluto dentro la hero se rimasta */
 .hero-greeting-row { display: none !important; }
 
@@ -4496,7 +4509,133 @@ body[data-atmosfera="oasi"]       .hero-ring-fill { stroke: #00C853; }
 #cal-panel-agenda > div:first-child::-webkit-scrollbar { display: none; }
 #pag-ag > div:first-of-type::-webkit-scrollbar { display: none; }
 
-/* ── AVATAR PICKER ── */
+/* ── AVATAR PICKER NUOVO ── */
+
+/* Tab bar categoria */
+.ava-tab-bar {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+}
+.ava-tab-bar::-webkit-scrollbar { display: none; }
+.ava-tab {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--border2);
+  background: var(--bg2);
+  color: var(--txt2);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .2s var(--motion-standard);
+  white-space: nowrap;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.ava-tab.active {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(91,159,255,.3);
+}
+.ava-tab:active { transform: scale(.93); }
+
+/* Griglia avatar */
+.ava-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.ava-item {
+  cursor: pointer;
+  border-radius: 50%;
+  overflow: hidden;
+  aspect-ratio: 1;
+  border: 3px solid transparent;
+  transition: border-color .2s, box-shadow .2s, transform .18s var(--motion-spring);
+  background: var(--bg2);
+  position: relative;
+}
+.ava-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 50%;
+}
+.ava-item:hover {
+  transform: scale(1.08);
+  border-color: var(--blue) !important;
+}
+.ava-item:active { transform: scale(.92); }
+.ava-item.selected {
+  border-color: var(--green) !important;
+  box-shadow: 0 0 0 2px var(--green);
+  transform: scale(1.06);
+}
+
+/* Sezione genere dentro il picker */
+.ava-section-title {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--txt2);
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  margin: 10px 0 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ava-section-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* Pannello categoria (nascosto/visibile) */
+.ava-panel { display: none; }
+.ava-panel.active { display: block; }
+
+/* ── GRADO NELLA HOME ── */
+.hero-grade-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.hero-grade-img {
+  height: 48px;
+  width: auto;
+  max-width: 100px;
+  object-fit: contain;
+  border-radius: 4px;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,.7));
+}
+.hero-grade-label {
+  font-size: 13px;
+  font-weight: 800;
+  color: rgba(255,255,255,.9);
+  letter-spacing: .3px;
+  white-space: nowrap;
+  text-shadow: 0 1px 4px rgba(0,0,0,.5);
+}
+
+/* Temi chiari — grado */
+:root[data-theme=light] .hero-grade-label,
+:root[data-theme=rosa-light] .hero-grade-label,
+:root[data-theme=forestale-light] .hero-grade-label,
+:root[data-theme=carabinieri-light] .hero-grade-label {
+  color: var(--txt2);
+}
+
+/* Compatibilità vecchi grid id */
 #avatar-picker-grid div,
 #mpf-avatar-grid div {
   cursor: pointer;
@@ -4513,12 +4652,8 @@ body[data-atmosfera="oasi"]       .hero-ring-fill { stroke: #00C853; }
   border-color: var(--blue) !important;
 }
 #avatar-picker-grid div:active,
-#mpf-avatar-grid div:active {
-  transform: scale(.94);
-}
+#mpf-avatar-grid div:active { transform: scale(.94); }
 #avatar-picker-grid svg,
-#mpf-avatar-grid svg {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
+#mpf-avatar-grid svg { width: 100%; height: 100%; display: block; }
+#avatar-picker-grid img,
+#mpf-avatar-grid img { width: 100%; height: 100%; object-fit: cover; display: block; }

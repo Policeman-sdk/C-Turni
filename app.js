@@ -1549,22 +1549,17 @@ function aggiornaHeroCard(){
   var me = lsG('ct_me', null);
   if(!me) return;
 
-  // -- Recupero foto robusto: ct_me ? ct_session ? ct_p --
+  // -- Recupero foto robusto: ct_me → ct_session → ct_p --
   var ava = me.ava || me.fotoURL || null;
-  if(!ava || (!ava.startsWith('http') && !ava.startsWith('data:'))) {
+  if(!ava) {
     var sess = lsG('ct_session', null);
     if(sess && (sess.ava || sess.fotoURL)) ava = sess.ava || sess.fotoURL;
   }
-  if(!ava || (!ava.startsWith('http') && !ava.startsWith('data:'))) {
+  if(!ava) {
     var P = lsG('ct_p', []);
     var myPid = localStorage.getItem('ct_my_pid');
     var pMe = P.find(function(p){ return p.uid === me.uid || String(p.id) === String(myPid); });
-    if(pMe && pMe.ava && pMe.ava.startsWith('http')) ava = pMe.ava;
-  }
-  // Se trovata, aggiorna ct_me per i prossimi render
-  if(ava && ava.startsWith('http') && (!me.ava || !me.ava.startsWith('http'))) {
-    me.ava = ava;
-    lsS('ct_me', me);
+    if(pMe && pMe.ava) ava = pMe.ava;
   }
 
   var now = new Date();
@@ -1585,36 +1580,19 @@ function aggiornaHeroCard(){
   var greetName = document.getElementById('hero-greeting-name');
   if(greetSub) greetSub.textContent = saluto;
   if(greetName) greetName.textContent = nomeBreve;
+  // Grado nella home
+  if(typeof _syncGradoHome === 'function') _syncGradoHome(me.grado || null);
 
   // Foto profilo utente
   var heroAva = document.getElementById('hero-user-ava');
   if(heroAva){
-    if(ava && (ava.startsWith('http') || ava.startsWith('data:'))){
-      // Salta il reload se l'immagine è già impostata correttamente
-      var currentBg = heroAva.style.backgroundImage || '';
-      var alreadySet = currentBg.indexOf(ava) !== -1;
-      if(!alreadySet){
-        heroAva.classList.add('ava-loading');
-        var _heroImg = new Image();
-        _heroImg.onload = function(){
-          heroAva.style.backgroundImage = 'url('+ava+')';
-          heroAva.style.backgroundSize = 'cover';
-          heroAva.style.backgroundPosition = 'center';
-          heroAva.textContent = '';
-          heroAva.classList.remove('ava-loading');
-        };
-        _heroImg.onerror = function(){
-          heroAva.classList.remove('ava-loading');
-          heroAva.style.backgroundImage = '';
-          heroAva.textContent = (nomeBreve.charAt(0)||'?').toUpperCase();
-        };
-        _heroImg.src = ava;
-      } else {
-        heroAva.classList.remove('ava-loading');
-        heroAva.textContent = '';
-      }
+    if(ava){
+      heroAva.classList.remove('ava-loading');
+      heroAva.innerHTML = '<img src="'+ava+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block">';
+      heroAva.style.backgroundImage = '';
     } else {
       heroAva.style.backgroundImage = '';
+      heroAva.innerHTML = '';
       heroAva.classList.remove('ava-loading');
       heroAva.textContent = (nomeBreve.charAt(0)||'?').toUpperCase();
     }
@@ -3721,104 +3699,262 @@ function aggAvaPreview(ava){
 }
 
 // ── SISTEMA AVATAR PREIMPOSTATI ──────────────────────────────
+// File PNG in /avatars/ — { id, label, file, genere, categoria }
 var _AVATARS = [
-  // Uomo 1 — Carabiniere classico
-  { id:'m1', label:'Uomo 1', svg:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#1a3a6f"/><circle cx="50" cy="38" r="18" fill="#f5c5a3"/><ellipse cx="50" cy="82" rx="28" ry="20" fill="#0e1f3a"/><rect x="36" y="54" width="28" height="22" rx="4" fill="#1a3a6f"/><rect x="38" y="54" width="24" height="4" fill="#c8a84b"/></svg>' },
-  // Uomo 2 — Maresciallo
-  { id:'m2', label:'Uomo 2', svg:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#2c3e50"/><circle cx="50" cy="38" r="18" fill="#e8c49a"/><ellipse cx="50" cy="82" rx="28" ry="20" fill="#1a252f"/><rect x="36" y="54" width="28" height="22" rx="4" fill="#2c3e50"/><rect x="38" y="54" width="24" height="3" fill="#c8102e"/><rect x="38" y="59" width="24" height="3" fill="#c8102e"/></svg>' },
-  // Uomo 3 — Ufficiale
-  { id:'m3', label:'Uomo 3', svg:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#0d3349"/><circle cx="50" cy="38" r="18" fill="#f0d0b0"/><ellipse cx="50" cy="82" rx="28" ry="20" fill="#071e2e"/><rect x="36" y="54" width="28" height="22" rx="4" fill="#0d3349"/><polygon points="50,56 44,62 56,62" fill="#d4af37"/></svg>' },
-  // Uomo 4 — Forestale
-  { id:'m4', label:'Uomo 4', svg:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#2e5e2e"/><circle cx="50" cy="38" r="18" fill="#e8c49a"/><ellipse cx="50" cy="82" rx="28" ry="20" fill="#1a3a1a"/><rect x="36" y="54" width="28" height="22" rx="4" fill="#2e5e2e"/><rect x="38" y="54" width="24" height="3" fill="#8fbe6a"/></svg>' },
-  // Uomo 5 — Generico
-  { id:'m5', label:'Uomo 5', svg:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#34495e"/><circle cx="50" cy="38" r="18" fill="#f5c5a3"/><ellipse cx="50" cy="82" rx="28" ry="20" fill="#1c2833"/><rect x="36" y="54" width="28" height="22" rx="4" fill="#34495e"/></svg>' },
-  // Donna 1
-  { id:'f1', label:'Donna 1', svg:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#1a3a6f"/><circle cx="50" cy="36" r="18" fill="#f5c5a3"/><path d="M32 36 Q50 28 68 36" fill="#3d2b1f"/><ellipse cx="50" cy="82" rx="28" ry="20" fill="#0e1f3a"/><rect x="36" y="52" width="28" height="24" rx="4" fill="#1a3a6f"/><rect x="38" y="52" width="24" height="4" fill="#c8a84b"/></svg>' },
-  // Donna 2
-  { id:'f2', label:'Donna 2', svg:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#2c3e50"/><circle cx="50" cy="36" r="18" fill="#e8c49a"/><path d="M30 38 Q50 22 70 38 Q68 50 50 52 Q32 50 30 38Z" fill="#5c3d2e"/><ellipse cx="50" cy="82" rx="28" ry="20" fill="#1a252f"/><rect x="36" y="52" width="28" height="24" rx="4" fill="#2c3e50"/></svg>' },
-  // Donna 3
-  { id:'f3', label:'Donna 3', svg:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#0d3349"/><circle cx="50" cy="36" r="18" fill="#f0d0b0"/><path d="M32 34 Q50 20 68 34 Q66 48 50 50 Q34 48 32 34Z" fill="#2c1810"/><ellipse cx="50" cy="82" rx="28" ry="20" fill="#071e2e"/><rect x="36" y="52" width="28" height="24" rx="4" fill="#0d3349"/><polygon points="50,54 44,60 56,60" fill="#d4af37"/></svg>' },
-  // Donna 4
-  { id:'f4', label:'Donna 4', svg:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#2e5e2e"/><circle cx="50" cy="36" r="18" fill="#e8c49a"/><path d="M32 36 Q50 26 68 36" fill="#8B4513"/><ellipse cx="50" cy="82" rx="28" ry="20" fill="#1a3a1a"/><rect x="36" y="52" width="28" height="24" rx="4" fill="#2e5e2e"/><rect x="38" y="52" width="24" height="3" fill="#8fbe6a"/></svg>' },
-  // Donna 5
-  { id:'f5', label:'Donna 5', svg:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#7b3f6e"/><circle cx="50" cy="36" r="18" fill="#f5c5a3"/><path d="M30 36 Q50 24 70 36 Q68 50 50 52 Q32 50 30 36Z" fill="#4a2040"/><ellipse cx="50" cy="82" rx="28" ry="20" fill="#4a2040"/><rect x="36" y="52" width="28" height="24" rx="4" fill="#7b3f6e"/></svg>' }
+  // ── TRUPPA UOMINI ── (file in arrivo)
+
+  // ── TRUPPA DONNE ── (file in arrivo)
+
+  // ── UFFICIALI UOMINI ── (file in arrivo)
+
+  // ── UFFICIALI DONNE ── (file in arrivo)
+
+  // ── FORESTALI UOMINI ──
+  { id:'for_m1', label:'Forestale U1', file:'avatars/forestali-uomini/f1.png', genere:'m', categoria:'forestali' },
+  { id:'for_m2', label:'Forestale U2', file:'avatars/forestali-uomini/f2.png', genere:'m', categoria:'forestali' },
+  { id:'for_m3', label:'Forestale U3', file:'avatars/forestali-uomini/f3.png', genere:'m', categoria:'forestali' },
+  { id:'for_m4', label:'Forestale U4', file:'avatars/forestali-uomini/f4.png', genere:'m', categoria:'forestali' },
+  { id:'for_m5', label:'Forestale U5', file:'avatars/forestali-uomini/f5.png', genere:'m', categoria:'forestali' },
+  { id:'for_m6', label:'Forestale U6', file:'avatars/forestali-uomini/f6.png', genere:'m', categoria:'forestali' },
+  { id:'for_m7', label:'Forestale U7', file:'avatars/forestali-uomini/f7.png', genere:'m', categoria:'forestali' },
+  { id:'for_m8', label:'Forestale U8', file:'avatars/forestali-uomini/f8.png', genere:'m', categoria:'forestali' },
+  { id:'for_m9', label:'Forestale U9', file:'avatars/forestali-uomini/f9.png', genere:'m', categoria:'forestali' },
+  // ── FORESTALI DONNE ──
+  { id:'for_f1', label:'Forestale D1', file:'avatars/forestali-donne/ff1.png', genere:'f', categoria:'forestali' },
+  { id:'for_f2', label:'Forestale D2', file:'avatars/forestali-donne/ff2.png', genere:'f', categoria:'forestali' },
+  { id:'for_f3', label:'Forestale D3', file:'avatars/forestali-donne/ff3.png', genere:'f', categoria:'forestali' },
+  { id:'for_f4', label:'Forestale D4', file:'avatars/forestali-donne/ff4.png', genere:'f', categoria:'forestali' },
+  { id:'for_f5', label:'Forestale D5', file:'avatars/forestali-donne/ff5.png', genere:'f', categoria:'forestali' },
+  { id:'for_f6', label:'Forestale D6', file:'avatars/forestali-donne/ff6.png', genere:'f', categoria:'forestali' },
+  { id:'for_f7', label:'Forestale D7', file:'avatars/forestali-donne/ff7.png', genere:'f', categoria:'forestali' },
+  { id:'for_f8', label:'Forestale D8', file:'avatars/forestali-donne/ff8.png', genere:'f', categoria:'forestali' },
+  { id:'for_f9', label:'Forestale D9', file:'avatars/forestali-donne/ff9.png', genere:'f', categoria:'forestali' },
 ];
 
+// Restituisce il path del file PNG dell'avatar
 function _getAvatarDataUrl(id) {
   var av = _AVATARS.find(function(a){ return a.id === id; });
-  if(!av) return null;
-  return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(av.svg)));
+  if (!av) return null;
+  return av.file;
 }
 
-function renderAvatarPicker(gridId, prevId, hiddenId) {
-  var grid = document.getElementById(gridId);
-  if(!grid) return;
+// ── GRADI COME IMMAGINI ──────────────────────────────────────
+// File PNG in /grades/<chiave>.png  (es. grades/carsc.png)
+var _GRADE_IMG_PATH = 'grades/';
+
+// Mappa esplicita chiave grado → nome file PNG
+var _GRADE_FILE_MAP = {
+  'Car.':     'car',
+  'Car.Sc.':  'carsc',
+  'App.':     'app',
+  'App.Sc.':  'appsc',
+  'V.Brig.':  'vbrig',
+  'Brig.':    'brig',
+  'Brig.Ca.': 'brigca',
+  'Mar.':     'mar',
+  'Mar.Ord.': 'marord',
+  'Mar.Magg.':'marmagg',
+  'Mar.Cap.': 'marcap',
+  'Lgt.':     'luog',
+  'Ten.':     'ten',
+  'Cap.':     'cap',
+  'Magg.':    'magg',
+  'Ten.Col.': 'tencol',
+  'Col.':     'col',
+  'Gen.':     'gen',
+  'Sten.':    'sten'
+};
+
+function _getGradeImgSrc(gradoKey) {
+  if (!gradoKey) return null;
+  // Usa mappa esplicita se disponibile
+  if (_GRADE_FILE_MAP[gradoKey]) return _GRADE_IMG_PATH + _GRADE_FILE_MAP[gradoKey] + '.png';
+  // Fallback: normalizza rimuovendo punti e spazi
+  var key = gradoKey.toLowerCase().replace(/\./g,'').replace(/\s+/g,'');
+  return _GRADE_IMG_PATH + key + '.png';
+}
+
+// Aggiorna il badge grado nella home
+function _syncGradoHome(gradoKey) {
+  var badge = document.getElementById('hero-grade-badge');
+  var img   = document.getElementById('hero-grade-img');
+  var lbl   = document.getElementById('hero-grade-label');
+  if (!badge || !img || !lbl) return;
+  if (!gradoKey) { badge.style.display = 'none'; return; }
+  var nomeGrado = GR[gradoKey] ? GR[gradoKey].nome : gradoKey;
+  img.src = _getGradeImgSrc(gradoKey);
+  img.alt = gradoKey;
+  img.onerror = function(){ this.style.display='none'; };
+  img.onload  = function(){ this.style.display=''; };
+  lbl.textContent = nomeGrado;
+  badge.style.display = 'flex';
+}
+
+// ── RENDER PICKER A TAB ──────────────────────────────────────
+function renderAvatarPickerNew(prefix, prevId, hiddenId) {
   var me = lsG('ct_me', null);
   var currentAva = me && me.ava ? me.ava : '';
-  grid.innerHTML = _AVATARS.map(function(av) {
-    var dataUrl = _getAvatarDataUrl(av.id);
-    var isSelected = currentAva && currentAva.indexOf(av.id) !== -1;
-    return '<div onclick="selezionaAvatar(\''+av.id+'\',\''+prevId+'\',\''+hiddenId+'\')" '
-      + 'style="cursor:pointer;border-radius:50%;overflow:hidden;width:100%;aspect-ratio:1;'
-      + 'border:3px solid '+(isSelected?'var(--blue)':'transparent')+';'
-      + 'box-shadow:'+(isSelected?'0 0 0 2px var(--blue)':'none')+';'
-      + 'transition:all .2s;background:var(--bg2)">'
-      + av.svg
-      + '</div>';
-  }).join('');
+  ['truppa','ufficiali','forestali'].forEach(function(cat) {
+    var panel = document.getElementById('ava-panel-' + prefix + '-' + cat);
+    if (!panel) return;
+    var uomini = _AVATARS.filter(function(a){ return a.categoria===cat && a.genere==='m'; });
+    var donne  = _AVATARS.filter(function(a){ return a.categoria===cat && a.genere==='f'; });
+    var html = '';
+    function renderGroup(list, titolo, emoji) {
+      if (!list.length) return;
+      html += '<div class="ava-section-title">' + emoji + ' ' + titolo + '</div>';
+      html += '<div class="ava-grid">';
+      list.forEach(function(av) {
+        var sel = currentAva && (currentAva === av.file || currentAva.indexOf(av.id) !== -1);
+        html += '<div class="ava-item' + (sel?' selected':'') + '" '
+          + 'onclick="selezionaAvatarNew(\'' + av.id + '\',\'' + prevId + '\',\'' + hiddenId + '\',\'' + prefix + '\')" '
+          + 'title="' + av.label + '">'
+          + '<img src="' + av.file + '" alt="' + av.label + '" loading="lazy">'
+          + '</div>';
+      });
+      html += '</div>';
+    }
+    renderGroup(uomini, 'Uomini', '\u{1F468}');
+    renderGroup(donne,  'Donne',  '\u{1F469}');
+    if (!uomini.length && !donne.length) {
+      html = '<div style="text-align:center;padding:20px;color:var(--txt2);font-size:12px">\uD83D\uDEA7 Avatar in arrivo</div>';
+    }
+    panel.innerHTML = html;
+  });
 }
 
-function selezionaAvatar(id, prevId, hiddenId) {
-  var dataUrl = _getAvatarDataUrl(id);
-  if(!dataUrl) return;
-  // Aggiorna preview
+// Compatibilità con vecchio renderAvatarPicker
+function renderAvatarPicker(gridId, prevId, hiddenId) {
+  var prefix = (gridId === 'avatar-picker-grid') ? 'pf' : 'mpf';
+  renderAvatarPickerNew(prefix, prevId, hiddenId);
+}
+
+// ── SWITCH TAB ───────────────────────────────────────────────
+function switchAvaTab(prefix, cat) {
+  var tabBar = document.getElementById('ava-tabs-' + prefix);
+  if (tabBar) {
+    var cats = ['truppa','ufficiali','forestali'];
+    var tabs = tabBar.querySelectorAll('.ava-tab');
+    tabs.forEach(function(btn, i){ btn.classList.toggle('active', cats[i]===cat); });
+  }
+  ['truppa','ufficiali','forestali'].forEach(function(c) {
+    var p = document.getElementById('ava-panel-' + prefix + '-' + c);
+    if (p) p.classList.toggle('active', c===cat);
+  });
+}
+
+// ── SELEZIONE AVATAR ─────────────────────────────────────────
+function selezionaAvatarNew(id, prevId, hiddenId, prefix) {
+  var av = _AVATARS.find(function(a){ return a.id===id; });
+  if (!av) return;
+  var filePath = av.file;
+  // Preview
   var prev = document.getElementById(prevId);
-  if(prev) {
-    prev.style.backgroundImage = 'url('+dataUrl+')';
-    prev.style.backgroundSize = 'cover';
-    prev.style.backgroundPosition = 'center';
-    prev.textContent = '';
+  if (prev) {
+    prev.innerHTML = '<img src="'+filePath+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
   }
-  // Aggiorna hidden input
+  // Hidden input
   var hidden = document.getElementById(hiddenId);
-  if(hidden) hidden.value = dataUrl;
-  // Evidenzia selezione nella griglia
-  var gridId = prevId === 'pf-ava-prev' ? 'avatar-picker-grid' : 'mpf-avatar-grid';
-  var grid = document.getElementById(gridId);
-  if(grid) {
-    grid.querySelectorAll('div').forEach(function(d, i) {
-      var av = _AVATARS[i];
-      var sel = av && av.id === id;
-      d.style.border = '3px solid ' + (sel ? 'var(--blue)' : 'transparent');
-      d.style.boxShadow = sel ? '0 0 0 2px var(--blue)' : 'none';
+  if (hidden) hidden.value = filePath;
+  // Evidenzia selezione
+  ['truppa','ufficiali','forestali'].forEach(function(cat) {
+    var panel = document.getElementById('ava-panel-'+(prefix||'pf')+'-'+cat);
+    if (!panel) return;
+    panel.querySelectorAll('.ava-item').forEach(function(el) {
+      var img = el.querySelector('img');
+      el.classList.toggle('selected', !!(img && img.getAttribute('src') === filePath));
     });
-  }
-  // Salva subito nel profilo
+  });
+  // Salva
   var me = lsG('ct_me', null);
-  if(me) {
-    me.ava = dataUrl;
-    lsS('ct_me', me);
-    var sess = lsG('ct_session', null);
-    if(sess) { sess.ava = dataUrl; lsS('ct_session', sess); }
-    // Aggiorna tutte le sezioni UI
-    if(typeof _syncAvaAllSections === 'function') _syncAvaAllSections(dataUrl);
-    if(typeof aggUI === 'function') aggUI();
-    // Salva su Firebase in background (senza bloccare)
-    if(window.FirebaseModule && sess && sess.userId) {
-      window.FirebaseModule.saveUserProfile(sess.userId, me, me.reparto).catch(function(){});
+  if (me) {
+    // Se è un path locale (avatars/...) converti in base64 per Firebase e dashboard
+    if (filePath && !filePath.startsWith('http') && !filePath.startsWith('data:') && !filePath.startsWith('blob:')) {
+      var _avaImg = new Image();
+      _avaImg.crossOrigin = 'anonymous';
+      _avaImg.onload = function() {
+        try {
+          var canvas = document.createElement('canvas');
+          canvas.width = _avaImg.naturalWidth;
+          canvas.height = _avaImg.naturalHeight;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(_avaImg, 0, 0);
+          var dataUrl = canvas.toDataURL('image/png');
+          me.ava = dataUrl;
+          lsS('ct_me', me);
+          var sess = lsG('ct_session', null);
+          if (sess) { sess.ava = dataUrl; lsS('ct_session', sess); }
+          if (typeof _syncAvaAllSections === 'function') _syncAvaAllSections(dataUrl);
+          if (window.FirebaseModule && sess && sess.userId) {
+            window.FirebaseModule.saveUserProfile(sess.userId, me, me.reparto).catch(function(){});
+          }
+        } catch(e) {
+          // Fallback: salva il path locale (funziona in locale ma non su Firebase)
+          me.ava = filePath;
+          lsS('ct_me', me);
+          if (typeof _syncAvaAllSections === 'function') _syncAvaAllSections(filePath);
+        }
+      };
+      _avaImg.onerror = function() {
+        me.ava = filePath;
+        lsS('ct_me', me);
+        if (typeof _syncAvaAllSections === 'function') _syncAvaAllSections(filePath);
+      };
+      _avaImg.src = filePath;
+    } else {
+      me.ava = filePath;
+      lsS('ct_me', me);
+      var sess = lsG('ct_session', null);
+      if (sess) { sess.ava = filePath; lsS('ct_session', sess); }
+      if (typeof _syncAvaAllSections === 'function') _syncAvaAllSections(filePath);
+      if (window.FirebaseModule && sess && sess.userId) {
+        window.FirebaseModule.saveUserProfile(sess.userId, me, me.reparto).catch(function(){});
+      }
     }
   }
   haptic('success');
-  toast('Avatar aggiornato ✓', 'ok');
+  toast('Avatar aggiornato \u2713', 'ok');
+}
+
+// Compatibilità con vecchio selezionaAvatar
+function selezionaAvatar(id, prevId, hiddenId) {
+  var prefix = prevId === 'pf-ava-prev' ? 'pf' : 'mpf';
+  selezionaAvatarNew(id, prevId, hiddenId, prefix);
 }
 
 function prevGrado(val){
-  if(!val){document.getElementById("pf-gr-txt").textContent="(invariato)";
-    var ps=document.getElementById("pf-gr-prev");if(ps)ps.style.display="none";return;}
-  var g=GR[val]||{nome:val,svg:""};
-  document.getElementById("pf-gr-txt").textContent=g.nome+" ("+val+")";
-  var ps=document.getElementById("pf-gr-prev");
-  if(ps){ps.src=g.svg||"";ps.style.display=g.svg?"":"none";}
+  if(!val){
+    document.getElementById("pf-gr-txt").textContent="(invariato)";
+    var ps=document.getElementById("pf-gr-prev");
+    if(ps){ ps.src=''; ps.style.display="none"; }
+    return;
+  }
+  var g = GR[val] || { nome: val };
+  document.getElementById("pf-gr-txt").textContent = g.nome + " (" + val + ")";
+  var ps = document.getElementById("pf-gr-prev");
+  if(ps){
+    var src = _getGradeImgSrc(val);
+    ps.src = src || '';
+    ps.style.display = src ? '' : 'none';
+  }
+}
+
+// Preview grado nel modal profilo (select onchange)
+function prevGradoMpf(val) {
+  var img = document.getElementById('mpf-gr-prev');
+  var txt = document.getElementById('mpf-gr-txt');
+  if (!val) {
+    if(img) img.style.display = 'none';
+    if(txt) txt.textContent = '';
+    return;
+  }
+  var g = GR[val] || { nome: val };
+  if(txt) txt.textContent = g.nome;
+  if(img) {
+    var src = _getGradeImgSrc(val);
+    img.src = src || '';
+    img.style.display = src ? '' : 'none';
+  }
 }
 
 // ---- ORARI PRESET ----
@@ -4499,7 +4635,7 @@ function renderGradoGrid(){
   el.innerHTML=Object.keys(GR).map(function(k){
     var grado=GR[k];
     var sel=k===currentVal;
-    return '<div class="grado-card'+(sel?' sel':'')+'" onclick="selezionaGrado(\''+k.replace(/'/g,"\\'")+ '\')" style="border-radius:12px;padding:12px;text-align:center;cursor:pointer;border:2px solid '+(sel?'var(--blue)':'var(--border)')+';background:var(--bg2);transition:border .2s;display:flex;flex-direction:column;gap:8px;align-items:center"><img src="'+grado.svg+'" style="height:36px;width:60px;object-fit:contain"><div style="font-size:11px;font-weight:700;color:var(--txt)">'+grado.nome+'</div></div>';
+    return '<div class="grado-card'+(sel?' sel':'')+'" onclick="selezionaGrado(\''+k.replace(/'/g,"\\'")+ '\')" style="border-radius:12px;padding:12px;text-align:center;cursor:pointer;border:2px solid '+(sel?'var(--blue)':'var(--border)')+';background:var(--bg2);transition:border .2s;display:flex;flex-direction:column;gap:8px;align-items:center"><img src="'+_getGradeImgSrc(k)+'" style="height:48px;width:72px;object-fit:contain"><div style="font-size:11px;font-weight:700;color:var(--txt)">'+grado.nome+'</div></div>';
   }).join("");
 }
 
@@ -5121,11 +5257,12 @@ function aggUI(){
     var elRep = document.getElementById("tess-rep");
     if(elRep) elRep.textContent = rep || "";
 
-    // SVG grado nel tesserino
+    // Immagine grado nel tesserino
     var elSvg = document.getElementById("tess-grado-svg");
     if(elSvg){
-      if(g.svg){
-        elSvg.innerHTML = '<img src="'+g.svg+'" alt="">';
+      var gradoSrc = _getGradeImgSrc(u.grado || '');
+      if(gradoSrc){
+        elSvg.innerHTML = '<img src="'+gradoSrc+'" alt="'+(u.grado||'')+'" style="height:22px;width:auto;max-width:64px;object-fit:contain;border-radius:3px">';
       } else {
         elSvg.innerHTML = '';
       }
@@ -5435,9 +5572,10 @@ function renderPers(){
   if(!P.length){tb.innerHTML="<tr><td colspan=\"7\" class=\"empty\">Nessuna persona inserita</td></tr>";return;}
   var T=lsG("ct_t",[]);
   tb.innerHTML=P.map(function(p){
-    var g=GR[p.grado]||{nome:p.grado,svg:""};
+    var g=GR[p.grado]||{nome:p.grado};
     var tc=T.filter(function(t){return t.pid===p.id;}).length;
-    var si=g.svg?"<img src=\""+g.svg+"\" style=\"width:50px;height:30px;object-fit:contain\">":"";
+    var gradoSrc=_getGradeImgSrc(p.grado);
+    var si=gradoSrc?"<img src=\""+gradoSrc+"\" style=\"width:50px;height:30px;object-fit:contain\">":"";
     var fr=(p.ferieRes!==undefined?p.ferieRes:30);
     var frC=fr>10?"var(--teal)":fr>0?"var(--gold)":"var(--red)";
     var _isVerif = p.uid || String(p.id) === String(localStorage.getItem('ct_my_pid'));
@@ -5700,10 +5838,10 @@ function aggSel(){
   });
   listEl.innerHTML=P.map(function(p){
     var gn=GR[p.grado]?GR[p.grado].nome:p.grado;
-    var svg=GR[p.grado]?GR[p.grado].svg:"";
+    var gradoSrc = _getGradeImgSrc(p.grado);
     var isMeLabel = p._isMe ? ' <span style="font-size:10px;background:rgba(91,159,255,.2);color:var(--blue);border-radius:8px;padding:1px 6px">Tu</span>' : '';
     return '<div class="pers-card" onclick="selezionaPersona(\''+p.id+'\',\''+p.nome.replace(/'/g,"\\'")+'\')" style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:center;cursor:pointer;transition:background .2s" onmouseover="this.style.background=\'var(--card2)\'" onmouseout="this.style.background=\'transparent\'">'+
-      (svg?'<img src="'+svg+'" style="height:32px;width:50px;object-fit:contain;flex-shrink:0">':'<div style="width:50px;height:32px;display:flex;align-items:center;justify-content:center;font-size:22px">&#128100;</div>')+
+      (gradoSrc?'<img src="'+gradoSrc+'" alt="'+(p.grado||'')+'" style="height:32px;width:50px;object-fit:contain;flex-shrink:0;border-radius:3px">':'<div style="width:50px;height:32px;display:flex;align-items:center;justify-content:center;font-size:22px">&#128100;</div>')+
       '<div style="flex:1;min-width:0"><div style="font-weight:700;color:var(--txt);font-size:14px">'+p.nome+isMeLabel+_badgeP(p)+'</div><div style="font-size:12px;color:var(--txt2)">'+gn+'</div></div>'+
     '</div>';
   }).join("");
@@ -7396,6 +7534,17 @@ function apriProfilo(){
   // Renderizza griglia avatar nel modal profilo
   setTimeout(function(){
     if(typeof renderAvatarPicker === 'function') renderAvatarPicker('mpf-avatar-grid', 'mpf-ava-prev', 'pf-ava');
+    // Popola select grado e mostra preview immagine
+    var mpfGrado = document.getElementById('mpf-grado');
+    if(mpfGrado && me.grado) {
+      mpfGrado.value = me.grado;
+      if(typeof prevGradoMpf === 'function') prevGradoMpf(me.grado);
+    }
+    // Popola avatar preview
+    var mpfAvaPrev = document.getElementById('mpf-ava-prev');
+    if(mpfAvaPrev && me.ava) {
+      mpfAvaPrev.innerHTML = '<img src="'+me.ava+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+    }
   }, 50);
   var errEl=document.getElementById('pf-err');
   if(errEl)errEl.classList.remove('on');
@@ -7489,60 +7638,36 @@ function salvaProfilo(){
 
 // Aggiorna foto in tutte le sezioni immediatamente
 function _syncAvaAllSections(avaUrl){
-  // Header avatar
-  var hAva = document.getElementById('h-ava');
-  if(hAva){
-    if(avaUrl){ hAva.style.backgroundImage='url('+avaUrl+')'; hAva.style.backgroundSize='cover'; hAva.style.backgroundPosition='center'; hAva.innerHTML=''; }
-    else { hAva.style.backgroundImage=''; hAva.innerHTML='&#128100;'; }
+  // Helper: imposta avatar su un elemento con <img> tag (più affidabile di backgroundImage)
+  function _setAva(el, url) {
+    if (!el) return;
+    if (!url) {
+      el.style.backgroundImage = '';
+      el.innerHTML = '&#128100;';
+      return;
+    }
+    el.innerHTML = '<img src="'+url+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block">';
+    el.style.backgroundImage = '';
   }
-  // Hero dashboard avatar
+  // Header avatar
+  _setAva(document.getElementById('h-ava'), avaUrl);
+  // Hero dashboard avatar — applica direttamente senza doppio caricamento
   var heroAva = document.getElementById('hero-user-ava');
   if(heroAva){
-    if(avaUrl){
-      var currentBg2 = heroAva.style.backgroundImage || '';
-      if(currentBg2.indexOf(avaUrl) === -1){
-        heroAva.classList.add('ava-loading');
-        var _img = new Image();
-        _img.onload = function(){
-          heroAva.style.backgroundImage='url('+avaUrl+')';
-          heroAva.style.backgroundSize='cover';
-          heroAva.style.backgroundPosition='center';
-          heroAva.textContent='';
-          heroAva.classList.remove('ava-loading');
-        };
-        _img.onerror = function(){ heroAva.classList.remove('ava-loading'); };
-        _img.src = avaUrl;
-      } else {
-        heroAva.classList.remove('ava-loading');
-      }
-    } else {
-      heroAva.style.backgroundImage='';
-      heroAva.classList.remove('ava-loading');
-    }
+    heroAva.classList.remove('ava-loading');
+    _setAva(heroAva, avaUrl);
   }
   // Impostazioni avatar
-  var impAva = document.getElementById('imp-ava');
-  if(impAva){
-    if(avaUrl){ impAva.style.backgroundImage='url('+avaUrl+')'; impAva.style.backgroundSize='cover'; impAva.style.backgroundPosition='center'; impAva.textContent=''; }
-    else { impAva.style.backgroundImage=''; impAva.textContent='👤'; }
-  }
+  _setAva(document.getElementById('imp-ava'), avaUrl);
   // Profilo preview
-  var pfPrev = document.getElementById('pf-ava-prev');
-  if(pfPrev){
-    if(avaUrl){ pfPrev.style.backgroundImage='url('+avaUrl+')'; pfPrev.style.backgroundSize='cover'; pfPrev.style.backgroundPosition='center'; pfPrev.textContent=''; }
-    else { pfPrev.style.backgroundImage=''; pfPrev.textContent='👤'; }
-  }
+  _setAva(document.getElementById('pf-ava-prev'), avaUrl);
   // Tesserino
   var tessAva = document.getElementById('tess-ava');
   var tessPlaceholder = document.getElementById('tess-ava-placeholder');
   if(tessAva && avaUrl){ tessAva.src=avaUrl; tessAva.style.display='block'; if(tessPlaceholder)tessPlaceholder.style.display='none'; }
   else if(tessAva){ tessAva.style.display='none'; if(tessPlaceholder)tessPlaceholder.style.display=''; }
   // Widget oggi avatar
-  var wAva = document.getElementById('w-ava');
-  if(wAva){
-    if(avaUrl){ wAva.style.backgroundImage='url('+avaUrl+')'; wAva.style.backgroundSize='cover'; wAva.style.backgroundPosition='center'; wAva.innerHTML=''; }
-    else { wAva.style.backgroundImage=''; }
-  }
+  _setAva(document.getElementById('w-ava'), avaUrl);
 }
 /* ============================================================
    MEGA-PATCH JS  c_turni_v3.1.0
@@ -8108,19 +8233,8 @@ function _aggiornaUIMeteo(data) {
   var heroDesc = document.getElementById('hero-meteo-desc');
   var heroUmi  = document.getElementById('hero-meteo-umi');
   var heroVento= document.getElementById('hero-meteo-vento');
-  // Mappa emoji per la Hero Card (non usa SVG)
-  var METEO_EMOJI = {
-    0:'☀️', 1:'🌤️', 2:'⛅', 3:'☁️',
-    45:'🌫️', 48:'🌫️',
-    51:'🌦️', 53:'🌦️', 55:'🌧️',
-    61:'🌧️', 63:'🌧️', 65:'🌧️',
-    71:'🌨️', 73:'🌨️', 75:'❄️', 77:'🌨️',
-    80:'🌦️', 81:'🌧️', 82:'⛈️',
-    85:'🌨️', 86:'❄️',
-    95:'⛈️', 96:'⛈️', 99:'⛈️'
-  };
-  var icoText = METEO_EMOJI[wc] || '🌤️';
-  if(heroIco)   heroIco.textContent  = icoText;
+  // Usa innerHTML per l'icona SVG (non textContent che striperebbe i tag)
+  if(heroIco) heroIco.innerHTML = icoHtml;
   if(heroTemp)  heroTemp.textContent = temp;
   if(heroDesc)  heroDesc.textContent = desc;
   if(heroUmi)   heroUmi.textContent  = umi;
@@ -8722,14 +8836,11 @@ function esportaAgendaGoogleTasks() {
 /* ---------- GITHUB GIST BACKUP ---------- */
 // Offuscamento minimale: XOR con chiave fissa (non crittografia forte, ma non plain text)
 
-/* ---------- HOOK su aggUI: chiama renderDash dopo login ---------- */
+/* ---------- HOOK su aggUI: sincronizza GSync panel ---------- */
 var _origAggUI = aggUI;
 aggUI = function() {
   if(typeof GSync!=='undefined'&&GSync.ui&&GSync.ui.renderPanel)GSync.ui.renderPanel();
   _origAggUI();
-  renderDash();
-  renderFestSopp();
-  renderDashWidgetToggles();
 };
 
 

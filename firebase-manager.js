@@ -408,11 +408,19 @@ window.FirebaseModule = {
         }
         if(typeof aggUI === 'function') aggUI();
       }
-      // Carica snapshot iniziale turni
+      // Carica snapshot iniziale turni con merge
       if(rep && !rep.startsWith('privato_')) {
         var turniSnap = await getDocs(collection(db, 'reparti', rep, 'turni'));
         var turni = []; turniSnap.forEach(function(d){ turni.push(d.data()); });
-        if(turni.length > 0) localStorage.setItem('ct_t', JSON.stringify(turni));
+        if(turni.length > 0) {
+          var localT = [];
+          try { localT = JSON.parse(localStorage.getItem('ct_t') || '[]'); } catch(e2) {}
+          var now30s = Date.now() - 30000;
+          var turniRecenti = localT.filter(function(t){
+            return t.id > now30s && !turni.some(function(fb){ return String(fb.id) === String(t.id); });
+          });
+          localStorage.setItem('ct_t', JSON.stringify(turni.concat(turniRecenti)));
+        }
         // Carica utenti del reparto
         var usersSnap = await getDocs(collection(db, 'reparti', rep, 'utenti'));
         var users = []; usersSnap.forEach(function(d){ users.push(d.data()); });
@@ -469,11 +477,20 @@ window.FirebaseModule = {
     // Avvia subito i listener real-time — popolano il localStorage in parallelo
     _startListeners(rep);
     try {
-      // Carica dati iniziali (nuovo device: localStorage vuoto)
+      // Carica dati iniziali con merge intelligente (non sovrascrivere turni locali recenti)
       if(!isPrivato) {
         var turniSnap = await getDocs(collection(db, 'reparti', rep, 'turni'));
         var turni = []; turniSnap.forEach(function(d){ turni.push(d.data()); });
-        if(turni.length > 0) localStorage.setItem('ct_t', JSON.stringify(turni));
+        if(turni.length > 0) {
+          // Merge: mantieni turni locali inseriti negli ultimi 30 secondi non ancora su Firebase
+          var localT = [];
+          try { localT = JSON.parse(localStorage.getItem('ct_t') || '[]'); } catch(e2) {}
+          var now30s = Date.now() - 30000;
+          var turniRecenti = localT.filter(function(t){
+            return t.id > now30s && !turni.some(function(fb){ return String(fb.id) === String(t.id); });
+          });
+          localStorage.setItem('ct_t', JSON.stringify(turni.concat(turniRecenti)));
+        }
       }
 
       var uid = session.userId;

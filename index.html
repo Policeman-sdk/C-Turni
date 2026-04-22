@@ -468,9 +468,15 @@
       <!-- SALUTO — fuori dalla Hero Card, sopra -->
       <div class="dash-greeting">
         <div class="hero-user-ava" id="hero-user-ava">&#128100;</div>
-        <div>
+        <div class="dash-greeting-text">
           <div class="hero-greeting-sub" id="hero-greeting-sub">Buongiorno</div>
-          <div class="hero-greeting-name" id="hero-greeting-name">—</div>
+          <div class="dash-greeting-name-row">
+            <div class="hero-greeting-name" id="hero-greeting-name">—</div>
+            <div class="hero-grade-badge" id="hero-grade-badge" style="display:none">
+              <img id="hero-grade-img" class="hero-grade-img" src="" alt="">
+              <span id="hero-grade-label" class="hero-grade-label"></span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1054,12 +1060,21 @@
             <div style="padding:16px;border-top:1px solid var(--border)">
               <div class="fg" style="margin-bottom:10px">
                 <label>Avatar</label>
-                <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
-                  <div id="pf-ava-prev" style="width:56px;height:56px;border-radius:50%;background:var(--bg2);border:2px solid var(--blue);display:flex;align-items:center;justify-content:center;font-size:28px;overflow:hidden;flex-shrink:0;box-shadow:0 0 0 3px rgba(91,159,255,.2)">👤</div>
-                  <div style="font-size:12px;color:var(--txt2);line-height:1.5">Scegli un avatar<br>dalla griglia qui sotto</div>
+                <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
+                  <div id="pf-ava-prev" style="width:60px;height:60px;border-radius:50%;background:var(--bg2);border:2px solid var(--blue);display:flex;align-items:center;justify-content:center;font-size:28px;overflow:hidden;flex-shrink:0;box-shadow:0 0 0 3px rgba(91,159,255,.2)">👤</div>
+                  <div style="font-size:12px;color:var(--txt2);line-height:1.6">Scegli un avatar<br>dalla griglia qui sotto</div>
                 </div>
-                <!-- Griglia avatar preimpostati -->
-                <div id="avatar-picker-grid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:4px"></div>
+                <!-- Nuovo picker a tab -->
+                <div id="avatar-picker-wrap">
+                  <div class="ava-tab-bar" id="ava-tabs-pf">
+                    <button class="ava-tab active" onclick="switchAvaTab('pf','truppa')">🎖️ Truppa</button>
+                    <button class="ava-tab" onclick="switchAvaTab('pf','ufficiali')">⭐ Ufficiali</button>
+                    <button class="ava-tab" onclick="switchAvaTab('pf','forestali')">🌲 Forestali</button>
+                  </div>
+                  <div id="ava-panel-pf-truppa" class="ava-panel active"></div>
+                  <div id="ava-panel-pf-ufficiali" class="ava-panel"></div>
+                  <div id="ava-panel-pf-forestali" class="ava-panel"></div>
+                </div>
                 <input type="hidden" id="pf-ava" value="">
               </div>
               <div class="g2">
@@ -1067,6 +1082,10 @@
                   <input type="text" class="fc" id="pf-rep" readonly style="opacity:.55;cursor:default;background:var(--bg2)" placeholder="—"></div>
                 <div class="fg" style="margin-bottom:10px">
                   <label>Grado: <span id="pf-gr-txt" style="color:var(--blue)"></span></label>
+                  <!-- Preview immagine grado selezionato -->
+                  <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;min-height:28px">
+                    <img id="pf-gr-prev" src="" alt="" style="display:none;height:44px;width:auto;max-width:100px;object-fit:contain;border-radius:4px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4))">
+                  </div>
                   <input type="hidden" id="pf-grado" value="">
                   <button class="fc" style="text-align:left;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="apriGradoPicker('pf-grado')" id="btn-pf-grado">
                     <span id="lbl-pf-grado" style="font-weight:600;color:var(--txt2)">Tocca per scegliere...</span>
@@ -1960,13 +1979,27 @@
     <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:8px 0 4px">
       <div id="mpf-ava-prev" style="width:80px;height:80px;border-radius:50%;background:var(--bg2);border:3px solid var(--blue);display:flex;align-items:center;justify-content:center;font-size:40px;overflow:hidden;flex-shrink:0;box-shadow:0 0 0 4px rgba(91,159,255,.2)">👤</div>
       <div style="font-size:11px;color:var(--txt2)">Scegli il tuo avatar</div>
-      <div id="mpf-avatar-grid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;width:100%"></div>
+      <!-- Nuovo picker a tab -->
+      <div style="width:100%">
+        <div class="ava-tab-bar" id="ava-tabs-mpf">
+          <button class="ava-tab active" onclick="switchAvaTab('mpf','truppa')">🎖️ Truppa</button>
+          <button class="ava-tab" onclick="switchAvaTab('mpf','ufficiali')">⭐ Ufficiali</button>
+          <button class="ava-tab" onclick="switchAvaTab('mpf','forestali')">🌲 Forestali</button>
+        </div>
+        <div id="ava-panel-mpf-truppa" class="ava-panel active"></div>
+        <div id="ava-panel-mpf-ufficiali" class="ava-panel"></div>
+        <div id="ava-panel-mpf-forestali" class="ava-panel"></div>
+      </div>
     </div>
     <div class="fg" style="margin-bottom:0"><label>Nome</label><input type="text" class="fc app-fc" id="mpf-nome" placeholder="Il tuo nome"></div>
     <div class="fg" style="margin-bottom:0"><label>Reparto</label><input type="text" class="fc app-fc" id="mpf-rep" placeholder="Es. Stazione Roma Centro"></div>
     <div class="fg" style="margin-bottom:0"><label>Nucleo</label><input type="text" class="fc app-fc" id="mpf-nuc" placeholder="Es. Compagnia Prati"></div>
     <div class="fg" style="margin-bottom:0"><label>Grado</label>
-      <select class="fc app-fc" id="mpf-grado">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;min-height:28px">
+        <img id="mpf-gr-prev" src="" alt="" style="display:none;height:28px;width:auto;max-width:72px;object-fit:contain;border-radius:4px;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4))">
+        <span id="mpf-gr-txt" style="font-size:12px;color:var(--blue);font-weight:700"></span>
+      </div>
+      <select class="fc app-fc" id="mpf-grado" onchange="prevGradoMpf(this.value)">
         <option>Car.</option><option>Car.Sc.</option><option>App.</option><option>App.Sc.</option>
         <option>V.Brig.</option><option>Brig.</option><option>Brig.Ca.</option>
         <option>Mar.</option><option>Mar.Ord.</option><option>Mar.Cap.</option><option>Mar.Magg.</option>
