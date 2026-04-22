@@ -1,4 +1,4 @@
-﻿// -- SERVICE WORKER --
+// -- SERVICE WORKER --
 if("serviceWorker" in navigator){
   navigator.serviceWorker.register('/C-Turni/firebase-messaging-sw.js', { scope: '/C-Turni/' })
     .then(function(reg){ console.log("SW FCM registrato:", reg.scope); })
@@ -39,13 +39,13 @@ var GR={
   "Gen.":{nome:"Generale",col:"#b8860b",svg:"data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2060%2036%22%3E%3Crect%20x%3D%221%22%20y%3D%221%22%20width%3D%2258%22%20height%3D%2234%22%20rx%3D%224%22%20fill%3D%22%230e1f3a%22%20stroke%3D%22%23d4af37%22%20stroke-width%3D%221.5%22/%3E%3Crect%20x%3D%225%22%20y%3D%2225%22%20width%3D%2250%22%20height%3D%223%22%20rx%3D%221.5%22%20fill%3D%22%23d4af37%22/%3E%3Cpolygon%20points%3D%2230.0%2C6.0%2031.8%2C10.6%2036.7%2C10.8%2032.9%2C13.9%2034.1%2C18.7%2030.0%2C16.0%2025.9%2C18.7%2027.1%2C13.9%2023.3%2C10.8%2028.2%2C10.6%22%20fill%3D%22%23cc1020%22/%3E%3Cpolygon%20points%3D%2230.0%2C6.0%2031.8%2C10.6%2036.7%2C10.8%2032.9%2C13.9%2034.1%2C18.7%2030.0%2C16.0%2025.9%2C18.7%2027.1%2C13.9%2023.3%2C10.8%2028.2%2C10.6%22%20fill%3D%22none%22%20stroke%3D%22%23d4af37%22%20stroke-width%3D%22.8%22/%3E%3C/svg%3E"}
 };
 
-// Ordine gerarchico gradi (0 = più alto)
+// Ordine gerarchico gradi (0 = pi� alto)
 var _GRADO_ORDER = {"Gen.":0,"Col.":1,"Ten.Col.":2,"Magg.":3,"Cap.":4,"Ten.":5,"S.Ten.":6,"Luog.":7,"Mar.Magg.":8,"Mar.Cap.":9,"Mar.Ord.":10,"Mar.":11,"Brig.Ca.":12,"Brig.":13,"V.Brig.":14,"App.Sc.":15,"App.":16,"Car.Sc.":17,"Car.":18};
 function _gradoPrio(grado){ return _GRADO_ORDER.hasOwnProperty(grado) ? _GRADO_ORDER[grado] : 99; }
 function lsG(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
 function lsS(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true;}catch(e){if(e.name==='QuotaExceededError'||e.code===22){if(typeof toast==='function')toast('Spazio esaurito: riduci la foto','err');}return false;}}
 
-// ── CONFIRM CUSTOM (sostituisce window.confirm) ──────────────
+// -- CONFIRM CUSTOM (sostituisce window.confirm) --------------
 var _ctConfirmResolveFunc = null;
 function ctConfirm(msg, opts) {
   opts = opts || {};
@@ -58,7 +58,7 @@ function ctConfirm(msg, opts) {
     var canBtn= document.getElementById('m-confirm-cancel');
     if(title)  title.textContent  = opts.title  || 'Conferma';
     if(msgEl)  msgEl.innerHTML    = msg;
-    if(ico)    ico.textContent    = opts.ico    || '⚠️';
+    if(ico)    ico.textContent    = opts.ico    || '??';
     if(okBtn)  okBtn.textContent  = opts.ok     || 'Conferma';
     if(canBtn) canBtn.textContent = opts.cancel || 'Annulla';
     if(okBtn)  okBtn.style.background = opts.danger ? 'var(--red)' : '';
@@ -70,7 +70,7 @@ function ctConfirmResolve(val) {
   if(_ctConfirmResolveFunc) { _ctConfirmResolveFunc(val); _ctConfirmResolveFunc = null; }
 }
 
-// ── SPINNER ──────────────────────────────────────────────────
+// -- SPINNER --------------------------------------------------
 function ctSpinner(show, msg) {
   var el = document.getElementById('ct-spinner');
   if(!el) return;
@@ -91,7 +91,7 @@ function _parseDate(ds){
   return new Date(parseInt(p[0],10), parseInt(p[1],10)-1, parseInt(p[2],10));
 }
 
-// ---- MODALITÀ PERSONALE ----
+// ---- MODALIT� PERSONALE ----
 function _isPrivato(reparto){ return !reparto || reparto.startsWith('privato_'); }
 
 // Tipi turno "personale" (seguono l'utente al cambio reparto)
@@ -136,7 +136,7 @@ function regConferma(){
   });
 }
 
-// ── INVITA COLLEGA ──
+// -- INVITA COLLEGA --
 function invitaCollega(){
   var me = lsG('ct_me', null);
   if(!me || !me.reparto){ toast('Devi essere in un reparto per invitare colleghi','err'); return; }
@@ -157,7 +157,7 @@ function _fallbackCopyInvite(link){
   document.body.removeChild(ta);
 }
 
-// ── LEGGI PARAMETRO ?join= ALL'AVVIO ──
+// -- LEGGI PARAMETRO ?join= ALL'AVVIO --
 (function _checkJoinParam(){
   try {
     var params = new URLSearchParams(window.location.search);
@@ -168,26 +168,26 @@ function _fallbackCopyInvite(link){
     document.addEventListener('DOMContentLoaded', function(){
       _applyJoinParam(window._joinRepartoId);
     });
-    // Fallback se DOMContentLoaded già passato
+    // Fallback se DOMContentLoaded gi� passato
     if(document.readyState !== 'loading') _applyJoinParam(window._joinRepartoId);
   } catch(e){}
 })();
 
 function _applyJoinParam(repartoId){
-  // Segna che questa registrazione viene da un invito — forza addetto+pending
+  // Segna che questa registrazione viene da un invito � forza addetto+pending
   window._joinInviteReparto = repartoId;
   // Mostra overlay registrazione
   if(typeof AuthModule !== 'undefined' && AuthModule.showRegister) AuthModule.showRegister();
   // Nascondi scelta privato/reparto e precompila
   var step2 = document.getElementById('reg-step2');
   if(step2){
-    // Forza modalità reparto senza mostrare la scelta
+    // Forza modalit� reparto senza mostrare la scelta
     step2.style.display = 'block';
     var cardPriv = document.getElementById('reg-card-privato');
     var cardRep  = document.getElementById('reg-card-reparto');
     if(cardPriv) cardPriv.style.display = 'none';
     if(cardRep)  cardRep.style.display  = 'none';
-    // Nascondi anche i campi di selezione reparto (già precompilato)
+    // Nascondi anche i campi di selezione reparto (gi� precompilato)
     var campiSel = document.getElementById('reg-reparto-sel-wrap');
     if(campiSel) campiSel.style.display = 'none';
     var campi = document.getElementById('reg-campi-reparto');
@@ -213,7 +213,7 @@ function _applyJoinParam(repartoId){
   }
 }
 // Cerca in ct_p un profilo con uid===null il cui nome corrisponde a nome+cognome
-// nelle varianti più comuni (cognome nome / nome cognome).
+// nelle varianti pi� comuni (cognome nome / nome cognome).
 function _collegaPlaceholder(nome, cognome, uid, reparto) {
   try {
     var P = lsG('ct_p', []);
@@ -226,14 +226,14 @@ function _collegaPlaceholder(nome, cognome, uid, reparto) {
 
     var found = false;
     P = P.map(function(p) {
-      if (p.uid) return p; // già collegato
+      if (p.uid) return p; // gi� collegato
       var pn = (p.nome || '').toLowerCase().trim();
       var match = varianti.some(function(v) {
         return pn === v || pn.indexOf(v) !== -1 || v.indexOf(pn) !== -1;
       });
       if (match && !found) {
         found = true;
-        console.log('[C-Turni] Placeholder collegato:', p.nome, '→ uid', uid);
+        console.log('[C-Turni] Placeholder collegato:', p.nome, '? uid', uid);
         return Object.assign({}, p, { uid: uid, reparto: reparto });
       }
       return p;
@@ -246,7 +246,7 @@ function _collegaPlaceholder(nome, cognome, uid, reparto) {
         window.FirebaseModule.savePersona().catch(function(){});
       }
     } else {
-      // Nessun placeholder trovato → crea nuova voce in ct_p per questo utente
+      // Nessun placeholder trovato ? crea nuova voce in ct_p per questo utente
       var nuovaPersona = {
         id: Date.now(),
         nome: (cognome + ' ' + nome).trim(),
@@ -266,7 +266,7 @@ function _collegaPlaceholder(nome, cognome, uid, reparto) {
   } catch(e) { console.warn('_collegaPlaceholder:', e.message); }
 }
 
-// ── Helper: seleziona tipo struttura reparto (bottoni in-app) ──
+// -- Helper: seleziona tipo struttura reparto (bottoni in-app) --
 function selTipoRep(prefix, val, btn) {
   var inp = document.getElementById(prefix + '-tipo-struttura') || document.getElementById(prefix + '-tipo');
   if(inp) inp.value = val;
@@ -280,7 +280,7 @@ function selTipoRep(prefix, val, btn) {
   else if(prefix === 'reg') aggiornaRepartoId();
 }
 
-// ── Helper: seleziona specialità reparto (bottoni in-app) ──
+// -- Helper: seleziona specialit� reparto (bottoni in-app) --
 function selSpecRep(prefix, val, btn) {
   var inp = document.getElementById(prefix + '-specialita') || document.getElementById(prefix + '-spec');
   if(inp) inp.value = val;
@@ -292,7 +292,7 @@ function selSpecRep(prefix, val, btn) {
   else if(prefix === 'reg') aggiornaRepartoId();
 }
 
-// ── Turni Custom in Impostazioni (sezione inline) ──
+// -- Turni Custom in Impostazioni (sezione inline) --
 function selTcColImp(btn) {
   document.querySelectorAll('.tc-col-btn-imp').forEach(function(b){
     b.style.border = '3px solid transparent';
@@ -316,9 +316,9 @@ function renderTurniCustomImp() {
   el.innerHTML = TC.map(function(tc) {
     var bg = _TC_COLORI[tc.col] || _TC_COLORI.mattina;
     return '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:6px">'
-      + '<div style="width:36px;height:36px;border-radius:10px;background:'+bg+';display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">'+(tc.emoji||'⏰')+'</div>'
+      + '<div style="width:36px;height:36px;border-radius:10px;background:'+bg+';display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">'+(tc.emoji||'?')+'</div>'
       + '<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:var(--txt)">'+tc.nome+' <span style="font-size:10px;background:var(--bg2);padding:1px 5px;border-radius:5px;color:var(--txt2)">'+tc.codice+'</span></div>'
-      + '<div style="font-size:11px;color:var(--txt2)">'+tc.oraIn+' – '+tc.oraFi+'</div></div>'
+      + '<div style="font-size:11px;color:var(--txt2)">'+tc.oraIn+' � '+tc.oraFi+'</div></div>'
       + '<button onclick="delTurnoCustom('+tc.id+');renderTurniCustomImp();" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:14px;padding:4px;appearance:none;-webkit-appearance:none">&#128465;</button>'
       + '</div>';
   }).join('');
@@ -329,12 +329,12 @@ function salvaTurnoCustomImp() {
   var codice = ((document.getElementById('tc-codice-imp')||{}).value||'').trim().toUpperCase();
   var oraIn  = (document.getElementById('tc-ora-in-imp')||{}).value || '08:00';
   var oraFi  = (document.getElementById('tc-ora-fi-imp')||{}).value || '16:00';
-  var emoji  = (document.getElementById('tc-emoji-imp')||{}).value.trim() || '⏰';
+  var emoji  = (document.getElementById('tc-emoji-imp')||{}).value.trim() || '?';
   var col    = (document.getElementById('tc-col-sel-imp')||{}).value || 'mattina';
   if(!nome) { toast('Inserisci un nome','err'); return; }
   if(!codice || codice.length < 2) { toast('Inserisci un codice (min 2 car.)','err'); return; }
   var TC = lsG('ct_turni_custom', []);
-  if(TC.find(function(x){ return x.codice === codice; })) { toast('Codice già usato','err'); return; }
+  if(TC.find(function(x){ return x.codice === codice; })) { toast('Codice gi� usato','err'); return; }
   TC.push({id:Date.now(),nome:nome,codice:codice,oraIn:oraIn,oraFi:oraFi,emoji:emoji,col:col});
   lsS('ct_turni_custom', TC);
   ['tc-nome-imp','tc-codice-imp','tc-emoji-imp'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
@@ -344,10 +344,10 @@ function salvaTurnoCustomImp() {
   var of_lbl = document.getElementById('tc-ora-fi-imp-lbl'); if(of_lbl) of_lbl.textContent='16:00';
   renderTurniCustomImp();
   _aggiungiOpzioniCustomAlSelect();
-  toast('Turno personalizzato aggiunto ✓','ok');
+  toast('Turno personalizzato aggiunto ?','ok');
 }
 
-// ── Helper: priorità todo (bottoni in-app) ──
+// -- Helper: priorit� todo (bottoni in-app) --
 function setTdPrio(val, btn) {
   var inp = document.getElementById('td-prio');
   if(inp) inp.value = val;
@@ -355,7 +355,7 @@ function setTdPrio(val, btn) {
   if(btn) btn.classList.add('sel');
 }
 
-// ── Helper: avviso agenda (bottoni in-app) ──
+// -- Helper: avviso agenda (bottoni in-app) --
 function setAgNotif(val, btn) {
   var inp = document.getElementById('ag-notif');
   if(inp) inp.value = String(val);
@@ -363,7 +363,7 @@ function setAgNotif(val, btn) {
   if(btn) btn.classList.add('sel');
 }
 
-// ── Reset m-todo quando si apre ──
+// -- Reset m-todo quando si apre --
 var _origOpenM_todo = null; // gestito in openM
 
 function aggiornaStatoReparto(){
@@ -375,7 +375,7 @@ function aggiornaStatoReparto(){
   if(!me || !info) return;
   var rep = me.reparto || '';
   if(_isPrivato(rep)){
-    info.innerHTML = '&#128100; Sei in <strong>Modalità Personale</strong>. I tuoi turni sono privati.';
+    info.innerHTML = '&#128100; Sei in <strong>Modalit� Personale</strong>. I tuoi turni sono privati.';
     if(btnU){ btnU.style.display='inline-flex'; }
     if(btnS){ btnS.style.display='none'; }
     if(btnT){ btnT.style.display='none'; }
@@ -387,7 +387,7 @@ function aggiornaStatoReparto(){
   }
 }
 function apriTrasferimento(){
-  // Il form trasferimento è ora dentro Opzioni Avanzate — apri quel pannello
+  // Il form trasferimento � ora dentro Opzioni Avanzate � apri quel pannello
   var sec = document.getElementById('sec-opz-avanzate');
   var arr = document.getElementById('arr-opz-avanzate');
   if(sec && !sec.classList.contains('open')){
@@ -397,12 +397,12 @@ function apriTrasferimento(){
   if(sec) sec.scrollIntoView({behavior:'smooth', block:'nearest'});
 }
 function chiudiTrasferimento(){
-  // stub — il form è sempre visibile dentro Opzioni Avanzate
+  // stub � il form � sempre visibile dentro Opzioni Avanzate
 }
 function resetTurniUtente(){
   var me = lsG('ct_me', null);
   if(!me){ toast('Sessione non trovata','err'); return; }
-  ctConfirm('Eliminare TUTTI i tuoi turni?', {title:'Reset Turni', ico:'🗑️', ok:'Elimina', danger:true}).then(function(ok){
+  ctConfirm('Eliminare TUTTI i tuoi turni?', {title:'Reset Turni', ico:'???', ok:'Elimina', danger:true}).then(function(ok){
     if(!ok) return;
     var uid = me.uid || me.id;
     var myPid = parseInt(localStorage.getItem('ct_my_pid')||'0');
@@ -425,11 +425,11 @@ function resetTurniUtente(){
   });
 }
 
-// ── Reset Totale Dati: elimina tutti i turni dalla collezione Firestore ──
+// -- Reset Totale Dati: elimina tutti i turni dalla collezione Firestore --
 function resetTotaleFirestore(){
   var me = lsG('ct_me', null);
   if(!me){ toast('Sessione non trovata','err'); return; }
-  ctConfirm('Eliminare TUTTI i turni del reparto da Firestore?<br><small>Il tuo profilo NON verrà eliminato.</small>', {title:'Reset Totale', ico:'⚠️', ok:'Elimina tutto', danger:true}).then(function(ok){
+  ctConfirm('Eliminare TUTTI i turni del reparto da Firestore?<br><small>Il tuo profilo NON verr� eliminato.</small>', {title:'Reset Totale', ico:'??', ok:'Elimina tutto', danger:true}).then(function(ok){
     if(!ok) return;
     var rep = (me.reparto||'').toLowerCase().replace(/\s+/g,'_');
     var isPrivato = !rep || rep.startsWith('privato_');
@@ -446,7 +446,7 @@ function resetTotaleFirestore(){
     toast('Eliminazione turni in corso...', 'ok');
     (async function(){
       try {
-        // Elimina SOLO i turni — mai il profilo utente
+        // Elimina SOLO i turni � mai il profilo utente
         var snap = await window._fbGetDocs(window._fbCollection(window._fbDb, 'reparti', rep, 'turni'));
         var dels = [];
         snap.forEach(function(d){ dels.push(window._fbDeleteDoc(window._fbDoc(window._fbDb, 'reparti', rep, 'turni', d.id))); });
@@ -455,7 +455,7 @@ function resetTotaleFirestore(){
         if(me.uid && window.FirebaseModule) {
           window.FirebaseModule.saveUserProfile(me.uid, me, rep).catch(function(){});
         }
-        toast('✅ Tutti i turni eliminati da Firestore', 'ok');
+        toast('? Tutti i turni eliminati da Firestore', 'ok');
         setTimeout(function(){ location.reload(); }, 1200);
       } catch(e) {
         console.warn('resetTotaleFirestore:', e.message);
@@ -465,7 +465,7 @@ function resetTotaleFirestore(){
   });
 }
 
-// ── Apri selezione reparto iniziale (Trasferimento) ──
+// -- Apri selezione reparto iniziale (Trasferimento) --
 function apriSelezioneReparto(){
   // Porta l'utente alla sezione impostazioni > stato reparto e apre il form trasferimento
   vaiBN('imp', 4);
@@ -498,7 +498,7 @@ function aggiornaUnitiId(){
   var c = ((document.getElementById('uniti-sede')||{}).value||'').trim().toLowerCase().replace(/\s+/g,'_');
   var id = [t,s,c].filter(Boolean).join('_');
   var prev = document.getElementById('uniti-reparto-preview');
-  if(prev) prev.textContent = id || '—';
+  if(prev) prev.textContent = id || '�';
   // Feedback visivo: controlla se il reparto esiste
   var hint = document.getElementById('uniti-reparto-hint');
   if(!hint || !id || !window.FirebaseModule) return;
@@ -533,7 +533,7 @@ async function confermaUnitiReparto(){
   if(!me){ toast('Sessione non trovata','err'); return; }
   var vecchioRep = me.reparto || '';
 
-  // Logica pioniere: controlla se il reparto esiste già con un Comandante
+  // Logica pioniere: controlla se il reparto esiste gi� con un Comandante
   var isPioniere = false;
   if(window.FirebaseModule) {
     try {
@@ -584,8 +584,8 @@ function scollegaReparto(){
   var me = lsG('ct_me', null);
   if(!me) return;
   var rep = me.reparto || '';
-  if(_isPrivato(rep)){ toast('Sei già in modalità personale','ok'); return; }
-  ctConfirm('Vuoi davvero uscire dal reparto "<strong>'+rep+'</strong>"?<br><small>I tuoi turni di servizio futuri verranno rimossi. Le ferie rimarranno.</small>', {title:'Esci dal Reparto', ico:'🏠', ok:'Esci', danger:true}).then(function(ok){
+  if(_isPrivato(rep)){ toast('Sei gi� in modalit� personale','ok'); return; }
+  ctConfirm('Vuoi davvero uscire dal reparto "<strong>'+rep+'</strong>"?<br><small>I tuoi turni di servizio futuri verranno rimossi. Le ferie rimarranno.</small>', {title:'Esci dal Reparto', ico:'??', ok:'Esci', danger:true}).then(function(ok){
     if(!ok) return;
     var uid = me.uid || me.id;
     var vecchioRep = rep;
@@ -600,7 +600,7 @@ function scollegaReparto(){
       window.FirebaseModule.eliminaTurniServizioReparto(vecchioRep, uid).then(function(){
         window.FirebaseModule.migraTurniPersonali(vecchioRep, 'privato_'+uid, uid).then(function(){
           window.FirebaseModule.savePersonale();
-          toast('Scollegato dal reparto. Ora sei in modalità personale.','ok');
+          toast('Scollegato dal reparto. Ora sei in modalit� personale.','ok');
           aggiornaStatoReparto();
           if(typeof aggUI==='function') aggUI();
           if(typeof renderDash==='function') renderDash();
@@ -630,13 +630,13 @@ function _renderStatoComando(){
   var btnDegrada = document.getElementById('btn-degrada-vice');
   if(btnPassa) btnPassa.style.display = isCom ? 'inline-flex' : 'none';
   if(btnPromuovi) btnPromuovi.style.display = isCom ? 'inline-flex' : 'none';
-  // Mostra "Rimuovi Vice" solo se esiste già un vice
+  // Mostra "Rimuovi Vice" solo se esiste gi� un vice
   var U = lsG('ct_users', []);
   if(!U.length) U = lsG('ct_u', []);
   var hasVice = U.some(function(u){ return u.ruolo==='vice' && u.stato==='approved'; });
   var nVice = U.filter(function(u){ return u.ruolo==='vice' && u.stato==='approved'; }).length;
   if(btnDegrada) btnDegrada.style.display = (isCom && hasVice) ? 'inline-flex' : 'none';
-  if(btnDegrada && nVice > 1) btnDegrada.textContent = '⬇ Rimuovi Vice (' + nVice + ')';
+  if(btnDegrada && nVice > 1) btnDegrada.textContent = '? Rimuovi Vice (' + nVice + ')';
 }
 
 function _popolaSelectMembri(selId, escludiRuoli){
@@ -680,7 +680,7 @@ function apriPromuoviVice(){
 function confermaPassaComando(){
   var uid = document.getElementById('sel-nuovo-comandante').value;
   if(!uid){ toast('Seleziona un membro','err'); return; }
-  ctConfirm('Sei sicuro di voler trasferire il comando?<br><small>Diventerai un Addetto.</small>', {title:'Passa il Comando', ico:'🎖️', ok:'Trasferisci', danger:true}).then(function(ok){
+  ctConfirm('Sei sicuro di voler trasferire il comando?<br><small>Diventerai un Addetto.</small>', {title:'Passa il Comando', ico:'???', ok:'Trasferisci', danger:true}).then(function(ok){
     if(!ok) return;
     AuthModule._cambiaRuolo(uid, 'comandante').then(function(){
       var me = lsG('ct_me', null);
@@ -711,7 +711,7 @@ function degradaVice(){
   if(!viceList.length){ toast('Nessun Vice trovato','err'); return; }
   if(viceList.length === 1) {
     var vice = viceList[0];
-    ctConfirm('Rimuovere il ruolo di Vice Comandante a <strong>'+(vice.nome||'')+' '+(vice.cognome||'')+'</strong>?', {title:'Rimuovi Vice', ico:'⬇️', ok:'Rimuovi', danger:true}).then(function(ok){
+    ctConfirm('Rimuovere il ruolo di Vice Comandante a <strong>'+(vice.nome||'')+' '+(vice.cognome||'')+'</strong>?', {title:'Rimuovi Vice', ico:'??', ok:'Rimuovi', danger:true}).then(function(ok){
       if(!ok) return;
       var uid = vice.uid || vice.id;
       AuthModule._cambiaRuolo(uid, 'addetto').then(function(){
@@ -720,7 +720,7 @@ function degradaVice(){
       }).catch(function(e){ toast('Errore: '+e.message,'err'); });
     });
   } else {
-    // Più vice — mostra selezione
+    // Pi� vice � mostra selezione
     var opts = viceList.map(function(v){
       return '<option value="'+(v.uid||v.id)+'">'+(v.grado||'')+' '+(v.nome||'')+' '+(v.cognome||'')+'</option>';
     }).join('');
@@ -762,7 +762,7 @@ document.addEventListener('scroll', function(){
   if(hdr && c) hdr.classList.toggle('scrolled', c.scrollTop > 8);
 }, true);
 window.addEventListener("DOMContentLoaded",function(){
-  // ── Timeout emergenza splash: nasconde dopo 8s se Firebase non risponde ──
+  // -- Timeout emergenza splash: nasconde dopo 8s se Firebase non risponde --
   // Non nasconde se Firebase sta ancora autenticando (evita flash login)
   window._splashEmergencyTimer = setTimeout(function(){
     if(typeof window._hideSplash === 'function') window._hideSplash();
@@ -790,14 +790,14 @@ window.addEventListener("DOMContentLoaded",function(){
   });
   var me=lsG("ct_me",null);
   initNotifiche();
-  // ── Auth & Sync init ──
+  // -- Auth & Sync init --
   // Aspetta FirebaseModule prima di inizializzare AuthModule
   function _initAuth() {
     if(typeof AuthModule !== "undefined") AuthModule.init();
     // Renderizza subito con dati localStorage (evita dashboard vuota al refresh)
     var _me = lsG("ct_me", null);
     if(_me) {
-      // Segna sync pending finché Firebase non completa (evita "Riposo" prematuro)
+      // Segna sync pending finch� Firebase non completa (evita "Riposo" prematuro)
       window._widgetSyncPending = true;
       aggUI();
       aggiornaWidget();
@@ -807,7 +807,7 @@ window.addEventListener("DOMContentLoaded",function(){
       if(typeof renderOggi           === "function") renderOggi();
       if(typeof stats                === "function") stats();
     }
-    // Mostra popup novità sempre (loggato o no)
+    // Mostra popup novit� sempre (loggato o no)
     if(typeof _checkNovita === 'function') _checkNovita();
     initPWA();
   }
@@ -855,7 +855,7 @@ function swTab(t){
 // ---- NOTIFICHE PRE-TURNO ----
 function initNotifiche(){
   if(!("Notification" in window))return;
-  // NON richiedere permesso automaticamente — solo aggiorna lo stato UI
+  // NON richiedere permesso automaticamente � solo aggiorna lo stato UI
   aggNotifStatus();
   controllaNotifiche();
   setInterval(controllaNotifiche,60000);
@@ -888,7 +888,7 @@ function controllaNotifiche(){
         var titoloPre="\u23F0 C-Turni \u2014 Turno tra "+(diff>=60?Math.round(diff/60)+"h":Math.round(diff)+" min");
         var bodyPre="Turno "+(t.codice||t.tipo||'').toUpperCase()+" alle "+orStr;
         // FIX notifiche doppie: solo notifica locale in-app.
-        // La push FCM è già schedulata da schedulaPreTurniFirebase — non duplicare qui.
+        // La push FCM � gi� schedulata da schedulaPreTurniFirebase � non duplicare qui.
         if("Notification" in window && Notification.permission==="granted")
           new Notification(titoloPre,{body:bodyPre,icon:_NOTIF_ICON});
         notif.push(notifId);lsS("ct_notif_sent",notif);
@@ -909,7 +909,7 @@ function schedulaPreTurniFirebase(){
   var ORI={mattina:"06:00",pomeriggio:"14:00",notte:"22:00"};
   var now=new Date();
   var todayKey=now.toISOString().slice(0,10);
-  // Reset lista schedulati se è un nuovo giorno
+  // Reset lista schedulati se � un nuovo giorno
   var lastDay=localStorage.getItem('ct_push_sched_day');
   if(lastDay!==todayKey){
     lsS("ct_push_scheduled",[]);
@@ -922,7 +922,7 @@ function schedulaPreTurniFirebase(){
     var ds=checkDate.getFullYear()+'-'+('0'+(checkDate.getMonth()+1)).slice(-2)+'-'+('0'+checkDate.getDate()).slice(-2);
     T.filter(function(t){return _isMyTurno(t,me)&&t.data===ds;}).forEach(function(t){
       var orStr=(t.orario&&t.orario.split('-')[0].trim())||ORI[t.tipo]||"06:00";
-      // Valida formato HH:MM — salta turni senza orario numerico (riposo, ferie, ecc.)
+      // Valida formato HH:MM � salta turni senza orario numerico (riposo, ferie, ecc.)
       if(!/^\d{1,2}:\d{2}$/.test(orStr))return;
       // FIX orario legale/solare: costruisci la data in ora locale, non UTC
       var _parts=orStr.split(':');
@@ -987,7 +987,7 @@ function aggiungiRimanenzaAnnoUtente(){
       var pool=P[i].licenzePool||[];
       var es=pool.find(function(x){return x.anno===anno;});
       if(es){
-        ctConfirm('Esiste già rimanenza '+anno+' ('+es.giorni+' gg). Sostituire?', {title:'Rimanenza esistente', ico:'📅', ok:'Sostituisci'}).then(function(ok){
+        ctConfirm('Esiste gi� rimanenza '+anno+' ('+es.giorni+' gg). Sostituire?', {title:'Rimanenza esistente', ico:'??', ok:'Sostituisci'}).then(function(ok){
           if(!ok) return;
           es.giorni=giorni;
           lsS("ct_p",P); caricaPoolLicenzeMe(); caricaSaldoFerie();
@@ -1010,10 +1010,10 @@ function aggiungiRimanenzaAnnoUtente(){
   caricaPoolLicenzeMe();
   caricaSaldoFerie();
   _syncFerieFirebase();
-  toast("✓ Rimanenza "+anno+": "+giorni+" giorni salvata","ok");
+  toast("? Rimanenza "+anno+": "+giorni+" giorni salvata","ok");
 }
 function rimuoviRimanenzaAnno(pid,anno){
-  ctConfirm('Rimuovere la rimanenza per l\'anno '+anno+'?', {title:'Rimuovi Rimanenza', ico:'🗑️', ok:'Rimuovi', danger:true}).then(function(ok){
+  ctConfirm('Rimuovere la rimanenza per l\'anno '+anno+'?', {title:'Rimuovi Rimanenza', ico:'???', ok:'Rimuovi', danger:true}).then(function(ok){
     if(!ok) return;
     var P=lsG("ct_p",[]);
     for(var i=0;i<P.length;i++){
@@ -1029,7 +1029,7 @@ function rimuoviRimanenzaAnno(pid,anno){
     caricaPoolLicenzeMe();
     caricaSaldoFerie();
     _syncFerieFirebase();
-    toast("🏖️ Rimanenza "+anno+" eliminata","ok");
+    toast("??? Rimanenza "+anno+" eliminata","ok");
   });
 }
 function caricaPoolLicenzeMe(){
@@ -1244,9 +1244,9 @@ function eliminaAnnoPool(anno){
 function apriScalaManuale(){
   var me=lsG("ct_me",null);if(!me)return;
   var pool=getFeriePool(me.id);
-  if(!pool.length){toast("Nessun anno nel pool — aggiungi prima un anno","err");return;}
+  if(!pool.length){toast("Nessun anno nel pool � aggiungi prima un anno","err");return;}
   var annoC=new Date().getFullYear();
-  // Preferisci l'anno più vecchio con giorni > 0 (FIFO)
+  // Preferisci l'anno pi� vecchio con giorni > 0 (FIFO)
   var target=pool.find(function(x){return x.giorni>0;})||pool[0];
   var opzioni=pool.map(function(x){
     return '<option value="'+x.anno+'"'+(x.anno===target.anno?' selected':'')+'>'+x.anno+' ('+x.giorni+' gg)</option>';
@@ -1280,7 +1280,7 @@ function _salvaScalaManuale(){
   var entry=pool.find(function(x){return x.anno===anno;});
   if(!entry){toast("Anno non trovato nel pool","err");return;}
   if(giorni>entry.giorni){
-    ctConfirm('Stai scalando '+giorni+' giorni ma ne hai solo '+entry.giorni+' per il '+anno+'. Continui?', {title:'Conferma Scala', ico:'⚠️', ok:'Continua'}).then(function(ok){
+    ctConfirm('Stai scalando '+giorni+' giorni ma ne hai solo '+entry.giorni+' per il '+anno+'. Continui?', {title:'Conferma Scala', ico:'??', ok:'Continua'}).then(function(ok){
       if(!ok) return;
       entry.giorni=Math.max(0,entry.giorni-giorni);
       saveFeriePool(me.id,pool);
@@ -1295,7 +1295,7 @@ function _salvaScalaManuale(){
   renderFeriePool();
   _syncFerieFirebase();
   document.getElementById('m-scala-manuale').remove();
-  toast("&#127958; Scalati "+giorni+" gg dal "+anno+(motivo?" — "+motivo:""),"ok");
+  toast("&#127958; Scalati "+giorni+" gg dal "+anno+(motivo?" � "+motivo:""),"ok");
 }
 
 function renderFeriePoolOnImp(){
@@ -1343,13 +1343,13 @@ function salvaFerie(){
 
 // ---- WIDGET TURNO OGGI ----
 var _tipoIco={
-  mattina:"🌅",pomeriggio:"☀️",ml:"🌄",pl:"🌞",
-  notte:"🌙",sera:"🌆",
-  riposo:"🛋️",recupero:"♻️",
-  ferie:"🏖️",licenza:"📚","937":"🏝️",
-  "104":"♿",ls:"🩸",
-  permesso:"📋",fest:"🎉",
-  corso:"🎓",esame:"📝"
+  mattina:"??",pomeriggio:"??",ml:"??",pl:"??",
+  notte:"??",sera:"??",
+  riposo:"???",recupero:"??",
+  ferie:"???",licenza:"??","937":"???",
+  "104":"?",ls:"??",
+  permesso:"??",fest:"??",
+  corso:"??",esame:"??"
 };
 var _tipoBg={
   mattina:"linear-gradient(135deg,#e65100 0%,#bf360c 100%)",
@@ -1377,7 +1377,7 @@ var _codiceToTipo={
   "L":"ferie","LICSTU":"licenza","ESAME":"esame","CORSO":"corso",
   "FEST":"fest","104":"104","LS":"ls","937":"937"
 };
-// ── Helper: riconosce se un turno appartiene all'utente loggato ──
+// -- Helper: riconosce se un turno appartiene all'utente loggato --
 // Controlla pid numerico, uid Firebase, ct_my_pid, e pnome token-based case-insensitive
 function _isMyTurno(t, me) {
   if(!t || !me) return false;
@@ -1475,16 +1475,16 @@ function aggiornaWidget(){
   }else{
     w.style.display="block";
     if(inner) inner.style.background="linear-gradient(135deg,#1a3a6e 0%,#0a1628 100%)";
-    // Se la sync Firebase è ancora in corso, non mostrare "Riposo" prematuramente
+    // Se la sync Firebase � ancora in corso, non mostrare "Riposo" prematuramente
     if(window._widgetSyncPending) {
-      document.getElementById("w-ico").innerHTML="⏳";
-      document.getElementById("w-bg-ico").innerHTML="⏳";
+      document.getElementById("w-ico").innerHTML="?";
+      document.getElementById("w-bg-ico").innerHTML="?";
       document.getElementById("w-tipo").textContent="Sincronizzazione...";
       document.getElementById("w-orario").textContent="Caricamento turni in corso";
       document.getElementById("w-codice").textContent="";
     } else {
-      document.getElementById("w-ico").innerHTML="🛋️";
-      document.getElementById("w-bg-ico").innerHTML="🛋️";
+      document.getElementById("w-ico").innerHTML="???";
+      document.getElementById("w-bg-ico").innerHTML="???";
       document.getElementById("w-tipo").textContent="Riposo";
       document.getElementById("w-orario").textContent="Nessun turno assegnato";
       document.getElementById("w-codice").textContent="";
@@ -1501,7 +1501,7 @@ function aggiornaWidget(){
       // FIX punto interrogativo: cerca per id, uid o nome diretto dal turno
       var p=P.find(function(x){return x.id===t.pid||x.uid===t.pid;});
       var nomeBreve=p?(p.nome||''):(t.pnome||t.nome||'');
-      if(!nomeBreve)return ''; // salta se non c'è proprio nessun nome
+      if(!nomeBreve)return ''; // salta se non c'� proprio nessun nome
       var ini=nomeBreve.charAt(0).toUpperCase()+(p&&p.cognome?p.cognome.charAt(0).toUpperCase():'');
       var icoT=_tipoIco[t.tipo]||"&#128197;";
       return "<div style=\"display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.1);border-radius:20px;padding:3px 8px 3px 4px\">"+
@@ -1531,11 +1531,11 @@ var _TURNO_ATMOSFERA = {
   obbm:'alba', obbp:'tramonto'
 };
 var _TURNO_ICO_HERO = {
-  mattina:'☀️', ml:'🌅', pomeriggio:'🌆', pl:'🌇',
-  notte:'🌙', sera:'🌃', riposo:'🛋️', recupero:'🛋️',
-  ferie:'🏖️', '937':'📋', '104':'📋', ls:'🩸',
-  licenza:'📚', permesso:'📝', fest:'🎉', corso:'📖', esame:'✏️',
-  obbm:'🔶', obbp:'🔷'
+  mattina:'??', ml:'??', pomeriggio:'??', pl:'??',
+  notte:'??', sera:'??', riposo:'???', recupero:'???',
+  ferie:'???', '937':'??', '104':'??', ls:'??',
+  licenza:'??', permesso:'??', fest:'??', corso:'??', esame:'??',
+  obbm:'??', obbp:'??'
 };
 var _TURNO_SIGLA = {
   mattina:'M', ml:'ML', pomeriggio:'P', pl:'PL',
@@ -1549,7 +1549,7 @@ function aggiornaHeroCard(){
   var me = lsG('ct_me', null);
   if(!me) return;
 
-  // ── Recupero foto robusto: ct_me → ct_session → ct_p ──
+  // -- Recupero foto robusto: ct_me ? ct_session ? ct_p --
   var ava = me.ava || me.fotoURL || null;
   if(!ava || (!ava.startsWith('http') && !ava.startsWith('data:'))) {
     var sess = lsG('ct_session', null);
@@ -1580,7 +1580,7 @@ function aggiornaHeroCard(){
   // Saluto contestuale
   var h = now.getHours();
   var saluto = h < 12 ? 'Buongiorno' : h < 18 ? 'Buon pomeriggio' : 'Buonasera';
-  var nomeBreve = me.nome || (me.cognome||'').split(' ')[0] || '—';
+  var nomeBreve = me.nome || (me.cognome||'').split(' ')[0] || '�';
   var greetSub = document.getElementById('hero-greeting-sub');
   var greetName = document.getElementById('hero-greeting-name');
   if(greetSub) greetSub.textContent = saluto;
@@ -1590,22 +1590,29 @@ function aggiornaHeroCard(){
   var heroAva = document.getElementById('hero-user-ava');
   if(heroAva){
     if(ava && (ava.startsWith('http') || ava.startsWith('data:'))){
-      // Mostra shimmer durante il caricamento
-      heroAva.classList.add('ava-loading');
-      var _heroImg = new Image();
-      _heroImg.onload = function(){
-        heroAva.style.backgroundImage = 'url('+ava+')';
-        heroAva.style.backgroundSize = 'cover';
-        heroAva.style.backgroundPosition = 'center';
+      // Salta il reload se l'immagine � gi� impostata correttamente
+      var currentBg = heroAva.style.backgroundImage || '';
+      var alreadySet = currentBg.indexOf(ava) !== -1;
+      if(!alreadySet){
+        heroAva.classList.add('ava-loading');
+        var _heroImg = new Image();
+        _heroImg.onload = function(){
+          heroAva.style.backgroundImage = 'url('+ava+')';
+          heroAva.style.backgroundSize = 'cover';
+          heroAva.style.backgroundPosition = 'center';
+          heroAva.textContent = '';
+          heroAva.classList.remove('ava-loading');
+        };
+        _heroImg.onerror = function(){
+          heroAva.classList.remove('ava-loading');
+          heroAva.style.backgroundImage = '';
+          heroAva.textContent = (nomeBreve.charAt(0)||'?').toUpperCase();
+        };
+        _heroImg.src = ava;
+      } else {
+        heroAva.classList.remove('ava-loading');
         heroAva.textContent = '';
-        heroAva.classList.remove('ava-loading');
-      };
-      _heroImg.onerror = function(){
-        heroAva.classList.remove('ava-loading');
-        heroAva.style.backgroundImage = '';
-        heroAva.textContent = (nomeBreve.charAt(0)||'?').toUpperCase();
-      };
-      _heroImg.src = ava;
+      }
     } else {
       heroAva.style.backgroundImage = '';
       heroAva.classList.remove('ava-loading');
@@ -1614,7 +1621,7 @@ function aggiornaHeroCard(){
   }
 
   // Icona e sigla
-  var ico = _TURNO_ICO_HERO[tipo] || '🛋️';
+  var ico = _TURNO_ICO_HERO[tipo] || '???';
   var sigla = (mioTurno && mioTurno.codice) ? mioTurno.codice : (_TURNO_SIGLA[tipo] || tipo.toUpperCase());
   var orario = (mioTurno && mioTurno.orario) ? mioTurno.orario : 'Nessun turno';
 
@@ -1664,7 +1671,7 @@ function aggiornaSquadra(){
   if(!container) return;
   var turniOggi = T.filter(function(t){ return t.data === oggi; });
 
-  // Mappa pid → turno (supporta sia id numerico che uid stringa)
+  // Mappa pid ? turno (supporta sia id numerico che uid stringa)
   var pidInServizio = {};
   turniOggi.forEach(function(t){
     pidInServizio[String(t.pid)] = t;
@@ -1701,7 +1708,7 @@ function aggiornaSquadra(){
     var idStr = String(p.id);
     var uid   = p.uid || null;
     var nome  = _normNome(p.nome);
-    // Salta se già visto per uid o id
+    // Salta se gi� visto per uid o id
     if(uid && vistiUid[uid]) return;
     if(vistiId[idStr]) return;
     if(nome && vistiNome[nome]) return;
@@ -1719,7 +1726,7 @@ function aggiornaSquadra(){
     var nomeBreve = t.pnome || t.nome || '';
     if(!nomeBreve) return;
     var nome = _normNome(nomeBreve);
-    // Salta se già visto per pid, uid o nome
+    // Salta se gi� visto per pid, uid o nome
     if(vistiId[pidStr]) return;
     if(vistiUid[pidStr]) return;
     if(nome && vistiNome[nome]) return;
@@ -1754,10 +1761,10 @@ function aggiornaSquadra(){
   }).join('');
 }
 
-// ---- MODALITÀ FOCUS (RIMOSSA — Task 1) ----
-// La funzione è mantenuta come stub per retrocompatibilità con eventuali chiamate residue
+// ---- MODALIT� FOCUS (RIMOSSA � Task 1) ----
+// La funzione � mantenuta come stub per retrocompatibilit� con eventuali chiamate residue
 function aggiornaFocus(){
-  // Focus Mode rimossa — la Hero Card sostituisce questa funzionalità
+  // Focus Mode rimossa � la Hero Card sostituisce questa funzionalit�
   aggiornaHeroCard();
   var focusEl = document.getElementById('widget-focus');
   if(focusEl) focusEl.style.display='none';
@@ -1768,7 +1775,7 @@ var _pwaPrompt=null;
 // Icona notifiche (SVG inline, non richiede file esterno)
 var _NOTIF_ICON='data:image/svg+xml,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 viewBox%3D%220 0 192 192%22%3E%3Crect width%3D%22192%22 height%3D%22192%22 rx%3D%2240%22 fill%3D%22%230d1b2a%22%2F%3E%3Cpolygon points%3D%2296%2C22 108%2C62 148%2C62 116%2C86 128%2C126 96%2C102 64%2C126 76%2C86 44%2C62 84%2C62%22 fill%3D%22%23c8a84b%22%2F%3E%3C%2Fsvg%3E';
 function initPWA(){
-  // Il manifest è già impostato nell'<head> — non sovrascrivere
+  // Il manifest � gi� impostato nell'<head> � non sovrascrivere
   // Intercetta evento beforeinstallprompt
   window.addEventListener("beforeinstallprompt",function(e){
     e.preventDefault();_pwaPrompt=e;
@@ -1963,7 +1970,7 @@ function _isFestivoCalc(ds){
   return d.toDateString()===pasqua.toDateString()||d.toDateString()===lp.toDateString();
 }
 
-// checkFestivoTurno definita più avanti con logica completa + Firebase sync
+// checkFestivoTurno definita pi� avanti con logica completa + Firebase sync
 
 // ---- TEMA ----
 function aggThemeColor(t){
@@ -1972,7 +1979,7 @@ function aggThemeColor(t){
   if(meta)meta.content=colors[t]||"#0d1b2a";
 }
 
-// ═══ SUONI UI ═══
+// --- SUONI UI ---
 var _audioCtx = null;
 function _getAudioCtx() {
   if (!_audioCtx) {
@@ -1992,7 +1999,7 @@ function _playUiSound(tipo) {
     gain.connect(ctx.destination);
     var now = ctx.currentTime;
     if (tipo === 'complete') {
-      // Doppio bip ascendente — completamento to-do
+      // Doppio bip ascendente � completamento to-do
       osc.type = 'sine';
       osc.frequency.setValueAtTime(520, now);
       osc.frequency.setValueAtTime(780, now + 0.12);
@@ -2000,14 +2007,14 @@ function _playUiSound(tipo) {
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
       osc.start(now); osc.stop(now + 0.35);
     } else if (tipo === 'click') {
-      // Click leggero — tap generico
+      // Click leggero � tap generico
       osc.type = 'sine';
       osc.frequency.setValueAtTime(440, now);
       gain.gain.setValueAtTime(0.07, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
       osc.start(now); osc.stop(now + 0.07);
     } else if (tipo === 'error') {
-      // Bip discendente — errore
+      // Bip discendente � errore
       osc.type = 'sawtooth';
       osc.frequency.setValueAtTime(260, now);
       osc.frequency.setValueAtTime(180, now + 0.12);
@@ -2015,14 +2022,14 @@ function _playUiSound(tipo) {
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
       osc.start(now); osc.stop(now + 0.28);
     } else if (tipo === 'save') {
-      // Bip breve positivo — salvataggio
+      // Bip breve positivo � salvataggio
       osc.type = 'sine';
       osc.frequency.setValueAtTime(660, now);
       gain.gain.setValueAtTime(0.1, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
       osc.start(now); osc.stop(now + 0.18);
     } else if (tipo === 'open') {
-      // Bip morbido ascendente — apertura modal
+      // Bip morbido ascendente � apertura modal
       osc.type = 'sine';
       osc.frequency.setValueAtTime(380, now);
       osc.frequency.linearRampToValueAtTime(480, now + 0.1);
@@ -2030,7 +2037,7 @@ function _playUiSound(tipo) {
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
       osc.start(now); osc.stop(now + 0.15);
     } else if (tipo === 'close') {
-      // Bip discendente morbido — chiusura modal
+      // Bip discendente morbido � chiusura modal
       osc.type = 'sine';
       osc.frequency.setValueAtTime(480, now);
       osc.frequency.linearRampToValueAtTime(360, now + 0.1);
@@ -2038,7 +2045,7 @@ function _playUiSound(tipo) {
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
       osc.start(now); osc.stop(now + 0.15);
     } else if (tipo === 'notif') {
-      // Doppio bip — notifica in arrivo
+      // Doppio bip � notifica in arrivo
       var osc2 = ctx.createOscillator();
       var gain2 = ctx.createGain();
       osc2.connect(gain2); gain2.connect(ctx.destination);
@@ -2051,14 +2058,14 @@ function _playUiSound(tipo) {
       gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
       osc2.start(now + 0.18); osc2.stop(now + 0.32);
     } else if (tipo === 'delete') {
-      // Bip breve basso — eliminazione
+      // Bip breve basso � eliminazione
       osc.type = 'triangle';
       osc.frequency.setValueAtTime(200, now);
       gain.gain.setValueAtTime(0.1, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
       osc.start(now); osc.stop(now + 0.2);
     } else if (tipo === 'nav') {
-      // Click ultra-leggero — navigazione tab
+      // Click ultra-leggero � navigazione tab
       osc.type = 'sine';
       osc.frequency.setValueAtTime(500, now);
       gain.gain.setValueAtTime(0.04, now);
@@ -2068,7 +2075,7 @@ function _playUiSound(tipo) {
   } catch(e) {}
 }
 
-// ═══ CONFETTI TO-DO ═══
+// --- CONFETTI TO-DO ---
 function _launchConfetti() {
   var prefs = lsG('ct_prefs', {});
   if (prefs.confetti === false) return;
@@ -2153,7 +2160,7 @@ function toggleTodo(id){
 function _cancellaNotifPushPerTitolo(titolo){
   var sess=lsG("ct_session",null);
   if(!sess||!sess.userId||!window.FirebaseModule)return;
-  // Non possiamo fare query per titolo da client — puliamo tutti i pending dell'utente
+  // Non possiamo fare query per titolo da client � puliamo tutti i pending dell'utente
   // Il sendPush.js elimina i doc dopo l'invio, quindi i fantasmi sono solo quelli non ancora inviati
   // Usiamo un flag locale per saltarli
   var skip=lsG("ct_push_skip",[]);
@@ -2296,16 +2303,16 @@ function renderTodo(){
 
 // ---- TEMI ----
 var _TEMI_CFG={
-  "":         {nome:"Notte",      emoji:"🌙", desc:"Blu scuro  predefinito",   bg:"linear-gradient(135deg,#0d1b2a,#1a3a5c)", colors:["#0d1b2a","#1a2f45","#2979ff","#ffffff"]},
-  "light":    {nome:"Giorno",     emoji:"☀️",   desc:"Chiaro e nitido",            bg:"linear-gradient(135deg,#f0f4f8,#dce8f0)", colors:["#f0f4f8","#ffffff","#1565c0","#0d1b2a"]},
-  "auto":     {nome:"Auto",       emoji:"📱", desc:"Segue le impostazioni del sistema", bg:"linear-gradient(135deg,#1a2a3a,#2a3a4a)", colors:["#0d1b2a","#f0f4f8","#2979ff","#c8a84b"]},
-  "rosa":     {nome:"Rosa",       emoji:"🌸", desc:"Rosa vivo  petali animati",  bg:"linear-gradient(135deg,#2a0a18,#8a2040,#c0304a)", colors:["#2a0a18","#4a1828","#ff4d80","#fff0f4"]},
-  "forestale":{nome:"Forestale",  emoji:"🌲", desc:"Grigio-verde uniforme", bg:"linear-gradient(135deg,#1c2b1c,#2e402e,#3d4a3d)", colors:["#1c1f1c","#2e332e","#6abf69","#e8ede8"]},
-  "forestale-dark":{nome:"Forestale Notte", emoji:"🌲", desc:"Verde scuro profondo", bg:"linear-gradient(135deg,#0E1410,#18241B,#1D2E22)", colors:["#0E1410","#18241B","#4CAF50","#E1EBE3"]},
-  "carabinieri":{nome:"Carabinieri",emoji:"⚜️", desc:"Divisa ufficiale  stemma",  bg:"linear-gradient(135deg,#080b10,#111828,#080b10)", colors:["#080b10","#111828","#c8a96e","#ffffff"]},
-  "rosa-light":      {nome:"Rosa Giorno",       emoji:"🌸", desc:"Rosa chiaro  bianco e rosa",       bg:"linear-gradient(135deg,#fff5f8,#ffe0ea,#fcc0d0)", colors:["#fff5f8","#ffffff","#d63070","#3a0a18"]},
-  "forestale-light": {nome:"Forestale Giorno",  emoji:"🌲", desc:"Verde chiaro  bianco e verde",     bg:"linear-gradient(135deg,#f4f8f4,#e4ede4,#c8e0c8)", colors:["#f4f8f4","#ffffff","#2e7d32","#0a1f0a"]},
-  "carabinieri-light":{nome:"Carabinieri Giorno",emoji:"⚜️",  desc:"Avorio e bordeaux  elegante",      bg:"linear-gradient(135deg,#f5f5f0,#eaeae0,#d8ccc0)", colors:["#f5f5f0","#ffffff","#8b0000","#1a1208"]}
+  "":         {nome:"Notte",      emoji:"??", desc:"Blu scuro  predefinito",   bg:"linear-gradient(135deg,#0d1b2a,#1a3a5c)", colors:["#0d1b2a","#1a2f45","#2979ff","#ffffff"]},
+  "light":    {nome:"Giorno",     emoji:"??",   desc:"Chiaro e nitido",            bg:"linear-gradient(135deg,#f0f4f8,#dce8f0)", colors:["#f0f4f8","#ffffff","#1565c0","#0d1b2a"]},
+  "auto":     {nome:"Auto",       emoji:"??", desc:"Segue le impostazioni del sistema", bg:"linear-gradient(135deg,#1a2a3a,#2a3a4a)", colors:["#0d1b2a","#f0f4f8","#2979ff","#c8a84b"]},
+  "rosa":     {nome:"Rosa",       emoji:"??", desc:"Rosa vivo  petali animati",  bg:"linear-gradient(135deg,#2a0a18,#8a2040,#c0304a)", colors:["#2a0a18","#4a1828","#ff4d80","#fff0f4"]},
+  "forestale":{nome:"Forestale",  emoji:"??", desc:"Grigio-verde uniforme", bg:"linear-gradient(135deg,#1c2b1c,#2e402e,#3d4a3d)", colors:["#1c1f1c","#2e332e","#6abf69","#e8ede8"]},
+  "forestale-dark":{nome:"Forestale Notte", emoji:"??", desc:"Verde scuro profondo", bg:"linear-gradient(135deg,#0E1410,#18241B,#1D2E22)", colors:["#0E1410","#18241B","#4CAF50","#E1EBE3"]},
+  "carabinieri":{nome:"Carabinieri",emoji:"??", desc:"Divisa ufficiale  stemma",  bg:"linear-gradient(135deg,#080b10,#111828,#080b10)", colors:["#080b10","#111828","#c8a96e","#ffffff"]},
+  "rosa-light":      {nome:"Rosa Giorno",       emoji:"??", desc:"Rosa chiaro  bianco e rosa",       bg:"linear-gradient(135deg,#fff5f8,#ffe0ea,#fcc0d0)", colors:["#fff5f8","#ffffff","#d63070","#3a0a18"]},
+  "forestale-light": {nome:"Forestale Giorno",  emoji:"??", desc:"Verde chiaro  bianco e verde",     bg:"linear-gradient(135deg,#f4f8f4,#e4ede4,#c8e0c8)", colors:["#f4f8f4","#ffffff","#2e7d32","#0a1f0a"]},
+  "carabinieri-light":{nome:"Carabinieri Giorno",emoji:"??",  desc:"Avorio e bordeaux  elegante",      bg:"linear-gradient(135deg,#f5f5f0,#eaeae0,#d8ccc0)", colors:["#f5f5f0","#ffffff","#8b0000","#1a1208"]}
 };
 function setTema(t){
   if(t==="light") document.documentElement.setAttribute("data-theme","light");
@@ -2340,7 +2347,7 @@ function aprireTemapicker() {
 
   buildGrid(TEMI_NOTTE, 'tema-grid-notte');
   buildGrid(TEMI_GIORNO, 'tema-grid-giorno');
-  // Griglia speciali (auto) — crea il container se non esiste
+  // Griglia speciali (auto) � crea il container se non esiste
   var specEl = document.getElementById('tema-grid-speciali');
   if(specEl) buildGrid(TEMI_SPECIALI, 'tema-grid-speciali');
 
@@ -2397,7 +2404,7 @@ function caricaTema(){
   _applicaComportamentoTema();
 }
 
-// Mappa tema base → variante chiara
+// Mappa tema base ? variante chiara
 var _TEMA_DARK_MAP  = {'':'', 'rosa':'rosa', 'forestale':'forestale-dark', 'carabinieri':'carabinieri', 'arma':'arma-dark'};
 var _TEMA_LIGHT_MAP = {'':'light', 'rosa':'rosa-light', 'forestale':'forestale', 'carabinieri':'carabinieri-light', 'arma':'arma'};
 
@@ -2448,8 +2455,8 @@ function togTheme(){
 }
 
 
-// ── COMPORTAMENTO TEMA ──────────────────────────────────────────
-// Mappa base → dark/light per comportamento sistema/orario
+// -- COMPORTAMENTO TEMA ------------------------------------------
+// Mappa base ? dark/light per comportamento sistema/orario
 var _TEMA_BASE_MAP = {
   '':'', 'rosa':'rosa', 'forestale':'forestale', 'carabinieri':'carabinieri', 'arma':'arma',
   'light':'', 'rosa-light':'rosa', 'forestale-light':'forestale', 'forestale-dark':'forestale',
@@ -2503,7 +2510,7 @@ function _applicaComportamentoTema(){
   if(window._temaCompMQ){ try{ window._temaCompMQ.removeEventListener('change', window._temaCompFn); }catch(e){} window._temaCompMQ = null; }
   if(window._temaCompTimer){ clearInterval(window._temaCompTimer); window._temaCompTimer = null; }
 
-  // 1. MANUALE — priorità assoluta: applica esattamente il tema salvato e non fare altro
+  // 1. MANUALE � priorit� assoluta: applica esattamente il tema salvato e non fare altro
   if(comp === 'manuale'){
     var tManuale = lsG('ct_tema', '');
     if(tManuale) document.documentElement.setAttribute('data-theme', tManuale);
@@ -2524,7 +2531,7 @@ function _applicaComportamentoTema(){
     aggThemeColor(next);
   }
 
-  // 2. SISTEMA — segue prefers-color-scheme
+  // 2. SISTEMA � segue prefers-color-scheme
   if(comp === 'sistema' && window.matchMedia){
     var mq = window.matchMedia('(prefers-color-scheme: dark)');
     window._temaCompMQ = mq;
@@ -2534,7 +2541,7 @@ function _applicaComportamentoTema(){
     return;
   }
 
-  // 3. ORARIO — scuro dalle 19:00 alle 07:00
+  // 3. ORARIO � scuro dalle 19:00 alle 07:00
   if(comp === 'orario'){
     var _checkOrario = function(){
       var h = new Date().getHours();
@@ -2551,9 +2558,9 @@ function setTemaComportamento(comp){
   toast('Comportamento tema: '+(labels[comp]||comp), 'ok');
 }
 
-// ══════════════════════════════════════════════════════
-// 4. FAB — Floating Action Button
-// ══════════════════════════════════════════════════════
+// ------------------------------------------------------
+// 4. FAB � Floating Action Button
+// ------------------------------------------------------
 var _fabOpen = false;
 function toggleFab(){
   _fabOpen = !_fabOpen;
@@ -2589,7 +2596,7 @@ function _ripristinaPagina(){
     _aggFabVisibility('dash');
   }
 }
-// Nascondi FAB quando non si è sulla dashboard
+// Nascondi FAB quando non si � sulla dashboard
 function _aggFabVisibility(pg){
   var nav  = document.getElementById('bottom-nav');
   var wrap = document.getElementById('fab-wrap');
@@ -2612,9 +2619,9 @@ function _aggFabVisibility(pg){
     closeFab();
   }
 }
-// ══════════════════════════════════════════════════════
+// ------------------------------------------------------
 // 1. SKELETON LOADERS
-// ══════════════════════════════════════════════════════
+// ------------------------------------------------------
 function skeletonWidget(id, rows){
   var el = document.getElementById(id);
   if(!el) return;
@@ -2629,14 +2636,14 @@ function skeletonDash(){
   });
 }
 
-// ══════════════════════════════════════════════════════
+// ------------------------------------------------------
 // 2. EMPTY STATES
-// ══════════════════════════════════════════════════════
+// ------------------------------------------------------
 var _ES = {
   todo:    { svg:'<svg width="64" height="64" viewBox="0 0 64 64" fill="none"><rect x="12" y="8" width="40" height="48" rx="6" fill="var(--bg2)" stroke="var(--border)" stroke-width="2"/><rect x="20" y="20" width="24" height="3" rx="1.5" fill="var(--txt3)"/><rect x="20" y="28" width="18" height="3" rx="1.5" fill="var(--txt3)"/><rect x="20" y="36" width="20" height="3" rx="1.5" fill="var(--txt3)"/><circle cx="48" cy="48" r="10" fill="var(--green)"/><path d="M44 48l3 3 5-5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>', title:'Tutto fatto!', sub:'Nessun promemoria aperto.\nGoditela.' },
-  agenda:  { svg:'<svg width="64" height="64" viewBox="0 0 64 64" fill="none"><rect x="10" y="14" width="44" height="40" rx="6" fill="var(--bg2)" stroke="var(--border)" stroke-width="2"/><rect x="10" y="22" width="44" height="2" fill="var(--border)"/><rect x="20" y="8" width="4" height="12" rx="2" fill="var(--blue)"/><rect x="40" y="8" width="4" height="12" rx="2" fill="var(--blue)"/><circle cx="32" cy="38" r="8" fill="var(--bg2)" stroke="var(--border)" stroke-width="2"/><path d="M32 33v5l3 3" stroke="var(--txt2)" stroke-width="2" stroke-linecap="round"/></svg>', title:'Nessun appuntamento oggi', sub:'La giornata è tua.' },
+  agenda:  { svg:'<svg width="64" height="64" viewBox="0 0 64 64" fill="none"><rect x="10" y="14" width="44" height="40" rx="6" fill="var(--bg2)" stroke="var(--border)" stroke-width="2"/><rect x="10" y="22" width="44" height="2" fill="var(--border)"/><rect x="20" y="8" width="4" height="12" rx="2" fill="var(--blue)"/><rect x="40" y="8" width="4" height="12" rx="2" fill="var(--blue)"/><circle cx="32" cy="38" r="8" fill="var(--bg2)" stroke="var(--border)" stroke-width="2"/><path d="M32 33v5l3 3" stroke="var(--txt2)" stroke-width="2" stroke-linecap="round"/></svg>', title:'Nessun appuntamento oggi', sub:'La giornata � tua.' },
   scadenze:{ svg:'<svg width="64" height="64" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="22" fill="var(--bg2)" stroke="var(--border)" stroke-width="2"/><path d="M32 20v12l7 7" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="32" cy="32" r="2" fill="var(--green)"/></svg>', title:'Nessuna scadenza', sub:'Sei in regola con tutto.' },
-  turni:   { svg:'<svg width="64" height="64" viewBox="0 0 64 64" fill="none"><rect x="8" y="16" width="48" height="36" rx="6" fill="var(--bg2)" stroke="var(--border)" stroke-width="2"/><path d="M8 26h48" stroke="var(--border)" stroke-width="2"/><rect x="16" y="8" width="4" height="12" rx="2" fill="var(--blue)"/><rect x="44" y="8" width="4" height="12" rx="2" fill="var(--blue)"/><path d="M24 38c0-4.4 3.6-8 8-8s8 3.6 8 8" stroke="var(--gold)" stroke-width="2" stroke-linecap="round"/><circle cx="32" cy="38" r="3" fill="var(--gold)"/></svg>', title:'Nessun turno oggi', sub:'Riposa, te lo sei guadagnato ☕' },
+  turni:   { svg:'<svg width="64" height="64" viewBox="0 0 64 64" fill="none"><rect x="8" y="16" width="48" height="36" rx="6" fill="var(--bg2)" stroke="var(--border)" stroke-width="2"/><path d="M8 26h48" stroke="var(--border)" stroke-width="2"/><rect x="16" y="8" width="4" height="12" rx="2" fill="var(--blue)"/><rect x="44" y="8" width="4" height="12" rx="2" fill="var(--blue)"/><path d="M24 38c0-4.4 3.6-8 8-8s8 3.6 8 8" stroke="var(--gold)" stroke-width="2" stroke-linecap="round"/><circle cx="32" cy="38" r="3" fill="var(--gold)"/></svg>', title:'Nessun turno oggi', sub:'Riposa, te lo sei guadagnato ?' },
   notifiche:{ svg:'<svg width="64" height="64" viewBox="0 0 64 64" fill="none"><path d="M32 10c-11 0-18 8-18 18v10l-4 6h44l-4-6V28c0-10-7-18-18-18z" fill="var(--bg2)" stroke="var(--border)" stroke-width="2"/><path d="M28 48a4 4 0 008 0" stroke="var(--txt2)" stroke-width="2" stroke-linecap="round"/><line x1="32" y1="10" x2="32" y2="6" stroke="var(--txt3)" stroke-width="2" stroke-linecap="round"/></svg>', title:'Nessuna notifica', sub:'Tutto tranquillo.' }
 };
 function emptyState(tipo){
@@ -2644,9 +2651,9 @@ function emptyState(tipo){
   return '<div class="empty-state">'+cfg.svg+'<div class="es-title">'+cfg.title+'</div><div class="es-sub">'+cfg.sub.replace(/\n/g,'<br>')+'</div></div>';
 }
 
-// ══════════════════════════════════════════════════════
+// ------------------------------------------------------
 // 3. SWIPE ACTIONS sui Todo
-// ══════════════════════════════════════════════════════
+// ------------------------------------------------------
 function initSwipeTodo(){
   var list = document.getElementById('todo-list');
   if(!list) return;
@@ -2682,10 +2689,10 @@ function initSwipeTodo(){
       if(bgL) bgL.style.opacity = '0';
       if(bgR) bgR.style.opacity = '0';
       if(curX > 60){
-        // Swipe destra → segna come fatto
+        // Swipe destra ? segna come fatto
         toggleTodo(tid);
       } else if(curX < -60){
-        // Swipe sinistra → elimina
+        // Swipe sinistra ? elimina
         delTodo(tid);
       }
     });
@@ -2774,17 +2781,17 @@ function aggNotifStatus(){
 function toggleNotifMaster(){
   if(!("Notification" in window)){toast("Non supportato","err");return;}
   if(Notification.permission==="granted"){toast("Per revocare usa le impostazioni del browser","info");return;}
-  if(Notification.permission==="denied"){toast("🚫 Notifiche bloccate — sblocca nelle impostazioni del browser","err");return;}
+  if(Notification.permission==="denied"){toast("?? Notifiche bloccate � sblocca nelle impostazioni del browser","err");return;}
   Notification.requestPermission().then(function(r){
     aggNotifStatus();
     if(r==="granted"){
-      toast("🔔 Notifiche abilitate!","ok");
+      toast("?? Notifiche abilitate!","ok");
       scheduleAllTodoNotif();
       lsG("ct_ag",[]).forEach(function(a){if(a.notif>0)schedulaNotifAgenda(a);});
       scheduleNotifMattutina();
       // Notifica di test immediata
       setTimeout(function(){
-        new Notification("🔔 C-Turni — Notifiche attive",{
+        new Notification("?? C-Turni � Notifiche attive",{
           body:"Riceverai avvisi per turni, to-do e appuntamenti.",
           icon:_NOTIF_ICON
         });
@@ -2799,12 +2806,12 @@ function toggleNotifPref(key,btn){
   prefs[key]=!prefs[key];lsS("ct_notif_prefs",prefs);
   if(btn)btn.classList.toggle("on",prefs[key]);
   _syncNotifPrefs();
-  toast((prefs[key]?"✅ ":"🔕 ")+key+(prefs[key]?" attivo":" disattivato"),"ok");
+  toast((prefs[key]?"? ":"?? ")+key+(prefs[key]?" attivo":" disattivato"),"ok");
 }
 function setPreturno(min){
   lsS("ct_notif_pre",min);aggNotifStatus();toggleImpSec("sec-preturno","arr-pre");
   _syncNotifPrefs();
-  toast(min>0?"⏰ "+(min>=60?(min/60)+"h":""+min+"min")+" prima":"🔕 Pre-turno off","ok");
+  toast(min>0?"? "+(min>=60?(min/60)+"h":""+min+"min")+" prima":"?? Pre-turno off","ok");
 }
 // Alias usato dai nuovi bottoni anticipo pre-turno
 function setNotifPre(min){
@@ -2817,7 +2824,7 @@ function setNotifPre(min){
     setTimeout(schedulaPreTurniFirebase, 300);
   }
   var labels={60:"1h prima",360:"6h prima",720:"12h prima",1440:"24h prima"};
-  toast("⏰ Notifica turno: "+(labels[min]||min+"min prima"),"ok");
+  toast("? Notifica turno: "+(labels[min]||min+"min prima"),"ok");
 }
 // Salva preferenze notifiche nel profilo utente su Firestore
 function _syncNotifPrefs(){
@@ -2834,14 +2841,14 @@ function _syncNotifPrefs(){
 
 function inviaNotifTest(){
   if(!("Notification" in window)||Notification.permission!=="granted"){
-    toast("🚫 Abilita prima le notifiche","err");return;
+    toast("?? Abilita prima le notifiche","err");return;
   }
   var me=lsG("ct_me",null);
-  new Notification("🔔 C-Turni — Test notifica",{
-    body:"Ciao "+(me?me.nome:"!")+" — le notifiche funzionano correttamente.",
+  new Notification("?? C-Turni � Test notifica",{
+    body:"Ciao "+(me?me.nome:"!")+" � le notifiche funzionano correttamente.",
     icon:_NOTIF_ICON
   });
-  toast("🔔 Notifica inviata","ok");
+  toast("?? Notifica inviata","ok");
 }
 
 // ---- FESTIVIT ----
@@ -2856,7 +2863,7 @@ function checkFestivoTurno(t){
 
   var d = _parseDate(t.data);
   var isDomenica = (d.getDay() === 0);
-  // Usa getNomeFestivo (esclude domeniche) per festività infrasettimanali
+  // Usa getNomeFestivo (esclude domeniche) per festivit� infrasettimanali
   var nomeFest = getNomeFestivo(t.data);
   // Patrono: leggi da impostazioni
   var patrono = lsG('ct_patrono', null);
@@ -2869,23 +2876,23 @@ function checkFestivoTurno(t){
   var motivo = '';
 
   if(nomeFest){
-    // REGOLA 1: Festivo + Turno lavorativo → +1 recupero maturato
+    // REGOLA 1: Festivo + Turno lavorativo ? +1 recupero maturato
     if(tipiLavorativi[t.tipo]){
       matura = true;
       motivo = 'Lavoro festivo: ' + nomeFest;
     }
-    // REGOLA 2: Festivo + Riposo + NON domenica → +1 recupero maturato
+    // REGOLA 2: Festivo + Riposo + NON domenica ? +1 recupero maturato
     else if(tipiRiposo[t.tipo] && !isDomenica){
       matura = true;
       motivo = 'Riposo festivo: ' + nomeFest;
     }
-    // REGOLA 3: Festivo + Riposo + Domenica → Festività Pagata (nessun recupero)
+    // REGOLA 3: Festivo + Riposo + Domenica ? Festivit� Pagata (nessun recupero)
     else if(tipiRiposo[t.tipo] && isDomenica){
       var keyPag = 'ct_festpag_' + t.id;
       if(!localStorage.getItem(keyPag)){
         localStorage.setItem(keyPag, '1');
         var prefs3 = lsG("ct_notif_prefs", {festivi:true});
-        if(prefs3.festivi !== false) toast('📅 Festività Pagata: ' + nomeFest + ' (domenica)', 'ok');
+        if(prefs3.festivi !== false) toast('?? Festivit� Pagata: ' + nomeFest + ' (domenica)', 'ok');
       }
       return;
     }
@@ -2894,7 +2901,7 @@ function checkFestivoTurno(t){
   if(!matura) return;
 
   var key = 'ct_rec_' + t.id;
-  if(localStorage.getItem(key)) return; // già conteggiato
+  if(localStorage.getItem(key)) return; // gi� conteggiato
   localStorage.setItem(key, '1');
 
   var REC = lsG("ct_recuperi", []);
@@ -2919,11 +2926,11 @@ function checkFestivoTurno(t){
     if(sess && sess.userId) window.FirebaseModule.saveUserProfile(sess.userId, me, me.reparto).catch(function(){});
   }
   var prefs = lsG("ct_notif_prefs", {festivi:true});
-  if(prefs.festivi !== false) toast('🏅 +1 Recupero: ' + motivo, 'ok');
+  if(prefs.festivi !== false) toast('?? +1 Recupero: ' + motivo, 'ok');
 }
 
 // ---- TODO ----
-// (var _tdFiltro già dichiarata sopra)
+// (var _tdFiltro gi� dichiarata sopra)
 function schedulaNotifTodo(item){
   var prefs=lsG("ct_notif_prefs",{todo:true});if(prefs.todo===false)return;
   if(!item.data)return;
@@ -2931,7 +2938,7 @@ function schedulaNotifTodo(item){
   var dt=new Date(item.data+"T"+ora+":00"),ms=dt-Date.now();if(ms<=0)return;
   var titolo="\u2705 C-Turni \u2014 "+item.tit;
   var body=(item.prio==="alta"?"\uD83D\uDD34 Alta priorit\u00E0 | ":"")+(item.note||"Promemoria di oggi");
-  // Schedula push FCM — retry se FirebaseModule non ancora pronto
+  // Schedula push FCM � retry se FirebaseModule non ancora pronto
   function _doSchedule(){
     var sess=lsG("ct_session",null);
     if(sess&&sess.userId&&window.FirebaseModule&&typeof window.FirebaseModule.schedulePush==="function"){
@@ -3120,7 +3127,7 @@ function _rinviaAgData(id,isCondivisa){
   if(typeof renderAgendaPg==='function') renderAgendaPg();
   toast("&#128336; Rinviato al "+data+(ora?" ore "+ora:""),"ok");
 }
-// ── Dettaglio appuntamento personale ──────────────────────────
+// -- Dettaglio appuntamento personale --------------------------
 function apriDettaglioAgenda(id){
   var AG = lsG('ct_ag',[]);
   var a = AG.find(function(x){ return x.id===id; });
@@ -3163,7 +3170,7 @@ function apriDettaglioAgendaCondivisa(id){
   document.body.insertAdjacentHTML('beforeend', html);
 }
 
-// Filter chips agenda — struttura pronta, logica filtro da implementare
+// Filter chips agenda � struttura pronta, logica filtro da implementare
 function filtraAgenda(tipo, btn) {
   document.querySelectorAll('.ag-chip').forEach(function(c){ c.classList.remove('on'); });
   if(btn) btn.classList.add('on');
@@ -3192,7 +3199,7 @@ function _aggiornaBentoAg() {
   if(titEl && datEl) {
     if(prossimo) {
       var d = new Date(prossimo.data+"T00:00:00");
-      titEl.textContent = (prossimo.tipo==='todo'?'✓ ':'📅 ') + prossimo.tit;
+      titEl.textContent = (prossimo.tipo==='todo'?'? ':'?? ') + prossimo.tit;
       datEl.textContent = d.getDate()+' '+mN[d.getMonth()]+' '+d.getFullYear();
     } else {
       titEl.textContent = 'Nessun evento imminente';
@@ -3238,7 +3245,7 @@ function renderAgendaPg(filtro) {
       '</div>';
     }).join('');
   }
-  // Condivisi reparto — con dettagli completi e rinvia
+  // Condivisi reparto � con dettagli completi e rinvia
   var AGcond = lsG('ct_ag_condivisa',[]).filter(function(x){ return x.data >= oggi; });
   if(el2 && w2){
     if(AGcond.length){
@@ -3260,8 +3267,8 @@ function renderAgendaPg(filtro) {
   }
   // Aggiorna bento box
   _aggiornaBentoAg();
-  // Render anche i To-Do preservando il filtro attivo
-  renderTodoAg(_tdFiltroAg||'tutti');
+  // Render anche i To-Do preservando il filtro attivo (non chiama di nuovo _aggiornaBentoAg)
+  renderTodoAg(_tdFiltroAg||'tutti', true);
 }
 
 // Filter chips agenda pagina
@@ -3286,7 +3293,7 @@ function filtraTodoAg(f) {
   });
   renderTodoAg(f);
 }
-function renderTodoAg(filtro) {
+function renderTodoAg(filtro, skipBento) {
   var el = document.getElementById('todo-list-ag');
   if(!el) return;
   var oggi = new Date().toISOString().slice(0,10);
@@ -3329,6 +3336,8 @@ function renderTodoAg(filtro) {
       +'</button>'
     +'</div>';
   }).join('');
+  // Aggiorna bento box se chiamata direttamente (non da renderAgendaPg)
+  if(!skipBento && typeof _aggiornaBentoAg === 'function') _aggiornaBentoAg();
 }
 
 function renderAgenda(){
@@ -3367,7 +3376,7 @@ function renderTodoCondivisi(){
   if(wrap)wrap.style.display='block';
   el.innerHTML=TD.map(function(t){
     var scad=t.data?'<span style="font-size:10px;color:var(--txt2);margin-left:6px">&#128197; '+t.data.split('-').reverse().join('/')+'</span>':"";
-    var autore=t.autore?'<span style="font-size:10px;color:var(--txt2)"> — '+t.autore+'</span>':"";
+    var autore=t.autore?'<span style="font-size:10px;color:var(--txt2)"> � '+t.autore+'</span>':"";
     var prioCol={alta:'var(--red)',media:'var(--gold)',bassa:'var(--green)'}[t.prio]||'var(--txt2)';
     var prio=t.prio?'<span style="font-size:9px;font-weight:700;color:'+prioCol+';text-transform:uppercase;margin-left:6px">'+t.prio+'</span>':"";
     return '<div class="todo-item" style="opacity:'+(t.done?.5:1)+';flex-direction:column;align-items:stretch;gap:6px">'
@@ -3396,7 +3405,7 @@ function renderAgendaCondivisa(){
   el.innerHTML=AG.map(function(a){
     var d=new Date(a.data+"T00:00:00"),ds=d.getDate()+" "+mN[d.getMonth()]+" "+d.getFullYear();
     var ora=a.ora?'<span style="margin-left:6px;color:var(--blue)">&#128336; '+a.ora+'</span>':"";
-    var autore=a.autore?'<span style="font-size:10px;color:var(--txt2)"> — '+a.autore+'</span>':"";
+    var autore=a.autore?'<span style="font-size:10px;color:var(--txt2)"> � '+a.autore+'</span>':"";
     return '<div class="ag-item" style="flex-direction:column;align-items:stretch;gap:6px">'
       +'<div style="display:flex;justify-content:space-between;align-items:flex-start">'
       +'<div><div style="font-weight:700;font-size:13px">&#128101; '+a.tit+autore+'</div>'
@@ -3510,7 +3519,7 @@ function cambiaPwd(){
 
 // ---- RESET ----
 function resetAll(tipo){
-  ctConfirm('⚠️ Sei sicuro? Operazione irreversibile.', {title:'Reset Dati', ico:'⚠️', ok:'Procedi', danger:true}).then(function(ok){
+  ctConfirm('?? Sei sicuro? Operazione irreversibile.', {title:'Reset Dati', ico:'??', ok:'Procedi', danger:true}).then(function(ok){
     if(!ok) return;
     var sess = lsG("ct_session", null);
     var uid = sess && sess.userId;
@@ -3524,14 +3533,20 @@ function resetAll(tipo){
       if(window.FirebaseModule && rep && !isPrivato){
         (async function(){
           try{
-            var snap=await getDocs(collection(db,'reparti',rep,'turni'));
+            var _fbGetDocs2 = window._fbGetDocs;
+            var _fbCollection2 = window._fbCollection;
+            var _fbDeleteDoc2 = window._fbDeleteDoc;
+            var _fbDoc2 = window._fbDoc;
+            var _fbDb2 = window._fbDb;
+            if(!_fbGetDocs2 || !_fbCollection2 || !_fbDeleteDoc2 || !_fbDoc2 || !_fbDb2) throw new Error('Firebase non pronto');
+            var snap=await _fbGetDocs2(_fbCollection2(_fbDb2,'reparti',rep,'turni'));
             var batch=[];
-            snap.forEach(function(d){batch.push(deleteDoc(doc(db,'reparti',rep,'turni',d.id)));});
+            snap.forEach(function(d){batch.push(_fbDeleteDoc2(_fbDoc2(_fbDb2,'reparti',rep,'turni',d.id)));});
             await Promise.all(batch);
             if(tipo==="tp"){
-              var snapP=await getDocs(collection(db,'reparti',rep,'persone'));
+              var snapP=await _fbGetDocs2(_fbCollection2(_fbDb2,'reparti',rep,'persone'));
               var batchP=[];
-              snapP.forEach(function(d){batchP.push(deleteDoc(doc(db,'reparti',rep,'persone',d.id)));});
+              snapP.forEach(function(d){batchP.push(_fbDeleteDoc2(_fbDoc2(_fbDb2,'reparti',rep,'persone',d.id)));});
               await Promise.all(batchP);
             }
           }catch(e){console.warn('resetAll Firebase:',e.message);}
@@ -3557,10 +3572,17 @@ function resetAll(tipo){
           try{
             if(uid) await window.FirebaseModule.deleteUserData(uid, rep && !isPrivato ? rep : null);
             if(rep && !isPrivato){
-              var snap=await getDocs(collection(db,'reparti',rep,'turni'));
-              var b=[];
-              snap.forEach(function(d){b.push(deleteDoc(doc(db,'reparti',rep,'turni',d.id)));});
-              await Promise.all(b);
+              var _fbGetDocs3 = window._fbGetDocs;
+              var _fbCollection3 = window._fbCollection;
+              var _fbDeleteDoc3 = window._fbDeleteDoc;
+              var _fbDoc3 = window._fbDoc;
+              var _fbDb3 = window._fbDb;
+              if(_fbGetDocs3 && _fbCollection3 && _fbDeleteDoc3 && _fbDoc3 && _fbDb3){
+                var snap=await _fbGetDocs3(_fbCollection3(_fbDb3,'reparti',rep,'turni'));
+                var b=[];
+                snap.forEach(function(d){b.push(_fbDeleteDoc3(_fbDoc3(_fbDb3,'reparti',rep,'turni',d.id)));});
+                await Promise.all(b);
+              }
             }
           }catch(e){console.warn('resetAll Firebase:',e.message);}
           try{
@@ -3642,14 +3664,14 @@ function delRecuperi(){
   var REC=lsG("ct_recuperi",[]);
   var da_cancellare=REC.filter(function(r){return r.usato;}).length;
   if(!da_cancellare){toast("Nessun recupero smarcato da eliminare","err");return;}
-  ctConfirm('Eliminare '+da_cancellare+' recupero/i smarcato/i?', {title:'Elimina Recuperi', ico:'🗑️', ok:'Elimina', danger:true}).then(function(ok){
+  ctConfirm('Eliminare '+da_cancellare+' recupero/i smarcato/i?', {title:'Elimina Recuperi', ico:'???', ok:'Elimina', danger:true}).then(function(ok){
     if(!ok) return;
     lsS("ct_recuperi",REC.filter(function(r){return !r.usato;}));
     var me=lsG("ct_me",null);
     if(me){me.recuperiExtra=lsG("ct_recuperi",[]).length;lsS("ct_me",me);}
     renderRecuperi();
     _syncFerieFirebase();
-    toast("🗑️ "+da_cancellare+" recupero/i eliminato/i","ok");
+    toast("??? "+da_cancellare+" recupero/i eliminato/i","ok");
   });
 }
 
@@ -3717,16 +3739,16 @@ var _ORARI_DEFAULT = {
   obbp:       {in:"13:00", out:"19:00"}
 };
 var _ORARI_LABELS = {
-  mattina:"🌅 Mattina (M)", pomeriggio:"☀️ Pomeriggio (P)",
-  notte:"🌙 Notte (N)", sera:"🌙 Sera (S)",
-  ml:"🌅 Mattina Lunga (ML)", pl:"☀️ Pomeriggio Lungo (PL)",
-  obbm:"🔶 Obbligatorio Mattina (OBBM)", obbp:"🔷 Obbligatorio Pomeriggio (OBBP)"
+  mattina:"?? Mattina (M)", pomeriggio:"?? Pomeriggio (P)",
+  notte:"?? Notte (N)", sera:"?? Sera (S)",
+  ml:"?? Mattina Lunga (ML)", pl:"?? Pomeriggio Lungo (PL)",
+  obbm:"?? Obbligatorio Mattina (OBBM)", obbp:"?? Obbligatorio Pomeriggio (OBBP)"
 };
 function getOrariPreset(){
   return lsG("ct_orari", _ORARI_DEFAULT);
 }
 
-// ═══ TURNI PERSONALIZZATI ═══
+// --- TURNI PERSONALIZZATI ---
 var _TC_COLORI = {
   mattina:   'linear-gradient(135deg,#e65100,#bf360c)',
   pomeriggio:'linear-gradient(135deg,#f57f17,#e65100)',
@@ -3761,10 +3783,10 @@ function renderTurniCustom() {
   el.innerHTML = TC.map(function(tc) {
     var bg = _TC_COLORI[tc.col] || _TC_COLORI.mattina;
     return '<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:8px">' +
-      '<div style="width:44px;height:44px;border-radius:12px;background:'+bg+';display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">'+(tc.emoji||'⏰')+'</div>' +
+      '<div style="width:44px;height:44px;border-radius:12px;background:'+bg+';display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">'+(tc.emoji||'?')+'</div>' +
       '<div style="flex:1;min-width:0">' +
         '<div style="font-size:13px;font-weight:700;color:var(--txt)">'+tc.nome+' <span style="font-size:10px;font-weight:800;background:var(--bg2);padding:2px 6px;border-radius:6px;color:var(--txt2)">'+tc.codice+'</span></div>' +
-        '<div style="font-size:11px;color:var(--txt2);margin-top:2px">'+tc.oraIn+' – '+tc.oraFi+'</div>' +
+        '<div style="font-size:11px;color:var(--txt2);margin-top:2px">'+tc.oraIn+' � '+tc.oraFi+'</div>' +
       '</div>' +
       '<button onclick="editTurnoCustom('+tc.id+')" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:16px;padding:6px;appearance:none;-webkit-appearance:none">&#9998;</button>' +
       '<button onclick="delTurnoCustom('+tc.id+')" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:16px;padding:6px;appearance:none;-webkit-appearance:none">&#128465;</button>' +
@@ -3777,7 +3799,7 @@ function salvaTurnoCustom() {
   var codice = ((document.getElementById('tc-codice')||{}).value||'').trim().toUpperCase();
   var oraIn  = (document.getElementById('tc-ora-in')||{}).value || '08:00';
   var oraFi  = (document.getElementById('tc-ora-fi')||{}).value || '16:00';
-  var emoji  = (document.getElementById('tc-emoji')||{}).value.trim() || '⏰';
+  var emoji  = (document.getElementById('tc-emoji')||{}).value.trim() || '?';
   var col    = (document.getElementById('tc-col-sel')||{}).value || 'mattina';
   var editId = parseInt((document.getElementById('tc-edit-id')||{}).value||'0')||0;
 
@@ -3788,14 +3810,14 @@ function salvaTurnoCustom() {
 
   // Controlla duplicati codice (escludi se in edit)
   var dup = TC.find(function(x){ return x.codice === codice && x.id !== editId; });
-  if(dup) { toast('Codice "'+codice+'" già usato','err'); return; }
+  if(dup) { toast('Codice "'+codice+'" gi� usato','err'); return; }
 
   if(editId) {
     TC = TC.map(function(x){ return x.id === editId ? {id:editId,nome:nome,codice:codice,oraIn:oraIn,oraFi:oraFi,emoji:emoji,col:col} : x; });
-    toast('Turno aggiornato ✓','ok');
+    toast('Turno aggiornato ?','ok');
   } else {
     TC.push({id:Date.now(),nome:nome,codice:codice,oraIn:oraIn,oraFi:oraFi,emoji:emoji,col:col});
-    toast('Turno personalizzato aggiunto ✓','ok');
+    toast('Turno personalizzato aggiunto ?','ok');
   }
   lsS('ct_turni_custom', TC);
 
@@ -3832,7 +3854,7 @@ function editTurnoCustom(id) {
 }
 
 function delTurnoCustom(id) {
-  ctConfirm('Eliminare questo tipo di turno personalizzato?', {title:'Elimina Turno Custom', ico:'🗑️', ok:'Elimina', danger:true}).then(function(ok){
+  ctConfirm('Eliminare questo tipo di turno personalizzato?', {title:'Elimina Turno Custom', ico:'???', ok:'Elimina', danger:true}).then(function(ok){
     if(!ok) return;
     var TC = lsG('ct_turni_custom', []).filter(function(x){ return x.id !== id; });
     lsS('ct_turni_custom', TC);
@@ -3862,7 +3884,7 @@ function _aggiungiOpzioniCustomAlSelect() {
     b.type = 'button';
     b.className = 'btn-turno-r';
     b.setAttribute('data-custom','1');
-    b.textContent = (tc.emoji||'⏰')+' '+tc.codice;
+    b.textContent = (tc.emoji||'?')+' '+tc.codice;
     b.title = tc.nome;
     b.onclick = function(){ setTurnoRapido('custom', 'custom_'+tc.codice, b); };
     row.appendChild(b);
@@ -3941,7 +3963,7 @@ function aggOrarioSub(k){
   var i = document.getElementById('or-in-'+k);
   var u = document.getElementById('or-out-'+k);
   var sub = document.getElementById('or-sub-'+k);
-  if(i && u && sub) sub.textContent = i.value + ' → ' + u.value;
+  if(i && u && sub) sub.textContent = i.value + ' ? ' + u.value;
 }
 function salvaOrarioSingolo(k){
   var i = document.getElementById('or-in-'+k);
@@ -3963,10 +3985,10 @@ function salvaOrarioSingolo(k){
   if(arr) arr.style.transform = '';
   var ok = document.getElementById('orari-ok');
   if(ok){ ok.classList.add('on'); setTimeout(function(){ ok.classList.remove('on'); }, 2500); }
-  toast('Orario '+_ORARI_LABELS[k].replace(/^[^\s]+\s/,'')+' salvato ✓','ok');
+  toast('Orario '+_ORARI_LABELS[k].replace(/^[^\s]+\s/,'')+' salvato ?','ok');
 }
 function resetOrariPreset(){
-  ctConfirm('Ripristinare gli orari di default?', {title:'Reset Orari', ico:'⏰', ok:'Ripristina'}).then(function(ok){
+  ctConfirm('Ripristinare gli orari di default?', {title:'Reset Orari', ico:'?', ok:'Ripristina'}).then(function(ok){
     if(!ok) return;
     lsS("ct_orari", _ORARI_DEFAULT);
     renderOrariPreset();
@@ -4010,7 +4032,7 @@ function salvaImp(){
     var gOld=GR[u.grado]?GR[u.grado].nome:u.grado;
     var gNew=GR[nGrado.value]?GR[nGrado.value].nome:nGrado.value;
     u.grado=nGrado.value;
-    toast("Promozione: "+gOld+" → "+gNew,"ok");
+    toast("Promozione: "+gOld+" ? "+gNew,"ok");
   }
   var ok1=lsS("ct_me",u);
   if(window.FirebaseModule)window.FirebaseModule.savePersonale();
@@ -4032,7 +4054,7 @@ function salvaImp(){
     }
     var okEl=document.getElementById("pf-ok");
     if(okEl){okEl.classList.add("on");setTimeout(function(){okEl.classList.remove("on");},3000);}
-    toast("Profilo aggiornato ✓","ok");
+    toast("Profilo aggiornato ?","ok");
   }
   else{toast("Errore salvataggio","err");}
 }
@@ -4134,7 +4156,7 @@ function importaBackup(input){
 
 function confermaCricaBackup(){
   if(!_backupDaConfermare){toast("Nessun backup selezionato","err");return;}
-  ctConfirm('⚠️ Tutti i dati attuali verranno sostituiti con il backup. Continuare?', {title:'Ripristina Backup', ico:'💾', ok:'Ripristina', danger:true}).then(function(ok){
+  ctConfirm('?? Tutti i dati attuali verranno sostituiti con il backup. Continuare?', {title:'Ripristina Backup', ico:'??', ok:'Ripristina', danger:true}).then(function(ok){
     if(!ok) return;
     var d = _backupDaConfermare;
     if(d.ct_me)        lsS("ct_me",        d.ct_me);
@@ -4148,7 +4170,7 @@ function confermaCricaBackup(){
     if(d.ct_notif_prefs) lsS("ct_notif_prefs", d.ct_notif_prefs);
     if(d.ct_notif_pre!==undefined) lsS("ct_notif_pre", d.ct_notif_pre);
     _backupDaConfermare = null;
-    toast("✅ Backup ripristinato! Ricarico...","ok");
+    toast("? Backup ripristinato! Ricarico...","ok");
     setTimeout(function(){location.reload();}, 1500);
   });
 }
@@ -4307,7 +4329,7 @@ function prevTemaInline(t) {
 // Salva tema dalla sezione inline
 function salvaTemaInline() {
   if(_temaPending === null) {
-    // Nessuna modifica — salva il tema corrente
+    // Nessuna modifica � salva il tema corrente
     _temaPending = lsG('ct_tema','');
   }
   lsS("ct_tema", _temaPending);
@@ -4427,7 +4449,7 @@ function selezionaTipoReparto(targetId, val, btnEl) {
 // --- GESTIONE SELEZIONE PERSONALE IN-APP ---
 window._persTarget = null;
 
-// aggSel completa definita più avanti (con Firebase users, dedup, picker)
+// aggSel completa definita pi� avanti (con Firebase users, dedup, picker)
 
 // --- GESTIONE DATE PICKER IN-APP ---
 window._dateTarget = null;
@@ -4488,7 +4510,7 @@ function apriPersPicker(targetId, lblId) {
   openM('m-pers-picker');
 }
 
-// ── Wrapper apriDatePicker per il nuovo form turno ────────────
+// -- Wrapper apriDatePicker per il nuovo form turno ------------
 // Usa il datepicker esistente ma aggiorna anche il bottone label
 function apriDatePicker(hiddenId, lblId) {
   window._dateTarget = hiddenId;
@@ -4504,7 +4526,7 @@ function apriDatePicker(hiddenId, lblId) {
   openM('m-datepicker');
 }
 
-// ── TIME PICKER IN-APP ────────────────────────────────────────
+// -- TIME PICKER IN-APP ----------------------------------------
 var _tp = { h:0, m:0, hiddenId:'', lblId:'', title:'' };
 
 function apriTimePicker(hiddenId, lblId, title) {
@@ -4520,7 +4542,7 @@ function apriTimePicker(hiddenId, lblId, title) {
     _tp.h = 0; _tp.m = 0;
   }
   var titleEl = document.getElementById('m-time-picker-title');
-  if(titleEl) titleEl.textContent = '⏰ ' + _tp.title;
+  if(titleEl) titleEl.textContent = '? ' + _tp.title;
   _tpRender();
   openM('m-time-picker');
 }
@@ -4565,11 +4587,15 @@ function selezionaPersona(id, nome) {
   var target = document.getElementById(window._persTarget);
   if(target) {
     target.value = id;
-    // Aggiorna label del bottone — supporta sia lbl- che _persLblId
+    // Aggiorna label del bottone � supporta sia lbl- che _persLblId
     var lblId = window._persLblId || ('lbl-' + window._persTarget);
     var lbl = document.getElementById(lblId);
-    if(lbl) { lbl.textContent = nome; lbl.style.color = 'var(--txt)'; }
-    // Aggiorna anche mt-pers-sel per compatibilità con salvaTurno
+    if(lbl) {
+      // Se � un div (come r-pers-sel), aggiorna textContent
+      if(lbl.tagName === 'DIV') { lbl.textContent = nome; }
+      else { lbl.textContent = nome; lbl.style.color = 'var(--txt)'; }
+    }
+    // Aggiorna anche mt-pers-sel per compatibilit� con salvaTurno
     var sel = document.getElementById('mt-pers-sel');
     if(sel) sel.value = id;
   }
@@ -4673,7 +4699,7 @@ function renderNotifCenter(){
     return;
   }
 
-  // Colori e icone per tipo — M3 Expressive
+  // Colori e icone per tipo � M3 Expressive
   var catCfg = {
     turni:   {label:"Turni",   bg:"rgba(41,121,255,.18)",  color:"var(--blue)",   ico:"&#128197;"},
     todo:    {label:"To-Do",   bg:"rgba(6,214,160,.18)",   color:"var(--green)",  ico:"&#9989;"},
@@ -4752,7 +4778,7 @@ function _bindSwipeDismiss(card){
 function _rimuoviNotifica(id){
   var NL=lsG("ct_notifiche",[]).filter(function(n){return String(n.id)!==String(id);});
   lsS("ct_notifiche",NL);
-  // Rimuovi da Firebase — cerca sia per id numerico che per doc id stringa
+  // Rimuovi da Firebase � cerca sia per id numerico che per doc id stringa
   if(window.FirebaseModule && typeof window.FirebaseModule.deleteNotifica==="function"){
     window.FirebaseModule.deleteNotifica(id).catch(function(){});
   }
@@ -4895,7 +4921,7 @@ function aggUI(){
   try{
     var u = lsG("ct_me", null);
     if(!u) return;
-    // Recupero foto robusto: ct_me → ct_session → ct_p → ct_users
+    // Recupero foto robusto: ct_me ? ct_session ? ct_p ? ct_users
     if(!u.ava || !u.ava.startsWith('http')) {
       var _sess = lsG('ct_session', null);
       if(_sess && (_sess.ava || _sess.fotoURL) && (_sess.ava||_sess.fotoURL).startsWith('http'))
@@ -5043,7 +5069,7 @@ function aggUI(){
     // Tasto invita collega: visibile solo se in un reparto
     var btnInvita = document.getElementById('btn-invita-collega');
     if(btnInvita) btnInvita.style.display = (u && u.reparto) ? 'inline-flex' : 'none';
-    // Aggiorna orari preset (renderDash è chiamato dall'hook aggUI)
+    // Aggiorna orari preset (renderDash � chiamato dall'hook aggUI)
     if(typeof renderOrariPreset === 'function') renderOrariPreset();
     // Aggiorna stato reparto in impostazioni
     if(typeof aggiornaStatoReparto === 'function') aggiornaStatoReparto();
@@ -5081,7 +5107,7 @@ function aggUI(){
   }
 }
 
-// ---- NOVITÀ VERSIONE ----
+// ---- NOVIT� VERSIONE ----
 var _APP_VERSION = '4.1';
 function _checkNovita(){
   localStorage.setItem('ct_novita_v4', _APP_VERSION);
@@ -5091,9 +5117,9 @@ function chiudiNovita(){
   closeM('m-novita');
 }
 
-// ---- SALVA PROFILO (vecchia versione rimossa — usa quella sotto) ----
+// ---- SALVA PROFILO (vecchia versione rimossa � usa quella sotto) ----
 // BUG FIX: questa funzione era duplicata e usava 'pf-foto' (inesistente).
-// La versione corretta è definita più avanti e usa 'pf-ava-file'.
+// La versione corretta � definita pi� avanti e usa 'pf-ava-file'.
 
 // ---- CAMBIO PASSWORD ----
 function cambiaPassword(){
@@ -5177,17 +5203,17 @@ function renderTurni(){
   }).join("");
 }
 // Bollino verificato/placeholder accanto al nome
-// Un profilo è "verificato" se: ha uid proprio, oppure è l'utente loggato (ct_my_pid), oppure esiste in ct_u con stesso nome
+// Un profilo � "verificato" se: ha uid proprio, oppure � l'utente loggato (ct_my_pid), oppure esiste in ct_u con stesso nome
 function _badgeP(p){
   if(!p) return '';
-  // Ha uid diretto → verificato
+  // Ha uid diretto ? verificato
   if(p.uid) return '<span class="badge-verificato" title="Registrato su C-Turni">&#10003;</span>';
-  // È l'utente loggato (match per pid salvato)
+  // � l'utente loggato (match per pid salvato)
   var myPid = localStorage.getItem('ct_my_pid');
   if(myPid && String(p.id) === String(myPid)){
     return '<span class="badge-verificato" title="Registrato su C-Turni">&#10003;</span>';
   }
-  // Cerca in ct_u per nome — match robusto case-insensitive
+  // Cerca in ct_u per nome � match robusto case-insensitive
   var U = lsG('ct_u', []);
   var pn = (p.nome||'').toLowerCase().trim();
   // Normalizza: rimuove spazi multipli
@@ -5204,13 +5230,13 @@ function _badgeP(p){
     return varianti.some(function(v){ return v === pn; });
   });
   if(found) return '<span class="badge-verificato" title="Registrato su C-Turni">&#10003;</span>';
-  // È un placeholder senza uid → non registrato
+  // � un placeholder senza uid ? non registrato
   if(p.placeholder) return '<span class="badge-placeholder" title="Non ancora registrato su C-Turni">&#9711;</span>';
-  // Profilo importato senza corrispondenza → non registrato
+  // Profilo importato senza corrispondenza ? non registrato
   return '<span class="badge-placeholder" title="Non ancora registrato su C-Turni">&#9711;</span>';
 }
 
-// Sincronizza ct_my_pid: se l'utente è loggato ma ct_my_pid non è impostato,
+// Sincronizza ct_my_pid: se l'utente � loggato ma ct_my_pid non � impostato,
 // cerca in ct_p un profilo con nome corrispondente a ct_me
 function _syncMyPid(){
   try {
@@ -5218,11 +5244,11 @@ function _syncMyPid(){
     var me = lsG('ct_me', null);
     if(!me) return;
     var uid = me.uid || me.id;
-    // Se ct_my_pid è già impostato, verifica che esista ancora in ct_p
+    // Se ct_my_pid � gi� impostato, verifica che esista ancora in ct_p
     var P = lsG('ct_p', []);
     if(myPid){
       var exists = P.some(function(p){ return String(p.id) === String(myPid); });
-      if(exists) return; // già ok
+      if(exists) return; // gi� ok
     }
     // Cerca per uid diretto
     var byUid = P.find(function(p){ return p.uid && (p.uid === uid || p.uid === me.uid); });
@@ -5263,7 +5289,7 @@ function renderPers(){
     var k = _normN(p.nome);
     if(!k) return true;
     if(_seenNomi[k]) {
-      // Tieni quello con uid (più completo), scarta il duplicato senza uid
+      // Tieni quello con uid (pi� completo), scarta il duplicato senza uid
       if(p.uid && !_seenNomi[k].uid) { _seenNomi[k].uid = p.uid; }
       if(p.ava && !_seenNomi[k].ava) { _seenNomi[k].ava = p.ava; }
       return false;
@@ -5272,7 +5298,7 @@ function renderPers(){
     return true;
   });
 
-  // Aggiungi utenti Firebase approvati che non sono già in ct_p
+  // Aggiungi utenti Firebase approvati che non sono gi� in ct_p
   var me = lsG('ct_me', null);
   var myRep = (me && me.reparto) ? me.reparto.toLowerCase() : '';
   var fbUsers = lsG('ct_users', []);
@@ -5281,7 +5307,7 @@ function renderPers(){
     if(u.stato === 'pending' || u.stato === 'rejected') return;
     var uRep = (u.reparto||'').toLowerCase();
     if(myRep && uRep !== myRep) return;
-    // Controlla se già presente per uid O per nome normalizzato
+    // Controlla se gi� presente per uid O per nome normalizzato
     var nomeCompleto = _normN((u.cognome||'') + ' ' + (u.nome||''));
     var nomeInv = _normN((u.nome||'') + ' ' + (u.cognome||''));
     var exists = P.some(function(p){
@@ -5301,7 +5327,7 @@ function renderPers(){
         _fromFirebase: true
       });
     } else {
-      // Aggiorna foto e dati da Firebase anche se già presente in ct_p
+      // Aggiorna foto e dati da Firebase anche se gi� presente in ct_p
       for(var _pi=0;_pi<P.length;_pi++){
         if(P[_pi].uid===u.uid || _normN(P[_pi].nome)===nomeCompleto || _normN(P[_pi].nome)===nomeInv){
           if(u.ava && u.ava.startsWith('https')) P[_pi].ava=u.ava;
@@ -5354,7 +5380,7 @@ function salvaPersona(){
   toast("Persona aggiunta","ok");
 }
 function salvaTurno(){
-  // Controllo ruolo: solo comandante, vice o l'utente stesso può salvare turni
+  // Controllo ruolo: solo comandante, vice o l'utente stesso pu� salvare turni
   var _me = lsG('ct_me', null);
   var _isCom = _me && (_me.ruolo === 'comandante' || _me.ruolo === 'vice' || _me.id === 1);
   // Leggi persona: prima da mt-pers (hidden), poi da mt-pers-sel (select legacy)
@@ -5401,7 +5427,7 @@ function salvaTurno(){
     var _myPid=localStorage.getItem('ct_my_pid');
     // Determina il pid reale della persona da scalare
     var _pidScala=pid;
-    // Se il turno è assegnato all'utente loggato (per uid o per pid), usa ct_my_pid
+    // Se il turno � assegnato all'utente loggato (per uid o per pid), usa ct_my_pid
     if(_me&&(_myPid&&String(pid)===String(_myPid)||(_me.uid&&String(pid)===String(_me.uid))||String(pid)===String(_me.id))){
       _pidScala=parseInt(_myPid)||_me.id;
     }
@@ -5431,11 +5457,11 @@ function salvaTurno(){
     lsS("ct_p",_Pf);
     renderFeriePool();
   }
-  // 937 → scala festività soppresse dell'utente loggato
+  // 937 ? scala festivit� soppresse dell'utente loggato
   if(tp==="937"){
     var _me937=lsG("ct_me",null);
     var _myPid937=localStorage.getItem('ct_my_pid');
-    // Scala solo se il turno è dell'utente loggato
+    // Scala solo se il turno � dell'utente loggato
     var _isMe937=_me937&&(String(pid)===String(_me937.id)||(_me937.uid&&String(pid)===String(_me937.uid))||String(pid)===String(_myPid937));
     if(_me937&&_isMe937){
       var _anno937=new Date(dt+'T00:00:00').getFullYear()||new Date().getFullYear();
@@ -5463,7 +5489,7 @@ function salvaTurno(){
   renderTurni();renderOggi();stats();aggiornaWidget();
   closeM("m-turno");
   closeM("m-giorno");
-  // Riapri la vista del giorno SOLO se il turno è stato aggiunto dal calendario
+  // Riapri la vista del giorno SOLO se il turno � stato aggiunto dal calendario
   if(_nt.data && window._turnoFromCalendar) {
     window._turnoFromCalendar = false;
     if(typeof apriSheetGiorno === 'function') {
@@ -5490,7 +5516,7 @@ function salvaTurno(){
   toast("Turno salvato","ok");
 }
 function delP(id){
-  ctConfirm('Eliminare questa persona e tutti i suoi turni?', {title:'Elimina Persona', ico:'👤', ok:'Elimina', danger:true}).then(function(ok){
+  ctConfirm('Eliminare questa persona e tutti i suoi turni?', {title:'Elimina Persona', ico:'??', ok:'Elimina', danger:true}).then(function(ok){
     if(!ok) return;
     lsS("ct_p",lsG("ct_p",[]).filter(function(p){return p.id!==id;}));
     lsS("ct_t",lsG("ct_t",[]).filter(function(t){return t.pid!==id;}));
@@ -5510,7 +5536,7 @@ function delT(id){
       return;
     }
   }
-  ctConfirm('Eliminare questo turno?', {title:'Elimina Turno', ico:'📅', ok:'Elimina', danger:true}).then(function(ok){
+  ctConfirm('Eliminare questo turno?', {title:'Elimina Turno', ico:'??', ok:'Elimina', danger:true}).then(function(ok){
     if(!ok) return;
     lsS("ct_t",lsG("ct_t",[]).filter(function(t){return t.id!==id;}));
     if(window.FirebaseModule) window.FirebaseModule.deleteTurno(id);
@@ -5650,7 +5676,7 @@ function renderCal(){
     h+="</div>";
 
     if(tg.length>0){
-      // 1. Badge del turno dell'utente — sempre in primo piano, evidenziato
+      // 1. Badge del turno dell'utente � sempre in primo piano, evidenziato
       if(mioTurno){
         var c=cols[mioTurno.tipo]||'#8faac8';
         var lbl=labels[mioTurno.tipo]||mioTurno.tipo.slice(0,2).toUpperCase();
@@ -5675,7 +5701,7 @@ function renderCal(){
         var tipiOrdinati=Object.keys(gruppi).sort(function(a,b){
           return (ord.indexOf(a)+1||99)-(ord.indexOf(b)+1||99);
         });
-        // Max 2 tipi degli altri (se ho già il mio badge) oppure 3 se non ho turno
+        // Max 2 tipi degli altri (se ho gi� il mio badge) oppure 3 se non ho turno
         var maxAltri=mioTurno?2:3;
         tipiOrdinati.slice(0,maxAltri).forEach(function(tipo){
           var c=cols[tipo]||'#8faac8';
@@ -5731,7 +5757,7 @@ function mostraGiorno(ds){
 
   var _fbUsers = lsG('ct_users', []);
 
-  // ── Card 1: prospetto turni del giorno (raggruppati per tipo) ──
+  // -- Card 1: prospetto turni del giorno (raggruppati per tipo) --
   var myT = T.find(function(t){ return t.pid===myPid || (me&&t.uid&&t.uid===(me.uid||me.id)); });
   var mgTurnoEl = document.getElementById('mg-turno');
   if(mgTurnoEl){
@@ -5750,7 +5776,7 @@ function mostraGiorno(ds){
       ls:'Donaz./Malattia',fest:'Festivo',esame:'Esame',custom:'Custom'
     };
 
-    // Raggruppa per tipo — normalizza usando codice con mapping ESATTO (===)
+    // Raggruppa per tipo � normalizza usando codice con mapping ESATTO (===)
     var _codiceToTipoExact = {
       'M':'mattina', 'ML':'ml', 'P':'pomeriggio', 'PL':'pl',
       'N':'notte', 'S':'sera', 'R':'riposo', 'RR':'recupero',
@@ -5759,7 +5785,7 @@ function mostraGiorno(ds){
     };
     var gruppi = {};
     T.forEach(function(t){
-      // Usa il codice per determinare il tipo esatto (ML ≠ M, PL ≠ P)
+      // Usa il codice per determinare il tipo esatto (ML ? M, PL ? P)
       var tipo = t.tipo || 'altro';
       if(t.codice && _codiceToTipoExact[t.codice] !== undefined){
         tipo = _codiceToTipoExact[t.codice];
@@ -5782,7 +5808,7 @@ function mostraGiorno(ds){
         var orario = persone[0].orario && persone[0].orario.indexOf('-')>0 ? persone[0].orario : '';
         if(!orario && typeof getOrariPreset === 'function'){
           var _op = getOrariPreset();
-          var _pk = tipo; // tipo è già normalizzato (ml, pl, mattina, ecc.)
+          var _pk = tipo; // tipo � gi� normalizzato (ml, pl, mattina, ecc.)
           if(_op[_pk]) orario = _op[_pk].in + '-' + _op[_pk].out;
         }
 
@@ -5815,7 +5841,7 @@ function mostraGiorno(ds){
           } else {
             html += '<div style="width:24px;height:24px;border-radius:50%;background:'+(isMe?'rgba(255,255,255,.25)':'var(--bg)')+';display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0">&#128100;</div>';
           }
-          html += '<div style="font-size:12px;font-weight:'+(isMe?'800':'600')+';color:'+(isMe?'#fff':'var(--txt)')+'">'+nome+(isMe?' ★':'')+'</div>';
+          html += '<div style="font-size:12px;font-weight:'+(isMe?'800':'600')+';color:'+(isMe?'#fff':'var(--txt)')+'">'+nome+(isMe?' ?':'')+'</div>';
           html += '</div>';
         });
         html += '</div>';
@@ -5839,7 +5865,7 @@ function mostraGiorno(ds){
     mgTurnoEl.innerHTML = html;
   }
 
-  // ── Card 3: To-Do del giorno ──
+  // -- Card 3: To-Do del giorno --
   var mgTodoEl = document.getElementById('mg-todo');
   if(mgTodoEl){
     var TD=lsG("ct_td",[]).filter(function(t){ return t.data===ds; });
@@ -5863,13 +5889,13 @@ function mostraGiorno(ds){
     mgTodoEl.innerHTML=tdHtml;
   }
 
-  // ── Aggiorna header e data nascosta ──
+  // -- Aggiorna header e data nascosta --
   var sgTit=document.getElementById('sg-tit');
   if(sgTit) sgTit.innerHTML='&#128197; '+tit;
   var sgData=document.getElementById('sg-data');
   if(sgData) sgData.value=ds;
 
-  // ── Compatibilità: aggiorna anche i vecchi elementi se esistono ──
+  // -- Compatibilit�: aggiorna anche i vecchi elementi se esistono --
   var mgTitOld=document.getElementById('mg-tit');
   if(mgTitOld) mgTitOld.innerHTML='&#128197; '+tit;
   var mtData=document.getElementById('mt-data');
@@ -5877,7 +5903,7 @@ function mostraGiorno(ds){
   var lblMtData=document.getElementById('lbl-mt-data');
   if(lblMtData) lblMtData.textContent=ds.split('-').reverse().join('/');
 
-  // ── Apri lo sheet (non il vecchio modal) ──
+  // -- Apri lo sheet (non il vecchio modal) --
   if(typeof apriSheetGiorno==='function') {
     apriSheetGiorno();
   } else {
@@ -5962,7 +5988,7 @@ function renderRepData(){
     h+='<div style="font-size:22px;font-weight:900">'+conti[k]+extra+'</div></div>';
   });
   h+='</div>';
-  // Barre per persona — mostra tutti con almeno 1 turno nel periodo
+  // Barre per persona � mostra tutti con almeno 1 turno nel periodo
   if(P.length){
     h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px">';
     h+='<div style="padding:11px 14px;border-bottom:1px solid var(--border);font-weight:700;font-size:13px">&#128101; Carico per persona</div>';
@@ -5993,7 +6019,7 @@ function renderRepData(){
       // 3. Per nome esatto
       var pn=p.nome.toLowerCase().replace(/\s+/g,' ').trim();
       addT(tByNome[pn]);
-      // 4. Per nome invertito (Nome Cognome ↔ Cognome Nome)
+      // 4. Per nome invertito (Nome Cognome ? Cognome Nome)
       var parti=pn.split(' ');
       if(parti.length>=2){
         var inv=parti.slice(1).join(' ')+' '+parti[0];
@@ -6038,15 +6064,15 @@ function renderRepData(){
   d.innerHTML=h;
 }
 
-// ---- STRAORDINARI (RIMOSSI — Task 3) ----
-// Stub per retrocompatibilità con eventuali chiamate residue
+// ---- STRAORDINARI (RIMOSSI � Task 3) ----
+// Stub per retrocompatibilit� con eventuali chiamate residue
 function straordCambiaMese(delta) {}
 function renderStraord() {}
 
 // ---- CONDIVISIONE TURNI SETTIMANALI (WhatsApp) ----
 // apriSheetWA: condivide i turni del giorno corrente (chiamato dallo sheet-giorno) o settimanali
 function apriSheetWA(){
-  // Se c'è una data selezionata nello sheet-giorno, condividi quel giorno
+  // Se c'� una data selezionata nello sheet-giorno, condividi quel giorno
   var sgData = document.getElementById('sg-data');
   var ds = sgData && sgData.value ? sgData.value : null;
   if(ds){
@@ -6064,12 +6090,12 @@ function _condividiGiornoWA(ds){
   var gN = ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
   var dataLabel = gN[d.getDay()] + ' ' + d.getDate() + ' ' + mN[d.getMonth()] + ' ' + d.getFullYear();
   var tipoLabel = {
-    mattina:'🌅 Mattina', ml:'🌅 Mattina Lunga', pomeriggio:'☀️ Pomeriggio', pl:'☀️ Pomeriggio Lungo',
-    notte:'🌙 Notte', riposo:'💤 Riposo', recupero:'🔄 Recupero', ferie:'🏖️ Ferie',
-    permesso:'🕐 Permesso', corso:'🎓 Corso', licenza:'📚 Licenza'
+    mattina:'?? Mattina', ml:'?? Mattina Lunga', pomeriggio:'?? Pomeriggio', pl:'?? Pomeriggio Lungo',
+    notte:'?? Notte', riposo:'?? Riposo', recupero:'?? Recupero', ferie:'??? Ferie',
+    permesso:'?? Permesso', corso:'?? Corso', licenza:'?? Licenza'
   };
   var righe = [];
-  righe.push('📅 *Turni ' + dataLabel + '*');
+  righe.push('?? *Turni ' + dataLabel + '*');
   righe.push('-----------------');
   if(!T.length){
     righe.push('Nessun turno inserito');
@@ -6161,7 +6187,7 @@ function importXL(file){
     try{
       _xlsWb=XLSX.read(e.target.result,{type:"array"});
       var fogli=_xlsWb.SheetNames;
-      // Mostra sempre il modal selezione (1 o più fogli)
+      // Mostra sempre il modal selezione (1 o pi� fogli)
       var lista=document.getElementById("fogli-lista");
       lista.innerHTML=fogli.map(function(sn,i){
         var rows=XLSX.utils.sheet_to_json(_xlsWb.Sheets[sn],{header:1,defval:""});
@@ -6258,7 +6284,7 @@ function confermImportF(modoSost){
     var k = (p.nome||'').toLowerCase().replace(/\s+/g,' ').trim();
     if(!k) return false;
     if(_seen[k]){
-      // Tieni quello con uid (più completo)
+      // Tieni quello con uid (pi� completo)
       if(p.uid && !_seen[k].uid){ _seen[k].uid = p.uid; }
       return false;
     }
@@ -6266,7 +6292,7 @@ function confermImportF(modoSost){
     return true;
   });
   lsS("ct_p", _Pall);
-  // Salva turni su Firebase (sia in modalità aggiungi che sostituisci)
+  // Salva turni su Firebase (sia in modalit� aggiungi che sostituisci)
   if(window.FirebaseModule) window.FirebaseModule.saveTurni(lsG("ct_t",[])).catch(function(e){ console.warn('saveTurni post-import:', e.message); });
   renderTurni();renderOggi();renderPers();stats();aggSel();aggiornaWidget();
   var _me3=lsG('ct_me',null);
@@ -6280,7 +6306,7 @@ function confermImportF(modoSost){
 }
 function parseSheet(rows, sn) {
 
-  // ── Rilevamento anno e mese ──────────────────────────────────
+  // -- Rilevamento anno e mese ----------------------------------
 
   var anno = new Date().getFullYear(), mese = null;
 
@@ -6336,7 +6362,7 @@ function parseSheet(rows, sn) {
 
 
 
-  // ── STEP 1: Trova riga ancora "Grado" / "Cognome e Nome" ────
+  // -- STEP 1: Trova riga ancora "Grado" / "Cognome e Nome" ----
 
   var anchorIdx = -1;
 
@@ -6370,7 +6396,7 @@ function parseSheet(rows, sn) {
 
 
 
-  // ── STEP 2: Offset esatto ────────────────────────────────────
+  // -- STEP 2: Offset esatto ------------------------------------
 
   // ancora+1 = lettere giorni (L,M,M,G,V,S,D)
 
@@ -6404,7 +6430,7 @@ function parseSheet(rows, sn) {
 
 
 
-  // ── STEP 3: Codici turno ─────────────────────────────────────
+  // -- STEP 3: Codici turno -------------------------------------
 
   // -- STEP 3: Codici turno ----------------------------------------------
   var cM2 = {"M":"mattina","ML":"ml","1515":"mattina","P":"pomeriggio","PL":"pl",
@@ -6437,7 +6463,7 @@ function parseSheet(rows, sn) {
 
 
 
-  // ── STEP 4: Matching utente loggato ─────────────────────────
+  // -- STEP 4: Matching utente loggato -------------------------
 
   var session = null;
 
@@ -6457,7 +6483,7 @@ function parseSheet(rows, sn) {
 
 
 
-  // ── STEP 5: Ciclo righe dati ─────────────────────────────────
+  // -- STEP 5: Ciclo righe dati ---------------------------------
 
   for(var i=dataStart; i<rows.length; i++){
 
@@ -6505,13 +6531,13 @@ function parseSheet(rows, sn) {
 
 
 
-    // Trova persona — match robusto per evitare doppioni
+    // Trova persona � match robusto per evitare doppioni
     var nRnorm = nR.toLowerCase().replace(/\s+/g,' ').trim();
     var persona = P.find(function(x){
       return x.nome.toLowerCase().replace(/\s+/g,' ').trim() === nRnorm;
     }) || null;
     if(!persona){
-      // Controlla anche per uid (utente Firebase già collegato)
+      // Controlla anche per uid (utente Firebase gi� collegato)
       var fbU = lsG('ct_users',[]);
       var fbMatch = fbU.find(function(u){
         if(!u.nome) return false;
@@ -6534,7 +6560,7 @@ function parseSheet(rows, sn) {
 
 
 
-    // ── Matching utente loggato ──────────────────────────────
+    // -- Matching utente loggato ------------------------------
 
     if(loggedFullName && loggedUid){
       var excelName = nR.toLowerCase().replace(/\s+/g,' ').trim();
@@ -6561,7 +6587,7 @@ function parseSheet(rows, sn) {
 
 
 
-    // ── Estrai turni ────────────────────────────────────────
+    // -- Estrai turni ----------------------------------------
 
     Object.keys(colD).forEach(function(col){
 
@@ -6708,11 +6734,11 @@ function doExport(){
 }
 
 // ---- NAVIGAZIONE ----
-// ════ GESTIONE NUCLEO (pagina dedicata Comandante) ════
+// ---- GESTIONE NUCLEO (pagina dedicata Comandante) ----
 
 // Carica utenti da Firebase Firestore
 async function _caricaMembriFirebase(wrap, me) {
-  // ct_users è già aggiornato in tempo reale dal listener onSnapshot
+  // ct_users � gi� aggiornato in tempo reale dal listener onSnapshot
   // Usiamo direttamente quello come fonte principale
   var users = lsG('ct_users', []);
   if(users.length > 0) {
@@ -6749,7 +6775,7 @@ function renderGestioneNucleo() {
 
   if (!isCom) { wrap.innerHTML = '<p style="color:var(--txt2)">Accesso riservato al Comandante o Vice.</p>'; return; }
 
-  // Usa sempre _caricaMembriFirebase (legge ct_users già aggiornato dal listener)
+  // Usa sempre _caricaMembriFirebase (legge ct_users gi� aggiornato dal listener)
   wrap.innerHTML = '<div style="text-align:center;padding:40px;color:var(--txt2)">&#128260; Caricamento...</div>';
   _caricaMembriFirebase(wrap, me);
 }
@@ -6828,7 +6854,7 @@ function _renderMembriWrap(wrap, me, U) {
 
 
 
-  // ── Richieste in attesa ──
+  // -- Richieste in attesa --
 
   html += '<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--txt2);margin-bottom:8px">Richieste in attesa <span style="background:var(--blue);color:#fff;border-radius:20px;padding:1px 8px;font-size:10px">'+pending.length+'</span></div>';
 
@@ -6852,7 +6878,7 @@ function _renderMembriWrap(wrap, me, U) {
 
 
 
-  // ── Membri approvati ──
+  // -- Membri approvati --
 
   html += '<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--txt2);margin:18px 0 8px">Membri attivi <span style="background:var(--green,#22c55e);color:#fff;border-radius:20px;padding:1px 8px;font-size:10px">'+approved.length+'</span></div>';
 
@@ -6877,7 +6903,7 @@ function _renderMembriWrap(wrap, me, U) {
 
 
 
-  // ── Sospesi ──
+  // -- Sospesi --
 
   if (sospesi.length > 0) {
 
@@ -6930,7 +6956,7 @@ function nucleoNega(uid)     { _nucleoSalva(uid,'rejected'); toast('Richiesta ne
 function nucleoSospendi(uid) { _nucleoSalva(uid,'sospeso');  toast('Membro sospeso','ok'); }
 
 function nucleoRimuovi(uid)  {
-  ctConfirm('Rimuovere questo membro dal reparto?', {title:'Rimuovi Membro', ico:'👤', ok:'Rimuovi', danger:true}).then(function(ok){
+  ctConfirm('Rimuovere questo membro dal reparto?', {title:'Rimuovi Membro', ico:'??', ok:'Rimuovi', danger:true}).then(function(ok){
     if(!ok) return;
     var U = lsG('ct_users', []);
     U = U.filter(function(u){ return u.uid !== uid && String(u.id) !== String(uid); });
@@ -6963,11 +6989,11 @@ function vai(pg, btn) {
   var el = document.getElementById("pag-"+pg);
   if(el){ el.classList.add("on", dir); }
   chiMenu();
-  // FAB: visibile SOLO sulla dashboard — gestito qui per coprire tutti i percorsi di navigazione
+  // FAB: visibile SOLO sulla dashboard � gestito qui per coprire tutti i percorsi di navigazione
   _aggFabVisibility(pg);
   if(pg==="pers"){ renderPers(); if(typeof _renderStatoComando==='function') _renderStatoComando(); }
   if(pg==="cal") { renderCal(); renderTodo(); renderAgenda(); renderTodoCondivisi(); renderAgendaCondivisa(); }
-  if(pg==="ag")  { renderAgendaPg(); renderTodoAg(_tdFiltroAg||'tutti'); }
+  if(pg==="ag")  { renderAgendaPg(); }
   if(pg==="rep") renderRep();
   if(pg==="straord") { renderStraord(); }
   if(pg==="imp"){ aggUI(); caricaSaldoFerie(); aggNotifStatus(); aggTemaUI(lsG("ct_tema","")||""); aggLastBackupDate(); caricaFontSize(); if(typeof GSync!=='undefined'&&GSync.ui) GSync.ui.renderPanel(); }
@@ -6976,7 +7002,7 @@ function vai(pg, btn) {
   if(pg==="membri") renderGestioneNucleo();
 }
 
-// ── Genera reparto_id dai 3 campi registrazione + suggerimento reparti esistenti ──
+// -- Genera reparto_id dai 3 campi registrazione + suggerimento reparti esistenti --
 var _aggRepartoTimer = null;
 function aggiornaRepartoId() {
   var tipo = (document.getElementById('reg-tipo-struttura')||{}).value || '';
@@ -6985,10 +7011,10 @@ function aggiornaRepartoId() {
   var id = [tipo, spec, sede].filter(Boolean).join('_');
   var prev = document.getElementById('reg-reparto-preview');
   var inp = document.getElementById('reg-reparto');
-  if(prev) prev.textContent = id || '—';
+  if(prev) prev.textContent = id || '�';
   if(inp) inp.value = id;
 
-  // Suggerimento: cerca reparti esistenti su Firebase quando l'ID è completo (tutti e 3 i campi)
+  // Suggerimento: cerca reparti esistenti su Firebase quando l'ID � completo (tutti e 3 i campi)
   var hint = document.getElementById('reg-reparto-hint');
   if(!hint) return;
   if(!tipo || !spec || !sede) { hint.style.display = 'none'; return; }
@@ -7000,14 +7026,14 @@ function aggiornaRepartoId() {
     try {
       var existing = await window.FirebaseModule.getUsersByReparto(id);
       if(existing.length > 0) {
-        // Reparto già esistente → mostra info rassicurante
+        // Reparto gi� esistente ? mostra info rassicurante
         var cmd = existing.find(function(u){ return (u.ruolo === 'comandante' || u.ruolo === 'vice') && u.stato === 'approved'; });
-        hint.innerHTML = '&#9989; Reparto già registrato. Potrai unirti dopo l\'approvazione del Comandante' + (cmd ? ' (<strong>' + (cmd.grado||'') + ' ' + cmd.nome + ' ' + cmd.cognome + '</strong>)' : '') + '.';
+        hint.innerHTML = '&#9989; Reparto gi� registrato. Potrai unirti dopo l\'approvazione del Comandante' + (cmd ? ' (<strong>' + (cmd.grado||'') + ' ' + cmd.nome + ' ' + cmd.cognome + '</strong>)' : '') + '.';
         hint.style.background = 'rgba(6,214,160,.08)';
         hint.style.borderColor = 'rgba(6,214,160,.3)';
         hint.style.color = 'var(--green)';
       } else {
-        // Reparto nuovo → avvisa che diventerà comandante
+        // Reparto nuovo ? avvisa che diventer� comandante
         hint.innerHTML = '&#128640; Nuovo reparto: sarai il primo iscritto e diventerai automaticamente <strong>Comandante</strong>.';
         hint.style.background = 'rgba(41,121,255,.07)';
         hint.style.borderColor = 'rgba(41,121,255,.2)';
@@ -7018,31 +7044,31 @@ function aggiornaRepartoId() {
   }, 600);
 }
 
-// ── Genera reparto_id per trasferimento ──
+// -- Genera reparto_id per trasferimento --
 function aggiornaTrasferimentoId() {
   var tipo = (document.getElementById('trasf-tipo-struttura')||{}).value || '';
   var spec = (document.getElementById('trasf-specialita')||{}).value || '';
   var sede = ((document.getElementById('trasf-sede')||{}).value || '').trim().toLowerCase().replace(/\s+/g,'_');
   var id = [tipo, spec, sede].filter(Boolean).join('_');
   var prev = document.getElementById('trasf-reparto-preview');
-  if(prev) prev.textContent = id || '—';
+  if(prev) prev.textContent = id || '�';
 }
 
-// ── Mostra schermata pending ──
+// -- Mostra schermata pending --
 function _showPendingScreen(profile) {
   var ov = document.getElementById('overlay-pending');
   if(!ov) return;
   var info = document.getElementById('pending-reparto-info');
   if(info) {
     var rep = (profile.reparto || '').replace(/_/g,' ');
-    info.innerHTML = '&#128205; Reparto: <strong>' + rep + '</strong><br>&#128100; ' + (profile.nome||'') + ' ' + (profile.cognome||'') + ' &middot; ' + (profile.grado||'') + '<br>&#128336; Registrato il ' + (profile.registratoIl ? new Date(profile.registratoIl).toLocaleDateString('it-IT') : '—');
+    info.innerHTML = '&#128205; Reparto: <strong>' + rep + '</strong><br>&#128100; ' + (profile.nome||'') + ' ' + (profile.cognome||'') + ' &middot; ' + (profile.grado||'') + '<br>&#128336; Registrato il ' + (profile.registratoIl ? new Date(profile.registratoIl).toLocaleDateString('it-IT') : '�');
   }
   ov.style.display = 'flex';
   var pgApp = document.getElementById('pg-app');
   if(pgApp) { pgApp.classList.remove('on'); pgApp.style.display='none'; }
 }
 
-// ── Richiesta trasferimento reparto ──
+// -- Richiesta trasferimento reparto --
 async function richiestaTrasfRep() {
   var tipo = (document.getElementById('trasf-tipo-struttura')||{}).value || '';
   var spec = (document.getElementById('trasf-specialita')||{}).value || '';
@@ -7051,13 +7077,13 @@ async function richiestaTrasfRep() {
   var nuovoReparto = [tipo, spec, sede].join('_');
   var session = lsG('ct_session', null);
   if(!session || !session.userId) { toast('Sessione non trovata, rieffettua il login','err'); return; }
-  if(!await ctConfirm('Confermi il trasferimento a "' + nuovoReparto.replace(/_/g,' ') + '"?<br><small>Perderai immediatamente l\'accesso al reparto attuale.</small>', {title:'Trasferimento', ico:'🏠', ok:'Conferma', danger:false})) return;
+  if(!await ctConfirm('Confermi il trasferimento a "' + nuovoReparto.replace(/_/g,' ') + '"?<br><small>Perderai immediatamente l\'accesso al reparto attuale.</small>', {title:'Trasferimento', ico:'??', ok:'Conferma', danger:false})) return;
   try {
     ctSpinner(true, 'Trasferimento in corso...');
     var me = lsG('ct_me', null);
     if(!me) { ctSpinner(false); toast('Profilo non trovato', 'err'); return; }
 
-    // ── Legge del pioniere: se il reparto non esiste o non ha un Comandante → diventa Comandante ──
+    // -- Legge del pioniere: se il reparto non esiste o non ha un Comandante ? diventa Comandante --
     var isPioniere = false;
     if(window.FirebaseModule) {
       try {
@@ -7085,7 +7111,7 @@ async function richiestaTrasfRep() {
     if(window.FirebaseModule) {
       await window.FirebaseModule.saveUserProfile(me.uid || session.userId, me, nuovoReparto);
     }
-    // Aggiorna sessione — PRESERVA userId e altri campi critici
+    // Aggiorna sessione � PRESERVA userId e altri campi critici
     session.reparto = nuovoReparto;
     session.ruolo = me.ruolo;
     session.stato = me.stato;
@@ -7164,7 +7190,7 @@ function vaiBN(pg, idx) {
   }
   if(pg==="pers"){ renderPers(); if(typeof _renderStatoComando==='function') _renderStatoComando(); }
   if(pg==="cal") { renderCal(); renderTodo(); renderAgenda(); renderTodoCondivisi(); renderAgendaCondivisa(); }
-  if(pg==="ag")  { renderAgendaPg(); renderTodoAg(_tdFiltroAg||'tutti'); }
+  if(pg==="ag")  { renderAgendaPg(); }
   if(pg==="rep") renderRep();
   if(pg==="todo"){ renderTodo(); filtraTodo(_tdFiltro); renderTodoCondivisi(); }
   if(pg==="agenda") { renderAgenda(); renderAgendaCondivisa(); }
@@ -7192,7 +7218,7 @@ function tbdg(tipo,cod){
 function fmtD(ds){try{return _parseDate(ds).toLocaleDateString("it-IT");}catch(e){return ds;}}
 function cap(s){return s?s.charAt(0).toUpperCase()+s.slice(1):"";}
 function pad(n){return n<10?"0"+n:""+n;}
-// ── Vibrazione aptica sicura ──────────────────────────────────
+// -- Vibrazione aptica sicura ----------------------------------
 window.haptic = function(type) {
   if (!navigator.vibrate) return;
   var prefs = (typeof lsG === 'function') ? lsG('ct_prefs', {}) : {};
@@ -7209,7 +7235,7 @@ window.haptic = function(type) {
   } catch(e) {}
 };
 
-// ── Snackbar M3 (alias showToast) ────────────────────────────
+// -- Snackbar M3 (alias showToast) ----------------------------
 window.showToast = function(msg, isError) {
   var x = document.getElementById('ct-snackbar');
   if (!x) {
@@ -7287,7 +7313,7 @@ function salvaProfilo(){
   var pw=document.getElementById('pf-pw').value;
   var errEl=document.getElementById('pf-err');
   errEl.classList.remove('on');
-  if(!nome){errEl.textContent='Il nome non può essere vuoto';errEl.classList.add('on');return;}
+  if(!nome){errEl.textContent='Il nome non pu� essere vuoto';errEl.classList.add('on');return;}
   me.nome=nome;me.reparto=rep;me.nucleo=nuc;me.grado=grado;
   if(pw)me.pw=pw;
   var fEl=document.getElementById('pf-ava-file');
@@ -7302,7 +7328,7 @@ function salvaProfilo(){
       _completaSalvataggio(me);
       return;
     }
-    // Se c'è una nuova foto base64, caricala su Storage e ottieni l'URL reale
+    // Se c'� una nuova foto base64, caricala su Storage e ottieni l'URL reale
     if(dataUrl && dataUrl.startsWith('data:')){
       toast('Caricamento foto...','ok');
       ctSpinner(true, 'Salvataggio profilo...');
@@ -7354,7 +7380,7 @@ function salvaProfilo(){
     var U=lsG('ct_u',[]);
     for(var i=0;i<U.length;i++){if(U[i].id===profilo.id||U[i].uid===profilo.uid){U[i]=Object.assign({},U[i],profilo);break;}}
     lsS('ct_u',U);
-    // Aggiorna ct_p — usa uid, id E nome per trovare il profilo
+    // Aggiorna ct_p � usa uid, id E nome per trovare il profilo
     var P=lsG('ct_p',[]);
     var aggiornato = false;
     for(var j=0;j<P.length;j++){
@@ -7381,7 +7407,7 @@ function salvaProfilo(){
     if(typeof _syncAvaAllSections === 'function') _syncAvaAllSections(profilo.ava||null);
     aggUI();
     closeM('m-profilo');
-    toast('Profilo aggiornato ✓','ok');
+    toast('Profilo aggiornato ?','ok');
   }
 
   // Avvia il flusso con o senza nuova foto
@@ -7412,21 +7438,26 @@ function _syncAvaAllSections(avaUrl){
     if(avaUrl){ hAva.style.backgroundImage='url('+avaUrl+')'; hAva.style.backgroundSize='cover'; hAva.style.backgroundPosition='center'; hAva.innerHTML=''; }
     else { hAva.style.backgroundImage=''; hAva.innerHTML='&#128100;'; }
   }
-  // Hero dashboard avatar (fix: era mancante)
+  // Hero dashboard avatar
   var heroAva = document.getElementById('hero-user-ava');
   if(heroAva){
     if(avaUrl){
-      heroAva.classList.add('ava-loading');
-      var _img = new Image();
-      _img.onload = function(){
-        heroAva.style.backgroundImage='url('+avaUrl+')';
-        heroAva.style.backgroundSize='cover';
-        heroAva.style.backgroundPosition='center';
-        heroAva.textContent='';
+      var currentBg2 = heroAva.style.backgroundImage || '';
+      if(currentBg2.indexOf(avaUrl) === -1){
+        heroAva.classList.add('ava-loading');
+        var _img = new Image();
+        _img.onload = function(){
+          heroAva.style.backgroundImage='url('+avaUrl+')';
+          heroAva.style.backgroundSize='cover';
+          heroAva.style.backgroundPosition='center';
+          heroAva.textContent='';
+          heroAva.classList.remove('ava-loading');
+        };
+        _img.onerror = function(){ heroAva.classList.remove('ava-loading'); };
+        _img.src = avaUrl;
+      } else {
         heroAva.classList.remove('ava-loading');
-      };
-      _img.onerror = function(){ heroAva.classList.remove('ava-loading'); };
-      _img.src = avaUrl;
+      }
     } else {
       heroAva.style.backgroundImage='';
       heroAva.classList.remove('ava-loading');
@@ -7436,13 +7467,13 @@ function _syncAvaAllSections(avaUrl){
   var impAva = document.getElementById('imp-ava');
   if(impAva){
     if(avaUrl){ impAva.style.backgroundImage='url('+avaUrl+')'; impAva.style.backgroundSize='cover'; impAva.style.backgroundPosition='center'; impAva.textContent=''; }
-    else { impAva.style.backgroundImage=''; impAva.textContent='👤'; }
+    else { impAva.style.backgroundImage=''; impAva.textContent='??'; }
   }
   // Profilo preview
   var pfPrev = document.getElementById('pf-ava-prev');
   if(pfPrev){
     if(avaUrl){ pfPrev.style.backgroundImage='url('+avaUrl+')'; pfPrev.style.backgroundSize='cover'; pfPrev.style.backgroundPosition='center'; pfPrev.textContent=''; }
-    else { pfPrev.style.backgroundImage=''; pfPrev.textContent='👤'; }
+    else { pfPrev.style.backgroundImage=''; pfPrev.textContent='??'; }
   }
   // Tesserino
   var tessAva = document.getElementById('tess-ava');
@@ -7460,7 +7491,7 @@ function _syncAvaAllSections(avaUrl){
    MEGA-PATCH JS  c_turni_v3.1.0
    ============================================================ */
 
-/* ---------- LS HELPERS (alias sicuri) — definiti all'inizio del file ---------- */
+/* ---------- LS HELPERS (alias sicuri) � definiti all'inizio del file ---------- */
 
 /* ---------- MAPPA CITT ? COORDINATE (meteo) ---------- */
 var METEO_CITTA = {
@@ -7541,7 +7572,7 @@ function getWidgetCfg() {
     Object.keys(WIDGET_DEF).forEach(function(k){ def[k] = WIDGET_DEF[k].default; });
     return def;
   }
-  // Rimuovi chiavi non più presenti in WIDGET_DEF (widget eliminati)
+  // Rimuovi chiavi non pi� presenti in WIDGET_DEF (widget eliminati)
   Object.keys(saved).forEach(function(k){ if(!(k in WIDGET_DEF)) delete saved[k]; });
   // Aggiungi chiavi nuove con valore default
   Object.keys(WIDGET_DEF).forEach(function(k){ if (!(k in saved)) saved[k] = WIDGET_DEF[k].default; });
@@ -7572,9 +7603,9 @@ function saveWidgetOrder(order) {
   lsS('ct_dash_order', order);
 }
 
-// ══════════════════════════════════════════════════════════════
-// WIDGET CUSTOMIZATION — Dimensione, Forma, Colonne, Righe
-// ══════════════════════════════════════════════════════════════
+// --------------------------------------------------------------
+// WIDGET CUSTOMIZATION � Dimensione, Forma, Colonne, Righe
+// --------------------------------------------------------------
 
 function getWidgetSizes()  { return lsG('ct_dash_sizes',  {}); }
 function getWidgetShapes() { return lsG('ct_dash_shapes', {}); }
@@ -7611,7 +7642,7 @@ function applyWidgetSizes() {
     // Forma
     el.classList.remove('wdg-shape-round', 'wdg-shape-default', 'wdg-shape-sharp');
     el.classList.add('wdg-shape-' + (shapes[k] || 'default'));
-    // Span — clamp al numero di colonne disponibili
+    // Span � clamp al numero di colonne disponibili
     var sp = spans[k] || {col:1, row:1};
     var colSpan = Math.min(sp.col || 1, cols);
     el.style.gridColumn = 'span ' + colSpan;
@@ -7634,7 +7665,7 @@ function cycleWidgetShape(key) {
 function cycleWidgetCol(key) {
   var sp = getWidgetSpans()[key] || {col:1,row:1};
   var cols = getGridCols();
-  // Cicla: 1 → 2 → (3 se griglia a 3) → 1
+  // Cicla: 1 ? 2 ? (3 se griglia a 3) ? 1
   var maxCol = cols;
   sp.col = (sp.col || 1) >= maxCol ? 1 : (sp.col || 1) + 1;
   saveWidgetSpan(key, sp);
@@ -7689,7 +7720,7 @@ function renderDopList() {
   var spans  = getWidgetSpans();
   var cols   = getGridCols();
 
-  // Selettore colonne griglia — bottoni visivi con SVG
+  // Selettore colonne griglia � bottoni visivi con SVG
   var gridHtml = '<div class="dop-grid-sel">'
     + '<span class="dop-grid-lbl">&#9783; Colonne griglia</span>'
     + [1,2,3].map(function(n){
@@ -7705,7 +7736,7 @@ function renderDopList() {
       }).join('')
     + '</div>';
 
-  // Lista widget — ogni riga ha 4 preset visivi
+  // Lista widget � ogni riga ha 4 preset visivi
   var listHtml = order.map(function(k) {
     var on    = cfg[k];
     var label = WIDGET_DEF[k] ? WIDGET_DEF[k].label : k;
@@ -7713,7 +7744,7 @@ function renderDopList() {
     var sz    = sizes[k] || 'm';
 
     // Preset: compatto / normale / largo / grande
-    // Ogni preset è un mini-rettangolo SVG che mostra visivamente la forma
+    // Ogni preset � un mini-rettangolo SVG che mostra visivamente la forma
     var presets = [
       { id:'compact', col:1, row:1, size:'s',
         svg:'<rect x="1" y="4" width="12" height="8" rx="2" fill="currentColor"/>' },
@@ -7836,7 +7867,7 @@ function renderDash() {
   aggiornaWidget();
   aggiornaHeroCard();
   aggiornaSquadra();
-  renderWidgetMeteo(me); // meteo sempre — popola la Hero Card
+  renderWidgetMeteo(me); // meteo sempre � popola la Hero Card
   if (cfg.prossimo)        renderWidgetProssimo(me);
   if (cfg.alert)           renderWidgetAlert();
   if (cfg.scadenze)        renderWidgetScadenze();
@@ -7864,7 +7895,7 @@ function renderDash() {
   renderDashWidgetToggles();
   var panel = document.getElementById('dash-organizza-panel');
   if (panel && panel.classList.contains('open')) renderDopList();
-  // Effetti premium — avvia dopo che il DOM è aggiornato
+  // Effetti premium � avvia dopo che il DOM � aggiornato
   setTimeout(initPremiumEffects, 50);
 }
 
@@ -7905,7 +7936,7 @@ function renderWidgetSettimana(me) {
   if(!me) { el.innerHTML = ''; return; }
 
   var now = new Date();
-  // Lunedì della settimana corrente
+  // Luned� della settimana corrente
   var lun = new Date(now);
   lun.setDate(now.getDate() - ((now.getDay() + 6) % 7));
   lun.setHours(0,0,0,0);
@@ -7948,7 +7979,7 @@ function renderWidgetSettimana(me) {
 /* ---------- WIDGET METEO ---------- */
 var _meteoCache = null;
 function renderWidgetMeteo(me){
-  // Usa città configurata dall'utente, altrimenti deriva dal reparto
+  // Usa citt� configurata dall'utente, altrimenti deriva dal reparto
   var cittaCustom = lsG('ct_meteo_citta', null);
   var query;
   if(cittaCustom && cittaCustom.trim()) {
@@ -7978,7 +8009,7 @@ function renderWidgetMeteo(me){
     if(!geo.results||!geo.results.length)throw new Error('citta non trovata');
     var loc=geo.results[0];
     var lat=loc.latitude,lon=loc.longitude,nomeCitta=loc.name;
-    // Aggiorna città nel widget e nella Hero Card
+    // Aggiorna citt� nel widget e nella Hero Card
     var cEl=document.getElementById('wm-citta');
     if(cEl)cEl.textContent=nomeCitta;
     var heroCitta=document.getElementById('hero-meteo-citta');
@@ -7993,15 +8024,15 @@ function renderWidgetMeteo(me){
     var el=document.getElementById('wm-desc');
     if(el)el.textContent='Meteo non disponibile';
     var heroDesc=document.getElementById('hero-meteo-desc');
-    if(heroDesc)heroDesc.textContent='—';
+    if(heroDesc)heroDesc.textContent='�';
   });
 }
 
 function _aggiornaUIMeteo(data) {
   var c = data.current;
   var wc = c.weather_code;
-  var icoHtml = METEO_WMO[wc] || '<span class="meteo-cloud">🌤️</span>';
-  var temp = Math.round(c.temperature_2m) + '°C';
+  var icoHtml = METEO_WMO[wc] || '<span class="meteo-cloud">???</span>';
+  var temp = Math.round(c.temperature_2m) + '�C';
   var desc = METEO_DESC[wc] || '';
   var umi  = c.relative_humidity_2m;
   var vento = Math.round(c.wind_speed_10m);
@@ -8014,14 +8045,14 @@ function _aggiornaUIMeteo(data) {
   var umiEl  = document.getElementById('wm-umi');  if(umiEl)  umiEl.textContent  = umi;
   var ventoEl= document.getElementById('wm-vento');if(ventoEl)ventoEl.textContent= vento;
 
-  // Hero Card — meteo compatto
+  // Hero Card � meteo compatto
   var heroIco  = document.getElementById('hero-meteo-ico');
   var heroTemp = document.getElementById('hero-meteo-temp');
   var heroDesc = document.getElementById('hero-meteo-desc');
   var heroUmi  = document.getElementById('hero-meteo-umi');
   var heroVento= document.getElementById('hero-meteo-vento');
   // Estrai solo l'emoji dall'html dell'icona
-  var icoText = icoHtml.replace(/<[^>]+>/g,'').trim() || '🌤️';
+  var icoText = icoHtml.replace(/<[^>]+>/g,'').trim() || '???';
   if(heroIco)   heroIco.textContent  = icoText;
   if(heroTemp)  heroTemp.textContent = temp;
   if(heroDesc)  heroDesc.textContent = desc;
@@ -8052,7 +8083,7 @@ function salvaMeteoCity() {
   localStorage.removeItem('ct_meteo_' + citta.toLowerCase());
   var me2 = lsG('ct_me', null);
   if(me2) renderWidgetMeteo(me2);
-  toast('Città meteo salvata: ' + (citta || 'automatica'), 'ok');
+  toast('Citt� meteo salvata: ' + (citta || 'automatica'), 'ok');
 }
 
 function aggiornaPreviewMeteo(val) {
@@ -8152,7 +8183,7 @@ function salvaScadenza() {
   SC.push(item);
   lsS('ct_scadenze', SC);
   // Schedula notifica browser precisa
-  if (ora) _schedulaNotifPrecisa('⏰ Scadenza: ' + tit, data, ora);
+  if (ora) _schedulaNotifPrecisa('? Scadenza: ' + tit, data, ora);
   ['sc-tit','sc-data','sc-ora','sc-note'].forEach(function(id){ var e = document.getElementById(id); if(e) e.value = ''; });
   closeM('m-scadenza');
   renderWidgetScadenze();
@@ -8308,7 +8339,7 @@ function apriModTurno(id) {
   document.getElementById('mmt-tipo').value = tipo;
   // Evidenzia il bottone corretto
   document.querySelectorAll('#m-mod-turno .btn-turno-r').forEach(function(b){ b.classList.remove('sel'); });
-  // Mappa tipo → codice bottone
+  // Mappa tipo ? codice bottone
   var tipoMap = {mattina:'M',ml:'ML',pomeriggio:'P',pl:'PL',notte:'N',sera:'S',riposo:'R',recupero:'RR',ferie:'L','104':'104','937':'937',licenza:'LICSTU',esame:'ESAME',ls:'LS',fest:'FEST',permesso:'PERM',corso:'CORSO'};
   var cod = tipoMap[tipo];
   if(cod) {
@@ -8397,8 +8428,8 @@ function aggOraMod(tipo) {
   var k = tipo === 'ml' ? 'ml' : tipo === 'pl' ? 'pl' : tipo;
   var preset = o[k];
   var hint = document.getElementById('mmt-orario-hint');
-  if(hint) hint.textContent = preset ? '(preset: ' + preset.in + '–' + preset.out + ')' : '';
-  // Se l'orario è vuoto, precompila con il preset
+  if(hint) hint.textContent = preset ? '(preset: ' + preset.in + '�' + preset.out + ')' : '';
+  // Se l'orario � vuoto, precompila con il preset
   var orEl = document.getElementById('mmt-orario');
   if(orEl && !orEl.value && preset) orEl.value = preset.in + '-' + preset.out;
 }
@@ -8406,7 +8437,7 @@ function aggOraMod(tipo) {
 function eliminaTurnoMod() {
   var id = parseInt(document.getElementById('mmt-id').value);
   if(!id) return;
-  ctConfirm('Eliminare questo turno?', {title:'Elimina Turno', ico:'📅', ok:'Elimina', danger:true}).then(function(ok){
+  ctConfirm('Eliminare questo turno?', {title:'Elimina Turno', ico:'??', ok:'Elimina', danger:true}).then(function(ok){
     if(!ok) return;
     var T = lsG('ct_t', []).filter(function(x){ return x.id !== id; });
     lsS('ct_t', T);
@@ -8520,7 +8551,7 @@ function approvaUtente(id) {
     window.FirebaseModule.aggiornaStatoUtente(approvatoUid, 'approved').catch(function(e){ console.warn('approvaUtente Firebase:', e.message); });
   }
   var NOTS = lsG('ct_notif_app', []);
-  NOTS.push({ id: Date.now(), ts: Date.now(), letta: false, msg: '✅ Utente approvato', tipo: 'info', targetId: id });
+  NOTS.push({ id: Date.now(), ts: Date.now(), letta: false, msg: '? Utente approvato', tipo: 'info', targetId: id });
   lsS('ct_notif_app', NOTS);
   aggiornaBadgeNotif();
   renderPers();
@@ -8663,10 +8694,10 @@ var _GUIDE = {
       {ico:"&#9312;", tit:"Apri il form", txt:"Vai su <strong>Dashboard</strong> e premi il pulsante <strong>+ Turno</strong>, oppure tocca un giorno nel Calendario."},
       {ico:"&#9313;", tit:"Seleziona la persona", txt:"Scegli il collega dal menu a tendina o usa il pulsante &#128269; per cercare per nome."},
       {ico:"&#9314;", tit:"Scegli il tipo", txt:"Usa i <strong>bottoni rapidi</strong> (M, P, N, S, RR) oppure il menu a tendina per tutti i tipi disponibili."},
-      {ico:"&#9315;", tit:"Imposta data e orario", txt:"La data è precompilata con oggi. L'orario si compila automaticamente in base al tipo scelto, ma puoi modificarlo."},
+      {ico:"&#9315;", tit:"Imposta data e orario", txt:"La data � precompilata con oggi. L'orario si compila automaticamente in base al tipo scelto, ma puoi modificarlo."},
       {ico:"&#9316;", tit:"Salva", txt:"Premi <strong>&#128190; Salva</strong>. Il turno appare subito nel calendario e nel widget della dashboard."},
       {ico:"&#9998;", tit:"Modificare un turno", txt:"Nel Calendario tocca il giorno &#8594; tocca il turno &#8594; premi &#9998; Modifica. Puoi cambiare tipo, orario e note."},
-      {ico:"&#128465;", tit:"Eliminare un turno", txt:"Apri il turno come sopra e premi &#128465; Elimina. L'operazione è irreversibile."}
+      {ico:"&#128465;", tit:"Eliminare un turno", txt:"Apri il turno come sopra e premi &#128465; Elimina. L'operazione � irreversibile."}
     ]
   },
   persone: {
@@ -8676,9 +8707,9 @@ var _GUIDE = {
       {ico:"&#9312;", tit:"Vai su Personale", txt:"Dal menu laterale seleziona <strong>Personale</strong>."},
       {ico:"&#9313;", tit:"Aggiungi un collega", txt:"Premi <strong>+ Aggiungi</strong>. Inserisci nome, cognome, grado e reparto."},
       {ico:"&#9314;", tit:"Foto profilo", txt:"Tocca l'avatar per caricare una foto. Puoi ritagliarla direttamente nell'app."},
-      {ico:"&#9315;", tit:"Salva", txt:"Premi <strong>&#128190; Salva</strong>. La persona è ora disponibile per l'assegnazione turni."},
+      {ico:"&#9315;", tit:"Salva", txt:"Premi <strong>&#128190; Salva</strong>. La persona � ora disponibile per l'assegnazione turni."},
       {ico:"&#9998;", tit:"Modificare", txt:"Tocca la card del collega &#8594; premi &#9998;. Puoi aggiornare tutti i dati inclusa la foto."},
-      {ico:"&#128465;", tit:"Rimuovere", txt:"Tocca la card &#8594; premi &#128465; Elimina. I turni già assegnati rimangono nello storico."}
+      {ico:"&#128465;", tit:"Rimuovere", txt:"Tocca la card &#8594; premi &#128465; Elimina. I turni gi� assegnati rimangono nello storico."}
     ]
   },
   ferie: {
@@ -8687,10 +8718,10 @@ var _GUIDE = {
     passi: [
       {ico:"&#8505;", tit:"Come funziona", txt:"Ogni persona ha un <strong>pool di giorni</strong> per anno. I giorni scalano automaticamente quando assegni un turno di tipo <strong>Ferie/Licenza (L)</strong>."},
       {ico:"&#9312;", tit:"Aggiungere giorni", txt:"Vai su <strong>Impostazioni &#8594; Ferie &amp; Licenze</strong>. Premi <strong>+ Anno</strong> e inserisci l'anno e i giorni disponibili per ogni persona."},
-      {ico:"&#9313;", tit:"Ordine di consumo", txt:"I giorni vengono scalati partendo dall'anno più vecchio (<em>FIFO</em>). Se l'anno corrente è esaurito si passa al successivo."},
+      {ico:"&#9313;", tit:"Ordine di consumo", txt:"I giorni vengono scalati partendo dall'anno pi� vecchio (<em>FIFO</em>). Se l'anno corrente � esaurito si passa al successivo."},
       {ico:"&#9314;", tit:"Saldo residuo", txt:"Il saldo aggiornato  visibile nella card di ogni persona in <strong>Personale</strong> e nel widget statistiche."},
       {ico:"937", tit:"Licenza 937", txt:"Funziona come le ferie ma con codice <strong>937</strong>. Scalano dallo stesso pool."},
-      {ico:"&#128218;", tit:"Licenza Studio", txt:"Codice <strong>LICSTU</strong>. Non scala dal pool ferie — è un tipo separato."}
+      {ico:"&#128218;", tit:"Licenza Studio", txt:"Codice <strong>LICSTU</strong>. Non scala dal pool ferie � � un tipo separato."}
     ]
   },
   calendario: {
@@ -8720,7 +8751,7 @@ var _GUIDE = {
     titolo: "&#128276; Notifiche",
     azione: null,
     passi: [
-      {ico:"&#9312;", tit:"Abilitare le notifiche", txt:"Vai su <strong>Impostazioni &#8594; Notifiche</strong> e attiva il toggle principale. Il browser chiederà il permesso &mdash; premi <strong>Consenti</strong>."},
+      {ico:"&#9312;", tit:"Abilitare le notifiche", txt:"Vai su <strong>Impostazioni &#8594; Notifiche</strong> e attiva il toggle principale. Il browser chieder� il permesso &mdash; premi <strong>Consenti</strong>."},
       {ico:"&#9313;", tit:"Avviso pre-turno", txt:"Imposta quanti minuti prima dell'inizio turno vuoi ricevere l'avviso (15, 30, 60 minuti o personalizzato)."},
       {ico:"&#127749;", tit:"Notifica mattutina", txt:"Ogni mattina alle 06:00 ricevi un riepilogo del tuo turno del giorno."},
       {ico:"&#9989;", tit:"Promemoria To-Do", txt:"Attiva il toggle <em>Promemoria To-Do</em> per ricevere una notifica il giorno della scadenza alle 08:00."},
@@ -8732,7 +8763,7 @@ var _GUIDE = {
     titolo: "&#9989; To-Do & Agenda",
     azione: {label:"&#9989; Vai ai To-Do", fn:"vai('cal',null)"},
     passi: [
-      {ico:"&#9312;", tit:"Aggiungere un promemoria", txt:"Vai su <strong>To-Do</strong> &#8594; premi <strong>+ Aggiungi</strong>. Inserisci il testo, la priorità (alta/media/bassa) e una data opzionale."},
+      {ico:"&#9312;", tit:"Aggiungere un promemoria", txt:"Vai su <strong>To-Do</strong> &#8594; premi <strong>+ Aggiungi</strong>. Inserisci il testo, la priorit� (alta/media/bassa) e una data opzionale."},
       {ico:"&#10004;", tit:"Completare", txt:"Tocca il cerchio a sinistra del promemoria per segnarlo come fatto. Appare barrato nella lista."},
       {ico:"&#128257;", tit:"Ricorrenza", txt:"Puoi impostare un promemoria come <em>giornaliero</em> o per un giorno specifico della settimana."},
       {ico:"&#128197;", tit:"Agenda", txt:"Vai su <strong>Agenda</strong> per gli appuntamenti con data, ora e luogo. Puoi esportarli su Google Tasks."},
@@ -8747,7 +8778,7 @@ var _GUIDE = {
       {ico:"&#128247;", tit:"Aggiungere la foto", txt:"Premi sull'area foto per caricare un'immagine. Puoi ritagliarla con l'editor integrato  il ritaglio viene applicato esattamente come lo imposti."},
       {ico:"&#127894;", tit:"Grado e dati", txt:"Il grado, nome, cognome e reparto vengono presi automaticamente dal tuo profilo. Puoi modificarli nelle impostazioni profilo."},
       {ico:"&#128424;", tit:"Stampare / salvare", txt:"Premi <strong>&#128424; Stampa</strong> per aprire la finestra di stampa del browser. Seleziona <em>Salva come PDF</em> per ottenere il file."},
-      {ico:"&#128271;", tit:"Timbro e firma", txt:"Il tesserino include un timbro tondo sovrapposto alla firma dell'autorità rilasciante per un aspetto realistico."}
+      {ico:"&#128271;", tit:"Timbro e firma", txt:"Il tesserino include un timbro tondo sovrapposto alla firma dell'autorit� rilasciante per un aspetto realistico."}
     ]
   },
   orari: {
@@ -8769,7 +8800,7 @@ var _GUIDE = {
       {ico:"&#128229;", tit:"Importare un backup", txt:"Premi <strong>&#128229; Importa backup</strong> e seleziona il file JSON precedentemente esportato. I dati vengono ripristinati completamente."},
       {ico:"&#128202;", tit:"Importare da Excel", txt:"Premi <strong>&#128202; Importa da Excel</strong> per caricare un file .xlsx con i turni. Le colonne devono contenere: nome, cognome, data, tipo turno."},
       {ico:"&#9888;", tit:"Attenzione", txt:"L'importazione <strong>sovrascrive</strong> i dati esistenti. Esegui sempre un backup prima di importare."},
-      {ico:"&#128465;", tit:"Reset completo", txt:"In <strong>Zona Pericolosa</strong> puoi eliminare tutti i dati. L'operazione è irreversibile — fai prima un backup."}
+      {ico:"&#128465;", tit:"Reset completo", txt:"In <strong>Zona Pericolosa</strong> puoi eliminare tutti i dati. L'operazione � irreversibile � fai prima un backup."}
     ]
   }
 };
@@ -8811,7 +8842,7 @@ var _zTop = 19000;
 function openM(id) {
     var m = document.getElementById(id);
     if (!m) return;
-    // Assegna z-index crescente — ogni modal aperto sta sopra il precedente
+    // Assegna z-index crescente � ogni modal aperto sta sopra il precedente
     _zTop += 10;
     m.style.zIndex = _zTop;
     m.classList.add('on');
@@ -8845,7 +8876,7 @@ function openM(id) {
               b.type = 'button';
               b.className = 'btn-turno-r';
               b.setAttribute('data-custom','1');
-              b.textContent = (tc.emoji||'⏰')+' '+tc.codice;
+              b.textContent = (tc.emoji||'?')+' '+tc.codice;
               b.title = tc.nome;
               b.onclick = function(){ setModTurnoTipo('custom_'+tc.codice, tc.codice, b); };
               customRow.appendChild(b);
@@ -8858,7 +8889,7 @@ function openM(id) {
         setTimeout(_aveDraw, 100);
     }
     if (id === 'm-todo') {
-        // Reset campi e bottoni priorità
+        // Reset campi e bottoni priorit�
         ['td-tit','td-note','td-data','td-ora'].forEach(function(fid){
           var el=document.getElementById(fid); if(el) el.value='';
         });
@@ -8867,8 +8898,8 @@ function openM(id) {
         var tdCond = document.getElementById('td-condividi'); if(tdCond) tdCond.checked=false;
         // Reset label pickers
         var dl=document.getElementById('td-data-btn-lbl'); if(dl){dl.textContent='Seleziona...';dl.style.color='var(--txt2)';}
-        var ol=document.getElementById('td-ora-btn-lbl');  if(ol){ol.textContent='—';ol.style.color='var(--txt2)';}
-        // Reset priorità a bassa (default)
+        var ol=document.getElementById('td-ora-btn-lbl');  if(ol){ol.textContent='�';ol.style.color='var(--txt2)';}
+        // Reset priorit� a bassa (default)
         document.querySelectorAll('#m-todo .tipo-rep-btn').forEach(function(b){ b.classList.remove('sel'); });
         var pb=document.getElementById('td-prio-bassa'); if(pb) pb.classList.add('sel');
         var pi=document.getElementById('td-prio'); if(pi) pi.value='bassa';
@@ -8883,7 +8914,7 @@ function openM(id) {
         var agCond = document.getElementById('ag-condividi'); if(agCond) agCond.checked=false;
         // Reset label pickers
         var adl=document.getElementById('ag-data-btn-lbl'); if(adl){adl.textContent='Seleziona...';adl.style.color='var(--txt2)';}
-        var aol=document.getElementById('ag-ora-btn-lbl');  if(aol){aol.textContent='—';aol.style.color='var(--txt2)';}
+        var aol=document.getElementById('ag-ora-btn-lbl');  if(aol){aol.textContent='�';aol.style.color='var(--txt2)';}
         // Reset avviso a "Nessuno"
         document.querySelectorAll('#m-agenda .tipo-rep-btn').forEach(function(b){ b.classList.remove('sel'); });
         var an0=document.getElementById('ag-notif-0'); if(an0) an0.classList.add('sel');
@@ -8955,7 +8986,7 @@ window.addEventListener('DOMContentLoaded', function() {
 
     // Carica opzioni turni custom nel select
     if(typeof _aggiungiOpzioniCustomAlSelect === 'function') _aggiungiOpzioniCustomAlSelect();
-    // parseSheet è già definita come funzione globale — non sovrascrivere qui
+    // parseSheet � gi� definita come funzione globale � non sovrascrivere qui
 });
 
 // --- LOGICA TASK 4: INSERIMENTO RAPIDO ---
@@ -9022,7 +9053,7 @@ function salvaTurnoRapido() {
     var tipoH = document.getElementById('r-tipo-hidden'); if(tipoH) tipoH.value='';
     document.querySelectorAll('#m-rapido .btn-r').forEach(function(b){ b.style.background=''; b.style.color=''; });
     closeM('m-rapido');
-    toast('Turno salvato ✓', 'ok');
+    toast('Turno salvato ?', 'ok');
     haptic('success');
 }
 
@@ -9089,7 +9120,7 @@ function popolaSelectPersone() {
             P.push({ id: u.id || u.uid, nome: ((u.cognome||'') + ' ' + (u.nome||'')).trim() || u.nome, grado: u.grado || '', uid: u.uid, _fromFirebase: true });
         }
     });
-    // Assicura presenza utente loggato — senza creare duplicati
+    // Assicura presenza utente loggato � senza creare duplicati
     if(me && me.nome) {
         var myPid2 = parseInt(localStorage.getItem('ct_my_pid')||'0');
         var meInLista = P.some(function(p){
@@ -9104,10 +9135,10 @@ function popolaSelectPersone() {
             var nuovoMe = { id: myPid2 || me.id || Date.now(), nome: ((me.cognome||'') + ' ' + (me.nome||'')).trim() || me.nome, grado: me.grado || '', reparto: me.reparto || '', uid: me.uid || '', ava: me.ava || '', ferieRes: 30, _isMe: true };
             var Ppers = lsG('ct_p', []);
             // Doppio check su ct_p fresco prima di aggiungere
-            var giàEsiste = Ppers.some(function(p){
+            var gi�Esiste = Ppers.some(function(p){
                 return (p.uid && p.uid === me.uid) || p.id === me.id || (myPid2 && p.id === myPid2);
             });
-            if(!giàEsiste) {
+            if(!gi�Esiste) {
                 Ppers.push(nuovoMe);
                 lsS('ct_p', Ppers);
                 localStorage.setItem('ct_my_pid', String(nuovoMe.id));
@@ -9121,7 +9152,7 @@ function popolaSelectPersone() {
             });
         }
     }
-    // Deduplicazione finale — rimuovi profili con stesso uid o stesso nome
+    // Deduplicazione finale � rimuovi profili con stesso uid o stesso nome
     var visti = {};
     P = P.filter(function(p){
         var key = p.uid || (p.nome||'').toLowerCase().trim();
@@ -9132,7 +9163,7 @@ function popolaSelectPersone() {
     var cur = document.getElementById('mt-pers').value;
     sel.innerHTML = '<option value="">Scegli collega...</option>' +
         P.map(function(p){
-            var verificato = (p.uid) ? ' ✓' : (p.placeholder ? ' ○' : '');
+            var verificato = (p.uid) ? ' ?' : (p.placeholder ? ' ?' : '');
             var isMeLabel = p._isMe ? ' (Tu)' : '';
             var label = p.nome + (p.grado ? ' (' + p.grado + ')' : '') + verificato + isMeLabel;
             return '<option value="' + p.id + '"' + (p.id == cur ? ' selected' : '') + '>' + label + '</option>';
@@ -9170,7 +9201,7 @@ var _PRESET_TIPO = {
     OBBM:'obbm', OBBP:'obbp'
 };
 function eliminaTurnoDaGiorno(tid, ds) {
-    ctConfirm('Eliminare questo turno?', {title:'Elimina Turno', ico:'📅', ok:'Elimina', danger:true}).then(function(ok){
+    ctConfirm('Eliminare questo turno?', {title:'Elimina Turno', ico:'??', ok:'Elimina', danger:true}).then(function(ok){
       if(!ok) return;
       var T = lsG("ct_t", []).filter(function(x){ return x.id !== tid; });
       lsS("ct_t", T);
@@ -9190,7 +9221,7 @@ function apriModificaTurnoGiorno(tid) {
     if(!t)return;
     closeM("m-giorno");
     if(typeof chiudiSheetGiorno === 'function') chiudiSheetGiorno();
-    // Usa apriModTurno che gestisce già tutto il nuovo UI
+    // Usa apriModTurno che gestisce gi� tutto il nuovo UI
     apriModTurno(tid);
     // Aggiorna titolo con nome persona e data
     var P=lsG("ct_p",[]);
@@ -9228,8 +9259,8 @@ function aggOraNativaDaTipo(tipo) {
 }
 
 
-// ── FOTO PROFILO — riscritta v4.1 ────────────────────────────
-// Flusso: selezione file → editor crop → salva con profilo
+// -- FOTO PROFILO � riscritta v4.1 ----------------------------
+// Flusso: selezione file ? editor crop ? salva con profilo
 
 var _ave = { img:null, x:0, y:0, scale:1, lx:0, ly:0, pd:0, prevId:'pf-ava-prev' };
 
@@ -9284,7 +9315,7 @@ function confermaAvatarCrop() {
   }
   closeM('m-avatar-editor');
 
-  // Upload immediato su Firebase Storage — non aspettare "Salva"
+  // Upload immediato su Firebase Storage � non aspettare "Salva"
   var sess = lsG('ct_session', null);
   var uid = sess && sess.userId;
   if(uid && window.FirebaseModule && window.FirebaseModule.uploadFotoProfilo) {
@@ -9301,7 +9332,7 @@ function confermaAvatarCrop() {
         if(_pfPrev) _pfPrev.classList.remove('ava-loading');
         if(_heroAvaUp) _heroAvaUp.classList.remove('ava-loading');
         if(!fotoUrl) { toast('Errore upload foto', 'err'); return; }
-        window._tempAva = null; // già caricata, non serve più
+        window._tempAva = null; // gi� caricata, non serve pi�
         // Aggiorna ct_me, ct_session, ct_p
         var me = lsG('ct_me', null);
         if(me) { me.ava = fotoUrl; me.fotoURL = fotoUrl; lsS('ct_me', me); }
@@ -9319,7 +9350,7 @@ function confermaAvatarCrop() {
         // Aggiorna tutte le preview nell'UI
         if(typeof _syncAvaAllSections === 'function') _syncAvaAllSections(fotoUrl);
         if(typeof aggUI === 'function') aggUI();
-        toast('Foto salvata ✓', 'ok');
+        toast('Foto salvata ?', 'ok');
         haptic('success');
       })
       .catch(function(e) {
@@ -9338,7 +9369,7 @@ function confermaAvatarCrop() {
     var me = lsG('ct_me', null);
     if(me) { me.ava = data; lsS('ct_me', me); }
     if(typeof aggiornaHeroCard === 'function') aggiornaHeroCard();
-    toast('Foto ritagliata ✓', 'ok');
+    toast('Foto ritagliata ?', 'ok');
   }
 }
 
@@ -9411,7 +9442,7 @@ function _ridimensionaFoto(file, cb) {
   reader.readAsDataURL(file);
 }
 
-// ── GOOGLE SYNC MODULE ──
+// -- GOOGLE SYNC MODULE --
 // Feature: google-sync
 var GSync = {
   auth: {},
@@ -9421,7 +9452,7 @@ var GSync = {
   ui: {}
 };
 
-// ── GSync.state ──
+// -- GSync.state --
 (function() {
   var KEY = 'ct_gsync';
 
@@ -9765,7 +9796,7 @@ GSync.saveClientId = function(value) {
   };
 
   GSync.ui._disconnect = function() {
-    ctConfirm('Disconnettere Google? I mapping esistenti verranno mantenuti.', {title:'Disconnetti Google', ico:'🔌', ok:'Disconnetti', danger:true}).then(function(ok){
+    ctConfirm('Disconnettere Google? I mapping esistenti verranno mantenuti.', {title:'Disconnetti Google', ico:'??', ok:'Disconnetti', danger:true}).then(function(ok){
       if(!ok) return;
       GSync.auth.revokeToken().then(function() {
         GSync.ui.updateConnectionStatus();
@@ -9776,18 +9807,18 @@ GSync.saveClientId = function(value) {
 })();
 
 
-// ═══════════════════════════════════════════════════════════════════
+// -------------------------------------------------------------------
 
 // SYNC MODULE  write-through localStorage + GitHub Gist (AES-256-GCM)
 
 
 
 
-// ═══════════════════════════════════════════════════════════════════
+// -------------------------------------------------------------------
 
 // AUTH MODULE  login, registrazione, sessione, ruoli
 
-// ═══════════════════════════════════════════════════════════════════
+// -------------------------------------------------------------------
 
 var AuthModule = (function() {
 
@@ -9801,7 +9832,7 @@ var AuthModule = (function() {
 
 
 
-  // ── SHA-256 → hex string ──
+  // -- SHA-256 ? hex string --
 
   async function _hashPassword(pass) {
 
@@ -9815,7 +9846,7 @@ var AuthModule = (function() {
 
 
 
-  // ── Validate @carabinieri.it email ──
+  // -- Validate @carabinieri.it email --
 
   function _validateEmail(email) {
 
@@ -9825,7 +9856,7 @@ var AuthModule = (function() {
 
 
 
-  // ── Session helpers ──
+  // -- Session helpers --
 
   function _saveSession(obj) {
 
@@ -9863,7 +9894,7 @@ var AuthModule = (function() {
 
 
 
-  // ── Users CRUD ──
+  // -- Users CRUD --
 
   function _getUsers() {
 
@@ -9895,7 +9926,7 @@ var AuthModule = (function() {
 
 
 
-  // ── Show/hide overlay ──
+  // -- Show/hide overlay --
 
   function _showOverlay(panel) {
     // Nascondi splash quando si mostra il login
@@ -9928,7 +9959,7 @@ var AuthModule = (function() {
 
 
   function _hideOverlay() {
-    // Nascondi splash quando l'utente è loggato
+    // Nascondi splash quando l'utente � loggato
     if(window._splashEmergencyTimer){ clearTimeout(window._splashEmergencyTimer); window._splashEmergencyTimer=null; }
     if(typeof window._hideSplash === 'function') window._hideSplash();
     var overlay = document.getElementById('auth-overlay');
@@ -9965,7 +9996,7 @@ var AuthModule = (function() {
 
   return {
 
-    // ── Init: check session on page load ──
+    // -- Init: check session on page load --
 
     init: function() {
 
@@ -10017,7 +10048,7 @@ var AuthModule = (function() {
 
 
 
-    // ── Login ──
+    // -- Login --
 
     login: async function(email, pass) {
       _clearAuthError('auth-login-err');
@@ -10097,7 +10128,7 @@ var AuthModule = (function() {
 
 
 
-      // ── Firebase Authentication ──────────────────────────────
+      // -- Firebase Authentication ------------------------------
 
       try {
 
@@ -10175,7 +10206,7 @@ var AuthModule = (function() {
 
     },
 
-    // ── Register ──
+    // -- Register --
 
     register: async function(dati) {
 
@@ -10225,20 +10256,20 @@ var AuthModule = (function() {
 
         var fbUid = regCred.user.uid;
 
-        // Reparto finale: privato se modalità personale
+        // Reparto finale: privato se modalit� personale
         var repartoFinale = (modalita === 'privato' || !reparto) ? ('privato_' + fbUid) : reparto;
 
         // Determina stato e ruolo: logica pioniere
         var ruoloFinale = 'addetto';
         var stato = 'approved';
         if (!_isPrivato(repartoFinale)) {
-          // Se registrazione da link invito → sempre addetto+pending (il reparto ha già un comandante)
+          // Se registrazione da link invito ? sempre addetto+pending (il reparto ha gi� un comandante)
           if (window._joinInviteReparto) {
             ruoloFinale = 'addetto';
             stato = 'pending';
             window._joinInviteReparto = null; // reset flag
           } else {
-            // Se nessun comandante approvato esiste → primo iscritto diventa comandante approved
+            // Se nessun comandante approvato esiste ? primo iscritto diventa comandante approved
             var existingUsers = await window.FirebaseModule.getUsersByReparto(repartoFinale);
 
             var hasCmdApproved = existingUsers.some(function(u) {
@@ -10247,7 +10278,7 @@ var AuthModule = (function() {
 
             });
 
-            // Pioniere: nessun utente nel reparto → comandante approved
+            // Pioniere: nessun utente nel reparto ? comandante approved
             var isPioniere = existingUsers.length === 0 || !hasCmdApproved;
             ruoloFinale = isPioniere ? 'comandante' : 'addetto';
             stato = isPioniere ? 'approved' : 'pending';
@@ -10312,7 +10343,7 @@ var AuthModule = (function() {
 
 
 
-    // ── Logout ──
+    // -- Logout --
 
     logout: function() {
       // Pulisci sessione locale prima (non aspettare Firebase)
@@ -10329,7 +10360,7 @@ var AuthModule = (function() {
 
 
 
-    // ── Render Gestione Membri section (called from aggUI) ──
+    // -- Render Gestione Membri section (called from aggUI) --
 
     renderGestioneMemebri: function() {
 
@@ -10354,7 +10385,7 @@ var AuthModule = (function() {
 
       var html = '<h3 style="margin:0 0 12px;font-size:1rem;color:var(--blue)">&#128101; Gestione Membri</h3>';
 
-      // ── Richieste in attesa ──
+      // -- Richieste in attesa --
       html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--txt2);margin-bottom:8px">Richieste in attesa</div>';
 
       if (pending.length === 0) {
@@ -10367,7 +10398,7 @@ var AuthModule = (function() {
           html += '<div style="background:var(--bg2);border-radius:12px;padding:12px;margin-bottom:8px">';
           html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">';
           html += '<div><div style="font-weight:600">' + (u.grado||'') + ' ' + u.nome + ' ' + u.cognome + '</div>';
-          html += '<div style="font-size:.8rem;color:var(--txt2)">' + u.email + ' · ' + regDate + '</div>';
+          html += '<div style="font-size:.8rem;color:var(--txt2)">' + u.email + ' � ' + regDate + '</div>';
           html += '<div style="font-size:.75rem;color:var(--blue);margin-top:2px">&#128205; ' + repLabel + '</div></div>';
           html += '<div style="display:flex;gap:6px;flex-wrap:wrap">';
           html += '<button class="btn btn-p" style="padding:6px 12px;font-size:.82rem" onclick="AuthModule._approva(\'' + uid_key + '\')">&#10003; Approva</button>';
@@ -10376,7 +10407,7 @@ var AuthModule = (function() {
         });
       }
 
-      // ── Membri approvati con gestione ruolo ──
+      // -- Membri approvati con gestione ruolo --
       if (approved.length > 0) {
         html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--txt2);margin:16px 0 8px">Membri approvati</div>';
         approved.forEach(function(u) {
@@ -10389,7 +10420,7 @@ var AuthModule = (function() {
           html += '<div style="background:var(--bg2);border-radius:12px;padding:10px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">';
           html += '<div><div style="font-weight:600;font-size:.9rem">' + (u.grado||'') + ' ' + u.nome + ' ' + u.cognome + '</div>';
           html += '<div style="margin-top:3px">' + ruoloBadge + '</div></div>';
-          // Solo il comandante può cambiare ruoli (non il vice)
+          // Solo il comandante pu� cambiare ruoli (non il vice)
           if (ruoloMe === 'comandante' && u.ruolo !== 'comandante') {
             html += '<select onchange="AuthModule._cambiaRuolo(\'' + uid_key + '\',this.value)" style="padding:5px 8px;border-radius:8px;background:var(--card);border:1px solid var(--border);color:var(--txt);font-size:.82rem;cursor:pointer">';
             html += '<option value="">-- Cambia ruolo --</option>';
@@ -10398,7 +10429,7 @@ var AuthModule = (function() {
             html += '<option value="comandante">&#128081; Trasferisci Comando</option>';
             html += '</select>';
           }
-          // FIX: il Comandante può eliminare qualsiasi membro (non se stesso)
+          // FIX: il Comandante pu� eliminare qualsiasi membro (non se stesso)
           if (ruoloMe === 'comandante' && u.ruolo !== 'comandante') {
             html += '<button class="btn btn-sm" style="padding:6px 10px;font-size:.78rem;background:rgba(200,16,46,.12);color:var(--red);border:1px solid rgba(200,16,46,.25);margin-left:4px" onclick="AuthModule._eliminaMembro(\'' + uid_key + '\')">&#128465; Elimina</button>';
           }
@@ -10412,7 +10443,7 @@ var AuthModule = (function() {
 
 
 
-    // ── Approve member ──
+    // -- Approve member --
 
     _approva: async function(uid) {
       var users = _getUsers();
@@ -10427,7 +10458,7 @@ var AuthModule = (function() {
       if (typeof toast === 'function') toast((u.nome||'') + ' ' + (u.cognome||'') + ' approvato', 'ok');
     },
 
-    // ── Reject member ──
+    // -- Reject member --
 
     _rifiuta: async function(uid) {
       var users = _getUsers();
@@ -10444,14 +10475,14 @@ var AuthModule = (function() {
 
 
 
-    // ── Cambia ruolo membro (solo comandante può farlo) ──
+    // -- Cambia ruolo membro (solo comandante pu� farlo) --
 
     _cambiaRuolo: async function(uid, nuovoRuolo) {
       if(!nuovoRuolo) return;
       var session = getSession();
       if(!session) return;
       var me = lsG('ct_me', null);
-      if(!me || me.ruolo !== 'comandante') { toast('Solo il Comandante può cambiare i ruoli', 'err'); return; }
+      if(!me || me.ruolo !== 'comandante') { toast('Solo il Comandante pu� cambiare i ruoli', 'err'); return; }
 
       var users = _getUsers();
       var target = users.find(function(u){ return u.uid === uid || u.email === uid; });
@@ -10460,7 +10491,7 @@ var AuthModule = (function() {
       var nomeTarget = (target.grado||'') + ' ' + target.nome + ' ' + target.cognome;
 
       if(nuovoRuolo === 'comandante') {
-        if(!await ctConfirm('Trasferire il comando a <strong>' + nomeTarget + '</strong>?<br><small>Diventerai Addetto.</small>', {title:'Trasferisci Comando', ico:'🎖️', ok:'Trasferisci', danger:true})) return;
+        if(!await ctConfirm('Trasferire il comando a <strong>' + nomeTarget + '</strong>?<br><small>Diventerai Addetto.</small>', {title:'Trasferisci Comando', ico:'???', ok:'Trasferisci', danger:true})) return;
         users.forEach(function(u){
           if(u.uid === me.uid || u.email === session.userId) u.ruolo = 'addetto';
         });
@@ -10470,9 +10501,9 @@ var AuthModule = (function() {
         lsS('ct_me', me);
         try { if(window.FirebaseModule) await window.FirebaseModule.saveUserProfile(me.uid||session.userId, me, me.reparto); } catch(e){}
       } else if(nuovoRuolo === 'vice') {
-        if(!await ctConfirm('Nominare <strong>' + nomeTarget + '</strong> come Vice Comandante?', {title:'Nomina Vice', ico:'⭐', ok:'Nomina'})) return;
+        if(!await ctConfirm('Nominare <strong>' + nomeTarget + '</strong> come Vice Comandante?', {title:'Nomina Vice', ico:'?', ok:'Nomina'})) return;
       } else {
-        if(!await ctConfirm('Rimuovere il ruolo speciale a <strong>' + nomeTarget + '</strong>?', {title:'Rimuovi Ruolo', ico:'⬇️', ok:'Rimuovi', danger:true})) return;
+        if(!await ctConfirm('Rimuovere il ruolo speciale a <strong>' + nomeTarget + '</strong>?', {title:'Rimuovi Ruolo', ico:'??', ok:'Rimuovi', danger:true})) return;
       }
 
       target.ruolo = nuovoRuolo;
@@ -10481,7 +10512,7 @@ var AuthModule = (function() {
         if(window.FirebaseModule) await window.FirebaseModule.saveUserProfile(target.uid||uid, target, target.reparto);
       } catch(e){ console.warn('_cambiaRuolo Firebase:', e.message); }
 
-      // Se il target è l'utente corrente (es. riceve il comando), aggiorna sessione locale
+      // Se il target � l'utente corrente (es. riceve il comando), aggiorna sessione locale
       if(target.uid === me.uid || target.email === session.userId) {
         session.ruolo = nuovoRuolo;
         me.ruolo = nuovoRuolo;
@@ -10489,18 +10520,18 @@ var AuthModule = (function() {
         lsS('ct_me', me);
       }
 
-      toast(nomeTarget + ' → ' + (nuovoRuolo === 'comandante' ? 'Comandante' : nuovoRuolo === 'vice' ? 'Vice Comandante' : 'Addetto'), 'ok');
+      toast(nomeTarget + ' ? ' + (nuovoRuolo === 'comandante' ? 'Comandante' : nuovoRuolo === 'vice' ? 'Vice Comandante' : 'Addetto'), 'ok');
       AuthModule.renderGestioneMemebri();
       if(typeof aggUI === 'function') aggUI();
     },
 
-    // ── Elimina membro (solo Comandante) ──
+    // -- Elimina membro (solo Comandante) --
     _eliminaMembro: async function(uid) {
       var users = _getUsers();
       var u = users.find(function(x) { return x.uid === uid || x.email === uid; });
       if (!u) { if(typeof toast==='function') toast('Utente non trovato', 'err'); return; }
       var nome = (u.nome||'') + ' ' + (u.cognome||'');
-      if(!await ctConfirm('Eliminare definitivamente <strong>' + nome.trim() + '</strong> dal reparto?<br><small>Questa azione non è reversibile.</small>', {title:'Elimina Membro', ico:'🗑️', ok:'Elimina', danger:true})) return;
+      if(!await ctConfirm('Eliminare definitivamente <strong>' + nome.trim() + '</strong> dal reparto?<br><small>Questa azione non � reversibile.</small>', {title:'Elimina Membro', ico:'???', ok:'Elimina', danger:true})) return;
       // Rimuovi dalla lista locale
       var newUsers = users.filter(function(x) { return x.uid !== uid && x.email !== uid; });
       _saveUsers(newUsers);
@@ -10519,7 +10550,7 @@ var AuthModule = (function() {
       if(typeof toast === 'function') toast(nome.trim() + ' eliminato', 'ok');
     },
 
-    // ── Transfer comandante role (legacy, mantenuto per compatibilità) ──
+    // -- Transfer comandante role (legacy, mantenuto per compatibilit�) --
 
     _trasferisciRuolo: async function() {
 
@@ -10538,7 +10569,7 @@ var AuthModule = (function() {
       var target = users.find(function(u) { return u.email === targetEmail; });
 
       if (!target || target.stato !== 'approved') { if (typeof toast === 'function') toast('Utente non valido', 'err'); return; }
-      if(!await ctConfirm('Trasferire il ruolo Comandante a <strong>' + target.nome + ' ' + target.cognome + '</strong>?', {title:'Trasferisci Comando', ico:'🎖️', ok:'Trasferisci', danger:true})) return;
+      if(!await ctConfirm('Trasferire il ruolo Comandante a <strong>' + target.nome + ' ' + target.cognome + '</strong>?', {title:'Trasferisci Comando', ico:'???', ok:'Trasferisci', danger:true})) return;
 
       users.forEach(function(u) {
 
@@ -10572,9 +10603,9 @@ var AuthModule = (function() {
 
 
 
-// ═══════════════════════════════════════════════════════════
-// DINO GAME — minigioco canvas con emoji
-// ═══════════════════════════════════════════════════════════
+// -----------------------------------------------------------
+// DINO GAME � minigioco canvas con emoji
+// -----------------------------------------------------------
 (function(){
 
   var _dinoInited = false;
@@ -10587,7 +10618,7 @@ var AuthModule = (function() {
   var JUMP_VY      = -12;
   var BASE_SPEED   = 4;
   var MAX_SPEED    = 13;
-  var ACCEL        = 0.0015;  // incremento velocità per frame
+  var ACCEL        = 0.0015;  // incremento velocit� per frame
 
   // Stato gioco
   var state = {};
@@ -10628,7 +10659,7 @@ var AuthModule = (function() {
     // Sfondo
     ctx.clearRect(0, 0, cw, ch);
 
-    // Cielo sfumato più ricco
+    // Cielo sfumato pi� ricco
     var grad = ctx.createLinearGradient(0, 0, 0, s.ground);
     grad.addColorStop(0, 'rgba(5,10,20,0.95)');
     grad.addColorStop(0.6, 'rgba(10,20,50,0.5)');
@@ -10660,7 +10691,7 @@ var AuthModule = (function() {
     ctx.font = '16px serif';
     ctx.globalAlpha = 0.3;
     s.clouds.forEach(function(c) {
-      ctx.fillText('☁️', c.x, c.y);
+      ctx.fillText('??', c.x, c.y);
     });
     ctx.globalAlpha = 1;
 
@@ -10672,18 +10703,18 @@ var AuthModule = (function() {
     ctx.fillText(scoreStr, cw - 10, 20);
     ctx.textAlign = 'left';
 
-    // Velocità indicatore (barra sottile in alto)
+    // Velocit� indicatore (barra sottile in alto)
     if(s.started && !s.over){
       var speedPct = (s.speed - BASE_SPEED) / (MAX_SPEED - BASE_SPEED);
       ctx.fillStyle = 'rgba(91,159,255,0.3)';
       ctx.fillRect(0, 0, cw * speedPct, 2);
     }
 
-    // Dino — flip orizzontale per farlo correre verso destra
+    // Dino � flip orizzontale per farlo correre verso destra
     ctx.save();
     ctx.scale(-1, 1);
     ctx.font = DINO_W + 'px serif';
-    ctx.fillText('🦖', -(s.dx + DINO_W * 0.5), s.dy + DINO_H * 0.15);
+    ctx.fillText('??', -(s.dx + DINO_W * 0.5), s.dy + DINO_H * 0.15);
     ctx.restore();
 
     // Ostacoli a terra
@@ -10694,10 +10725,10 @@ var AuthModule = (function() {
         ctx.save();
         ctx.scale(-1,1);
         ctx.font = (OBS_W+4) + 'px serif';
-        ctx.fillText('🦅', -(o.x + OBS_W * 0.5), o.y);
+        ctx.fillText('??', -(o.x + OBS_W * 0.5), o.y);
         ctx.restore();
       } else {
-        ctx.fillText('🌵', o.x - OBS_W * 0.5, s.ground + OBS_H * 0.15);
+        ctx.fillText('??', o.x - OBS_W * 0.5, s.ground + OBS_H * 0.15);
       }
     });
 
@@ -10708,7 +10739,7 @@ var AuthModule = (function() {
       ctx.fillStyle = 'rgba(255,255,255,0.85)';
       ctx.font = 'bold 14px -apple-system, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('🦖  Tocca per iniziare', cw / 2, ch / 2 - 4);
+      ctx.fillText('??  Tocca per iniziare', cw / 2, ch / 2 - 4);
       ctx.font = '11px -apple-system, sans-serif';
       ctx.fillStyle = 'rgba(255,255,255,0.5)';
       ctx.fillText('Spazio / Tap per saltare', cw / 2, ch / 2 + 14);
@@ -10732,7 +10763,7 @@ var AuthModule = (function() {
       ctx.fillStyle = '#fff';
       ctx.font = 'bold 17px -apple-system, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('💀 Game Over', cw / 2, by + 26);
+      ctx.fillText('?? Game Over', cw / 2, by + 26);
       ctx.font = '12px -apple-system, sans-serif';
       ctx.fillStyle = 'rgba(255,255,255,0.75)';
       ctx.fillText('Punteggio: ' + Math.floor(s.score), cw / 2, by + 46);
@@ -10838,7 +10869,7 @@ var AuthModule = (function() {
       var rep = (me && me.reparto) ? me.reparto : null;
       if(!rep || rep.startsWith('privato_')) return;
       var nome = me ? ((me.nome||'') + ' ' + (me.cognome||'')).trim() : 'Anonimo';
-      // Salva solo se è un nuovo record personale
+      // Salva solo se � un nuovo record personale
       window.FirebaseModule.saveDinoScore(sess.userId, nome, sc, rep)
         .then(function(){
           return window.FirebaseModule.getDinoLeaderboard(rep);
@@ -10856,11 +10887,11 @@ var AuthModule = (function() {
     var old = document.getElementById('dino-lb-popup');
     if(old) old.remove();
     var html = '<div id="dino-lb-popup" style="position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(10,20,40,.97);border:1px solid rgba(91,159,255,.4);border-radius:16px;padding:14px 18px;z-index:99999;min-width:220px;max-width:300px;box-shadow:0 8px 32px rgba(0,0,0,.6)">'
-      +'<div style="font-size:13px;font-weight:800;color:var(--gold,#ffd166);margin-bottom:10px;text-align:center">🏆 Top Reparto</div>';
+      +'<div style="font-size:13px;font-weight:800;color:var(--gold,#ffd166);margin-bottom:10px;text-align:center">?? Top Reparto</div>';
     top5.forEach(function(s,i){
       var isMe = s.score === myScore;
       html += '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;'+(isMe?'color:#5b9fff;font-weight:800':'color:rgba(255,255,255,.8)')+'">'
-        +'<span style="font-size:12px;width:18px;text-align:center">'+(i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.')+' </span>'
+        +'<span style="font-size:12px;width:18px;text-align:center">'+(i===0?'??':i===1?'??':i===2?'??':(i+1)+'.')+' </span>'
         +'<span style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+s.nome+'</span>'
         +'<span style="font-size:13px;font-weight:900">'+s.score+'</span>'
         +'</div>';
@@ -10901,12 +10932,12 @@ var AuthModule = (function() {
   // Flag per evitare listener duplicati
   var _dinoListenerAdded = false;
 
-  // ── API pubblica ──
+  // -- API pubblica --
   window.initDinoGame = function() {
     var canvas = document.getElementById('dino-canvas');
     if (!canvas) return;
 
-    // Controlla dimensioni reali — se 0 il canvas è ancora nascosto
+    // Controlla dimensioni reali � se 0 il canvas � ancora nascosto
     var rect = canvas.getBoundingClientRect();
     if (rect.width < 10 || rect.height < 10) {
       _dinoInited = false;
@@ -10939,7 +10970,7 @@ var AuthModule = (function() {
     function onInput(e) {
       if (e && e.preventDefault) e.preventDefault();
       jump();
-      // Avvia il loop se il gioco è partito e il loop non sta girando
+      // Avvia il loop se il gioco � partito e il loop non sta girando
       if (state.started && !state.over && !_dinoRaf) {
         _dinoRunning = true;
         loop(_ctx, _cw, _ch);
@@ -10961,12 +10992,12 @@ var AuthModule = (function() {
     }
   };
 
-  // ── Integrazione con il toggle delle impostazioni ──
+  // -- Integrazione con il toggle delle impostazioni --
   // Sovrascrive l'onchange del toggle per aggiungere initDinoGame
   document.addEventListener('DOMContentLoaded', function() {
     _applyDinoPrefs();
   });
-  // Fallback se DOMContentLoaded già passato
+  // Fallback se DOMContentLoaded gi� passato
   if (document.readyState !== 'loading') {
     setTimeout(_applyDinoPrefs, 400);
   }
@@ -10977,7 +11008,7 @@ var AuthModule = (function() {
     var enabled = prefs.dino === true;
     if (tog) tog.checked = enabled;
 
-    // Aggiorna visibilità widget dashboard
+    // Aggiorna visibilit� widget dashboard
     _updateDinoVisibility();
 
     // Aggiorna anche il widget system (mostra/nascondi nel wdg-container)
@@ -11040,12 +11071,12 @@ var AuthModule = (function() {
 })();
 
 
-// ═══════════════════════════════════════════════════════════════
-// EFFETTI PREMIUM — Glass Shimmer, Ripple Pulse, Magnetic Snap,
+// ---------------------------------------------------------------
+// EFFETTI PREMIUM � Glass Shimmer, Ripple Pulse, Magnetic Snap,
 // Live Pulse, Glass Spotlight, SVG Draw-in, Frost Reveal
-// ═══════════════════════════════════════════════════════════════
+// ---------------------------------------------------------------
 
-// ── 2. GLASS SHIMMER ──────────────────────────────────────────
+// -- 2. GLASS SHIMMER ------------------------------------------
 function _startGlassShimmer() {
   if(window._shimmerTimer) clearInterval(window._shimmerTimer);
   window._shimmerTimer = setInterval(function() {
@@ -11073,7 +11104,7 @@ function _onVisibilityShimmer() {
   }
 }
 
-// ── 3. RIPPLE PULSE ───────────────────────────────────────────
+// -- 3. RIPPLE PULSE -------------------------------------------
 function _checkRipplePulse() {
   var me = lsG('ct_me', null);
   if(!me) return;
@@ -11116,7 +11147,7 @@ function _fireRipplePulse() {
   if(navigator.vibrate) navigator.vibrate([30, 50, 30]);
 }
 
-// ── 4. MAGNETIC SNAP ──────────────────────────────────────────
+// -- 4. MAGNETIC SNAP ------------------------------------------
 function _initMagneticSnap() {
   var container = document.getElementById('wdg-container');
   if(!container) return;
@@ -11164,7 +11195,7 @@ function _initMagneticSnap() {
   }, {passive:true, capture:true});
 }
 
-// ── 6. GLASS SPOTLIGHT ────────────────────────────────────────
+// -- 6. GLASS SPOTLIGHT ----------------------------------------
 function _initGlassSpotlight() {
   document.querySelectorAll('.bento-card').forEach(function(card) {
     // Evita duplicati
@@ -11201,7 +11232,7 @@ function _initGlassSpotlight() {
   });
 }
 
-// ── 7. SVG DRAW-IN ────────────────────────────────────────────
+// -- 7. SVG DRAW-IN --------------------------------------------
 function _animateHeroIcon() {
   var ico = document.getElementById('hero-tonal-ico');
   if(!ico) return;
@@ -11211,7 +11242,7 @@ function _animateHeroIcon() {
   setTimeout(function(){ ico.classList.remove('drawing'); }, 520);
 }
 
-// ── 8. FROST REVEAL ───────────────────────────────────────────
+// -- 8. FROST REVEAL -------------------------------------------
 function _frostReveal() {
   // Hero Card
   var hero = document.getElementById('hero-card');
@@ -11226,7 +11257,7 @@ function _frostReveal() {
     });
   }
 
-  // Widget cards — staggered
+  // Widget cards � staggered
   var widgets = document.querySelectorAll('#wdg-container .wdg-wrap');
   widgets.forEach(function(w, i) {
     w.classList.add('frost-hidden');
@@ -11241,7 +11272,7 @@ function _frostReveal() {
   });
 }
 
-// ── INIT GLOBALE — chiamato da renderDash ─────────────────────
+// -- INIT GLOBALE � chiamato da renderDash ---------------------
 function initPremiumEffects() {
   _startGlassShimmer();
   _initMagneticSnap();
@@ -11256,4 +11287,4 @@ function initPremiumEffects() {
   _checkRipplePulse();
 }
 
-// ── fine app.js ──
+// -- fine app.js --
