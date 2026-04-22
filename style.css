@@ -4495,3 +4495,30 @@ body[data-atmosfera="oasi"]       .hero-ring-fill { stroke: #00C853; }
 /* Scrollbar chips nascosta */
 #cal-panel-agenda > div:first-child::-webkit-scrollbar { display: none; }
 #pag-ag > div:first-of-type::-webkit-scrollbar { display: none; }
+
+/* ── AVATAR PICKER ── */
+#avatar-picker-grid div,
+#mpf-avatar-grid div {
+  cursor: pointer;
+  border-radius: 50%;
+  overflow: hidden;
+  aspect-ratio: 1;
+  border: 3px solid transparent;
+  transition: border-color .2s, box-shadow .2s, transform .15s var(--motion-spring);
+  background: var(--bg2);
+}
+#avatar-picker-grid div:hover,
+#mpf-avatar-grid div:hover {
+  transform: scale(1.08);
+  border-color: var(--blue) !important;
+}
+#avatar-picker-grid div:active,
+#mpf-avatar-grid div:active {
+  transform: scale(.94);
+}
+#avatar-picker-grid svg,
+#mpf-avatar-grid svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}

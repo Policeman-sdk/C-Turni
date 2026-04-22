@@ -1343,7 +1343,7 @@ function salvaFerie(){
 
 // ---- WIDGET TURNO OGGI ----
 var _tipoIco={
-  mattina:"☀️",pomeriggio:"☀️",ml:"🌅",pl:"🌞",
+  mattina:"🌅",pomeriggio:"☀️",ml:"🌄",pl:"🌞",
   notte:"🌙",sera:"🌆",
   riposo:"🛋️",recupero:"♻️",
   ferie:"🏖️",licenza:"📚","937":"🏝️",
@@ -1531,10 +1531,10 @@ var _TURNO_ATMOSFERA = {
   obbm:'alba', obbp:'tramonto'
 };
 var _TURNO_ICO_HERO = {
-  mattina:'☀️', ml:'🌅', pomeriggio:'🌆', pl:'🌇',
-  notte:'🌙', sera:'🌃', riposo:'🛋️', recupero:'🛋️',
-  ferie:'🏖️', '937':'📋', '104':'📋', ls:'🩸',
-  licenza:'📚', permesso:'📝', fest:'🎉', corso:'📖', esame:'✏️',
+  mattina:'🌅', ml:'🌄', pomeriggio:'☀️', pl:'🌞',
+  notte:'🌙', sera:'🌆', riposo:'🛋️', recupero:'♻️',
+  ferie:'🏖️', '937':'🏝️', '104':'♿', ls:'🩸',
+  licenza:'📚', permesso:'📋', fest:'🎉', corso:'🎓', esame:'📝',
   obbm:'🔶', obbp:'🔷'
 };
 var _TURNO_SIGLA = {
@@ -2720,12 +2720,14 @@ function toggleImpProfilo() {
     if (pNuc) pNuc.value = me.nucleo || '';
     if (pGrado) pGrado.value = me.grado || '';
     if (pAva) pAva.value = me.ava || '';
-    // Aggiorna preview avatar
+    // Aggiorna preview avatar e griglia
     var prev = document.getElementById('pf-ava-prev');
     if (prev) {
       if (me.ava) { prev.style.backgroundImage='url('+me.ava+')'; prev.style.backgroundSize='cover'; prev.style.backgroundPosition='center'; prev.textContent=''; }
-      else { prev.style.backgroundImage=''; prev.textContent='\u{1F464}'; }
+      else { prev.style.backgroundImage=''; prev.textContent='👤'; }
     }
+    // Renderizza griglia avatar
+    if(typeof renderAvatarPicker === 'function') renderAvatarPicker('avatar-picker-grid', 'pf-ava-prev', 'pf-ava');
     // Aggiorna label grado
     if (me.grado && typeof prevGrado === 'function') prevGrado(me.grado, 'pf-grado');
     // Tipo reparto
@@ -3716,6 +3718,98 @@ function aggAvaPreview(ava){
   if(!prev)return;
   if(ava){prev.style.backgroundImage="url("+ava+")";prev.style.backgroundSize="cover";prev.innerHTML="";}
   else{prev.style.backgroundImage="";prev.innerHTML="&#128100;";}
+}
+
+// ── SISTEMA AVATAR PREIMPOSTATI ──────────────────────────────
+var _AVATARS = [
+  // Uomo 1 — Carabiniere classico
+  { id:'m1', label:'Uomo 1', svg:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#1a3a6f"/><circle cx="50" cy="38" r="18" fill="#f5c5a3"/><ellipse cx="50" cy="82" rx="28" ry="20" fill="#0e1f3a"/><rect x="36" y="54" width="28" height="22" rx="4" fill="#1a3a6f"/><rect x="38" y="54" width="24" height="4" fill="#c8a84b"/></svg>' },
+  // Uomo 2 — Maresciallo
+  { id:'m2', label:'Uomo 2', svg:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#2c3e50"/><circle cx="50" cy="38" r="18" fill="#e8c49a"/><ellipse cx="50" cy="82" rx="28" ry="20" fill="#1a252f"/><rect x="36" y="54" width="28" height="22" rx="4" fill="#2c3e50"/><rect x="38" y="54" width="24" height="3" fill="#c8102e"/><rect x="38" y="59" width="24" height="3" fill="#c8102e"/></svg>' },
+  // Uomo 3 — Ufficiale
+  { id:'m3', label:'Uomo 3', svg:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#0d3349"/><circle cx="50" cy="38" r="18" fill="#f0d0b0"/><ellipse cx="50" cy="82" rx="28" ry="20" fill="#071e2e"/><rect x="36" y="54" width="28" height="22" rx="4" fill="#0d3349"/><polygon points="50,56 44,62 56,62" fill="#d4af37"/></svg>' },
+  // Uomo 4 — Forestale
+  { id:'m4', label:'Uomo 4', svg:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#2e5e2e"/><circle cx="50" cy="38" r="18" fill="#e8c49a"/><ellipse cx="50" cy="82" rx="28" ry="20" fill="#1a3a1a"/><rect x="36" y="54" width="28" height="22" rx="4" fill="#2e5e2e"/><rect x="38" y="54" width="24" height="3" fill="#8fbe6a"/></svg>' },
+  // Uomo 5 — Generico
+  { id:'m5', label:'Uomo 5', svg:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#34495e"/><circle cx="50" cy="38" r="18" fill="#f5c5a3"/><ellipse cx="50" cy="82" rx="28" ry="20" fill="#1c2833"/><rect x="36" y="54" width="28" height="22" rx="4" fill="#34495e"/></svg>' },
+  // Donna 1
+  { id:'f1', label:'Donna 1', svg:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#1a3a6f"/><circle cx="50" cy="36" r="18" fill="#f5c5a3"/><path d="M32 36 Q50 28 68 36" fill="#3d2b1f"/><ellipse cx="50" cy="82" rx="28" ry="20" fill="#0e1f3a"/><rect x="36" y="52" width="28" height="24" rx="4" fill="#1a3a6f"/><rect x="38" y="52" width="24" height="4" fill="#c8a84b"/></svg>' },
+  // Donna 2
+  { id:'f2', label:'Donna 2', svg:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#2c3e50"/><circle cx="50" cy="36" r="18" fill="#e8c49a"/><path d="M30 38 Q50 22 70 38 Q68 50 50 52 Q32 50 30 38Z" fill="#5c3d2e"/><ellipse cx="50" cy="82" rx="28" ry="20" fill="#1a252f"/><rect x="36" y="52" width="28" height="24" rx="4" fill="#2c3e50"/></svg>' },
+  // Donna 3
+  { id:'f3', label:'Donna 3', svg:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#0d3349"/><circle cx="50" cy="36" r="18" fill="#f0d0b0"/><path d="M32 34 Q50 20 68 34 Q66 48 50 50 Q34 48 32 34Z" fill="#2c1810"/><ellipse cx="50" cy="82" rx="28" ry="20" fill="#071e2e"/><rect x="36" y="52" width="28" height="24" rx="4" fill="#0d3349"/><polygon points="50,54 44,60 56,60" fill="#d4af37"/></svg>' },
+  // Donna 4
+  { id:'f4', label:'Donna 4', svg:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#2e5e2e"/><circle cx="50" cy="36" r="18" fill="#e8c49a"/><path d="M32 36 Q50 26 68 36" fill="#8B4513"/><ellipse cx="50" cy="82" rx="28" ry="20" fill="#1a3a1a"/><rect x="36" y="52" width="28" height="24" rx="4" fill="#2e5e2e"/><rect x="38" y="52" width="24" height="3" fill="#8fbe6a"/></svg>' },
+  // Donna 5
+  { id:'f5', label:'Donna 5', svg:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#7b3f6e"/><circle cx="50" cy="36" r="18" fill="#f5c5a3"/><path d="M30 36 Q50 24 70 36 Q68 50 50 52 Q32 50 30 36Z" fill="#4a2040"/><ellipse cx="50" cy="82" rx="28" ry="20" fill="#4a2040"/><rect x="36" y="52" width="28" height="24" rx="4" fill="#7b3f6e"/></svg>' }
+];
+
+function _getAvatarDataUrl(id) {
+  var av = _AVATARS.find(function(a){ return a.id === id; });
+  if(!av) return null;
+  return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(av.svg)));
+}
+
+function renderAvatarPicker(gridId, prevId, hiddenId) {
+  var grid = document.getElementById(gridId);
+  if(!grid) return;
+  var me = lsG('ct_me', null);
+  var currentAva = me && me.ava ? me.ava : '';
+  grid.innerHTML = _AVATARS.map(function(av) {
+    var dataUrl = _getAvatarDataUrl(av.id);
+    var isSelected = currentAva && currentAva.indexOf(av.id) !== -1;
+    return '<div onclick="selezionaAvatar(\''+av.id+'\',\''+prevId+'\',\''+hiddenId+'\')" '
+      + 'style="cursor:pointer;border-radius:50%;overflow:hidden;width:100%;aspect-ratio:1;'
+      + 'border:3px solid '+(isSelected?'var(--blue)':'transparent')+';'
+      + 'box-shadow:'+(isSelected?'0 0 0 2px var(--blue)':'none')+';'
+      + 'transition:all .2s;background:var(--bg2)">'
+      + av.svg
+      + '</div>';
+  }).join('');
+}
+
+function selezionaAvatar(id, prevId, hiddenId) {
+  var dataUrl = _getAvatarDataUrl(id);
+  if(!dataUrl) return;
+  // Aggiorna preview
+  var prev = document.getElementById(prevId);
+  if(prev) {
+    prev.style.backgroundImage = 'url('+dataUrl+')';
+    prev.style.backgroundSize = 'cover';
+    prev.style.backgroundPosition = 'center';
+    prev.textContent = '';
+  }
+  // Aggiorna hidden input
+  var hidden = document.getElementById(hiddenId);
+  if(hidden) hidden.value = dataUrl;
+  // Evidenzia selezione nella griglia
+  var gridId = prevId === 'pf-ava-prev' ? 'avatar-picker-grid' : 'mpf-avatar-grid';
+  var grid = document.getElementById(gridId);
+  if(grid) {
+    grid.querySelectorAll('div').forEach(function(d, i) {
+      var av = _AVATARS[i];
+      var sel = av && av.id === id;
+      d.style.border = '3px solid ' + (sel ? 'var(--blue)' : 'transparent');
+      d.style.boxShadow = sel ? '0 0 0 2px var(--blue)' : 'none';
+    });
+  }
+  // Salva subito nel profilo
+  var me = lsG('ct_me', null);
+  if(me) {
+    me.ava = dataUrl;
+    lsS('ct_me', me);
+    var sess = lsG('ct_session', null);
+    if(sess) { sess.ava = dataUrl; lsS('ct_session', sess); }
+    // Aggiorna tutte le sezioni UI
+    if(typeof _syncAvaAllSections === 'function') _syncAvaAllSections(dataUrl);
+    if(typeof aggUI === 'function') aggUI();
+    // Salva su Firebase in background (senza bloccare)
+    if(window.FirebaseModule && sess && sess.userId) {
+      window.FirebaseModule.saveUserProfile(sess.userId, me, me.reparto).catch(function(){});
+    }
+  }
+  haptic('success');
+  toast('Avatar aggiornato ✓', 'ok');
 }
 
 function prevGrado(val){
@@ -7296,9 +7390,13 @@ function apriProfilo(){
       prev.style.backgroundPosition='center';
       prev.textContent='';
     }else{
-      prev.textContent='\u{1F464}';
+      prev.textContent='👤';
     }
   }
+  // Renderizza griglia avatar nel modal profilo
+  setTimeout(function(){
+    if(typeof renderAvatarPicker === 'function') renderAvatarPicker('mpf-avatar-grid', 'mpf-ava-prev', 'pf-ava');
+  }, 50);
   var errEl=document.getElementById('pf-err');
   if(errEl)errEl.classList.remove('on');
   openM('m-profilo');
@@ -7316,55 +7414,30 @@ function salvaProfilo(){
   if(!nome){errEl.textContent='Il nome non può essere vuoto';errEl.classList.add('on');return;}
   me.nome=nome;me.reparto=rep;me.nucleo=nuc;me.grado=grado;
   if(pw)me.pw=pw;
-  var fEl=document.getElementById('pf-ava-file');
 
-  // Funzione finale: aggiorna localStorage e UI SOLO dopo conferma Firebase
+  // Avatar: leggi dal campo hidden (selezionato dalla griglia)
+  var avaHidden = document.getElementById('pf-ava');
+  var nuovoAva = avaHidden && avaHidden.value ? avaHidden.value : null;
+  if(nuovoAva) me.ava = nuovoAva;
+
+  // Salva direttamente senza upload foto
   var _salvaConFoto = function(dataUrl){
     var session=lsG('ct_session',null);
     var uid=session&&session.userId?session.userId:null;
+    if(dataUrl) me.ava = dataUrl;
     if(!uid || !window.FirebaseModule){
-      // Nessun Firebase: salva solo in locale
-      if(dataUrl) me.ava = dataUrl;
       _completaSalvataggio(me);
       return;
     }
-    // Se c'è una nuova foto base64, caricala su Storage e ottieni l'URL reale
-    if(dataUrl && dataUrl.startsWith('data:')){
-      toast('Caricamento foto...','ok');
-      ctSpinner(true, 'Salvataggio profilo...');
-      window.FirebaseModule.uploadFotoProfilo(uid, dataUrl)
-        .then(function(fotoUrl){
-          if(fotoUrl) me.ava = fotoUrl;
-          return window.FirebaseModule.saveUserProfile(uid, me, me.reparto);
-        })
-        .then(function(){
-          return window.FirebaseModule.savePersonale();
-        })
-        .then(function(){
-          // SOLO dopo il successo di Firestore aggiorna localStorage e UI
-          _completaSalvataggio(me);
-        })
-        .catch(function(e){
-          ctSpinner(false);
-          console.warn('salvaProfilo Firebase:', e.message);
-          toast('Errore salvataggio: '+e.message,'err');
-        });
-    } else {
-      // Nessuna foto nuova: salva profilo direttamente
-      ctSpinner(true, 'Salvataggio profilo...');
-      window.FirebaseModule.saveUserProfile(uid, me, me.reparto)
-        .then(function(){
-          return window.FirebaseModule.savePersonale();
-        })
-        .then(function(){
-          _completaSalvataggio(me);
-        })
-        .catch(function(e){
-          ctSpinner(false);
-          console.warn('salvaProfilo Firebase:', e.message);
-          toast('Errore salvataggio: '+e.message,'err');
-        });
-    }
+    ctSpinner(true, 'Salvataggio profilo...');
+    window.FirebaseModule.saveUserProfile(uid, me, me.reparto)
+      .then(function(){ return window.FirebaseModule.savePersonale(); })
+      .then(function(){ _completaSalvataggio(me); })
+      .catch(function(e){
+        ctSpinner(false);
+        console.warn('salvaProfilo Firebase:', e.message);
+        toast('Errore salvataggio: '+e.message,'err');
+      });
   };
 
   // Aggiorna localStorage, ct_u, ct_p, DOM e mostra toast
@@ -7410,24 +7483,8 @@ function salvaProfilo(){
     toast('Profilo aggiornato ?','ok');
   }
 
-  // Avvia il flusso con o senza nuova foto
-  var fEl = document.getElementById('pf-ava-file');
-  if(fEl && fEl.files[0]) {
-    // Nuova foto da file: ridimensiona e carica
-    _ridimensionaFoto(fEl.files[0], function(dataUrl) {
-      if(dataUrl) window._tempAva = dataUrl;
-      _salvaConFoto(dataUrl || null);
-    });
-  } else if(window._tempAva) {
-    var d = window._tempAva; window._tempAva = null;
-    _salvaConFoto(d);
-  } else {
-    // Controlla URL manuale nel campo testo
-    var nAvaEl = document.getElementById('pf-ava');
-    var urlManuale = nAvaEl && nAvaEl.value.trim() ? nAvaEl.value.trim() : null;
-    if(urlManuale) me.ava = urlManuale;
-    _salvaConFoto(null);
-  }
+  // Avvia il salvataggio — avatar già impostato da selezionaAvatar o dal campo hidden
+  _salvaConFoto(nuovoAva || null);
 }
 
 // Aggiorna foto in tutte le sezioni immediatamente
@@ -8051,8 +8108,18 @@ function _aggiornaUIMeteo(data) {
   var heroDesc = document.getElementById('hero-meteo-desc');
   var heroUmi  = document.getElementById('hero-meteo-umi');
   var heroVento= document.getElementById('hero-meteo-vento');
-  // Estrai solo l'emoji dall'html dell'icona
-  var icoText = icoHtml.replace(/<[^>]+>/g,'').trim() || '🗑️';
+  // Mappa emoji per la Hero Card (non usa SVG)
+  var METEO_EMOJI = {
+    0:'☀️', 1:'🌤️', 2:'⛅', 3:'☁️',
+    45:'🌫️', 48:'🌫️',
+    51:'🌦️', 53:'🌦️', 55:'🌧️',
+    61:'🌧️', 63:'🌧️', 65:'🌧️',
+    71:'🌨️', 73:'🌨️', 75:'❄️', 77:'🌨️',
+    80:'🌦️', 81:'🌧️', 82:'⛈️',
+    85:'🌨️', 86:'❄️',
+    95:'⛈️', 96:'⛈️', 99:'⛈️'
+  };
+  var icoText = METEO_EMOJI[wc] || '🌤️';
   if(heroIco)   heroIco.textContent  = icoText;
   if(heroTemp)  heroTemp.textContent = temp;
   if(heroDesc)  heroDesc.textContent = desc;
@@ -10691,7 +10758,7 @@ var AuthModule = (function() {
     ctx.font = '16px serif';
     ctx.globalAlpha = 0.3;
     s.clouds.forEach(function(c) {
-      ctx.fillText('⚠️', c.x, c.y);
+      ctx.fillText('☁️', c.x, c.y);
     });
     ctx.globalAlpha = 1;
 
@@ -10714,7 +10781,7 @@ var AuthModule = (function() {
     ctx.save();
     ctx.scale(-1, 1);
     ctx.font = DINO_W + 'px serif';
-    ctx.fillText('⚠️', -(s.dx + DINO_W * 0.5), s.dy + DINO_H * 0.15);
+    ctx.fillText('🦖', -(s.dx + DINO_W * 0.5), s.dy + DINO_H * 0.15);
     ctx.restore();
 
     // Ostacoli a terra
@@ -10725,10 +10792,10 @@ var AuthModule = (function() {
         ctx.save();
         ctx.scale(-1,1);
         ctx.font = (OBS_W+4) + 'px serif';
-        ctx.fillText('⚠️', -(o.x + OBS_W * 0.5), o.y);
+        ctx.fillText('🦅', -(o.x + OBS_W * 0.5), o.y);
         ctx.restore();
       } else {
-        ctx.fillText('⚠️', o.x - OBS_W * 0.5, s.ground + OBS_H * 0.15);
+        ctx.fillText('🌵', o.x - OBS_W * 0.5, s.ground + OBS_H * 0.15);
       }
     });
 
