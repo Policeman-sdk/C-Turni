@@ -144,7 +144,15 @@ function _startListeners(reparto) {
     _unsubscribers.push(onSnapshot(todoRef, function(snap) {
       var arr = [];
       snap.forEach(function(d){ arr.push(d.data()); });
-      localStorage.setItem('ct_td', JSON.stringify(arr));
+      // Merge intelligente: non sovrascrivere todo locali recenti (ultimi 10s)
+      var localTd = [];
+      try { localTd = JSON.parse(localStorage.getItem('ct_td') || '[]'); } catch(e) {}
+      var now10s2 = Date.now() - 10000;
+      var tdRecenti = localTd.filter(function(t){
+        return t.id > now10s2 && !arr.some(function(fb){ return String(fb.id) === String(t.id); });
+      });
+      var mergedTd = arr.concat(tdRecenti);
+      localStorage.setItem('ct_td', JSON.stringify(mergedTd));
       if(typeof window.renderTodo === 'function') window.renderTodo();
       if(typeof window.renderWidgetTodo === 'function') window.renderWidgetTodo();
     }, function(e){ console.warn('onSnapshot todo:', e.message); }));
@@ -153,9 +161,22 @@ function _startListeners(reparto) {
     _unsubscribers.push(onSnapshot(agendaRef, function(snap) {
       var arr = [];
       snap.forEach(function(d){ arr.push(d.data()); });
-      localStorage.setItem('ct_ag', JSON.stringify(arr));
+      // Merge intelligente: non sovrascrivere appuntamenti locali recenti (ultimi 10s)
+      var localAg = [];
+      try { localAg = JSON.parse(localStorage.getItem('ct_ag') || '[]'); } catch(e) {}
+      var now10s = Date.now() - 10000;
+      var agRecenti = localAg.filter(function(a){
+        return a.id > now10s && !arr.some(function(fb){ return String(fb.id) === String(a.id); });
+      });
+      var merged = arr.concat(agRecenti);
+      merged.sort(function(a,b){ return a.data > b.data ? 1 : -1; });
+      localStorage.setItem('ct_ag', JSON.stringify(merged));
       if(typeof window.renderAgenda === 'function') window.renderAgenda();
       if(typeof window.renderWidgetAgenda === 'function') window.renderWidgetAgenda();
+      if(typeof window.renderAgendaPg === 'function') {
+        var pagAg = document.getElementById('pag-ag');
+        if(pagAg && pagAg.classList.contains('on')) window.renderAgendaPg();
+      }
     }, function(e){ console.warn('onSnapshot agenda:', e.message); }));
   }
 

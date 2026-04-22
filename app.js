@@ -58,7 +58,7 @@ function ctConfirm(msg, opts) {
     var canBtn= document.getElementById('m-confirm-cancel');
     if(title)  title.textContent  = opts.title  || 'Conferma';
     if(msgEl)  msgEl.innerHTML    = msg;
-    if(ico)    ico.textContent    = opts.ico    || '??';
+    if(ico)    ico.textContent    = opts.ico    || '⚠️';
     if(okBtn)  okBtn.textContent  = opts.ok     || 'Conferma';
     if(canBtn) canBtn.textContent = opts.cancel || 'Annulla';
     if(okBtn)  okBtn.style.background = opts.danger ? 'var(--red)' : '';
@@ -402,7 +402,7 @@ function chiudiTrasferimento(){
 function resetTurniUtente(){
   var me = lsG('ct_me', null);
   if(!me){ toast('Sessione non trovata','err'); return; }
-  ctConfirm('Eliminare TUTTI i tuoi turni?', {title:'Reset Turni', ico:'???', ok:'Elimina', danger:true}).then(function(ok){
+  ctConfirm('Eliminare TUTTI i tuoi turni?', {title:'Reset Turni', ico:'🗑️', ok:'Elimina', danger:true}).then(function(ok){
     if(!ok) return;
     var uid = me.uid || me.id;
     var myPid = parseInt(localStorage.getItem('ct_my_pid')||'0');
@@ -429,7 +429,7 @@ function resetTurniUtente(){
 function resetTotaleFirestore(){
   var me = lsG('ct_me', null);
   if(!me){ toast('Sessione non trovata','err'); return; }
-  ctConfirm('Eliminare TUTTI i turni del reparto da Firestore?<br><small>Il tuo profilo NON verrà eliminato.</small>', {title:'Reset Totale', ico:'??', ok:'Elimina tutto', danger:true}).then(function(ok){
+  ctConfirm('Eliminare TUTTI i turni del reparto da Firestore?<br><small>Il tuo profilo NON verrà eliminato.</small>', {title:'Reset Totale', ico:'⚠️', ok:'Elimina tutto', danger:true}).then(function(ok){
     if(!ok) return;
     var rep = (me.reparto||'').toLowerCase().replace(/\s+/g,'_');
     var isPrivato = !rep || rep.startsWith('privato_');
@@ -585,7 +585,7 @@ function scollegaReparto(){
   if(!me) return;
   var rep = me.reparto || '';
   if(_isPrivato(rep)){ toast('Sei già in modalità personale','ok'); return; }
-  ctConfirm('Vuoi davvero uscire dal reparto "<strong>'+rep+'</strong>"?<br><small>I tuoi turni di servizio futuri verranno rimossi. Le ferie rimarranno.</small>', {title:'Esci dal Reparto', ico:'??', ok:'Esci', danger:true}).then(function(ok){
+  ctConfirm('Vuoi davvero uscire dal reparto "<strong>'+rep+'</strong>"?<br><small>I tuoi turni di servizio futuri verranno rimossi. Le ferie rimarranno.</small>', {title:'Esci dal Reparto', ico:'⚠️', ok:'Esci', danger:true}).then(function(ok){
     if(!ok) return;
     var uid = me.uid || me.id;
     var vecchioRep = rep;
@@ -680,7 +680,7 @@ function apriPromuoviVice(){
 function confermaPassaComando(){
   var uid = document.getElementById('sel-nuovo-comandante').value;
   if(!uid){ toast('Seleziona un membro','err'); return; }
-  ctConfirm('Sei sicuro di voler trasferire il comando?<br><small>Diventerai un Addetto.</small>', {title:'Passa il Comando', ico:'???', ok:'Trasferisci', danger:true}).then(function(ok){
+  ctConfirm('Sei sicuro di voler trasferire il comando?<br><small>Diventerai un Addetto.</small>', {title:'Passa il Comando', ico:'🗑️', ok:'Trasferisci', danger:true}).then(function(ok){
     if(!ok) return;
     AuthModule._cambiaRuolo(uid, 'comandante').then(function(){
       var me = lsG('ct_me', null);
@@ -711,7 +711,7 @@ function degradaVice(){
   if(!viceList.length){ toast('Nessun Vice trovato','err'); return; }
   if(viceList.length === 1) {
     var vice = viceList[0];
-    ctConfirm('Rimuovere il ruolo di Vice Comandante a <strong>'+(vice.nome||'')+' '+(vice.cognome||'')+'</strong>?', {title:'Rimuovi Vice', ico:'??', ok:'Rimuovi', danger:true}).then(function(ok){
+    ctConfirm('Rimuovere il ruolo di Vice Comandante a <strong>'+(vice.nome||'')+' '+(vice.cognome||'')+'</strong>?', {title:'Rimuovi Vice', ico:'⚠️', ok:'Rimuovi', danger:true}).then(function(ok){
       if(!ok) return;
       var uid = vice.uid || vice.id;
       AuthModule._cambiaRuolo(uid, 'addetto').then(function(){
@@ -987,7 +987,7 @@ function aggiungiRimanenzaAnnoUtente(){
       var pool=P[i].licenzePool||[];
       var es=pool.find(function(x){return x.anno===anno;});
       if(es){
-        ctConfirm('Esiste già rimanenza '+anno+' ('+es.giorni+' gg). Sostituire?', {title:'Rimanenza esistente', ico:'??', ok:'Sostituisci'}).then(function(ok){
+        ctConfirm('Esiste già rimanenza '+anno+' ('+es.giorni+' gg). Sostituire?', {title:'Rimanenza esistente', ico:'📅', ok:'Sostituisci'}).then(function(ok){
           if(!ok) return;
           es.giorni=giorni;
           lsS("ct_p",P); caricaPoolLicenzeMe(); caricaSaldoFerie();
@@ -1013,7 +1013,7 @@ function aggiungiRimanenzaAnnoUtente(){
   toast("? Rimanenza "+anno+": "+giorni+" giorni salvata","ok");
 }
 function rimuoviRimanenzaAnno(pid,anno){
-  ctConfirm('Rimuovere la rimanenza per l\'anno '+anno+'?', {title:'Rimuovi Rimanenza', ico:'???', ok:'Rimuovi', danger:true}).then(function(ok){
+  ctConfirm('Rimuovere la rimanenza per l\'anno '+anno+'?', {title:'Rimuovi Rimanenza', ico:'🗑️', ok:'Rimuovi', danger:true}).then(function(ok){
     if(!ok) return;
     var P=lsG("ct_p",[]);
     for(var i=0;i<P.length;i++){
@@ -1029,7 +1029,7 @@ function rimuoviRimanenzaAnno(pid,anno){
     caricaPoolLicenzeMe();
     caricaSaldoFerie();
     _syncFerieFirebase();
-    toast("??? Rimanenza "+anno+" eliminata","ok");
+    toast("🏖️ Rimanenza "+anno+" eliminata","ok");
   });
 }
 function caricaPoolLicenzeMe(){
@@ -1280,7 +1280,7 @@ function _salvaScalaManuale(){
   var entry=pool.find(function(x){return x.anno===anno;});
   if(!entry){toast("Anno non trovato nel pool","err");return;}
   if(giorni>entry.giorni){
-    ctConfirm('Stai scalando '+giorni+' giorni ma ne hai solo '+entry.giorni+' per il '+anno+'. Continui?', {title:'Conferma Scala', ico:'??', ok:'Continua'}).then(function(ok){
+    ctConfirm('Stai scalando '+giorni+' giorni ma ne hai solo '+entry.giorni+' per il '+anno+'. Continui?', {title:'Conferma Scala', ico:'⚠️', ok:'Continua'}).then(function(ok){
       if(!ok) return;
       entry.giorni=Math.max(0,entry.giorni-giorni);
       saveFeriePool(me.id,pool);
@@ -1343,13 +1343,13 @@ function salvaFerie(){
 
 // ---- WIDGET TURNO OGGI ----
 var _tipoIco={
-  mattina:"??",pomeriggio:"??",ml:"??",pl:"??",
-  notte:"??",sera:"??",
-  riposo:"???",recupero:"??",
-  ferie:"???",licenza:"??","937":"???",
-  "104":"?",ls:"??",
-  permesso:"??",fest:"??",
-  corso:"??",esame:"??"
+  mattina:"☀️",pomeriggio:"☀️",ml:"🌅",pl:"🌞",
+  notte:"🌙",sera:"🌆",
+  riposo:"🛋️",recupero:"♻️",
+  ferie:"🏖️",licenza:"📚","937":"🏝️",
+  "104":"♿",ls:"🩸",
+  permesso:"📋",fest:"🎉",
+  corso:"🎓",esame:"📝"
 };
 var _tipoBg={
   mattina:"linear-gradient(135deg,#e65100 0%,#bf360c 100%)",
@@ -1483,8 +1483,8 @@ function aggiornaWidget(){
       document.getElementById("w-orario").textContent="Caricamento turni in corso";
       document.getElementById("w-codice").textContent="";
     } else {
-      document.getElementById("w-ico").innerHTML="???";
-      document.getElementById("w-bg-ico").innerHTML="???";
+      document.getElementById("w-ico").innerHTML="🛋️";
+      document.getElementById("w-bg-ico").innerHTML="🛋️";
       document.getElementById("w-tipo").textContent="Riposo";
       document.getElementById("w-orario").textContent="Nessun turno assegnato";
       document.getElementById("w-codice").textContent="";
@@ -1531,11 +1531,11 @@ var _TURNO_ATMOSFERA = {
   obbm:'alba', obbp:'tramonto'
 };
 var _TURNO_ICO_HERO = {
-  mattina:'??', ml:'??', pomeriggio:'??', pl:'??',
-  notte:'??', sera:'??', riposo:'???', recupero:'???',
-  ferie:'???', '937':'??', '104':'??', ls:'??',
-  licenza:'??', permesso:'??', fest:'??', corso:'??', esame:'??',
-  obbm:'??', obbp:'??'
+  mattina:'☀️', ml:'🌅', pomeriggio:'🌆', pl:'🌇',
+  notte:'🌙', sera:'🌃', riposo:'🛋️', recupero:'🛋️',
+  ferie:'🏖️', '937':'📋', '104':'📋', ls:'🩸',
+  licenza:'📚', permesso:'📝', fest:'🎉', corso:'📖', esame:'✏️',
+  obbm:'🔶', obbp:'🔷'
 };
 var _TURNO_SIGLA = {
   mattina:'M', ml:'ML', pomeriggio:'P', pl:'PL',
@@ -1621,7 +1621,7 @@ function aggiornaHeroCard(){
   }
 
   // Icona e sigla
-  var ico = _TURNO_ICO_HERO[tipo] || '???';
+  var ico = _TURNO_ICO_HERO[tipo] || '🗑️';
   var sigla = (mioTurno && mioTurno.codice) ? mioTurno.codice : (_TURNO_SIGLA[tipo] || tipo.toUpperCase());
   var orario = (mioTurno && mioTurno.orario) ? mioTurno.orario : 'Nessun turno';
 
@@ -2303,16 +2303,16 @@ function renderTodo(){
 
 // ---- TEMI ----
 var _TEMI_CFG={
-  "":         {nome:"Notte",      emoji:"??", desc:"Blu scuro  predefinito",   bg:"linear-gradient(135deg,#0d1b2a,#1a3a5c)", colors:["#0d1b2a","#1a2f45","#2979ff","#ffffff"]},
-  "light":    {nome:"Giorno",     emoji:"??",   desc:"Chiaro e nitido",            bg:"linear-gradient(135deg,#f0f4f8,#dce8f0)", colors:["#f0f4f8","#ffffff","#1565c0","#0d1b2a"]},
-  "auto":     {nome:"Auto",       emoji:"??", desc:"Segue le impostazioni del sistema", bg:"linear-gradient(135deg,#1a2a3a,#2a3a4a)", colors:["#0d1b2a","#f0f4f8","#2979ff","#c8a84b"]},
-  "rosa":     {nome:"Rosa",       emoji:"??", desc:"Rosa vivo  petali animati",  bg:"linear-gradient(135deg,#2a0a18,#8a2040,#c0304a)", colors:["#2a0a18","#4a1828","#ff4d80","#fff0f4"]},
-  "forestale":{nome:"Forestale",  emoji:"??", desc:"Grigio-verde uniforme", bg:"linear-gradient(135deg,#1c2b1c,#2e402e,#3d4a3d)", colors:["#1c1f1c","#2e332e","#6abf69","#e8ede8"]},
-  "forestale-dark":{nome:"Forestale Notte", emoji:"??", desc:"Verde scuro profondo", bg:"linear-gradient(135deg,#0E1410,#18241B,#1D2E22)", colors:["#0E1410","#18241B","#4CAF50","#E1EBE3"]},
-  "carabinieri":{nome:"Carabinieri",emoji:"??", desc:"Divisa ufficiale  stemma",  bg:"linear-gradient(135deg,#080b10,#111828,#080b10)", colors:["#080b10","#111828","#c8a96e","#ffffff"]},
-  "rosa-light":      {nome:"Rosa Giorno",       emoji:"??", desc:"Rosa chiaro  bianco e rosa",       bg:"linear-gradient(135deg,#fff5f8,#ffe0ea,#fcc0d0)", colors:["#fff5f8","#ffffff","#d63070","#3a0a18"]},
-  "forestale-light": {nome:"Forestale Giorno",  emoji:"??", desc:"Verde chiaro  bianco e verde",     bg:"linear-gradient(135deg,#f4f8f4,#e4ede4,#c8e0c8)", colors:["#f4f8f4","#ffffff","#2e7d32","#0a1f0a"]},
-  "carabinieri-light":{nome:"Carabinieri Giorno",emoji:"??",  desc:"Avorio e bordeaux  elegante",      bg:"linear-gradient(135deg,#f5f5f0,#eaeae0,#d8ccc0)", colors:["#f5f5f0","#ffffff","#8b0000","#1a1208"]}
+  "":         {nome:"Notte",      emoji:"🌙", desc:"Blu scuro  predefinito",   bg:"linear-gradient(135deg,#0d1b2a,#1a3a5c)", colors:["#0d1b2a","#1a2f45","#2979ff","#ffffff"]},
+  "light":    {nome:"Giorno",     emoji:"🌙",   desc:"Chiaro e nitido",            bg:"linear-gradient(135deg,#f0f4f8,#dce8f0)", colors:["#f0f4f8","#ffffff","#1565c0","#0d1b2a"]},
+  "auto":     {nome:"Auto",       emoji:"🌙", desc:"Segue le impostazioni del sistema", bg:"linear-gradient(135deg,#1a2a3a,#2a3a4a)", colors:["#0d1b2a","#f0f4f8","#2979ff","#c8a84b"]},
+  "rosa":     {nome:"Rosa",       emoji:"🌙", desc:"Rosa vivo  petali animati",  bg:"linear-gradient(135deg,#2a0a18,#8a2040,#c0304a)", colors:["#2a0a18","#4a1828","#ff4d80","#fff0f4"]},
+  "forestale":{nome:"Forestale",  emoji:"🌙", desc:"Grigio-verde uniforme", bg:"linear-gradient(135deg,#1c2b1c,#2e402e,#3d4a3d)", colors:["#1c1f1c","#2e332e","#6abf69","#e8ede8"]},
+  "forestale-dark":{nome:"Forestale Notte", emoji:"🌙", desc:"Verde scuro profondo", bg:"linear-gradient(135deg,#0E1410,#18241B,#1D2E22)", colors:["#0E1410","#18241B","#4CAF50","#E1EBE3"]},
+  "carabinieri":{nome:"Carabinieri",emoji:"🌙", desc:"Divisa ufficiale  stemma",  bg:"linear-gradient(135deg,#080b10,#111828,#080b10)", colors:["#080b10","#111828","#c8a96e","#ffffff"]},
+  "rosa-light":      {nome:"Rosa Giorno",       emoji:"🌙", desc:"Rosa chiaro  bianco e rosa",       bg:"linear-gradient(135deg,#fff5f8,#ffe0ea,#fcc0d0)", colors:["#fff5f8","#ffffff","#d63070","#3a0a18"]},
+  "forestale-light": {nome:"Forestale Giorno",  emoji:"🌙", desc:"Verde chiaro  bianco e verde",     bg:"linear-gradient(135deg,#f4f8f4,#e4ede4,#c8e0c8)", colors:["#f4f8f4","#ffffff","#2e7d32","#0a1f0a"]},
+  "carabinieri-light":{nome:"Carabinieri Giorno",emoji:"🌙",  desc:"Avorio e bordeaux  elegante",      bg:"linear-gradient(135deg,#f5f5f0,#eaeae0,#d8ccc0)", colors:["#f5f5f0","#ffffff","#8b0000","#1a1208"]}
 };
 function setTema(t){
   if(t==="light") document.documentElement.setAttribute("data-theme","light");
@@ -2781,17 +2781,17 @@ function aggNotifStatus(){
 function toggleNotifMaster(){
   if(!("Notification" in window)){toast("Non supportato","err");return;}
   if(Notification.permission==="granted"){toast("Per revocare usa le impostazioni del browser","info");return;}
-  if(Notification.permission==="denied"){toast("?? Notifiche bloccate — sblocca nelle impostazioni del browser","err");return;}
+  if(Notification.permission==="denied"){toast("🚫 Notifiche bloccate — sblocca nelle impostazioni del browser","err");return;}
   Notification.requestPermission().then(function(r){
     aggNotifStatus();
     if(r==="granted"){
-      toast("?? Notifiche abilitate!","ok");
+      toast("🔔 Notifiche abilitate!","ok");
       scheduleAllTodoNotif();
       lsG("ct_ag",[]).forEach(function(a){if(a.notif>0)schedulaNotifAgenda(a);});
       scheduleNotifMattutina();
       // Notifica di test immediata
       setTimeout(function(){
-        new Notification("?? C-Turni — Notifiche attive",{
+        new Notification("🔔 C-Turni — Notifiche attive",{
           body:"Riceverai avvisi per turni, to-do e appuntamenti.",
           icon:_NOTIF_ICON
         });
@@ -2806,12 +2806,12 @@ function toggleNotifPref(key,btn){
   prefs[key]=!prefs[key];lsS("ct_notif_prefs",prefs);
   if(btn)btn.classList.toggle("on",prefs[key]);
   _syncNotifPrefs();
-  toast((prefs[key]?"? ":"?? ")+key+(prefs[key]?" attivo":" disattivato"),"ok");
+  toast((prefs[key]?"✅ ":"🔕 ")+key+(prefs[key]?" attivo":" disattivato"),"ok");
 }
 function setPreturno(min){
   lsS("ct_notif_pre",min);aggNotifStatus();toggleImpSec("sec-preturno","arr-pre");
   _syncNotifPrefs();
-  toast(min>0?"? "+(min>=60?(min/60)+"h":""+min+"min")+" prima":"?? Pre-turno off","ok");
+  toast(min>0?"⏰ "+(min>=60?(min/60)+"h":""+min+"min")+" prima":"🔕 Pre-turno off","ok");
 }
 // Alias usato dai nuovi bottoni anticipo pre-turno
 function setNotifPre(min){
@@ -2841,14 +2841,14 @@ function _syncNotifPrefs(){
 
 function inviaNotifTest(){
   if(!("Notification" in window)||Notification.permission!=="granted"){
-    toast("?? Abilita prima le notifiche","err");return;
+    toast("🚫 Abilita prima le notifiche","err");return;
   }
   var me=lsG("ct_me",null);
-  new Notification("?? C-Turni — Test notifica",{
+  new Notification("🔔 C-Turni — Test notifica",{
     body:"Ciao "+(me?me.nome:"!")+" — le notifiche funzionano correttamente.",
     icon:_NOTIF_ICON
   });
-  toast("?? Notifica inviata","ok");
+  toast("🔔 Notifica inviata","ok");
 }
 
 // ---- FESTIVIT ----
@@ -2892,7 +2892,7 @@ function checkFestivoTurno(t){
       if(!localStorage.getItem(keyPag)){
         localStorage.setItem(keyPag, '1');
         var prefs3 = lsG("ct_notif_prefs", {festivi:true});
-        if(prefs3.festivi !== false) toast('?? Festività Pagata: ' + nomeFest + ' (domenica)', 'ok');
+        if(prefs3.festivi !== false) toast('📅 Festività Pagata: ' + nomeFest + ' (domenica)', 'ok');
       }
       return;
     }
@@ -2926,7 +2926,7 @@ function checkFestivoTurno(t){
     if(sess && sess.userId) window.FirebaseModule.saveUserProfile(sess.userId, me, me.reparto).catch(function(){});
   }
   var prefs = lsG("ct_notif_prefs", {festivi:true});
-  if(prefs.festivi !== false) toast('?? +1 Recupero: ' + motivo, 'ok');
+  if(prefs.festivi !== false) toast('🏅 +1 Recupero: ' + motivo, 'ok');
 }
 
 // ---- TODO ----
@@ -3199,7 +3199,7 @@ function _aggiornaBentoAg() {
   if(titEl && datEl) {
     if(prossimo) {
       var d = new Date(prossimo.data+"T00:00:00");
-      titEl.textContent = (prossimo.tipo==='todo'?'? ':'?? ') + prossimo.tit;
+      titEl.textContent = (prossimo.tipo==='todo'?'✓ ':'📅 ') + prossimo.tit;
       datEl.textContent = d.getDate()+' '+mN[d.getMonth()]+' '+d.getFullYear();
     } else {
       titEl.textContent = 'Nessun evento imminente';
@@ -3519,7 +3519,7 @@ function cambiaPwd(){
 
 // ---- RESET ----
 function resetAll(tipo){
-  ctConfirm('?? Sei sicuro? Operazione irreversibile.', {title:'Reset Dati', ico:'??', ok:'Procedi', danger:true}).then(function(ok){
+  ctConfirm('⚠️ Sei sicuro? Operazione irreversibile.', {title:'Reset Dati', ico:'⚠️', ok:'Procedi', danger:true}).then(function(ok){
     if(!ok) return;
     var sess = lsG("ct_session", null);
     var uid = sess && sess.userId;
@@ -3664,14 +3664,14 @@ function delRecuperi(){
   var REC=lsG("ct_recuperi",[]);
   var da_cancellare=REC.filter(function(r){return r.usato;}).length;
   if(!da_cancellare){toast("Nessun recupero smarcato da eliminare","err");return;}
-  ctConfirm('Eliminare '+da_cancellare+' recupero/i smarcato/i?', {title:'Elimina Recuperi', ico:'???', ok:'Elimina', danger:true}).then(function(ok){
+  ctConfirm('Eliminare '+da_cancellare+' recupero/i smarcato/i?', {title:'Elimina Recuperi', ico:'🗑️', ok:'Elimina', danger:true}).then(function(ok){
     if(!ok) return;
     lsS("ct_recuperi",REC.filter(function(r){return !r.usato;}));
     var me=lsG("ct_me",null);
     if(me){me.recuperiExtra=lsG("ct_recuperi",[]).length;lsS("ct_me",me);}
     renderRecuperi();
     _syncFerieFirebase();
-    toast("??? "+da_cancellare+" recupero/i eliminato/i","ok");
+    toast("🗑️ "+da_cancellare+" recupero/i eliminato/i","ok");
   });
 }
 
@@ -3739,10 +3739,10 @@ var _ORARI_DEFAULT = {
   obbp:       {in:"13:00", out:"19:00"}
 };
 var _ORARI_LABELS = {
-  mattina:"?? Mattina (M)", pomeriggio:"?? Pomeriggio (P)",
-  notte:"?? Notte (N)", sera:"?? Sera (S)",
-  ml:"?? Mattina Lunga (ML)", pl:"?? Pomeriggio Lungo (PL)",
-  obbm:"?? Obbligatorio Mattina (OBBM)", obbp:"?? Obbligatorio Pomeriggio (OBBP)"
+  mattina:"🌅 Mattina (M)", pomeriggio:"☀️ Pomeriggio (P)",
+  notte:"🌙 Notte (N)", sera:"🌆 Sera (S)",
+  ml:"🌅 Mattina Lunga (ML)", pl:"☀️ Pomeriggio Lungo (PL)",
+  obbm:"🔶 Obbligatorio Mattina (OBBM)", obbp:"🔷 Obbligatorio Pomeriggio (OBBP)"
 };
 function getOrariPreset(){
   return lsG("ct_orari", _ORARI_DEFAULT);
@@ -3854,7 +3854,7 @@ function editTurnoCustom(id) {
 }
 
 function delTurnoCustom(id) {
-  ctConfirm('Eliminare questo tipo di turno personalizzato?', {title:'Elimina Turno Custom', ico:'???', ok:'Elimina', danger:true}).then(function(ok){
+  ctConfirm('Eliminare questo tipo di turno personalizzato?', {title:'Elimina Turno Custom', ico:'🗑️', ok:'Elimina', danger:true}).then(function(ok){
     if(!ok) return;
     var TC = lsG('ct_turni_custom', []).filter(function(x){ return x.id !== id; });
     lsS('ct_turni_custom', TC);
@@ -4156,7 +4156,7 @@ function importaBackup(input){
 
 function confermaCricaBackup(){
   if(!_backupDaConfermare){toast("Nessun backup selezionato","err");return;}
-  ctConfirm('?? Tutti i dati attuali verranno sostituiti con il backup. Continuare?', {title:'Ripristina Backup', ico:'??', ok:'Ripristina', danger:true}).then(function(ok){
+  ctConfirm('⚠️ Tutti i dati attuali verranno sostituiti con il backup. Continuare?', {title:'Ripristina Backup', ico:'⚠️', ok:'Ripristina', danger:true}).then(function(ok){
     if(!ok) return;
     var d = _backupDaConfermare;
     if(d.ct_me)        lsS("ct_me",        d.ct_me);
@@ -5516,7 +5516,7 @@ function salvaTurno(){
   toast("Turno salvato","ok");
 }
 function delP(id){
-  ctConfirm('Eliminare questa persona e tutti i suoi turni?', {title:'Elimina Persona', ico:'??', ok:'Elimina', danger:true}).then(function(ok){
+  ctConfirm('Eliminare questa persona e tutti i suoi turni?', {title:'Elimina Persona', ico:'⚠️', ok:'Elimina', danger:true}).then(function(ok){
     if(!ok) return;
     lsS("ct_p",lsG("ct_p",[]).filter(function(p){return p.id!==id;}));
     lsS("ct_t",lsG("ct_t",[]).filter(function(t){return t.pid!==id;}));
@@ -5536,7 +5536,7 @@ function delT(id){
       return;
     }
   }
-  ctConfirm('Eliminare questo turno?', {title:'Elimina Turno', ico:'??', ok:'Elimina', danger:true}).then(function(ok){
+  ctConfirm('Eliminare questo turno?', {title:'Elimina Turno', ico:'⚠️', ok:'Elimina', danger:true}).then(function(ok){
     if(!ok) return;
     lsS("ct_t",lsG("ct_t",[]).filter(function(t){return t.id!==id;}));
     if(window.FirebaseModule) window.FirebaseModule.deleteTurno(id);
@@ -6090,12 +6090,12 @@ function _condividiGiornoWA(ds){
   var gN = ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
   var dataLabel = gN[d.getDay()] + ' ' + d.getDate() + ' ' + mN[d.getMonth()] + ' ' + d.getFullYear();
   var tipoLabel = {
-    mattina:'?? Mattina', ml:'?? Mattina Lunga', pomeriggio:'?? Pomeriggio', pl:'?? Pomeriggio Lungo',
-    notte:'?? Notte', riposo:'?? Riposo', recupero:'?? Recupero', ferie:'??? Ferie',
-    permesso:'?? Permesso', corso:'?? Corso', licenza:'?? Licenza'
+    mattina:'🌅 Mattina', ml:'🌅 Mattina Lunga', pomeriggio:'☀️ Pomeriggio', pl:'☀️ Pomeriggio Lungo',
+    notte:'🌙 Notte', riposo:'💤 Riposo', recupero:'🔄 Recupero', ferie:'🏖️ Ferie',
+    permesso:'🕐 Permesso', corso:'🎓 Corso', licenza:'📚 Licenza'
   };
   var righe = [];
-  righe.push('?? *Turni ' + dataLabel + '*');
+  righe.push('📅 *Turni ' + dataLabel + '*');
   righe.push('-----------------');
   if(!T.length){
     righe.push('Nessun turno inserito');
@@ -6956,7 +6956,7 @@ function nucleoNega(uid)     { _nucleoSalva(uid,'rejected'); toast('Richiesta ne
 function nucleoSospendi(uid) { _nucleoSalva(uid,'sospeso');  toast('Membro sospeso','ok'); }
 
 function nucleoRimuovi(uid)  {
-  ctConfirm('Rimuovere questo membro dal reparto?', {title:'Rimuovi Membro', ico:'??', ok:'Rimuovi', danger:true}).then(function(ok){
+  ctConfirm('Rimuovere questo membro dal reparto?', {title:'Rimuovi Membro', ico:'⚠️', ok:'Rimuovi', danger:true}).then(function(ok){
     if(!ok) return;
     var U = lsG('ct_users', []);
     U = U.filter(function(u){ return u.uid !== uid && String(u.id) !== String(uid); });
@@ -7077,7 +7077,7 @@ async function richiestaTrasfRep() {
   var nuovoReparto = [tipo, spec, sede].join('_');
   var session = lsG('ct_session', null);
   if(!session || !session.userId) { toast('Sessione non trovata, rieffettua il login','err'); return; }
-  if(!await ctConfirm('Confermi il trasferimento a "' + nuovoReparto.replace(/_/g,' ') + '"?<br><small>Perderai immediatamente l\'accesso al reparto attuale.</small>', {title:'Trasferimento', ico:'??', ok:'Conferma', danger:false})) return;
+  if(!await ctConfirm('Confermi il trasferimento a "' + nuovoReparto.replace(/_/g,' ') + '"?<br><small>Perderai immediatamente l\'accesso al reparto attuale.</small>', {title:'Trasferimento', ico:'⚠️', ok:'Conferma', danger:false})) return;
   try {
     ctSpinner(true, 'Trasferimento in corso...');
     var me = lsG('ct_me', null);
@@ -7467,13 +7467,13 @@ function _syncAvaAllSections(avaUrl){
   var impAva = document.getElementById('imp-ava');
   if(impAva){
     if(avaUrl){ impAva.style.backgroundImage='url('+avaUrl+')'; impAva.style.backgroundSize='cover'; impAva.style.backgroundPosition='center'; impAva.textContent=''; }
-    else { impAva.style.backgroundImage=''; impAva.textContent='??'; }
+    else { impAva.style.backgroundImage=''; impAva.textContent='👤'; }
   }
   // Profilo preview
   var pfPrev = document.getElementById('pf-ava-prev');
   if(pfPrev){
     if(avaUrl){ pfPrev.style.backgroundImage='url('+avaUrl+')'; pfPrev.style.backgroundSize='cover'; pfPrev.style.backgroundPosition='center'; pfPrev.textContent=''; }
-    else { pfPrev.style.backgroundImage=''; pfPrev.textContent='??'; }
+    else { pfPrev.style.backgroundImage=''; pfPrev.textContent='👤'; }
   }
   // Tesserino
   var tessAva = document.getElementById('tess-ava');
@@ -8031,7 +8031,7 @@ function renderWidgetMeteo(me){
 function _aggiornaUIMeteo(data) {
   var c = data.current;
   var wc = c.weather_code;
-  var icoHtml = METEO_WMO[wc] || '<span class="meteo-cloud">???</span>';
+  var icoHtml = METEO_WMO[wc] || '<span class="meteo-cloud">🌤️</span>';
   var temp = Math.round(c.temperature_2m) + '°C';
   var desc = METEO_DESC[wc] || '';
   var umi  = c.relative_humidity_2m;
@@ -8052,7 +8052,7 @@ function _aggiornaUIMeteo(data) {
   var heroUmi  = document.getElementById('hero-meteo-umi');
   var heroVento= document.getElementById('hero-meteo-vento');
   // Estrai solo l'emoji dall'html dell'icona
-  var icoText = icoHtml.replace(/<[^>]+>/g,'').trim() || '???';
+  var icoText = icoHtml.replace(/<[^>]+>/g,'').trim() || '🗑️';
   if(heroIco)   heroIco.textContent  = icoText;
   if(heroTemp)  heroTemp.textContent = temp;
   if(heroDesc)  heroDesc.textContent = desc;
@@ -8437,7 +8437,7 @@ function aggOraMod(tipo) {
 function eliminaTurnoMod() {
   var id = parseInt(document.getElementById('mmt-id').value);
   if(!id) return;
-  ctConfirm('Eliminare questo turno?', {title:'Elimina Turno', ico:'??', ok:'Elimina', danger:true}).then(function(ok){
+  ctConfirm('Eliminare questo turno?', {title:'Elimina Turno', ico:'⚠️', ok:'Elimina', danger:true}).then(function(ok){
     if(!ok) return;
     var T = lsG('ct_t', []).filter(function(x){ return x.id !== id; });
     lsS('ct_t', T);
@@ -9201,7 +9201,7 @@ var _PRESET_TIPO = {
     OBBM:'obbm', OBBP:'obbp'
 };
 function eliminaTurnoDaGiorno(tid, ds) {
-    ctConfirm('Eliminare questo turno?', {title:'Elimina Turno', ico:'??', ok:'Elimina', danger:true}).then(function(ok){
+    ctConfirm('Eliminare questo turno?', {title:'Elimina Turno', ico:'⚠️', ok:'Elimina', danger:true}).then(function(ok){
       if(!ok) return;
       var T = lsG("ct_t", []).filter(function(x){ return x.id !== tid; });
       lsS("ct_t", T);
@@ -9796,7 +9796,7 @@ GSync.saveClientId = function(value) {
   };
 
   GSync.ui._disconnect = function() {
-    ctConfirm('Disconnettere Google? I mapping esistenti verranno mantenuti.', {title:'Disconnetti Google', ico:'??', ok:'Disconnetti', danger:true}).then(function(ok){
+    ctConfirm('Disconnettere Google? I mapping esistenti verranno mantenuti.', {title:'Disconnetti Google', ico:'🔌', ok:'Disconnetti', danger:true}).then(function(ok){
       if(!ok) return;
       GSync.auth.revokeToken().then(function() {
         GSync.ui.updateConnectionStatus();
@@ -10491,7 +10491,7 @@ var AuthModule = (function() {
       var nomeTarget = (target.grado||'') + ' ' + target.nome + ' ' + target.cognome;
 
       if(nuovoRuolo === 'comandante') {
-        if(!await ctConfirm('Trasferire il comando a <strong>' + nomeTarget + '</strong>?<br><small>Diventerai Addetto.</small>', {title:'Trasferisci Comando', ico:'???', ok:'Trasferisci', danger:true})) return;
+        if(!await ctConfirm('Trasferire il comando a <strong>' + nomeTarget + '</strong>?<br><small>Diventerai Addetto.</small>', {title:'Trasferisci Comando', ico:'🗑️', ok:'Trasferisci', danger:true})) return;
         users.forEach(function(u){
           if(u.uid === me.uid || u.email === session.userId) u.ruolo = 'addetto';
         });
@@ -10503,7 +10503,7 @@ var AuthModule = (function() {
       } else if(nuovoRuolo === 'vice') {
         if(!await ctConfirm('Nominare <strong>' + nomeTarget + '</strong> come Vice Comandante?', {title:'Nomina Vice', ico:'?', ok:'Nomina'})) return;
       } else {
-        if(!await ctConfirm('Rimuovere il ruolo speciale a <strong>' + nomeTarget + '</strong>?', {title:'Rimuovi Ruolo', ico:'??', ok:'Rimuovi', danger:true})) return;
+        if(!await ctConfirm('Rimuovere il ruolo speciale a <strong>' + nomeTarget + '</strong>?', {title:'Rimuovi Ruolo', ico:'⚠️', ok:'Rimuovi', danger:true})) return;
       }
 
       target.ruolo = nuovoRuolo;
@@ -10531,7 +10531,7 @@ var AuthModule = (function() {
       var u = users.find(function(x) { return x.uid === uid || x.email === uid; });
       if (!u) { if(typeof toast==='function') toast('Utente non trovato', 'err'); return; }
       var nome = (u.nome||'') + ' ' + (u.cognome||'');
-      if(!await ctConfirm('Eliminare definitivamente <strong>' + nome.trim() + '</strong> dal reparto?<br><small>Questa azione non è reversibile.</small>', {title:'Elimina Membro', ico:'???', ok:'Elimina', danger:true})) return;
+      if(!await ctConfirm('Eliminare definitivamente <strong>' + nome.trim() + '</strong> dal reparto?<br><small>Questa azione non è reversibile.</small>', {title:'Elimina Membro', ico:'🗑️', ok:'Elimina', danger:true})) return;
       // Rimuovi dalla lista locale
       var newUsers = users.filter(function(x) { return x.uid !== uid && x.email !== uid; });
       _saveUsers(newUsers);
@@ -10569,7 +10569,7 @@ var AuthModule = (function() {
       var target = users.find(function(u) { return u.email === targetEmail; });
 
       if (!target || target.stato !== 'approved') { if (typeof toast === 'function') toast('Utente non valido', 'err'); return; }
-      if(!await ctConfirm('Trasferire il ruolo Comandante a <strong>' + target.nome + ' ' + target.cognome + '</strong>?', {title:'Trasferisci Comando', ico:'???', ok:'Trasferisci', danger:true})) return;
+      if(!await ctConfirm('Trasferire il ruolo Comandante a <strong>' + target.nome + ' ' + target.cognome + '</strong>?', {title:'Trasferisci Comando', ico:'🗑️', ok:'Trasferisci', danger:true})) return;
 
       users.forEach(function(u) {
 
@@ -10691,7 +10691,7 @@ var AuthModule = (function() {
     ctx.font = '16px serif';
     ctx.globalAlpha = 0.3;
     s.clouds.forEach(function(c) {
-      ctx.fillText('??', c.x, c.y);
+      ctx.fillText('⚠️', c.x, c.y);
     });
     ctx.globalAlpha = 1;
 
@@ -10714,7 +10714,7 @@ var AuthModule = (function() {
     ctx.save();
     ctx.scale(-1, 1);
     ctx.font = DINO_W + 'px serif';
-    ctx.fillText('??', -(s.dx + DINO_W * 0.5), s.dy + DINO_H * 0.15);
+    ctx.fillText('⚠️', -(s.dx + DINO_W * 0.5), s.dy + DINO_H * 0.15);
     ctx.restore();
 
     // Ostacoli a terra
@@ -10725,10 +10725,10 @@ var AuthModule = (function() {
         ctx.save();
         ctx.scale(-1,1);
         ctx.font = (OBS_W+4) + 'px serif';
-        ctx.fillText('??', -(o.x + OBS_W * 0.5), o.y);
+        ctx.fillText('⚠️', -(o.x + OBS_W * 0.5), o.y);
         ctx.restore();
       } else {
-        ctx.fillText('??', o.x - OBS_W * 0.5, s.ground + OBS_H * 0.15);
+        ctx.fillText('⚠️', o.x - OBS_W * 0.5, s.ground + OBS_H * 0.15);
       }
     });
 
@@ -10739,7 +10739,7 @@ var AuthModule = (function() {
       ctx.fillStyle = 'rgba(255,255,255,0.85)';
       ctx.font = 'bold 14px -apple-system, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('??  Tocca per iniziare', cw / 2, ch / 2 - 4);
+      ctx.fillText('🦖  Tocca per iniziare', cw / 2, ch / 2 - 4);
       ctx.font = '11px -apple-system, sans-serif';
       ctx.fillStyle = 'rgba(255,255,255,0.5)';
       ctx.fillText('Spazio / Tap per saltare', cw / 2, ch / 2 + 14);
@@ -10763,7 +10763,7 @@ var AuthModule = (function() {
       ctx.fillStyle = '#fff';
       ctx.font = 'bold 17px -apple-system, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('?? Game Over', cw / 2, by + 26);
+      ctx.fillText('💀 Game Over', cw / 2, by + 26);
       ctx.font = '12px -apple-system, sans-serif';
       ctx.fillStyle = 'rgba(255,255,255,0.75)';
       ctx.fillText('Punteggio: ' + Math.floor(s.score), cw / 2, by + 46);
@@ -10887,11 +10887,11 @@ var AuthModule = (function() {
     var old = document.getElementById('dino-lb-popup');
     if(old) old.remove();
     var html = '<div id="dino-lb-popup" style="position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(10,20,40,.97);border:1px solid rgba(91,159,255,.4);border-radius:16px;padding:14px 18px;z-index:99999;min-width:220px;max-width:300px;box-shadow:0 8px 32px rgba(0,0,0,.6)">'
-      +'<div style="font-size:13px;font-weight:800;color:var(--gold,#ffd166);margin-bottom:10px;text-align:center">?? Top Reparto</div>';
+      +'<div style="font-size:13px;font-weight:800;color:var(--gold,#ffd166);margin-bottom:10px;text-align:center">🏆 Top Reparto</div>';
     top5.forEach(function(s,i){
       var isMe = s.score === myScore;
       html += '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;'+(isMe?'color:#5b9fff;font-weight:800':'color:rgba(255,255,255,.8)')+'">'
-        +'<span style="font-size:12px;width:18px;text-align:center">'+(i===0?'??':i===1?'??':i===2?'??':(i+1)+'.')+' </span>'
+        +'<span style="font-size:12px;width:18px;text-align:center">'+(i===0?'⚠️':i===1?'🥈':i===2?'🥉':(i+1)+'.')+' </span>'
         +'<span style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+s.nome+'</span>'
         +'<span style="font-size:13px;font-weight:900">'+s.score+'</span>'
         +'</div>';
