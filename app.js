@@ -4341,7 +4341,7 @@ function salvaImp(){
     }
     var okEl=document.getElementById("pf-ok");
     if(okEl){okEl.classList.add("on");setTimeout(function(){okEl.classList.remove("on");},3000);}
-    toast("Profilo aggiornato ?","ok");
+    toast("Profilo aggiornato \u2713","ok");
   }
   else{toast("Errore salvataggio","err");}
 }
@@ -6116,7 +6116,7 @@ function mostraGiorno(ds){
           var p = P.find(function(x){return x.id===t.pid;});
           var uFb = _fbUsers.find(function(u){return u.uid&&p&&u.uid===p.uid;});
           var ava = (uFb&&uFb.ava)?uFb.ava:(p&&p.ava?p.ava:'');
-          var nome = t.pnome || (p?p.nome:'') || '?';
+          var nome = t.pnome || (p?p.nome:'') || '';
           var nomeCorto = nome.split(' ')[0] || nome;
 
           html += '<div style="display:flex;align-items:center;gap:6px;padding:6px 10px 6px 6px;border-radius:20px;'+
@@ -6142,7 +6142,7 @@ function mostraGiorno(ds){
           // Comandante/vice: bottone modifica su ogni turno del gruppo
           gruppi[tipo].forEach(function(t){
             var p = P.find(function(x){return x.id===t.pid;});
-            var nomeBtn = t.pnome || (p ? p.nome : '') || '?';
+            var nomeBtn = t.pnome || (p ? p.nome : '') || '';
             html += '<button onclick="apriModificaTurnoGiorno('+t.id+')" style="margin-top:6px;margin-right:6px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:10px;padding:6px 12px;font-size:11px;font-weight:700;color:'+(col==='var(--blue)'?'var(--blue)':'#fff')+';cursor:pointer;appearance:none;-webkit-appearance:none;">&#9998; '+nomeBtn+'</button>';
           });
         } else if(myT && gruppi[tipo].some(function(t){ return t.pid===myPid || (me&&t.uid&&t.uid===(me.uid||me.id)); })){
@@ -6226,9 +6226,9 @@ function setRepPer(p){
 }
 function renderRepData(){
   var T=lsG("ct_t",[]);
-  var P=lsG("ct_p",[]).slice(); // copia
+  var P=lsG("ct_p",[]).slice();
 
-  // Aggiungi utenti Firebase non ancora in ct_p
+  // Aggiungi utenti Firebase non ancora in ct_p (per uid)
   var fbUsers=lsG('ct_users',[]);
   fbUsers.forEach(function(u){
     if(!u.uid||!u.nome)return;
@@ -6243,6 +6243,34 @@ function renderRepData(){
       });
     }
   });
+
+  // ── DEDUPLICAZIONE: un solo record per persona ──────────────
+  // Strategia: raggruppa per uid (se presente), poi per nome normalizzato
+  var seen = {}; // uid → indice in Pclean
+  var seenNome = {}; // nome normalizzato → indice in Pclean
+  var Pclean = [];
+  P.forEach(function(p){
+    var uid = p.uid || null;
+    var nome = (p.nome||'').toLowerCase().replace(/\s+/g,' ').trim();
+    if(uid && seen[uid] !== undefined){
+      // Già presente per uid — aggiorna id numerico se mancante
+      var existing = Pclean[seen[uid]];
+      if(!existing.id || existing.id === existing.uid) existing.id = p.id || existing.id;
+      return;
+    }
+    if(seenNome[nome] !== undefined){
+      // Già presente per nome — unisci uid se mancante
+      var ex2 = Pclean[seenNome[nome]];
+      if(!ex2.uid && uid) { ex2.uid = uid; seen[uid] = seenNome[nome]; }
+      return;
+    }
+    var idx = Pclean.length;
+    Pclean.push(p);
+    if(uid) seen[uid] = idx;
+    if(nome) seenNome[nome] = idx;
+  });
+  P = Pclean;
+  // ────────────────────────────────────────────────────────────
 
   var d=document.getElementById("rep-data");if(!d)return;
   var per=window._repPer||"m";
@@ -6267,7 +6295,7 @@ function renderRepData(){
     recupero:"Recuperi (RR)",ferie:"Licenze (L)",licenza:"Lic.Studio",permesso:"Permessi",corso:"Corsi"};
   var cl={mattina:"#ffb300",pomeriggio:"#ff6d00",notte:"#7c4dff",riposo:"#00c853",
     recupero:"#d4af37",ferie:"#00bcd4",licenza:"#00bcd4",permesso:"#e91e8c",corso:"#2979ff"};
-  // Cards contatori
+
   var h='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px">';
   Object.keys(conti).forEach(function(k){
     if(!conti[k]&&k!=="mattina"&&k!=="pomeriggio"&&k!=="ferie")return;
@@ -6277,13 +6305,9 @@ function renderRepData(){
     h+='<div style="font-size:22px;font-weight:900">'+conti[k]+extra+'</div></div>';
   });
   h+='</div>';
-  // Barre per persona — mostra tutti con almeno 1 turno nel periodo
-  if(P.length){
-    h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px">';
-    h+='<div style="padding:11px 14px;border-bottom:1px solid var(--border);font-weight:700;font-size:13px">&#128101; Carico per persona</div>';
-    var totT=Tf.length||1;
 
-    // Indice turni per pid (stringa) e per pnome normalizzato
+  if(P.length){
+    // Indice turni per pid e per pnome
     var tByPid={}, tByNome={};
     Tf.forEach(function(t){
       var k=String(t.pid);
@@ -6296,43 +6320,38 @@ function renderRepData(){
       }
     });
 
+    var righe='';
+    var totT=Tf.length||1;
     P.forEach(function(p){
-      // Raccoglie turni senza duplicati
       var visti={}, turniP=[];
       function addT(arr){(arr||[]).forEach(function(t){if(!visti[t.id]){visti[t.id]=true;turniP.push(t);}});}
-
-      // 1. Per id numerico
       addT(tByPid[String(p.id)]);
-      // 2. Per uid Firebase
       if(p.uid) addT(tByPid[String(p.uid)]);
-      // 3. Per nome esatto
-      var pn=p.nome.toLowerCase().replace(/\s+/g,' ').trim();
+      var pn=(p.nome||'').toLowerCase().replace(/\s+/g,' ').trim();
       addT(tByNome[pn]);
-      // 4. Per nome invertito (Nome Cognome ? Cognome Nome)
       var parti=pn.split(' ');
-      if(parti.length>=2){
-        var inv=parti.slice(1).join(' ')+' '+parti[0];
-        addT(tByNome[inv]);
-      }
-
+      if(parti.length>=2){ addT(tByNome[parti.slice(1).join(' ')+' '+parti[0]]); }
       if(!turniP.length)return;
       var pc=turniP.length;
       var pct=Math.round(pc/totT*100);
       var tipiP={};
       turniP.forEach(function(t){tipiP[t.tipo]=(tipiP[t.tipo]||0)+1;});
-      h+='<div style="padding:10px 14px;border-bottom:1px solid var(--border)">';
-      h+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="font-size:12px;font-weight:700">'+p.nome+'</span><span style="font-size:12px;font-weight:700;color:var(--blue)">'+pc+' turni</span></div>';
-      h+='<div style="height:8px;background:var(--border);border-radius:4px;margin-bottom:4px">';
-      h+='<div style="height:100%;width:'+pct+'%;background:var(--blue);border-radius:4px"></div></div>';
+      righe+='<div style="padding:10px 14px;border-bottom:1px solid var(--border)">';
+      righe+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="font-size:12px;font-weight:700">'+p.nome+'</span><span style="font-size:12px;font-weight:700;color:var(--blue)">'+pc+' turni</span></div>';
+      righe+='<div style="height:8px;background:var(--border);border-radius:4px;margin-bottom:4px"><div style="height:100%;width:'+pct+'%;background:var(--blue);border-radius:4px"></div></div>';
       var bk='';Object.keys(tipiP).forEach(function(k){
         var c2=cl[k]||'#888';var l2=lbl[k]||k;
         bk+='<span style="font-size:9px;background:'+c2+'22;color:'+c2+';border:1px solid '+c2+'44;border-radius:10px;padding:1px 5px;margin-right:3px">'+l2+': '+tipiP[k]+'</span>';
       });
-      h+='<div style="margin-top:3px">'+bk+'</div></div>';
+      righe+='<div style="margin-top:3px">'+bk+'</div></div>';
     });
-    h+='</div>';
+    if(righe){
+      h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px">';
+      h+='<div style="padding:11px 14px;border-bottom:1px solid var(--border);font-weight:700;font-size:13px">&#128101; Carico per persona</div>';
+      h+=righe+'</div>';
+    }
   }
-  // Grafico a barre SVG semplice
+
   var svgH=120,svgW=320,pad=30,barW2=Math.floor((svgW-pad*2)/9)-4;
   var keys=Object.keys(conti).filter(function(k){return conti[k]>0;});
   var maxV=Math.max.apply(null,keys.map(function(k){return conti[k];}));
@@ -6345,8 +6364,7 @@ function renderRepData(){
       var x=pad+i*(barW2+6);var y=svgH-bh;
       h+='<rect x="'+x+'" y="'+y+'" width="'+barW2+'" height="'+bh+'" rx="3" fill="'+cl[k]+'" opacity=".85"/>';
       h+='<text x="'+(x+barW2/2)+'" y="'+(y-3)+'" text-anchor="middle" font-size="9" fill="'+cl[k]+'">'+conti[k]+'</text>';
-      var abbr=k.substring(0,3);
-      h+='<text x="'+(x+barW2/2)+'" y="'+(svgH+14)+'" text-anchor="middle" font-size="8" fill="var(--txt2)">'+abbr+'</text>';
+      h+='<text x="'+(x+barW2/2)+'" y="'+(svgH+14)+'" text-anchor="middle" font-size="8" fill="var(--txt2)">'+k.substring(0,3)+'</text>';
     });
     h+='</svg></div>';
   }
@@ -6584,11 +6602,11 @@ function straordSetMin(min, btn) {
   haptic('light');
 }
 
-// Selezione tipo
-function straordSetTipo(tipo, btn) {
-  document.querySelectorAll('.straord-tipo-pill').forEach(function(b){ b.classList.remove('active'); });
-  btn.classList.add('active');
-  var el = document.getElementById('straord-tipo');
+// Selezione tipo alert
+function alertSetTipo(tipo, btn) {
+  document.querySelectorAll('#m-alert .straord-tipo-pill').forEach(function(b){ b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  var el = document.getElementById('al-tipo');
   if (el) el.value = tipo;
   haptic('light');
 }
@@ -8010,7 +8028,7 @@ function salvaProfilo(){
     if(typeof _syncAvaAllSections === 'function') _syncAvaAllSections(profilo.ava||null);
     aggUI();
     closeM('m-profilo');
-    toast('Profilo aggiornato ?','ok');
+    toast('Profilo aggiornato \u2713','ok');
   }
 
   // Avvia il salvataggio — avatar già impostato da selezionaAvatar o dal campo hidden
@@ -8120,12 +8138,12 @@ var METEO_DESC = {
 var WIDGET_DEF = {
   'squadra-turni': { label: "&#128101; Squadra &amp; Turni",  default: true },
   settimana:       { label: "&#128197; Turni Settimana",       default: true },
-  prossimo:        { label: "&#9200; Prossimo turno",          default: true },
+  prossimo:        { label: "&#9203; Straordinari oggi",     default: true },
   alert:           { label: "&#128680; Alert",                 default: true },
   scadenze:        { label: "&#128197; Scadenze",              default: true },
   agenda:          { label: "&#128467; Agenda oggi",           default: true },
   todo:            { label: "&#9989; To-Do",                   default: true },
-  dino:            { label: "&#129430; Dino Game",             default: false }
+  dino:            { label: "&#128110; Carabiniere Runner",    default: false }
 };
 
 function getWidgetCfg() {
@@ -8716,6 +8734,11 @@ function salvaAlert() {
   lsS('ct_alerts', ALERTS);
   document.getElementById('al-msg').value = '';
   document.getElementById('al-fine').value = '';
+  // Reset label data fine
+  var fineLbl = document.getElementById('al-fine-lbl');
+  if (fineLbl) { fineLbl.textContent = 'Nessuna scadenza'; fineLbl.style.color = 'var(--txt2)'; }
+  // Reset tipo a info
+  alertSetTipo('info', document.querySelector('.straord-tipo-pill[data-tipo="info"]'));
   renderWidgetAlert();
   toast('Alert aggiunto', 'ok');
 }
@@ -8787,10 +8810,9 @@ function renderWidgetAgenda() {
   }).join('');
 }
 
-function vaiAgenda() { closeM('m-agenda'); document.querySelectorAll('.nv').forEach(function(b){ b.classList.remove('on'); }); vaiAgendaPage(); }
+function vaiAgenda() { closeM('m-agenda'); vaiBN('ag', 3); }
 function vaiAgendaPage() {
-  vaiBN('cal', 2);
-  setTimeout(function(){ calTab('agenda'); }, 50);
+  vaiBN('ag', 3);
 }
 function vaiTodo() {
   vaiBN('cal', 2);
@@ -9456,6 +9478,23 @@ function openM(id) {
             lastRow.parentElement.appendChild(customRow);
           }
         }
+    }
+    if (id === 'm-scadenza') {
+        var scDataEl = document.getElementById('sc-data'); if(scDataEl) scDataEl.value = '';
+        var scOraEl  = document.getElementById('sc-ora');  if(scOraEl)  scOraEl.value  = '';
+        var scDataLbl = document.getElementById('sc-data-lbl'); if(scDataLbl){ scDataLbl.textContent='Seleziona...'; scDataLbl.style.color='var(--txt2)'; }
+        var scOraLbl  = document.getElementById('sc-ora-lbl');  if(scOraLbl) { scOraLbl.textContent='—'; scOraLbl.style.color='var(--txt2)'; }
+        var scTit = document.getElementById('sc-tit'); if(scTit) scTit.value='';
+        var scNote = document.getElementById('sc-note'); if(scNote) scNote.value='';
+    }
+    if (id === 'm-alert') {
+        var alMsg = document.getElementById('al-msg'); if(alMsg) alMsg.value='';
+        var alFine = document.getElementById('al-fine'); if(alFine) alFine.value='';
+        var alFineLbl = document.getElementById('al-fine-lbl'); if(alFineLbl){ alFineLbl.textContent='Nessuna scadenza'; alFineLbl.style.color='var(--txt2)'; }
+        // Reset tipo a info
+        document.querySelectorAll('#m-alert .straord-tipo-pill').forEach(function(b){ b.classList.toggle('active', b.dataset.tipo==='info'); });
+        var alTipo = document.getElementById('al-tipo'); if(alTipo) alTipo.value='info';
+        if(typeof renderAlertLista === 'function') renderAlertLista();
     }
     if (id === 'm-avatar-editor') {
         setTimeout(_aveDraw, 100);
@@ -11176,7 +11215,7 @@ var AuthModule = (function() {
 
 
 // -----------------------------------------------------------
-// DINO GAME — minigioco canvas con emoji
+// CARABINIERE RUNNER — minigioco canvas tema polizia
 // -----------------------------------------------------------
 (function(){
 
@@ -11185,232 +11224,374 @@ var AuthModule = (function() {
   var _dinoRaf = null;
 
   // Costanti fisiche
-  var GROUND_RATIO = 0.80;   // y del suolo come % dell'altezza canvas
+  var GROUND_RATIO = 0.78;
   var GRAVITY      = 0.7;
-  var JUMP_VY      = -12;
+  var JUMP_VY      = -13;
   var BASE_SPEED   = 4;
-  var MAX_SPEED    = 13;
-  var ACCEL        = 0.0015;  // incremento velocità per frame
+  var MAX_SPEED    = 14;
+  var ACCEL        = 0.0015;
+  var SIRENA_SCORE = 300; // punteggio da cui partono le luci
 
-  // Stato gioco
   var state = {};
+
+  // Skyline pixel art — array di rettangoli {x,w,h,col}
+  var _skyline = [];
+  function _buildSkyline(cw, ch) {
+    _skyline = [];
+    var x = 0;
+    var cols = ['#1a2a4a','#162038','#1e2e52','#0f1a30','#243050'];
+    while(x < cw + 80) {
+      var w = 18 + Math.floor(Math.random()*28);
+      var h = 20 + Math.floor(Math.random()*55);
+      _skyline.push({ x:x, w:w, h:h, col:cols[Math.floor(Math.random()*cols.length)],
+        windows: _buildWindows(w, h) });
+      x += w + 2 + Math.floor(Math.random()*8);
+    }
+  }
+  function _buildWindows(bw, bh) {
+    var wins = [];
+    for(var wy=6; wy<bh-6; wy+=9){
+      for(var wx=4; wx<bw-4; wx+=8){
+        wins.push({ x:wx, y:wy, on: Math.random()>0.45 });
+      }
+    }
+    return wins;
+  }
+
+  // Parallasse skyline
+  var _skyOffsets = [0, 0]; // layer 0 (lento), layer 1 (veloce)
 
   function resetState(cw, ch) {
     var ground = Math.floor(ch * GROUND_RATIO);
+    _buildSkyline(cw, ch);
+    _skyOffsets = [0, 0];
     state = {
       score:    0,
       speed:    BASE_SPEED,
       over:     false,
       started:  false,
       ground:   ground,
-      // Dino
+      // Protagonista
       dx:       Math.floor(cw * 0.12),
       dy:       ground,
       vy:       0,
       onGround: true,
+      frame:    0,
       // Ostacoli
       obstacles: [],
       nextObs:   90,
-      // Nuvole decorative
-      clouds: [
-        { x: cw * 0.4, y: ch * 0.15 },
-        { x: cw * 0.75, y: ch * 0.08 },
-        { x: cw * 0.9, y: ch * 0.22 }
-      ],
-      frame: 0
+      // Luci sirena
+      siren:     false,
+      sirenPhase: 0
     };
   }
 
-  // Dimensioni emoji in px (canvas units)
-  var DINO_W = 34, DINO_H = 34;
-  var OBS_W  = 26, OBS_H  = 32;
+  var HERO_W = 32, HERO_H = 36;
+  var OBS_W  = 28, OBS_H  = 32;
+
+  // Disegna il carabiniere pixel art
+  function _drawHero(ctx, x, y, frame) {
+    var run = Math.floor(frame / 8) % 2; // animazione corsa
+    ctx.save();
+    // Corpo — giubbotto catarifrangente giallo
+    ctx.fillStyle = '#f5c518';
+    ctx.fillRect(x - 10, y - 28, 20, 16);
+    // Strisce rifrangenti
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(x - 10, y - 22, 20, 3);
+    ctx.fillRect(x - 10, y - 16, 20, 3);
+    // Testa
+    ctx.fillStyle = '#c8a882';
+    ctx.fillRect(x - 7, y - 38, 14, 12);
+    // Cappello da poliziotto (blu scuro con visiera)
+    ctx.fillStyle = '#1a2a6c';
+    ctx.fillRect(x - 9, y - 44, 18, 8);
+    ctx.fillStyle = '#0d1a4a';
+    ctx.fillRect(x - 11, y - 37, 22, 3); // tesa
+    // Stella sul cappello
+    ctx.fillStyle = '#ffd700';
+    ctx.fillRect(x - 2, y - 42, 4, 4);
+    // Gambe animate
+    ctx.fillStyle = '#1a2a6c';
+    if(run === 0){
+      ctx.fillRect(x - 7, y - 12, 6, 14);
+      ctx.fillRect(x + 1, y - 12, 6, 10);
+    } else {
+      ctx.fillRect(x - 7, y - 12, 6, 10);
+      ctx.fillRect(x + 1, y - 12, 6, 14);
+    }
+    // Scarpe
+    ctx.fillStyle = '#111';
+    ctx.fillRect(x - 8, y + 1, 8, 4);
+    ctx.fillRect(x, y + 1, 8, 4);
+    ctx.restore();
+  }
+
+  // Disegna cono stradale
+  function _drawCone(ctx, x, y) {
+    ctx.save();
+    // Cono arancione
+    ctx.fillStyle = '#ff6600';
+    ctx.beginPath();
+    ctx.moveTo(x, y - OBS_H + 4);
+    ctx.lineTo(x - OBS_W/2 + 4, y);
+    ctx.lineTo(x + OBS_W/2 - 4, y);
+    ctx.closePath();
+    ctx.fill();
+    // Strisce bianche
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(x - 8, y - OBS_H/2 - 2, 16, 4);
+    ctx.fillRect(x - 5, y - OBS_H/4, 10, 3);
+    // Base
+    ctx.fillStyle = '#cc4400';
+    ctx.fillRect(x - OBS_W/2 + 2, y - 4, OBS_W - 4, 4);
+    ctx.restore();
+  }
+
+  // Disegna auto civetta
+  function _drawCar(ctx, x, y) {
+    ctx.save();
+    var bw = OBS_W + 10, bh = 18;
+    // Carrozzeria
+    ctx.fillStyle = '#1a3a8f';
+    ctx.fillRect(x - bw/2, y - bh, bw, bh);
+    // Tetto
+    ctx.fillStyle = '#0d2060';
+    ctx.fillRect(x - bw/2 + 6, y - bh - 10, bw - 12, 10);
+    // Finestrini
+    ctx.fillStyle = '#7ec8e3';
+    ctx.fillRect(x - bw/2 + 8, y - bh - 8, 10, 7);
+    ctx.fillRect(x + 2, y - bh - 8, 10, 7);
+    // Luci
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(x - bw/2, y - bh/2 - 2, 5, 4);
+    ctx.fillStyle = '#ff4444';
+    ctx.fillRect(x + bw/2 - 5, y - bh/2 - 2, 5, 4);
+    // Ruote
+    ctx.fillStyle = '#222';
+    ctx.beginPath(); ctx.arc(x - bw/2 + 8, y, 5, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x + bw/2 - 8, y, 5, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  // Disegna drone
+  function _drawDrone(ctx, x, y, frame) {
+    ctx.save();
+    var spin = Math.floor(frame/4)%2;
+    // Corpo drone
+    ctx.fillStyle = '#333';
+    ctx.fillRect(x - 10, y - 6, 20, 10);
+    // Occhio/camera
+    ctx.fillStyle = '#ff3333';
+    ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI*2); ctx.fill();
+    // Braccia
+    ctx.strokeStyle = '#555'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x-10,y-2); ctx.lineTo(x-20,y-8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+10,y-2); ctx.lineTo(x+20,y-8); ctx.stroke();
+    // Eliche (animate)
+    ctx.fillStyle = spin ? 'rgba(200,200,200,0.8)' : 'rgba(150,150,150,0.5)';
+    ctx.fillRect(x - 26, y - 11, 12, 3);
+    ctx.fillRect(x + 14, y - 11, 12, 3);
+    // Fascio luce verso il basso
+    ctx.fillStyle = 'rgba(255,255,100,0.12)';
+    ctx.beginPath();
+    ctx.moveTo(x-4, y+4);
+    ctx.lineTo(x-12, y+28);
+    ctx.lineTo(x+12, y+28);
+    ctx.lineTo(x+4, y+4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
 
   function draw(ctx, cw, ch) {
     var s = state;
-
-    // Sfondo
     ctx.clearRect(0, 0, cw, ch);
 
-    // Cielo sfumato più ricco
-    var grad = ctx.createLinearGradient(0, 0, 0, s.ground);
-    grad.addColorStop(0, 'rgba(5,10,20,0.95)');
-    grad.addColorStop(0.6, 'rgba(10,20,50,0.5)');
-    grad.addColorStop(1, 'rgba(41,121,255,0.06)');
-    ctx.fillStyle = grad;
+    // ── Effetto sirena (luci blu/rosse lampeggianti) ──
+    if(s.siren && s.started && !s.over) {
+      s.sirenPhase = (s.sirenPhase + 1) % 40;
+      var sirenAlpha = 0.08 + 0.06 * Math.sin(s.sirenPhase * Math.PI / 10);
+      ctx.fillStyle = s.sirenPhase < 20
+        ? 'rgba(0,80,255,' + sirenAlpha + ')'
+        : 'rgba(255,20,20,' + sirenAlpha + ')';
+      ctx.fillRect(0, 0, cw, ch);
+    }
+
+    // ── Cielo notturno urbano ──
+    var skyGrad = ctx.createLinearGradient(0, 0, 0, s.ground);
+    skyGrad.addColorStop(0, '#050d1a');
+    skyGrad.addColorStop(0.7, '#0a1428');
+    skyGrad.addColorStop(1, '#0f1e3a');
+    ctx.fillStyle = skyGrad;
     ctx.fillRect(0, 0, cw, s.ground);
 
-    // Stelle (statiche, decorative)
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    [[cw*0.15,ch*0.12],[cw*0.3,ch*0.06],[cw*0.55,ch*0.18],[cw*0.7,ch*0.05],[cw*0.85,ch*0.14],[cw*0.95,ch*0.09]].forEach(function(p){
+    // ── Stelle ──
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    [[cw*.08,ch*.06],[cw*.22,ch*.04],[cw*.38,ch*.09],[cw*.52,ch*.03],
+     [cw*.65,ch*.07],[cw*.78,ch*.05],[cw*.88,ch*.10],[cw*.95,ch*.04]].forEach(function(p){
       ctx.fillRect(p[0], p[1], 1.5, 1.5);
     });
 
-    // Suolo con doppia linea
-    ctx.strokeStyle = 'rgba(91,159,255,0.25)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(0, s.ground + DINO_H * 0.1);
-    ctx.lineTo(cw, s.ground + DINO_H * 0.1);
-    ctx.stroke();
-    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(0, s.ground + DINO_H * 0.1 + 3);
-    ctx.lineTo(cw, s.ground + DINO_H * 0.1 + 3);
-    ctx.stroke();
-
-    // Nuvole
-    ctx.font = '16px serif';
-    ctx.globalAlpha = 0.3;
-    s.clouds.forEach(function(c) {
-      ctx.fillText('☁️', c.x, c.y);
+    // ── Skyline parallasse layer 0 (lontano, lento) ──
+    var groundY = s.ground;
+    _skyline.forEach(function(b) {
+      var bx = (b.x - _skyOffsets[0] % (cw + 100) + cw + 100) % (cw + 100) - 50;
+      var by = groundY - b.h;
+      ctx.fillStyle = b.col;
+      ctx.fillRect(bx, by, b.w, b.h);
+      // Finestre
+      b.windows.forEach(function(w){
+        ctx.fillStyle = w.on ? 'rgba(255,240,150,0.7)' : 'rgba(20,30,60,0.8)';
+        ctx.fillRect(bx + w.x, by + w.y, 4, 5);
+      });
     });
-    ctx.globalAlpha = 1;
 
-    // Punteggio con sfondo
+    // ── Strada ──
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillRect(0, groundY, cw, ch - groundY);
+    // Linea tratteggiata strada
+    ctx.strokeStyle = 'rgba(255,200,0,0.4)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([18, 14]);
+    ctx.beginPath();
+    ctx.moveTo(0, groundY + (ch - groundY) * 0.5);
+    ctx.lineTo(cw, groundY + (ch - groundY) * 0.5);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // Bordo strada
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(cw, groundY); ctx.stroke();
+
+    // ── Punteggio ──
     var scoreStr = Math.floor(s.score).toString().padStart(5, '0');
-    ctx.font = 'bold 14px -apple-system, monospace';
-    ctx.fillStyle = 'rgba(255,255,255,0.65)';
+    ctx.font = 'bold 13px monospace';
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
     ctx.textAlign = 'right';
-    ctx.fillText(scoreStr, cw - 10, 20);
+    ctx.fillText(scoreStr, cw - 10, 18);
     ctx.textAlign = 'left';
 
-    // Velocità indicatore (barra sottile in alto)
+    // Barra velocità
     if(s.started && !s.over){
-      var speedPct = (s.speed - BASE_SPEED) / (MAX_SPEED - BASE_SPEED);
-      ctx.fillStyle = 'rgba(91,159,255,0.3)';
-      ctx.fillRect(0, 0, cw * speedPct, 2);
+      var spPct = (s.speed - BASE_SPEED) / (MAX_SPEED - BASE_SPEED);
+      ctx.fillStyle = s.siren ? 'rgba(255,60,60,0.5)' : 'rgba(91,159,255,0.4)';
+      ctx.fillRect(0, 0, cw * spPct, 3);
     }
 
-    // Dino — flip orizzontale per farlo correre verso destra
-    ctx.save();
-    ctx.scale(-1, 1);
-    ctx.font = DINO_W + 'px serif';
-    ctx.fillText('🦖', -(s.dx + DINO_W * 0.5), s.dy + DINO_H * 0.15);
-    ctx.restore();
+    // ── Protagonista ──
+    _drawHero(ctx, s.dx, s.dy, s.frame);
 
-    // Ostacoli a terra
-    ctx.font = OBS_W + 'px serif';
-    s.obstacles.forEach(function(o) {
+    // ── Ostacoli ──
+    s.obstacles.forEach(function(o){
       if(o.flying){
-        // Pterodattilo volante
-        ctx.save();
-        ctx.scale(-1,1);
-        ctx.font = (OBS_W+4) + 'px serif';
-        ctx.fillText('🦅', -(o.x + OBS_W * 0.5), o.y);
-        ctx.restore();
+        _drawDrone(ctx, o.x, o.y, s.frame);
+      } else if(o.tipo === 'car'){
+        _drawCar(ctx, o.x, groundY);
       } else {
-        ctx.fillText('🌵', o.x - OBS_W * 0.5, s.ground + OBS_H * 0.15);
+        _drawCone(ctx, o.x, groundY);
       }
     });
 
-    // Schermata iniziale
-    if (!s.started && !s.over) {
-      ctx.fillStyle = 'rgba(0,0,0,0.35)';
-      ctx.fillRect(cw/2 - 100, ch/2 - 28, 200, 44);
-      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    // ── Schermata iniziale ──
+    if(!s.started && !s.over){
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillRect(cw/2 - 110, ch/2 - 32, 220, 52);
+      ctx.fillStyle = '#fff';
       ctx.font = 'bold 14px -apple-system, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('🦖  Tocca per iniziare', cw / 2, ch / 2 - 4);
+      ctx.fillText('👮 Tocca per iniziare', cw/2, ch/2 - 8);
       ctx.font = '11px -apple-system, sans-serif';
-      ctx.fillStyle = 'rgba(255,255,255,0.5)';
-      ctx.fillText('Spazio / Tap per saltare', cw / 2, ch / 2 + 14);
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      ctx.fillText('Spazio / Tap per saltare', cw/2, ch/2 + 12);
       ctx.textAlign = 'left';
     }
 
-    // Game Over
-    if (s.over) {
-      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    // ── ARRESTATO! ──
+    if(s.over){
+      // Flash rosso/blu
+      ctx.fillStyle = (s.frame % 20 < 10) ? 'rgba(0,50,200,0.35)' : 'rgba(200,0,0,0.35)';
       ctx.fillRect(0, 0, cw, ch);
-      // Box centrato
-      var bw = 200, bh = 80;
-      var bx = (cw - bw) / 2, by = (ch - bh) / 2;
-      ctx.fillStyle = 'rgba(20,30,50,0.95)';
+      // Box
+      var bw = 220, bh = 90;
+      var bx = (cw - bw)/2, by = (ch - bh)/2;
+      ctx.fillStyle = 'rgba(10,10,30,0.96)';
       ctx.beginPath();
-      ctx.roundRect ? ctx.roundRect(bx, by, bw, bh, 14) : ctx.rect(bx, by, bw, bh);
+      if(ctx.roundRect) ctx.roundRect(bx, by, bw, bh, 16); else ctx.rect(bx, by, bw, bh);
       ctx.fill();
-      ctx.strokeStyle = 'rgba(91,159,255,0.4)';
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = 'rgba(255,50,50,0.7)';
+      ctx.lineWidth = 2;
       ctx.stroke();
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 17px -apple-system, sans-serif';
+      ctx.fillStyle = '#ff3333';
+      ctx.font = 'bold 22px -apple-system, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('💀 Game Over', cw / 2, by + 26);
+      ctx.fillText('🚨 ARRESTATO!', cw/2, by + 32);
       ctx.font = '12px -apple-system, sans-serif';
       ctx.fillStyle = 'rgba(255,255,255,0.75)';
-      ctx.fillText('Punteggio: ' + Math.floor(s.score), cw / 2, by + 46);
-      ctx.fillText('Tocca per riprovare', cw / 2, by + 64);
+      ctx.fillText('Punteggio: ' + Math.floor(s.score), cw/2, by + 54);
+      ctx.fillText('Tocca per riprovare', cw/2, by + 74);
       ctx.textAlign = 'left';
     }
   }
 
   function update(cw) {
     var s = state;
-    if (!s.started || s.over) return;
+    if(!s.started || s.over) return;
 
     s.frame++;
     s.score += s.speed * 0.04;
     s.speed = Math.min(MAX_SPEED, BASE_SPEED + s.frame * ACCEL);
+    s.siren = s.score >= SIRENA_SCORE;
 
-    // Fisica dino
+    // Fisica
     s.vy += GRAVITY;
     s.dy += s.vy;
-    if (s.dy >= s.ground) {
-      s.dy = s.ground;
-      s.vy = 0;
-      s.onGround = true;
-    }
+    if(s.dy >= s.ground){ s.dy = s.ground; s.vy = 0; s.onGround = true; }
 
-    // Nuvole
-    s.clouds.forEach(function(c) {
-      c.x -= s.speed * 0.25;
-      if (c.x < -30) c.x = cw + 30;
-    });
+    // Parallasse skyline
+    _skyOffsets[0] += s.speed * 0.18;
+    _skyOffsets[1] += s.speed * 0.45;
 
-    // Spawn ostacoli (cactus + pterodattilo dopo score 200)
+    // Spawn ostacoli
     s.nextObs--;
-    if (s.nextObs <= 0) {
-      var canSpawnFlying = s.score > 200 && Math.random() < 0.3;
-      if(canSpawnFlying){
-        // Pterodattilo: vola a 2 altezze diverse
-        var flyH = s.ground - DINO_H * (Math.random() < 0.5 ? 1.8 : 3.2);
+    if(s.nextObs <= 0){
+      var r = Math.random();
+      if(s.score > 200 && r < 0.28){
+        // Drone volante
+        var flyH = s.ground - HERO_H * (Math.random() < 0.5 ? 2.0 : 3.4);
         s.obstacles.push({ x: cw + OBS_W, flying: true, y: flyH });
+      } else if(s.score > 100 && r < 0.55){
+        // Auto civetta
+        s.obstacles.push({ x: cw + OBS_W + 10, flying: false, tipo: 'car' });
       } else {
-        s.obstacles.push({ x: cw + OBS_W, flying: false });
+        // Cono stradale
+        s.obstacles.push({ x: cw + OBS_W, flying: false, tipo: 'cone' });
       }
-      var interval = Math.floor(55 + Math.random() * 55 - s.speed * 1.5);
-      s.nextObs = Math.max(30, interval);
+      var interval = Math.floor(50 + Math.random()*60 - s.speed * 1.5);
+      s.nextObs = Math.max(28, interval);
     }
 
     // Muovi ostacoli
-    s.obstacles = s.obstacles.filter(function(o) {
-      o.x -= s.speed;
-      return o.x > -OBS_W;
-    });
+    s.obstacles = s.obstacles.filter(function(o){ o.x -= s.speed; return o.x > -OBS_W - 20; });
 
-    // Collisione AABB (hitbox ridotta del 30% per fairness)
-    var margin = 0.30;
-    var dLeft  = s.dx - DINO_W * (0.5 - margin);
-    var dRight = s.dx + DINO_W * (0.5 - margin);
-    var dTop   = s.dy - DINO_H * (1 - margin * 0.5);
-    var dBot   = s.dy + DINO_H * 0.15;
+    // Collisione AABB
+    var mg = 0.28;
+    var dL = s.dx - HERO_W*(0.5-mg), dR = s.dx + HERO_W*(0.5-mg);
+    var dT = s.dy - HERO_H*(1-mg*0.5), dB = s.dy + 4;
 
-    for (var i = 0; i < s.obstacles.length; i++) {
+    for(var i=0; i<s.obstacles.length; i++){
       var o = s.obstacles[i];
-      var oLeft  = o.x - OBS_W * (0.5 - margin);
-      var oRight = o.x + OBS_W * (0.5 - margin);
-      var oTop, oBot;
+      var ow = o.tipo==='car' ? OBS_W+10 : OBS_W;
+      var oL = o.x - ow*(0.5-mg), oR = o.x + ow*(0.5-mg);
+      var oT, oB;
       if(o.flying){
-        oTop = o.y - (OBS_W+4) * 0.8;
-        oBot = o.y + (OBS_W+4) * 0.15;
+        oT = o.y - (OBS_W+4)*0.8; oB = o.y + 8;
+      } else if(o.tipo==='car'){
+        oT = s.ground - 22; oB = s.ground + 4;
       } else {
-        oTop   = s.ground - OBS_H * (1 - margin * 0.5);
-        oBot   = s.ground + OBS_H * 0.15;
+        oT = s.ground - OBS_H*(1-mg*0.5); oB = s.ground + 4;
       }
-      if (dRight > oLeft && dLeft < oRight && dBot > oTop && dTop < oBot) {
-        gameOver();
-        return;
-      }
+      if(dR>oL && dL<oR && dB>oT && dT<oB){ gameOver(); return; }
     }
   }
 
@@ -11418,230 +11599,160 @@ var AuthModule = (function() {
     state.over = true;
     _dinoRunning = false;
     cancelAnimationFrame(_dinoRaf);
-
-    var hi = parseInt(localStorage.getItem('ct_dino_hi') || '0', 10);
+    var hi = parseInt(localStorage.getItem('ct_dino_hi')||'0',10);
     var sc = Math.floor(state.score);
-    if (sc > hi) {
-      localStorage.setItem('ct_dino_hi', sc);
-      hi = sc;
-    }
-    // Aggiorna il display record
+    if(sc > hi){ localStorage.setItem('ct_dino_hi', sc); hi = sc; }
     var recEl = document.getElementById('dino-record');
-    if (recEl) recEl.textContent = hi;
-
-    // Salva su Firebase e mostra leaderboard reparto
+    if(recEl) recEl.textContent = hi;
     _dinoSaveScore(sc);
+    // Continua a disegnare il frame ARRESTATO con flash
+    var _ctx2 = _ctx, _cw2 = _cw, _ch2 = _ch;
+    var _flashFrames = 0;
+    function flashLoop(){
+      state.frame++;
+      draw(_ctx2, _cw2, _ch2);
+      if(++_flashFrames < 60) _dinoRaf = requestAnimationFrame(flashLoop);
+    }
+    flashLoop();
   }
 
   function _dinoSaveScore(sc) {
     try {
       var sess = lsG('ct_session', null);
       var me = lsG('ct_me', null);
-      if(!sess || !sess.userId || !window.FirebaseModule) return;
-      var rep = (me && me.reparto) ? me.reparto : null;
-      if(!rep || rep.startsWith('privato_')) return;
-      var nome = me ? ((me.nome||'') + ' ' + (me.cognome||'')).trim() : 'Anonimo';
-      // Salva solo se è un nuovo record personale
+      if(!sess||!sess.userId||!window.FirebaseModule) return;
+      var rep = (me&&me.reparto)?me.reparto:null;
+      if(!rep||rep.startsWith('privato_')) return;
+      var nome = me?((me.nome||'')+' '+(me.cognome||'')).trim():'Anonimo';
       window.FirebaseModule.saveDinoScore(sess.userId, nome, sc, rep)
-        .then(function(){
-          return window.FirebaseModule.getDinoLeaderboard(rep);
-        })
-        .then(function(top5){
-          if(!top5 || !top5.length) return;
-          _dinoShowLeaderboard(top5, sc);
-        })
+        .then(function(){ return window.FirebaseModule.getDinoLeaderboard(rep); })
+        .then(function(top5){ if(top5&&top5.length) _dinoShowLeaderboard(top5, sc); })
         .catch(function(){});
-    } catch(e) {}
+    } catch(e){}
   }
 
   function _dinoShowLeaderboard(top5, myScore) {
-    // Rimuovi eventuale leaderboard precedente
-    var old = document.getElementById('dino-lb-popup');
-    if(old) old.remove();
-    var html = '<div id="dino-lb-popup" style="position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(10,20,40,.97);border:1px solid rgba(91,159,255,.4);border-radius:16px;padding:14px 18px;z-index:99999;min-width:220px;max-width:300px;box-shadow:0 8px 32px rgba(0,0,0,.6)">'
-      +'<div style="font-size:13px;font-weight:800;color:var(--gold,#ffd166);margin-bottom:10px;text-align:center">🏆 Top Reparto</div>';
+    var old = document.getElementById('dino-lb-popup'); if(old) old.remove();
+    var html = '<div id="dino-lb-popup" style="position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(10,15,35,.97);border:1px solid rgba(255,50,50,.4);border-radius:16px;padding:14px 18px;z-index:99999;min-width:220px;max-width:300px;box-shadow:0 8px 32px rgba(0,0,0,.7)">'
+      +'<div style="font-size:13px;font-weight:800;color:#ffd700;margin-bottom:10px;text-align:center">🏆 Top Reparto</div>';
     top5.forEach(function(s,i){
-      var isMe = s.score === myScore;
-      html += '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;'+(isMe?'color:#5b9fff;font-weight:800':'color:rgba(255,255,255,.8)')+'">'
-        +'<span style="font-size:12px;width:18px;text-align:center">'+(i===0?'⚠️':i===1?'🥈':i===2?'🥉':(i+1)+'.')+' </span>'
+      var isMe = s.score===myScore;
+      html+='<div style="display:flex;align-items:center;gap:8px;padding:4px 0;'+(isMe?'color:#5b9fff;font-weight:800':'color:rgba(255,255,255,.8)')+'">'
+        +'<span style="font-size:12px;width:18px;text-align:center">'+(i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.')+' </span>'
         +'<span style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+s.nome+'</span>'
         +'<span style="font-size:13px;font-weight:900">'+s.score+'</span>'
         +'</div>';
     });
-    html += '<button onclick="document.getElementById(\'dino-lb-popup\').remove()" style="width:100%;margin-top:10px;background:rgba(255,255,255,.1);border:none;border-radius:8px;padding:6px;font-size:11px;color:rgba(255,255,255,.7);cursor:pointer;appearance:none;-webkit-appearance:none">Chiudi</button></div>';
+    html+='<button onclick="document.getElementById(\'dino-lb-popup\').remove()" style="width:100%;margin-top:10px;background:rgba(255,255,255,.1);border:none;border-radius:8px;padding:6px;font-size:11px;color:rgba(255,255,255,.7);cursor:pointer;appearance:none;-webkit-appearance:none">Chiudi</button></div>';
     document.body.insertAdjacentHTML('beforeend', html);
-    setTimeout(function(){ var lb = document.getElementById('dino-lb-popup'); if(lb) lb.remove(); }, 7000);
+    setTimeout(function(){ var lb=document.getElementById('dino-lb-popup'); if(lb) lb.remove(); }, 7000);
   }
 
   function loop(ctx, cw, ch) {
     update(cw);
     draw(ctx, cw, ch);
-    if (!state.over) {
-      _dinoRaf = requestAnimationFrame(function() { loop(ctx, cw, ch); });
-    }
+    if(!state.over){ _dinoRaf = requestAnimationFrame(function(){ loop(ctx, cw, ch); }); }
   }
 
-  // Variabili di contesto condivise tra jump e loop
   var _ctx = null, _cw = 0, _ch = 0;
 
   function jump() {
-    if (state.over) {
+    if(state.over){
       resetState(_cw, _ch);
       state.started = true;
-      if (_dinoRaf) { cancelAnimationFrame(_dinoRaf); _dinoRaf = null; }
+      if(_dinoRaf){ cancelAnimationFrame(_dinoRaf); _dinoRaf = null; }
       _dinoRunning = false;
       return;
     }
-    if (!state.started) {
-      state.started = true;
-    }
-    if (state.onGround) {
-      state.vy = JUMP_VY;
-      state.onGround = false;
-    }
+    if(!state.started) state.started = true;
+    if(state.onGround){ state.vy = JUMP_VY; state.onGround = false; }
   }
 
-  // Flag per evitare listener duplicati
   var _dinoListenerAdded = false;
 
-  // -- API pubblica --
   window.initDinoGame = function() {
     var canvas = document.getElementById('dino-canvas');
-    if (!canvas) return;
-
-    // Controlla dimensioni reali — se 0 il canvas è ancora nascosto
+    if(!canvas) return;
     var rect = canvas.getBoundingClientRect();
-    if (rect.width < 10 || rect.height < 10) {
+    if(rect.width < 10 || rect.height < 10){
       _dinoInited = false;
-      setTimeout(function() { window.initDinoGame(); }, 200);
+      setTimeout(function(){ window.initDinoGame(); }, 200);
       return;
     }
-
-    if (_dinoInited) return;
+    if(_dinoInited) return;
     _dinoInited = true;
-
-    // Ferma eventuale loop precedente
-    if (_dinoRaf) { cancelAnimationFrame(_dinoRaf); _dinoRaf = null; }
+    if(_dinoRaf){ cancelAnimationFrame(_dinoRaf); _dinoRaf = null; }
     _dinoRunning = false;
-
     var dpr = window.devicePixelRatio || 1;
-    _cw = rect.width;
-    _ch = rect.height;
+    _cw = rect.width; _ch = rect.height;
     canvas.width  = Math.round(_cw * dpr);
     canvas.height = Math.round(_ch * dpr);
     _ctx = canvas.getContext('2d');
     _ctx.scale(dpr, dpr);
-
     resetState(_cw, _ch);
     draw(_ctx, _cw, _ch);
-
-    var hi = parseInt(localStorage.getItem('ct_dino_hi') || '0', 10);
+    var hi = parseInt(localStorage.getItem('ct_dino_hi')||'0',10);
     var recEl = document.getElementById('dino-record');
-    if (recEl) recEl.textContent = hi;
+    if(recEl) recEl.textContent = hi;
 
-    function onInput(e) {
-      if (e && e.preventDefault) e.preventDefault();
-      jump();
-      // Avvia il loop se il gioco è partito e il loop non sta girando
-      if (state.started && !state.over && !_dinoRaf) {
-        _dinoRunning = true;
-        loop(_ctx, _cw, _ch);
-      }
-    }
-
-    // Aggiungi listener direttamente sul canvas (senza cloneNode)
-    canvas.onclick     = onInput;
+    function onInput(e){ if(e&&e.preventDefault) e.preventDefault(); jump();
+      if(state.started&&!state.over&&!_dinoRaf){ _dinoRunning=true; loop(_ctx,_cw,_ch); } }
+    canvas.onclick = onInput;
     canvas.ontouchstart = onInput;
-
-    if (!_dinoListenerAdded) {
+    if(!_dinoListenerAdded){
       _dinoListenerAdded = true;
-      document.addEventListener('keydown', function(e) {
-        if (e.code === 'Space' || e.code === 'ArrowUp') {
-          var w = document.getElementById('widget-dino-dash');
-          if (w && w.style.display !== 'none') onInput(e);
+      document.addEventListener('keydown', function(e){
+        if(e.code==='Space'||e.code==='ArrowUp'){
+          var w=document.getElementById('widget-dino-dash');
+          if(w&&w.style.display!=='none') onInput(e);
         }
       });
     }
   };
 
-  // -- Integrazione con il toggle delle impostazioni --
-  // Sovrascrive l'onchange del toggle per aggiungere initDinoGame
-  document.addEventListener('DOMContentLoaded', function() {
-    _applyDinoPrefs();
-  });
-  // Fallback se DOMContentLoaded già passato
-  if (document.readyState !== 'loading') {
-    setTimeout(_applyDinoPrefs, 400);
-  }
+  document.addEventListener('DOMContentLoaded', function(){ _applyDinoPrefs(); });
+  if(document.readyState !== 'loading') setTimeout(_applyDinoPrefs, 400);
 
   function _applyDinoPrefs() {
     var prefs = lsG('ct_prefs', {});
-    var tog    = document.getElementById('tog-dino');
+    var tog = document.getElementById('tog-dino');
     var enabled = prefs.dino === true;
-    if (tog) tog.checked = enabled;
-
-    // Aggiorna visibilità widget dashboard
+    if(tog) tog.checked = enabled;
     _updateDinoVisibility();
-
-    // Aggiorna anche il widget system (mostra/nascondi nel wdg-container)
     var cfg = lsG('ct_dash_widgets', {});
     cfg.dino = enabled;
     lsS('ct_dash_widgets', cfg);
-
-    // Se abilitato, inizializza il gioco
-    if (enabled) {
-      setTimeout(function() { window.initDinoGame(); }, 300);
-    }
-
-    if (tog) {
-      tog.onchange = function() {
+    if(enabled) setTimeout(function(){ window.initDinoGame(); }, 300);
+    if(tog){
+      tog.onchange = function(){
         var v = this.checked;
-        var s = lsG('ct_prefs', {});
-        s.dino = v;
-        lsS('ct_prefs', s);
-        // Aggiorna widget system
-        var c = lsG('ct_dash_widgets', {});
-        c.dino = v;
-        lsS('ct_dash_widgets', c);
+        var s = lsG('ct_prefs', {}); s.dino = v; lsS('ct_prefs', s);
+        var c = lsG('ct_dash_widgets', {}); c.dino = v; lsS('ct_dash_widgets', c);
         _updateDinoVisibility();
-        if (v) {
-          _dinoInited = false;
-          setTimeout(function() { window.initDinoGame(); }, 150);
-        } else {
-          if (_dinoRaf) cancelAnimationFrame(_dinoRaf);
-          _dinoRunning = false;
-        }
-        // Aggiorna pannello organizza se aperto
-        if(typeof renderDopList === 'function') renderDopList();
+        if(v){ _dinoInited=false; setTimeout(function(){ window.initDinoGame(); }, 150); }
+        else { if(_dinoRaf) cancelAnimationFrame(_dinoRaf); _dinoRunning=false; }
+        if(typeof renderDopList==='function') renderDopList();
       };
     }
   }
 
-  // Mostra il widget dino nel dashboard solo se abilitato e sulla home
   window._updateDinoVisibility = function() {
     var prefs = lsG('ct_prefs', {});
     var widget = document.getElementById('widget-dino-dash');
-    if (!widget) return;
-    var onHome = (typeof _pgCurrent !== 'undefined' ? _pgCurrent : lsG('ct_pg','dash')) === 'dash';
+    if(!widget) return;
+    var onHome = (typeof _pgCurrent!=='undefined'?_pgCurrent:lsG('ct_pg','dash'))==='dash';
     var enabled = prefs.dino === true;
     var shouldShow = enabled && onHome;
     widget.style.display = shouldShow ? '' : 'none';
-    if (shouldShow) {
-      // Reset stato gioco
+    if(shouldShow){
       _dinoInited = false;
-      if (_dinoRaf) { cancelAnimationFrame(_dinoRaf); _dinoRaf = null; }
+      if(_dinoRaf){ cancelAnimationFrame(_dinoRaf); _dinoRaf=null; }
       _dinoRunning = false;
-      // Aspetta 2 frame di paint prima di misurare il canvas
-      requestAnimationFrame(function() {
-        requestAnimationFrame(function() {
-          window.initDinoGame();
-        });
-      });
+      requestAnimationFrame(function(){ requestAnimationFrame(function(){ window.initDinoGame(); }); });
     }
   };
 
 })();
-
 
 // ---------------------------------------------------------------
 // EFFETTI PREMIUM — Glass Shimmer, Ripple Pulse, Magnetic Snap,

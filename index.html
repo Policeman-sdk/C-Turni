@@ -775,13 +775,13 @@
         <div id="widget-dino-dash" class="wdg-wrap" data-wid="dino" style="display:none">
           <div style="border-radius:14px;padding:14px;background:rgba(13,21,32,.92);border:1px solid rgba(91,159,255,.2)">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:rgba(255,255,255,.6)">&#129430; Dino Game</div>
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:rgba(255,255,255,.6)">&#128110; Carabiniere Runner</div>
               <div style="display:flex;gap:4px">
                 <button onclick="moveWidget('dino',-1)" class="wdg-mv-btn" style="background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.2)">&#8593;</button>
                 <button onclick="moveWidget('dino',+1)" class="wdg-mv-btn" style="background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.2)">&#8595;</button>
               </div>
             </div>
-            <canvas id="dino-canvas" width="320" height="180" style="width:100%;height:180px;border-radius:12px;background:rgba(0,0,0,.4);display:block;cursor:pointer;touch-action:manipulation" aria-label="Dino Game"></canvas>
+            <canvas id="dino-canvas" width="320" height="180" style="width:100%;height:180px;border-radius:12px;background:#050d1a;display:block;cursor:pointer;touch-action:manipulation" aria-label="Carabiniere Runner"></canvas>
             <div style="font-size:10px;color:rgba(255,255,255,.5);margin-top:8px;text-align:center;letter-spacing:.3px">Tocca o premi Spazio per saltare &nbsp;·&nbsp; Hi: <span id="dino-record" style="font-weight:800;color:rgba(91,159,255,.9)">0</span></div>
           </div>
         </div>
@@ -1446,8 +1446,8 @@
 
           <!-- Toggle Dino Game -->
           <div class="m3-row">
-            <div class="m3-row-ico" style="background:rgba(6,214,160,.12)">&#129430;</div>
-            <div class="m3-row-body"><div class="m3-row-title">Abilita Dino Game</div><div class="m3-row-sub">Minigioco nella Dashboard</div></div>
+            <div class="m3-row-ico" style="background:rgba(6,214,160,.12)">&#128110;</div>
+            <div class="m3-row-body"><div class="m3-row-title">Abilita Carabiniere Runner</div><div class="m3-row-sub">Minigioco nella Dashboard</div></div>
             <label class="m3-switch">
               <input type="checkbox" id="tog-dino">
               <span class="m3-switch-track"></span>
@@ -1716,7 +1716,7 @@
                 <div>&#9203; <strong>Widget Straordinari</strong> — Sostituisce "Prossimo turno": mostra ore del giorno, totale mese, barra progresso. Pulsante + per aggiunta rapida</div>
                 <div>&#128202; <strong>Report — tab Straordinari</strong> — Sezione dedicata con selettore mese, cards per tipo, lista modificabile ed eliminabile voce per voce</div>
                 <div>&#128172; <strong>Fix condivisione WhatsApp</strong> — Rimossi orari hardcoded dai tipi turno, testo più pulito, nessun preset forzato</div>
-                <div>&#127381; <strong>Dino Game</strong> — Corrette le emoji: 🦖 dino, 🌵 cactus, 🦅 pterodattilo, ☁️ nuvole (prima mostravano ⚠️)</div>
+                <div>&#127381; <strong>Carabiniere Runner</strong> — Minigioco ridisegnato: protagonista con cappello e giubbotto, coni stradali, auto civette, droni, skyline urbano in parallasse, "ARRESTATO!" e luci sirena</div>
                 <div>&#127782; <strong>Meteo — icone SVG</strong> — Corretta visualizzazione nella Hero Card (prima mostrava 🗑️ di fallback)</div>
                 <div>&#9989; <strong>Fix bootloop</strong> — Rimosso il doppio hook su aggUI che causava un loop infinito renderDash → renderDashWidgetToggles</div>
                 <div>&#9989; <strong>Fix turni multi-device</strong> — Merge intelligente al login: i turni Firebase non sovrascrivono più quelli locali recenti</div>
@@ -1938,8 +1938,22 @@
     <div id="scad-err" class="emsg">Compila i campi obbligatori</div>
     <div class="fg"><label>Titolo *</label><input type="text" class="fc app-fc" id="sc-tit" placeholder="Es. Rinnovo patente..."></div>
     <div class="g2">
-      <div class="fg" style="margin-bottom:0"><label>Data scadenza *</label><input type="date" class="fc app-fc" id="sc-data"></div>
-      <div class="fg" style="margin-bottom:0"><label>Ora sveglia</label><input type="time" class="fc app-fc" id="sc-ora"></div>
+      <div class="fg" style="margin-bottom:0">
+        <label>Data scadenza *</label>
+        <input type="hidden" id="sc-data" value="">
+        <button type="button" class="fc picker-btn" onclick="apriDatePicker('sc-data','sc-data-lbl')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;text-align:left">
+          <span id="sc-data-lbl" style="color:var(--txt2)">Seleziona...</span>
+          <span>📅</span>
+        </button>
+      </div>
+      <div class="fg" style="margin-bottom:0">
+        <label>Ora sveglia</label>
+        <input type="hidden" id="sc-ora" value="">
+        <button type="button" class="fc picker-btn" onclick="apriTimePicker('sc-ora','sc-ora-lbl','Ora sveglia')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;text-align:left">
+          <span id="sc-ora-lbl" style="color:var(--txt2)">—</span>
+          <span>⏰</span>
+        </button>
+      </div>
     </div>
     <div class="fg"><label>Note</label><textarea class="fc app-fc" id="sc-note" rows="2" style="resize:none" placeholder="Dettagli..."></textarea></div>
   </div>
@@ -1956,14 +1970,24 @@
   <div class="mbod">
     <div id="alert-err" class="emsg">Inserisci il messaggio</div>
     <div class="fg"><label>Messaggio *</label><input type="text" class="fc app-fc" id="al-msg" placeholder="Es. Scadenza documento..."></div>
-    <div class="g2">
-      <div class="fg" style="margin-bottom:0"><label>Tipo</label>
-        <select class="fc app-fc" id="al-tipo">
-          <option value="info">&#8505;&#65039; Info</option>
-          <option value="warn">&#9888;&#65039; Attenzione</option>
-          <option value="danger">&#128680; Urgente</option>
-        </select></div>
-      <div class="fg" style="margin-bottom:0"><label>Data fine (opt.)</label><input type="date" class="fc app-fc" id="al-fine"></div>
+    <!-- Tipo — pill buttons -->
+    <div class="fg" style="margin-bottom:10px">
+      <label>Tipo</label>
+      <div style="display:flex;gap:8px;margin-top:6px">
+        <button type="button" class="straord-tipo-pill active" data-tipo="info"   onclick="alertSetTipo('info',this)"   style="flex:1">&#8505;&#65039; Info</button>
+        <button type="button" class="straord-tipo-pill"        data-tipo="warn"   onclick="alertSetTipo('warn',this)"   style="flex:1">&#9888;&#65039; Attenzione</button>
+        <button type="button" class="straord-tipo-pill"        data-tipo="danger" onclick="alertSetTipo('danger',this)" style="flex:1">&#128680; Urgente</button>
+      </div>
+      <input type="hidden" id="al-tipo" value="info">
+    </div>
+    <!-- Data fine — picker in-app -->
+    <div class="fg" style="margin-bottom:10px">
+      <label>Data fine (opzionale)</label>
+      <input type="hidden" id="al-fine" value="">
+      <button type="button" class="fc picker-btn" onclick="apriDatePicker('al-fine','al-fine-lbl')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;text-align:left">
+        <span id="al-fine-lbl" style="color:var(--txt2)">Nessuna scadenza</span>
+        <span>📅</span>
+      </button>
     </div>
     <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
       <div style="font-size:11px;font-weight:700;color:var(--txt2);margin-bottom:8px">Alert attivi</div>
