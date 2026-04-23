@@ -103,11 +103,25 @@ function regAvanzaStep2(){
   var email = document.getElementById('reg-email').value.trim();
   var pass = document.getElementById('reg-pass').value;
   var err = document.getElementById('auth-reg-err');
-  if(!nome||!cogn||!email||!pass){ if(err){err.textContent='Compila tutti i campi obbligatori.';err.style.display='block';} return; }
+  if(!nome||!cogn||!email||!pass){
+    if(err){err.textContent='Compila tutti i campi obbligatori.';err.style.display='block';}
+    return;
+  }
+  // Valida email prima di avanzare
+  if(!email.toLowerCase().endsWith('@carabinieri.it')){
+    if(err){err.textContent='L\'email deve essere @carabinieri.it';err.style.display='block';}
+    return;
+  }
+  if(pass.length < 6){
+    if(err){err.textContent='La password deve essere di almeno 6 caratteri.';err.style.display='block';}
+    return;
+  }
   if(err) err.style.display='none';
   document.getElementById('reg-step2').style.display='block';
   document.getElementById('reg-btn-avanza').style.display='none';
   document.getElementById('reg-btn-crea').style.display='block';
+  // Mostra checkbox legali
+  _mostraCheckboxLegali();
 }
 
 function regScegliModalita(m){
@@ -121,18 +135,48 @@ function regScegliModalita(m){
 }
 
 function regConferma(){
-  var modalita = window._regModalita || 'privato';
-  var reparto = modalita === 'reparto' ? (document.getElementById('reg-reparto') ? document.getElementById('reg-reparto').value : '') : '';
+  var modalita = window._regModalita;
+  var err = document.getElementById('auth-reg-err');
+
+  // Valida che l'utente abbia scelto una modalità
+  if(!modalita){
+    if(err){err.textContent='Scegli come vuoi usare C-Turni (Solo per me o Reparto).';err.style.display='block';}
+    return;
+  }
+
+  var reparto = '';
+  if(modalita === 'reparto'){
+    reparto = (document.getElementById('reg-reparto') ? document.getElementById('reg-reparto').value : '').trim();
+    if(!reparto){
+      if(err){err.textContent='Compila tutti i campi del reparto.';err.style.display='block';}
+      return;
+    }
+  }
+
+  // Valida accettazione TOS obbligatoria
+  var tosEl = document.getElementById('reg-tos');
+  if (!tosEl || !tosEl.checked) {
+    if(err){err.textContent='Devi accettare i Termini di Servizio e la Privacy Policy per continuare.';err.style.display='block';}
+    return;
+  }
+
+  var condividiTurni = document.getElementById('reg-condividi-turni') ? document.getElementById('reg-condividi-turni').checked : true;
+
+  var tipoStruttura = modalita === 'reparto' ? ((document.getElementById('reg-tipo-struttura')||{}).value||'') : '';
+  var specialita    = modalita === 'reparto' ? ((document.getElementById('reg-specialita')||{}).value||'') : '';
+
   AuthModule.register({
-    nome: document.getElementById('reg-nome').value,
-    cognome: document.getElementById('reg-cognome').value,
-    email: document.getElementById('reg-email').value,
+    nome:     document.getElementById('reg-nome').value,
+    cognome:  document.getElementById('reg-cognome').value,
+    email:    document.getElementById('reg-email').value,
     password: document.getElementById('reg-pass').value,
-    reparto: reparto,
-    grado: document.getElementById('reg-grado').value,
-    ruolo: 'addetto',
-    tipo: modalita === 'reparto' ? (document.getElementById('reg-specialita') ? document.getElementById('reg-specialita').value : '') : '',
-    modalita: modalita
+    reparto:  reparto,
+    grado:    document.getElementById('reg-grado').value,
+    ruolo:    'addetto',
+    tipo:     specialita || tipoStruttura,
+    tipoStruttura: tipoStruttura,
+    modalita: modalita,
+    condividiTurni: condividiTurni
   });
 }
 
@@ -1725,6 +1769,11 @@ function aggiornaSquadra(){
 
   persone.sort(function(a,b){ return (b.inServizio?1:0) - (a.inServizio?1:0); });
 
+  // Ruolo dell'utente corrente per filtro privacy
+  var meRuolo = me.ruolo || 'addetto';
+  var fbUsersMap = {};
+  fbUsers.forEach(function(u){ if(u.uid) fbUsersMap[u.uid] = u; });
+
   container.innerHTML = persone.slice(0,12).map(function(p){
     var ini = ((p.nome||'?').charAt(0) + (p.cognome||'').charAt(0)).toUpperCase() || '?';
     var nomeBreve = (p.nome||'').split(' ')[0];
@@ -1732,8 +1781,16 @@ function aggiornaSquadra(){
       ? '<img src="'+p.ava+'" alt="'+ini+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">'
       : '<span>'+ini+'</span>';
     var liveBadge = p.inServizio ? '<div class="squadra-live-badge"></div>' : '';
+
+    // Controlla privacy: se addetto e collega ha turni privati, mostra lucchetto
+    var targetUser = p.uid ? (fbUsersMap[p.uid] || null) : null;
+    var puoVedere = _canViewTurno(meRuolo, targetUser);
+    var privacyBadge = (p.inServizio && !puoVedere)
+      ? '<div style="position:absolute;bottom:-2px;right:-2px;width:14px;height:14px;background:var(--bg2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px">🔒</div>'
+      : '';
+
     return '<div class="squadra-avatar">'
-      + '<div class="squadra-avatar-circle' + (p.inServizio ? ' squadra-in-servizio' : '') + '">'+avatarContent+liveBadge+'</div>'
+      + '<div class="squadra-avatar-circle' + (p.inServizio ? ' squadra-in-servizio' : '') + '" style="position:relative">'+avatarContent+liveBadge+privacyBadge+'</div>'
       + '<div class="squadra-nome">'+nomeBreve+'</div>'
       + '</div>';
   }).join('');
@@ -4356,7 +4413,91 @@ function salvaImp(){
   else{toast("Errore salvataggio","err");}
 }
 
-// ---- BACKUP & RIPRISTINO ----
+// ---- FORCE PRIVACY MODAL ----
+
+// Aggiorna stato bottone "Accetta e Continua" in base al checkbox TOS
+function aggiornaFpBtn() {
+  var tos = document.getElementById('fp-tos');
+  var btn = document.getElementById('fp-btn-accetta');
+  if (!btn) return;
+  var ok = tos && tos.checked;
+  btn.disabled = !ok;
+  btn.style.cursor = ok ? 'pointer' : 'not-allowed';
+  btn.style.background = ok ? 'var(--blue)' : 'rgba(91,159,255,.25)';
+  btn.style.color = ok ? '#fff' : 'rgba(255,255,255,.4)';
+  btn.style.boxShadow = ok ? '0 4px 16px rgba(91,159,255,.35)' : 'none';
+}
+
+// Chiamata al click su "Accetta e Continua"
+function accettaForzaPrivacy() {
+  var tos = document.getElementById('fp-tos');
+  if (!tos || !tos.checked) return;
+  var condividi = document.getElementById('fp-condividi');
+  var condividiVal = condividi ? condividi.checked : true;
+  // Risolve la Promise in attesa in firebase-manager.js
+  if (typeof window._fpResolve === 'function') {
+    window._fpResolve(condividiVal);
+    window._fpResolve = null;
+  }
+}
+
+// ---- PRIVACY & TERMINI ----
+
+function apriModalePrivacy() {
+  openM('m-privacy');
+}
+function apriModaleTermini() {
+  openM('m-termini');
+}
+
+// Mostra le checkbox legali quando si arriva allo step 2
+function _mostraCheckboxLegali() {
+  var wrap = document.getElementById('reg-legal-wrap');
+  if (wrap) wrap.style.display = 'block';
+}
+
+// Salva preferenza condivisione turni (chiamata dal toggle impostazioni)
+function salvaPrivacyTurni(val) {
+  var me = lsG('ct_me', null);
+  if (!me) return;
+  if (!me.privacy) me.privacy = {};
+  me.privacy.condividiTurni = val;
+  lsS('ct_me', me);
+  // Aggiorna sub-label
+  var sub = document.getElementById('privacy-turni-sub');
+  if (sub) sub.textContent = val ? 'I colleghi possono vedere i tuoi turni' : 'I tuoi turni sono privati per gli Addetti';
+  // Salva su Firebase
+  var sess = lsG('ct_session', null);
+  if (sess && sess.userId && window.FirebaseModule) {
+    window.FirebaseModule.aggiornaPrivacyTurni(sess.userId, val).catch(function(e){
+      console.warn('aggiornaPrivacyTurni:', e.message);
+    });
+  }
+  toast(val ? '🔓 Turni visibili al reparto' : '🔒 Turni privati', 'ok');
+}
+
+// Carica stato toggle privacy nelle impostazioni
+function caricaPrivacyToggle() {
+  var me = lsG('ct_me', null);
+  var val = me && me.privacy && me.privacy.condividiTurni !== undefined ? me.privacy.condividiTurni : true;
+  var tog = document.getElementById('tog-condividi-turni');
+  if (tog) tog.checked = val;
+  var sub = document.getElementById('privacy-turni-sub');
+  if (sub) sub.textContent = val ? 'I colleghi possono vedere i tuoi turni' : 'I tuoi turni sono privati per gli Addetti';
+}
+
+// Controlla se un utente ha condividiTurni abilitato
+// Comandante e Vice vedono sempre tutto
+function _canViewTurno(meRuolo, targetUser) {
+  if (meRuolo === 'comandante' || meRuolo === 'vice') return true;
+  // Addetto: controlla privacy del collega
+  if (!targetUser) return true; // se non troviamo il profilo, mostriamo
+  var privacy = targetUser.privacy;
+  if (!privacy) return true; // default: visibile (retrocompatibilità)
+  return privacy.condividiTurni !== false;
+}
+
+
 var _backupDaConfermare = null;
 
 function esportaBackup(){
@@ -5491,12 +5632,21 @@ function renderTurni(){
   var arr=lsG("ct_t",[]).slice().sort(function(a,b){return b.data.localeCompare(a.data);});
   if(!arr.length){tb.innerHTML="<tr><td colspan=\"7\" class=\"empty\">Nessun turno inserito</td></tr>";return;}
   var P=lsG("ct_p",[]);
+  var me=lsG("ct_me",null);
+  var meRuolo = me ? (me.ruolo||'addetto') : 'addetto';
+  var fbUsers=lsG('ct_users',[]);
   tb.innerHTML=arr.map(function(t){
     var p=P.find(function(x){return x.id===t.pid;});
     var grado=p&&p.grado?'<span style="font-size:10px;color:var(--txt2)">'+p.grado+'</span>':'';
+    // Privacy: cerca profilo Firebase per condividiTurni
+    var fbU = fbUsers.find(function(u){ return u.uid && p && u.uid===p.uid; });
+    var targetUser = fbU || p;
+    var puoVedere = _canViewTurno(meRuolo, targetUser);
+    var orarioDisplay = puoVedere ? t.orario : '<span style="color:var(--txt3);font-style:italic">🔒 Privato</span>';
+    var codiceDisplay = puoVedere ? (t.codice||'') : '';
     return "<tr class=\"t-"+t.tipo+"\"><td><strong>"+t.pnome+"</strong><br>"+grado+"</td><td>"+fmtD(t.data)+"</td>"+
-      "<td>"+tbdg(t.tipo,t.codice)+"</td><td style=\"font-size:11px\">"+t.orario+"</td>"+
-      "<td style=\"font-size:11px;color:var(--txt2)\">"+(t.codice||"")+"</td>"+
+      "<td>"+tbdg(t.tipo,t.codice)+"</td><td style=\"font-size:11px\">"+orarioDisplay+"</td>"+
+      "<td style=\"font-size:11px;color:var(--txt2)\">"+codiceDisplay+"</td>"+
       "<td><button class=\"btn btn-d btn-xs\" onclick=\"delT("+t.id+")\">"+"&#128465;</button></td></tr>";
   }).join("");
 }
@@ -7637,7 +7787,7 @@ function vai(pg, btn) {
   if(pg==="ag")  { renderAgendaPg(); }
   if(pg==="rep") { renderRep(); renderStraord(); }
   if(pg==="straord") { renderStraord(); }
-  if(pg==="imp"){ aggUI(); caricaSaldoFerie(); aggNotifStatus(); aggTemaUI(lsG("ct_tema","")||""); aggLastBackupDate(); caricaFontSize(); if(typeof GSync!=='undefined'&&GSync.ui) GSync.ui.renderPanel(); }
+  if(pg==="imp"){ aggUI(); caricaSaldoFerie(); aggNotifStatus(); aggTemaUI(lsG("ct_tema","")||""); aggLastBackupDate(); caricaFontSize(); caricaPrivacyToggle(); if(typeof GSync!=='undefined'&&GSync.ui) GSync.ui.renderPanel(); }
   if(pg==="todo"){ renderTodoAg(_tdFiltroAg); }
   if(pg==="agenda") { renderAgendaPg(); }
   if(pg==="membri") renderGestioneNucleo();
@@ -7832,7 +7982,7 @@ function vaiBN(pg, idx) {
   if(pg==="pers"){ renderPers(); if(typeof _renderStatoComando==='function') _renderStatoComando(); }
   if(pg==="cal") { renderCal(); renderTodoAg(_tdFiltroAg); renderAgendaPg(); }
   if(pg==="ag")  { renderAgendaPg(); }
-  if(pg==="rep") renderRep();
+  if(pg==="rep") { renderRep(); renderStraord(); }
   if(pg==="todo"){ renderTodoAg(_tdFiltroAg); }
   if(pg==="agenda") { renderAgendaPg(); }
   closeFab();
@@ -7920,61 +8070,54 @@ function toast(msg,tipo){
 
 function apriProfilo(){
   var me=lsG('ct_me',null);if(!me)return;
-  var pNome=document.getElementById('pf-nome');
-  var pRep=document.getElementById('pf-rep');
-  var pNuc=document.getElementById('pf-nuc');
-  var pGrado=document.getElementById('pf-grado');
+  var pNome=document.getElementById('mpf-nome');
+  var pRep=document.getElementById('mpf-rep');
+  var pNuc=document.getElementById('mpf-nuc');
+  var pGrado=document.getElementById('mpf-grado');
   if(pNome)pNome.value=me.nome||'';
   if(pRep)pRep.value=me.reparto||'';
   if(pNuc)pNuc.value=me.nucleo||'';
   if(pGrado)pGrado.value=me.grado||'';
-  document.getElementById('pf-pw').value='';
-  var prev=document.getElementById('pf-ava-prev');
+  var pwEl=document.getElementById('mpf-pw');
+  if(pwEl)pwEl.value='';
+  var prev=document.getElementById('mpf-ava-prev');
   if(prev){
     if(me.ava){
-      prev.style.backgroundImage='url('+me.ava+')';
-      prev.style.backgroundSize='cover';
-      prev.style.backgroundPosition='center';
-      prev.textContent='';
+      prev.innerHTML='<img src="'+me.ava+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
     }else{
-      prev.textContent='👤';
+      prev.innerHTML='👤';
     }
   }
-  // Renderizza griglia avatar nel modal profilo
+  // Renderizza picker avatar M3
   setTimeout(function(){
-    if(typeof renderAvatarPicker === 'function') renderAvatarPicker('mpf-avatar-grid', 'mpf-ava-prev', 'pf-ava');
+    if(typeof renderAvatarPickerNew === 'function') renderAvatarPickerNew('mpf', 'mpf-ava-prev', 'mpf-ava');
     // Popola select grado e mostra preview immagine
     var mpfGrado = document.getElementById('mpf-grado');
     if(mpfGrado && me.grado) {
       mpfGrado.value = me.grado;
       if(typeof prevGradoMpf === 'function') prevGradoMpf(me.grado);
     }
-    // Popola avatar preview
-    var mpfAvaPrev = document.getElementById('mpf-ava-prev');
-    if(mpfAvaPrev && me.ava) {
-      mpfAvaPrev.innerHTML = '<img src="'+me.ava+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
-    }
   }, 50);
-  var errEl=document.getElementById('pf-err');
+  var errEl=document.getElementById('mpf-err');
   if(errEl)errEl.classList.remove('on');
   openM('m-profilo');
 }
 
 function salvaProfilo(){
   var me=lsG('ct_me',null);if(!me)return;
-  var nome=document.getElementById('pf-nome').value.trim();
-  var rep=document.getElementById('pf-rep').value.trim();
-  var nuc=document.getElementById('pf-nuc').value.trim();
-  var grado=document.getElementById('pf-grado').value;
-  var pw=document.getElementById('pf-pw').value;
-  var errEl=document.getElementById('pf-err');
+  var nome=document.getElementById('mpf-nome').value.trim();
+  var rep=document.getElementById('mpf-rep').value.trim();
+  var nuc=document.getElementById('mpf-nuc').value.trim();
+  var grado=document.getElementById('mpf-grado').value;
+  var pw=document.getElementById('mpf-pw').value;
+  var errEl=document.getElementById('mpf-err');
   errEl.classList.remove('on');
   if(!nome){errEl.textContent='Il nome non può essere vuoto';errEl.classList.add('on');return;}
   me.nome=nome;me.reparto=rep;me.nucleo=nuc;me.grado=grado;
   if(pw)me.pw=pw;
 
   // Avatar: leggi dal campo hidden (selezionato dalla griglia)
-  var avaHidden = document.getElementById('pf-ava');
+  var avaHidden = document.getElementById('mpf-ava');
   var nuovoAva = avaHidden && avaHidden.value ? avaHidden.value : null;
   if(nuovoAva) me.ava = nuovoAva;
 
@@ -10834,8 +10977,16 @@ var AuthModule = (function() {
     // -- Register --
 
     register: async function(dati) {
-
       _clearAuthError('auth-reg-err');
+
+      // Disabilita il bottone subito per evitare doppi click
+      var _btnCrea = document.getElementById('reg-btn-crea');
+      if(_btnCrea){ _btnCrea.disabled = true; _btnCrea.textContent = '⏳ Creazione account...'; }
+
+      // Riabilita in caso di errore
+      var _riabilitaBtn = function(){
+        if(_btnCrea){ _btnCrea.disabled = false; _btnCrea.textContent = '✔ Crea Account'; }
+      };
 
       var nome = (dati.nome || '').trim();
 
@@ -10915,13 +11066,15 @@ var AuthModule = (function() {
         // Salva profilo su Firestore
 
         var newProfile = {
-
           uid: fbUid, email: email, nome: nome, cognome: cognome,
-
-          ruolo: ruoloFinale, grado: grado, tipo: tipo, stato: stato, reparto: repartoFinale,
-
-          registratoIl: new Date().toISOString()
-
+          ruolo: ruoloFinale, grado: grado, tipo: tipo,
+          tipoStruttura: dati.tipoStruttura || '',
+          stato: stato, reparto: repartoFinale,
+          registratoIl: new Date().toISOString(),
+          privacy: {
+            tosAccepted: true,
+            condividiTurni: dati.condividiTurni !== undefined ? dati.condividiTurni : true
+          }
         };
 
         await window.FirebaseModule.saveUserProfile(fbUid, newProfile, repartoFinale);
@@ -10946,21 +11099,19 @@ var AuthModule = (function() {
           await AuthModule.login(email, pass);
 
         } else {
-
-          _showAuthError('auth-reg-err', 'Registrazione completata. Attendi l\'approvazione del Comandante.');
-
+          // Disabilita il bottone per evitare doppio invio
+          var _btnCrea = document.getElementById('reg-btn-crea');
+          if(_btnCrea){ _btnCrea.disabled = true; _btnCrea.textContent = '⏳ In attesa...'; }
+          _showAuthError('auth-reg-err', '✅ Registrazione completata. Attendi l\'approvazione del Comandante.');
           setTimeout(function() { _showOverlay('login'); }, 3000);
 
         }
 
       } catch(fbErr) {
-
-        var regMsg = fbErr.code === 'auth/email-already-in-use' ? 'Email gia\' registrata'
-
+        var regMsg = fbErr.code === 'auth/email-already-in-use' ? 'Email già registrata'
           : (fbErr.code === 'auth/weak-password' ? 'Password troppo corta (min. 6 caratteri)' : fbErr.message);
-
+        _riabilitaBtn();
         _showAuthError('auth-reg-err', regMsg); return;
-
       }
 
 

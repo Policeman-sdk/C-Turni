@@ -283,6 +283,31 @@
 
       </div>
 
+      <!-- Checkbox legali — mostrate prima del bottone Crea Account -->
+      <div id="reg-legal-wrap" style="display:none;margin-bottom:14px;display:none">
+
+        <!-- TOS obbligatorio -->
+        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:12px;background:var(--bg2);border-radius:12px;border:1.5px solid var(--border);margin-bottom:10px">
+          <input type="checkbox" id="reg-tos" style="margin-top:2px;width:18px;height:18px;flex-shrink:0;accent-color:var(--blue)">
+          <span style="font-size:12px;color:var(--txt2);line-height:1.6">
+            Ho letto e accetto i
+            <button type="button" onclick="apriModaleTermini()" style="background:none;border:none;color:var(--blue);font-weight:700;cursor:pointer;padding:0;font-size:12px;text-decoration:underline;appearance:none;-webkit-appearance:none">Termini di Servizio</button>
+            e la
+            <button type="button" onclick="apriModalePrivacy()" style="background:none;border:none;color:var(--blue);font-weight:700;cursor:pointer;padding:0;font-size:12px;text-decoration:underline;appearance:none;-webkit-appearance:none">Privacy Policy</button>
+            <span style="color:var(--red);font-weight:700"> *</span>
+          </span>
+        </label>
+
+        <!-- Condivisione turni opzionale -->
+        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:12px;background:var(--bg2);border-radius:12px;border:1.5px solid var(--border)">
+          <input type="checkbox" id="reg-condividi-turni" checked style="margin-top:2px;width:18px;height:18px;flex-shrink:0;accent-color:var(--blue)">
+          <span style="font-size:12px;color:var(--txt2);line-height:1.6">
+            <strong style="color:var(--txt)">Modalità Reparto</strong> — Consenti ai colleghi del reparto di vedere i dettagli dei miei turni di servizio
+          </span>
+        </label>
+
+      </div>
+
       <button class="btn btn-p" style="width:100%;padding:14px;font-size:15px;font-weight:700;border-radius:14px" id="reg-btn-avanza"
         onclick="regAvanzaStep2()">
         Continua &#8250;
@@ -467,11 +492,11 @@
 
       <!-- SALUTO — fuori dalla Hero Card, sopra -->
       <div class="dash-greeting">
-        <div class="hero-user-ava" id="hero-user-ava">&#128100;</div>
+        <div class="hero-user-ava" id="hero-user-ava" onclick="apriProfilo()" style="cursor:pointer" title="Il mio profilo">&#128100;</div>
         <div class="dash-greeting-text">
           <div class="hero-greeting-sub" id="hero-greeting-sub">Buongiorno</div>
           <div class="dash-greeting-name-row">
-            <div class="hero-greeting-name" id="hero-greeting-name">—</div>
+            <div class="hero-greeting-name" id="hero-greeting-name" onclick="apriProfilo()" style="cursor:pointer">—</div>
             <div class="hero-grade-badge" id="hero-grade-badge" style="display:none">
               <img id="hero-grade-img" class="hero-grade-img" src="" alt="">
             </div>
@@ -1434,6 +1459,19 @@
             </label>
           </div>
 
+          <!-- Toggle Privacy turni -->
+          <div class="m3-row" style="border-top:1px solid var(--border)">
+            <div class="m3-row-ico" style="background:rgba(200,16,46,.12)">&#128274;</div>
+            <div class="m3-row-body">
+              <div class="m3-row-title">Condividi turni con il reparto</div>
+              <div class="m3-row-sub" id="privacy-turni-sub">I colleghi possono vedere i tuoi turni</div>
+            </div>
+            <label class="m3-switch">
+              <input type="checkbox" id="tog-condividi-turni" onchange="salvaPrivacyTurni(this.checked)">
+              <span class="m3-switch-track"></span>
+            </label>
+          </div>
+
           <!-- Toggle Confetti To-Do -->
           <div class="m3-row">
             <div class="m3-row-ico" style="background:rgba(200,168,75,.12)">&#127881;</div>
@@ -2037,6 +2075,7 @@
           data-hidden-id="mpf-ava"
           data-active-cat="truppa">
         </div>
+        <input type="hidden" id="mpf-ava" value="">
       </div>
     </div>
     <div class="fg" style="margin-bottom:0"><label>Nome</label><input type="text" class="fc app-fc" id="mpf-nome" placeholder="Il tuo nome"></div>
@@ -2548,6 +2587,93 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
 <!-- FIREBASE MODULE  Authentication + Firestore + Real-time Sync  -->
 <!-- ═══════════════════════════════════════════════════════════════ -->
 
+
+<!-- MODAL FORCE PRIVACY — utenti vecchi senza TOS -->
+<div id="modal-force-privacy" style="display:none;position:fixed;inset:0;z-index:199999;background:rgba(5,10,20,0.97);align-items:center;justify-content:center;padding:16px">
+  <div style="background:var(--card,#111d2b);border:1px solid rgba(91,159,255,.2);border-radius:28px;max-width:460px;width:100%;padding:28px 24px;box-shadow:0 24px 64px rgba(0,0,0,.7)">
+    <!-- Icona -->
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="width:56px;height:56px;border-radius:50%;background:rgba(91,159,255,.12);border:2px solid rgba(91,159,255,.3);display:inline-flex;align-items:center;justify-content:center;font-size:26px">&#128274;</div>
+    </div>
+    <!-- Titolo -->
+    <div style="font-size:18px;font-weight:900;color:var(--txt,#e8edf5);text-align:center;margin-bottom:10px">Aggiornamento Termini di Servizio</div>
+    <!-- Testo -->
+    <p style="font-size:13px;color:var(--txt2,#8faac8);text-align:center;line-height:1.6;margin-bottom:20px">
+      Per continuare a utilizzare <strong style="color:var(--blue,#5b9fff)">C-TURNI</strong>, ti chiediamo di leggere e accettare i nostri nuovi Termini di Servizio e la Privacy Policy.
+    </p>
+    <!-- Checkbox TOS obbligatorio -->
+    <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:14px;background:var(--bg2,#0d1520);border-radius:14px;border:1.5px solid var(--border,rgba(255,255,255,.09));margin-bottom:10px" onclick="void(0)">
+      <input type="checkbox" id="fp-tos" onchange="aggiornaFpBtn()" style="margin-top:2px;width:18px;height:18px;flex-shrink:0;accent-color:var(--blue,#5b9fff)">
+      <span style="font-size:12px;color:var(--txt2,#8faac8);line-height:1.6">
+        Ho letto e accetto i
+        <button type="button" onclick="apriModaleTermini()" style="background:none;border:none;color:var(--blue,#5b9fff);font-weight:700;cursor:pointer;padding:0;font-size:12px;text-decoration:underline;appearance:none;-webkit-appearance:none">Termini di Servizio</button>
+        e la
+        <button type="button" onclick="apriModalePrivacy()" style="background:none;border:none;color:var(--blue,#5b9fff);font-weight:700;cursor:pointer;padding:0;font-size:12px;text-decoration:underline;appearance:none;-webkit-appearance:none">Privacy Policy</button>
+        <span style="color:var(--red,#f2453d);font-weight:700"> *</span>
+      </span>
+    </label>
+    <!-- Checkbox condivisione turni opzionale -->
+    <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:14px;background:var(--bg2,#0d1520);border-radius:14px;border:1.5px solid var(--border,rgba(255,255,255,.09));margin-bottom:20px">
+      <input type="checkbox" id="fp-condividi" checked style="margin-top:2px;width:18px;height:18px;flex-shrink:0;accent-color:var(--blue,#5b9fff)">
+      <span style="font-size:12px;color:var(--txt2,#8faac8);line-height:1.6">
+        <strong style="color:var(--txt,#e8edf5)">Modalità Reparto</strong> — Consenti ai colleghi del reparto di vedere i dettagli dei miei turni di servizio
+      </span>
+    </label>
+    <!-- Bottone — disabilitato finché TOS non è spuntato -->
+    <button id="fp-btn-accetta" onclick="accettaForzaPrivacy()" disabled
+      style="width:100%;padding:15px;border:none;border-radius:var(--radius-pill,50px);font-size:15px;font-weight:800;cursor:not-allowed;appearance:none;-webkit-appearance:none;background:rgba(91,159,255,.25);color:rgba(255,255,255,.4);transition:all .2s">
+      Accetta e Continua
+    </button>
+  </div>
+</div>
+
+<!-- MODAL PRIVACY POLICY -->
+<div id="m-privacy" class="modal" style="z-index:99997">
+  <div class="mbox" style="max-width:480px">
+    <div class="mhan"></div>
+    <div class="mhd">
+      <div class="mtit">&#128274; Privacy Policy</div>
+      <button class="mcl" onclick="closeM('m-privacy')">&#10005;</button>
+    </div>
+    <div class="mbod" style="padding:16px 20px;max-height:65vh;overflow-y:auto;font-size:13px;color:var(--txt2);line-height:1.7">
+      <h3 style="color:var(--txt);font-size:15px;margin-bottom:12px">Informativa sul Trattamento dei Dati Personali</h3>
+      <p><strong style="color:var(--txt)">Titolare del Trattamento:</strong> Sviluppatore C-TURNI</p>
+      <p style="margin-top:10px"><strong style="color:var(--txt)">Finalità:</strong> Gestione dei turni di servizio, statistiche personali e coordinamento di reparto.</p>
+      <p style="margin-top:10px"><strong style="color:var(--txt)">Dati Raccolti:</strong></p>
+      <ul style="margin:6px 0 10px 18px">
+        <li><strong>Identificativi:</strong> Email, Grado, Cognome</li>
+        <li><strong>Servizio:</strong> Turni, licenze, straordinari, reparto</li>
+        <li><strong>Tecnici:</strong> Token FCM, log</li>
+      </ul>
+      <p><strong style="color:var(--txt)">Luogo di Trattamento:</strong> I dati sono conservati su Google Firebase (server in UE), nel rispetto del GDPR.</p>
+      <p style="margin-top:10px"><strong style="color:var(--txt)">Condivisione dei Dati:</strong> In <em>Modalità Privata</em> i dati sono visibili solo all'utente. In <em>Modalità Reparto</em>, previo consenso, i turni sono visibili ai colleghi per coordinamento.</p>
+      <p style="margin-top:10px"><strong style="color:var(--txt)">Diritti:</strong> L'utente può eliminare l'account e tutti i dati in qualsiasi momento dalle Impostazioni. L'eliminazione è irreversibile.</p>
+    </div>
+    <div class="mfoo">
+      <button class="btn btn-p" onclick="closeM('m-privacy')" style="width:100%">&#10004; Ho capito</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL TERMINI DI SERVIZIO -->
+<div id="m-termini" class="modal" style="z-index:99997">
+  <div class="mbox" style="max-width:480px">
+    <div class="mhan"></div>
+    <div class="mhd">
+      <div class="mtit">&#128203; Termini di Servizio</div>
+      <button class="mcl" onclick="closeM('m-termini')">&#10005;</button>
+    </div>
+    <div class="mbod" style="padding:16px 20px;max-height:65vh;overflow-y:auto;font-size:13px;color:var(--txt2);line-height:1.7">
+      <h3 style="color:var(--txt);font-size:15px;margin-bottom:12px">Termini e Condizioni d'Uso</h3>
+      <p><strong style="color:var(--txt)">Natura del Servizio:</strong> C-TURNI è un'applicazione non ufficiale sviluppata per agevolare la gestione dei turni. Non sostituisce i sistemi ufficiali dell'Amministrazione.</p>
+      <p style="margin-top:10px"><strong style="color:var(--txt)">Responsabilità dell'Utente:</strong> L'utente è responsabile della veridicità dei dati inseriti, della custodia delle credenziali e del rispetto del segreto d'ufficio sui dati del reparto.</p>
+      <p style="margin-top:10px"><strong style="color:var(--txt)">Esclusione di Responsabilità:</strong> Lo sviluppatore non risponde di errori nel calcolo dei turni, ferie o mancati avvisi. L'utente deve verificare i dati con i fogli di servizio ufficiali.</p>
+    </div>
+    <div class="mfoo">
+      <button class="btn btn-p" onclick="closeM('m-termini')" style="width:100%">&#10004; Ho capito</button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL NOVITÀ VERSIONE -->
 <div id="m-novita" class="modal" style="z-index:19999">

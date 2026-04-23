@@ -405,6 +405,8 @@ window.FirebaseModule = {
           localStorage.setItem('ct_session', JSON.stringify(session));
           rep = prof.reparto.toLowerCase().replace(/\s+/g,'_');
         }
+        // ── Verifica TOS — blocca se utente vecchio non ha accettato ──
+        await window.FirebaseModule.verificaEForzaPrivacy(uid, prof);
         if(typeof aggUI === 'function') aggUI();
       }
       // Carica snapshot iniziale turni con merge
@@ -517,6 +519,8 @@ window.FirebaseModule = {
         }
         // ava può essere: path relativo "avatars/...", URL https, o data: — tutti validi
         localStorage.setItem('ct_me', JSON.stringify(prof));
+        // ── Verifica TOS — blocca se utente vecchio non ha accettato ──
+        await window.FirebaseModule.verificaEForzaPrivacy(uid, prof);
         // Aggiorna ct_session con ava per display immediato al refresh
         try {
           var _sess2 = JSON.parse(localStorage.getItem('ct_session') || 'null');
@@ -859,6 +863,66 @@ window.FirebaseModule = {
     var rep = _reparto();
     if(!rep || !orari) return;
     try { await setDoc(doc(db, 'reparti', rep, 'config', 'orari'), orari); } catch(e) { console.warn('saveOrariPreset:', e.message); }
+  },
+
+  // ── Aggiorna preferenza condivisione turni (privacy) ─────────
+  aggiornaPrivacyTurni: async function(uid, condividiTurni) {
+    if(!uid) return;
+    try {
+      await setDoc(doc(db, 'utenti', uid), { privacy: { condividiTurni: condividiTurni } }, { merge: true });
+      // Aggiorna anche nel reparto
+      var rep = _reparto();
+      if(rep) {
+        await setDoc(doc(db, 'reparti', rep, 'utenti', uid), { privacy: { condividiTurni: condividiTurni } }, { merge: true });
+      }
+    } catch(e) { console.warn('aggiornaPrivacyTurni:', e.message); }
+  },
+
+  // ── Verifica TOS e forza accettazione per utenti vecchi ──────
+  verificaEForzaPrivacy: async function(uid, userDocData) {
+    // Se TOS già accettato, tutto ok
+    if (userDocData && userDocData.privacy && userDocData.privacy.tosAccepted === true) {
+      return true;
+    }
+
+    // Mostra il modal bloccante
+    var modal = document.getElementById('modal-force-privacy');
+    if (modal) {
+      modal.style.display = 'flex';
+      // Reset checkbox
+      var fpTos = document.getElementById('fp-tos');
+      var fpCond = document.getElementById('fp-condividi');
+      if (fpTos) fpTos.checked = false;
+      if (fpCond) fpCond.checked = true;
+      if (typeof window.aggiornaFpBtn === 'function') window.aggiornaFpBtn();
+    }
+
+    // Attende che l'utente clicchi "Accetta e Continua"
+    var condividiTurni = await new Promise(function(resolve) {
+      window._fpResolve = resolve;
+    });
+
+    // Nascondi modal
+    if (modal) modal.style.display = 'none';
+
+    // Salva su Firestore
+    var privacyObj = { tosAccepted: true, condividiTurni: condividiTurni };
+    try {
+      await setDoc(doc(db, 'utenti', uid), { privacy: privacyObj }, { merge: true });
+      // Aggiorna anche nel reparto se presente
+      var reparto = userDocData && userDocData.reparto ? userDocData.reparto.toLowerCase().replace(/\s+/g,'_') : null;
+      if (reparto && !reparto.startsWith('privato_')) {
+        await updateDoc(doc(db, 'reparti', reparto, 'utenti', uid), { 'privacy.condividiTurni': condividiTurni });
+      }
+    } catch(e) { console.warn('verificaEForzaPrivacy save:', e.message); }
+
+    // Aggiorna ct_me locale
+    try {
+      var meLocale = JSON.parse(localStorage.getItem('ct_me') || 'null');
+      if (meLocale) { meLocale.privacy = privacyObj; localStorage.setItem('ct_me', JSON.stringify(meLocale)); }
+    } catch(e2) {}
+
+    return true;
   },
 
   // ── Salva profilo personale (ct_me) su Firestore ────────────
