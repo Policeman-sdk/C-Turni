@@ -187,15 +187,26 @@ function _startListeners(reparto) {
       if(snap.exists()) {
         var prof = snap.data();
         var oldMe = JSON.parse(localStorage.getItem('ct_me') || 'null');
-        // Preserva ava locale se:
-        // 1. Firestore non ha ava, oppure
-        // 2. Firestore ha ancora un data URL base64 (upload non completato) ma locale ha già un URL https
+        // Preserva ava locale
         var firestoreAva = prof.ava || '';
         var localAva = (oldMe && oldMe.ava) ? oldMe.ava : '';
         if(!firestoreAva && localAva) {
-          prof.ava = localAva; // Firestore vuoto → tieni locale
+          prof.ava = localAva;
         }
-        // In tutti gli altri casi usa l'ava di Firestore (path relativo, https, o data:)
+        // ── Preserva privacy locale — Firestore potrebbe non avere ancora il valore aggiornato
+        // Regola: se locale ha privacy con tosAccepted, e Firestore non ce l'ha o ha condividiTurni diverso,
+        // usa il valore locale (l'utente ha appena cambiato il toggle)
+        if(oldMe && oldMe.privacy) {
+          if(!prof.privacy) {
+            prof.privacy = oldMe.privacy;
+          } else {
+            // Firestore ha privacy ma potrebbe non avere condividiTurni aggiornato
+            // Usa il valore locale se è più recente (ct_me aggiornato da salvaPrivacyTurni)
+            if(oldMe.privacy.condividiTurni !== undefined && prof.privacy.condividiTurni === undefined) {
+              prof.privacy.condividiTurni = oldMe.privacy.condividiTurni;
+            }
+          }
+        }
         localStorage.setItem('ct_me', JSON.stringify(prof));
         // Aggiorna ct_p con il nuovo ava
         if(prof.ava) {
@@ -879,13 +890,24 @@ window.FirebaseModule = {
   aggiornaPrivacyTurni: async function(uid, condividiTurni) {
     if(!uid) return;
     try {
-      await setDoc(doc(db, 'utenti', uid), { privacy: { condividiTurni: condividiTurni } }, { merge: true });
+      // Usa updateDoc con dot notation per aggiornare solo condividiTurni senza toccare tosAccepted
+      await updateDoc(doc(db, 'utenti', uid), { 'privacy.condividiTurni': condividiTurni });
       // Aggiorna anche nel reparto
       var rep = _reparto();
       if(rep) {
-        await setDoc(doc(db, 'reparti', rep, 'utenti', uid), { privacy: { condividiTurni: condividiTurni } }, { merge: true });
+        try {
+          await updateDoc(doc(db, 'reparti', rep, 'utenti', uid), { 'privacy.condividiTurni': condividiTurni });
+        } catch(e2) {
+          // Se il documento non esiste nel reparto, usa setDoc con merge
+          await setDoc(doc(db, 'reparti', rep, 'utenti', uid), { privacy: { condividiTurni: condividiTurni } }, { merge: true });
+        }
       }
-    } catch(e) { console.warn('aggiornaPrivacyTurni:', e.message); }
+    } catch(e) {
+      // Fallback: se updateDoc fallisce (documento non esiste), usa setDoc con merge
+      try {
+        await setDoc(doc(db, 'utenti', uid), { privacy: { condividiTurni: condividiTurni } }, { merge: true });
+      } catch(e2) { console.warn('aggiornaPrivacyTurni:', e2.message); }
+    }
   },
 
   // ── Verifica TOS e forza accettazione per utenti vecchi ──────
