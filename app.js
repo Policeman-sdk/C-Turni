@@ -4716,13 +4716,18 @@ function setFontSize(px, btn){
 }
 function caricaFontSize(){
   var px=lsG("ct_font", 14);
-  var map={12:"sm",14:"md",16:"lg",18:"xl"};
+  var map={12:"sm",14:"md",16:"lg",18:"xl",20:"xxl"};
   var key=map[px]||"md";
   document.documentElement.setAttribute("data-font", key);
   document.documentElement.style.setProperty("--fs-base", px+"px");
   var lbl=document.getElementById("font-size-lbl");
-  var nomi={12:"Piccolo",14:"Normale",16:"Grande",18:"XL"};
+  var lblLive=document.getElementById("font-size-lbl-live");
+  var nomi={12:"Piccolo",14:"Normale",16:"Grande",18:"XL",20:"XXL"};
   if(lbl) lbl.textContent = nomi[px]||px+"px";
+  if(lblLive) lblLive.textContent = nomi[px]||px+"px";
+  // Aggiorna lo slider alla posizione corretta
+  var slider=document.getElementById("font-slider");
+  if(slider) slider.value = px;
   document.querySelectorAll(".font-sz-btn").forEach(function(b){
     b.classList.toggle("sel", parseInt(b.getAttribute("data-sz"))===px);
   });
@@ -4805,16 +4810,16 @@ function salvaTema(){
 
 function prevFontSize(px, btn){
   _fontPending = px;
-  // Anteprima immediata
-  var map={12:"sm",14:"md",16:"lg",18:"xl"};
+  var map={12:"sm",14:"md",16:"lg",18:"xl",20:"xxl"};
   document.documentElement.setAttribute("data-font", map[px]||"md");
   document.documentElement.style.setProperty("--fs-base", px+"px");
   document.querySelectorAll(".font-sz-btn").forEach(function(b){b.classList.remove("sel");});
   if(btn) btn.classList.add("sel");
   var lbl=document.getElementById("font-size-lbl");
-  var nomi={12:"Piccolo",14:"Normale",16:"Grande",18:"XL"};
+  var lblLive=document.getElementById("font-size-lbl-live");
+  var nomi={12:"Piccolo",14:"Normale",16:"Grande",18:"XL",20:"XXL"};
   if(lbl) lbl.textContent=nomi[px]||px+"px";
-  // Abilita tasto salva
+  if(lblLive) lblLive.textContent=nomi[px]||px+"px";
   var btnS=document.getElementById("btn-salva-font");
   if(btnS){btnS.style.opacity="1";btnS.style.pointerEvents="auto";}
 }
@@ -4822,7 +4827,7 @@ function prevFontSize(px, btn){
 function salvaFontSize(){
   if(_fontPending===null)return;
   lsS("ct_font", _fontPending);
-  var nomi={12:"Piccolo",14:"Normale",16:"Grande",18:"XL"};
+  var nomi={12:"Piccolo",14:"Normale",16:"Grande",18:"XL",20:"XXL"};
   var btnS=document.getElementById("btn-salva-font");
   if(btnS){btnS.style.opacity=".5";btnS.style.pointerEvents="none";}
   toast("&#10003; Testo \u201c"+(nomi[_fontPending]||_fontPending+"px")+"\u201d salvato","ok");

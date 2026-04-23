@@ -814,9 +814,11 @@ tr.t-corso td:first-child{border-left:3px solid #2979ff}
 html[data-font="sm"] { font-size: 12px; }
 html[data-font="lg"] { font-size: 16px; }
 html[data-font="xl"] { font-size: 18px; }
+html[data-font="xxl"] { font-size: 20px; }
 html[data-font="sm"] #pg-app, html[data-font="sm"] .pg-app-wrap { zoom: unset !important; font-size: 0.85em; }
 html[data-font="lg"] #pg-app, html[data-font="lg"] .pg-app-wrap { zoom: unset !important; font-size: 1.14em; }
 html[data-font="xl"] #pg-app, html[data-font="xl"] .pg-app-wrap { zoom: unset !important; font-size: 1.28em; }
+html[data-font="xxl"] #pg-app, html[data-font="xxl"] .pg-app-wrap { zoom: unset !important; font-size: 1.43em; }
 
 
 .notif-tab.sel{background:var(--blue)!important;color:#fff!important}

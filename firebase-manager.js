@@ -281,7 +281,11 @@ function _startListeners(reparto) {
             myProfile.ava = oldMe.ava;
             myProfile.fotoURL = oldMe.ava;
           }
-          // Aggiorna ct_me con il profilo aggiornato
+          // Aggiorna ct_me con il profilo aggiornato — preserva privacy locale se Firestore non ce l'ha
+          var _oldMePrivacy = oldMe && oldMe.privacy ? oldMe.privacy : null;
+          if(_oldMePrivacy && (!myProfile.privacy || !myProfile.privacy.tosAccepted)) {
+            myProfile.privacy = _oldMePrivacy;
+          }
           localStorage.setItem('ct_me', JSON.stringify(myProfile));
           if(myProfile.ruolo !== session.ruolo || myProfile.stato !== session.stato) {
             session.ruolo = myProfile.ruolo;
@@ -396,6 +400,8 @@ window.FirebaseModule = {
         // Preserva ava locale se Firestore non ha ancora l'URL
         var localMe = JSON.parse(localStorage.getItem('ct_me') || 'null');
         if(!prof.ava && localMe && localMe.ava) prof.ava = localMe.ava;
+        // Preserva privacy locale se Firestore non ha ancora il valore aggiornato
+        if(localMe && localMe.privacy && (!prof.privacy || !prof.privacy.tosAccepted)) prof.privacy = localMe.privacy;
         localStorage.setItem('ct_me', JSON.stringify(prof));
         // Aggiorna sessione con reparto aggiornato da Firestore
         if(prof.reparto && prof.reparto !== session.reparto) {
@@ -518,6 +524,10 @@ window.FirebaseModule = {
           if(_localMeAva && _localMeAva.ava) prof.ava = _localMeAva.ava;
         }
         // ava può essere: path relativo "avatars/...", URL https, o data: — tutti validi
+        // Preserva privacy locale se Firestore non ha ancora il valore aggiornato
+        var _localPrivacy = null;
+        try { var _lm = JSON.parse(localStorage.getItem('ct_me')||'null'); if(_lm && _lm.privacy) _localPrivacy = _lm.privacy; } catch(e3){}
+        if(_localPrivacy && (!prof.privacy || !prof.privacy.tosAccepted)) prof.privacy = _localPrivacy;
         localStorage.setItem('ct_me', JSON.stringify(prof));
         // ── Verifica TOS — blocca se utente vecchio non ha accettato ──
         await window.FirebaseModule.verificaEForzaPrivacy(uid, prof);
