@@ -329,6 +329,21 @@ function _startListeners(reparto) {
     if(typeof window.renderPers === 'function') window.renderPers();
   }, function(e){ console.warn('onSnapshot utenti:', e.message); }));
 
+  // Persone (ct_p) — sincronizzazione real-time del personale del reparto
+  var personeRef = collection(db, 'reparti', reparto, 'persone');
+  _unsubscribers.push(onSnapshot(personeRef, function(snap) {
+    var arr = []; snap.forEach(function(d){ arr.push(d.data()); });
+    if(arr.length > 0) {
+      // Merge: mantieni voci locali non ancora su Firebase
+      var localP = [];
+      try { localP = JSON.parse(localStorage.getItem('ct_p') || '[]'); } catch(e) {}
+      var fbIds = arr.map(function(p){ return String(p.id); });
+      var soloLocali = localP.filter(function(p){ return p.id && fbIds.indexOf(String(p.id)) === -1; });
+      lsS('ct_p', arr.concat(soloLocali));
+      if(typeof window.renderPers === 'function') window.renderPers();
+    }
+  }, function(e){ console.warn('onSnapshot persone:', e.message); }));
+
   // Todo condivisi del reparto
   var todoCondRef = collection(db, 'reparti', reparto, 'todo_condivisi');
   _unsubscribers.push(onSnapshot(todoCondRef, function(snap) {
@@ -507,6 +522,20 @@ window.FirebaseModule = {
       }
 
       await this.syncUsers();
+
+      // Carica personale (ct_p) da Firestore — necessario su nuovo dispositivo
+      try {
+        if(!isPrivato) {
+          var personeSnap = await getDocs(collection(db, 'reparti', rep, 'persone'));
+          var persone = []; personeSnap.forEach(function(d){ persone.push(d.data()); });
+          if(persone.length > 0) {
+            var localP = lsG('ct_p', []);
+            var fbIds = persone.map(function(p){ return String(p.id); });
+            var soloLocali = localP.filter(function(p){ return p.id && fbIds.indexOf(String(p.id)) === -1; });
+            lsS('ct_p', persone.concat(soloLocali));
+          }
+        }
+      } catch(e) { console.warn('carica persone:', e.message); }
 
       // Orari preset
       try {

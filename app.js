@@ -7190,8 +7190,11 @@ function confermImportF(modoSost){
     });
     lsS('ct_t', _T);
   }
-  // Salva turni su Firebase (sia in modalità aggiungi che sostituisci)
-  if(window.FirebaseModule) window.FirebaseModule.saveTurni(lsG("ct_t",[])).catch(function(e){ console.warn('saveTurni post-import:', e.message); });
+  // Salva turni e personale su Firebase dopo import
+  if(window.FirebaseModule) {
+    window.FirebaseModule.saveTurni(lsG("ct_t",[])).catch(function(e){ console.warn('saveTurni post-import:', e.message); });
+    window.FirebaseModule.savePersona().catch(function(e){ console.warn('savePersona post-import:', e.message); });
+  }
   renderTurni();renderOggi();renderPers();stats();aggSel();aggiornaWidget();
   var _me3=lsG('ct_me',null);
   if(_me3&&typeof renderWidgetProssimo==='function') renderWidgetProssimo(_me3);
@@ -7556,36 +7559,41 @@ function parseSheet(rows, sn) {
 }
 function normG(t){
   t=(t||"").toUpperCase().trim();
-  // Varianti estese con e senza punti, abbreviazioni comuni Excel Carabinieri
+  // Varianti estese — ordinate dal più lungo al più corto per evitare match parziali
   var m=[
     // Ufficiali generali
-    ["GENERALE","Gen."],["GEN.","Gen."],["GEN ","Gen."],
+    ["GENERALE","Gen."],["GEN.","Gen."],
     // Ufficiali superiori
-    ["COLONNELLO","Col."],["COL.","Col."],["COL ","Col."],
     ["TENENTE COLONNELLO","Ten.Col."],["TEN.COL.","Ten.Col."],["T.COL.","Ten.Col."],["TEN COL","Ten.Col."],
-    ["MAGGIORE","Magg."],["MAGG.","Magg."],["MAG.","Magg."],["MAGG ","Magg."],
+    ["COLONNELLO","Col."],["COL.","Col."],
+    ["MAGGIORE","Magg."],["MAGG.","Magg."],["MAG.","Magg."],
     // Ufficiali inferiori
-    ["CAPITANO","Cap."],["CAP.","Cap."],["CAP ","Cap."],
-    ["TENENTE","Ten."],["TEN.","Ten."],["TEN ","Ten."],
     ["SOTTOTENENTE","S.Ten."],["S.TEN.","S.Ten."],["S TEN","S.Ten."],
+    ["CAPITANO","Cap."],["CAP.","Cap."],
+    ["TENENTE","Ten."],["TEN.","Ten."],
     // Sottufficiali
-    ["LUOGOTENENTE","Luog."],["LUOG.","Luog."],["LGT.","Luog."],["LGT ","Luog."],
+    ["LUOGOTENENTE","Luog."],["LUOG.","Luog."],["LGT.","Luog."],
     ["MARESCIALLO MAGGIORE","Mar.Magg."],["MAR.MAGG.","Mar.Magg."],["M.MAG.","Mar.Magg."],["MAR MAGG","Mar.Magg."],
     ["MARESCIALLO CAPO","Mar.Cap."],["MAR.CAP.","Mar.Cap."],["M.CAP.","Mar.Cap."],["MAR CAP","Mar.Cap."],
     ["MARESCIALLO ORDINARIO","Mar.Ord."],["MAR.ORD.","Mar.Ord."],["M.ORD.","Mar.Ord."],["MAR ORD","Mar.Ord."],
-    ["MARESCIALLO","Mar."],["MAR.","Mar."],["MAR ","Mar."],
+    ["MARESCIALLO","Mar."],["MAR.","Mar."],
     // Graduati
     ["BRIGADIERE CAPO","Brig.Ca."],["BRIG.CA.","Brig.Ca."],["B.CA.","Brig.Ca."],["BRIG CA","Brig.Ca."],
-    ["BRIGADIERE","Brig."],["BRIG.","Brig."],["BRIG ","Brig."],
     ["VICE BRIGADIERE","V.Brig."],["V.BRIG.","V.Brig."],["V BRIG","V.Brig."],["VB.","V.Brig."],
+    ["BRIGADIERE","Brig."],["BRIG.","Brig."],
     // Appuntati
     ["APPUNTATO SCELTO","App.Sc."],["APP.SC.","App.Sc."],["A.SC.","App.Sc."],["APP SC","App.Sc."],
-    ["APPUNTATO","App."],["APP.","App."],["APP ","App."],
+    ["APPUNTATO","App."],["APP.","App."],
     // Carabinieri
     ["CARABINIERE SCELTO","Car.Sc."],["CAR.SC.","Car.Sc."],["C.SC.","Car.Sc."],["CAR SC","Car.Sc."],
     ["CARABINIERE","Car."],["CAR.","Car."],["CC.","Car."],["C.C.","Car."]
   ];
-  for(var i=0;i<m.length;i++){if(t.indexOf(m[i][0])!==-1)return m[i][1];}
+  // Usa startsWith per evitare match parziali (es. "TENENTE" in "LUOGOTENENTE")
+  for(var i=0;i<m.length;i++){
+    if(t === m[i][0] || t.indexOf(m[i][0]+' ')===0 || t.indexOf(m[i][0]+'.')===0 || t===m[i][0].replace(/\.$/,'')) return m[i][1];
+  }
+  // Fallback: indexOf per compatibilità con formati non standard
+  for(var i=0;i<m.length;i++){if(t.indexOf(m[i][0])===0)return m[i][1];}
   return "";
 }
 // Estrae grado e nome pulito da una stringa che potrebbe contenerli entrambi
