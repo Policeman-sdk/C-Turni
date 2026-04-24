@@ -129,18 +129,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   --red: #B71C1C;
 }
 
-/* --- TEMA FORESTALE (Giorno) --- */
-:root[data-theme="forestale"] {
-  --bg: #E8EFE9 !important;
-  --bg2: #DCE5DD !important;
-  --card: #F0F4F1 !important;
-  --card2: #FFFFFF !important;
-  --txt: #1A211C !important;
-  --txt2: #4A554D !important;
-  --blue: #2E7D32 !important;
-  --border: rgba(0,0,0,0.1) !important;
-}
-
 /* --- TEMA FORESTALE (Notte) --- */
 :root[data-theme="forestale-dark"] {
   --bg: #0E1410 !important;
@@ -810,15 +798,25 @@ tr.t-corso td:first-child{border-left:3px solid #2979ff}
 @keyframes eggBounce{from{transform:translateX(-8px) rotate(-3deg)}to{transform:translateX(8px) rotate(3deg)}}
 @keyframes eggLamp{from{background:linear-gradient(90deg,#0022ff 0%,transparent 50%,#8b0000 100%)}to{background:linear-gradient(90deg,#8b0000 0%,transparent 50%,#0022ff 100%)}}
 
-/* Scala testo — usa font-size, mai zoom (crea stacking context e rompe position:fixed) */
-html[data-font="sm"] { font-size: 12px; }
-html[data-font="lg"] { font-size: 16px; }
-html[data-font="xl"] { font-size: 18px; }
-html[data-font="xxl"] { font-size: 20px; }
-html[data-font="sm"] #pg-app, html[data-font="sm"] .pg-app-wrap { zoom: unset !important; font-size: 0.85em; }
-html[data-font="lg"] #pg-app, html[data-font="lg"] .pg-app-wrap { zoom: unset !important; font-size: 1.14em; }
-html[data-font="xl"] #pg-app, html[data-font="xl"] .pg-app-wrap { zoom: unset !important; font-size: 1.28em; }
-html[data-font="xxl"] #pg-app, html[data-font="xxl"] .pg-app-wrap { zoom: unset !important; font-size: 1.43em; }
+/* Scala interfaccia — zoom su pg-app scala tutto: testo, padding, icone, border-radius */
+html[data-font="sm"]   { font-size: 12px; }
+html[data-font="lg"]   { font-size: 16px; }
+html[data-font="xl"]   { font-size: 18px; }
+html[data-font="xxl"]  { font-size: 20px; }
+
+/* zoom scala l'intera interfaccia proporzionalmente */
+html[data-font="sm"]  #pg-app { zoom: 0.85; }
+html[data-font="lg"]  #pg-app { zoom: 1.10; }
+html[data-font="xl"]  #pg-app { zoom: 1.20; }
+html[data-font="xxl"] #pg-app { zoom: 1.35; }
+
+/* Fallback per browser che non supportano zoom (Firefox) */
+@supports not (zoom: 1) {
+  html[data-font="sm"]  #pg-app { transform: scale(0.85); transform-origin: top left; width: 117.6%; }
+  html[data-font="lg"]  #pg-app { transform: scale(1.10); transform-origin: top left; width: 90.9%; }
+  html[data-font="xl"]  #pg-app { transform: scale(1.20); transform-origin: top left; width: 83.3%; }
+  html[data-font="xxl"] #pg-app { transform: scale(1.35); transform-origin: top left; width: 74.1%; }
+}
 
 
 .notif-tab.sel{background:var(--blue)!important;color:#fff!important}
@@ -4940,4 +4938,52 @@ body[data-atmosfera="oasi"]       .hero-ring-fill { stroke: #00C853; }
 .picker-btn {
   cursor: pointer;
   text-align: left;
+}
+
+/* ── AVATAR PICKER — sub-chip genere ── */
+.avm3-gender-chips {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.avm3-gender-chip {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  border: 1.5px solid var(--border2);
+  background: var(--bg2);
+  color: var(--txt2);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .18s cubic-bezier(.34,1.56,.64,1);
+  appearance: none;
+  -webkit-appearance: none;
+}
+.avm3-gender-chip.active {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(91,159,255,.3);
+}
+.avm3-gender-chip:active { transform: scale(.93); }
+.avm3-gender-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: rgba(255,255,255,.2);
+  font-size: 10px;
+  font-weight: 800;
+}
+.avm3-gender-chip:not(.active) .avm3-gender-count {
+  background: rgba(91,159,255,.2);
+  color: var(--blue);
 }

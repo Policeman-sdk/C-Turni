@@ -193,17 +193,18 @@ function _startListeners(reparto) {
         if(!firestoreAva && localAva) {
           prof.ava = localAva;
         }
-        // ── Preserva privacy locale — Firestore potrebbe non avere ancora il valore aggiornato
-        // Regola: se locale ha privacy con tosAccepted, e Firestore non ce l'ha o ha condividiTurni diverso,
-        // usa il valore locale (l'utente ha appena cambiato il toggle)
+        // ── Preserva SEMPRE privacy locale — è l'utente che la controlla, non Firestore
+        // Il listener onSnapshot può arrivare prima che Firestore abbia propagato l'aggiornamento
         if(oldMe && oldMe.privacy) {
+          // Mantieni sempre il valore locale di condividiTurni (più aggiornato)
           if(!prof.privacy) {
             prof.privacy = oldMe.privacy;
           } else {
-            // Firestore ha privacy ma potrebbe non avere condividiTurni aggiornato
-            // Usa il valore locale se è più recente (ct_me aggiornato da salvaPrivacyTurni)
-            if(oldMe.privacy.condividiTurni !== undefined && prof.privacy.condividiTurni === undefined) {
-              prof.privacy.condividiTurni = oldMe.privacy.condividiTurni;
+            // Sovrascrivi condividiTurni con il valore locale — è la fonte di verità
+            prof.privacy.condividiTurni = oldMe.privacy.condividiTurni;
+            // Preserva tosAccepted locale se Firestore non ce l'ha
+            if(!prof.privacy.tosAccepted && oldMe.privacy.tosAccepted) {
+              prof.privacy.tosAccepted = oldMe.privacy.tosAccepted;
             }
           }
         }

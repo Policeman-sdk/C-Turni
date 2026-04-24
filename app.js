@@ -13,7 +13,8 @@ if("serviceWorker" in navigator){
 
 
 
-(function(){try{var fs=JSON.parse(localStorage.getItem("ct_font"));if(fs){var _fm={12:"sm",14:"md",16:"lg",18:"xl"};document.documentElement.setAttribute("data-font",_fm[fs]||"md");document.documentElement.style.setProperty("--fs-base",fs+"px");}}catch(e){}
+(function(){try{var fs=JSON.parse(localStorage.getItem("ct_font"));if(fs){var _fm={12:"sm",14:"md",16:"lg",18:"xl",20:"xxl"};var _fz={12:0.85,14:1.0,16:1.10,18:1.20,20:1.35};document.documentElement.setAttribute("data-font",_fm[fs]||"md");document.documentElement.style.setProperty("--fs-base",fs+"px");// Applica zoom appena pg-app è disponibile
+document.addEventListener('DOMContentLoaded',function(){var _pg=document.getElementById('pg-app');if(_pg&&fs!==14){_pg.style.zoom=_fz[fs]||1;}});}}catch(e){}
 try{var t=JSON.parse(localStorage.getItem("ct_tema"));if(t===null||t===undefined)return;if(t)document.documentElement.setAttribute("data-theme",t);else document.documentElement.removeAttribute("data-theme");}catch(e){}})();
 
 // ---- GRADI ----
@@ -2444,8 +2445,8 @@ function caricaTema(){
 }
 
 // Mappa tema base ? variante chiara
-var _TEMA_DARK_MAP  = {'':'', 'rosa':'rosa', 'forestale':'forestale-dark', 'carabinieri':'carabinieri', 'arma':'arma-dark'};
-var _TEMA_LIGHT_MAP = {'':'light', 'rosa':'rosa-light', 'forestale':'forestale', 'carabinieri':'carabinieri-light', 'arma':'arma'};
+var _TEMA_DARK_MAP  = {'':'', 'rosa':'rosa', 'forestale':'forestale', 'carabinieri':'carabinieri', 'arma':'arma-dark'};
+var _TEMA_LIGHT_MAP = {'':'light', 'rosa':'rosa-light', 'forestale':'forestale-light', 'carabinieri':'carabinieri-light', 'arma':'arma'};
 
 function _aggiornaAutoCustomTema(t){
   if(!window.matchMedia) return;
@@ -3926,29 +3927,94 @@ function _renderAvaCatGrid(prefix, prevId, hiddenId, cat, currentAva) {
     return '<div class="avm3-empty">🚧 Avatar in arrivo</div>';
   }
 
-  var html = '';
+  // Genere attivo: leggi dal dataset del wrapper, default 'm' se ci sono uomini, altrimenti 'f'
+  var wrap = document.getElementById('ava-picker-m3-' + prefix);
+  var activeGenere = (wrap && wrap.dataset['genere_' + cat]) || (uomini.length ? 'm' : 'f');
 
-  function renderGroup(list, label) {
-    if (!list.length) return;
-    html += '<div class="avm3-group-label">' + label + '</div>';
-    html += '<div class="avm3-grid">';
-    list.forEach(function(av) {
-      var sel = currentAva && (currentAva === av.file || currentAva.indexOf(av.id) !== -1);
-      html += '<button class="avm3-item' + (sel ? ' selected' : '') + '" '
-        + 'onclick="selezionaAvatarNew(\'' + av.id + '\',\'' + prevId + '\',\'' + hiddenId + '\',\'' + prefix + '\')" '
-        + 'title="' + av.label + '" type="button">'
-        + '<div class="avm3-img-wrap">'
-        + '<img src="' + av.file + '" alt="' + av.label + '" loading="lazy">'
-        + (sel ? '<div class="avm3-check">✓</div>' : '')
-        + '</div>'
-        + '</button>';
-    });
-    html += '</div>';
+  // Sub-chip bar genere
+  var html = '<div class="avm3-gender-chips" id="avm3-gender-' + prefix + '-' + cat + '">';
+  if (uomini.length) {
+    html += '<button class="avm3-gender-chip' + (activeGenere === 'm' ? ' active' : '') + '" '
+      + 'onclick="switchAvaGenere(\'' + prefix + '\',\'' + cat + '\',\'m\')" type="button">'
+      + '👨 Uomini <span class="avm3-gender-count">' + uomini.length + '</span></button>';
+  }
+  if (donne.length) {
+    html += '<button class="avm3-gender-chip' + (activeGenere === 'f' ? ' active' : '') + '" '
+      + 'onclick="switchAvaGenere(\'' + prefix + '\',\'' + cat + '\',\'f\')" type="button">'
+      + '👩 Donne <span class="avm3-gender-count">' + donne.length + '</span></button>';
+  }
+  html += '</div>';
+
+  // Grid solo per il genere attivo
+  var list = activeGenere === 'm' ? uomini : donne;
+  html += '<div class="avm3-grid" id="avm3-genere-grid-' + prefix + '-' + cat + '">';
+  list.forEach(function(av) {
+    var sel = currentAva && (currentAva === av.file || currentAva.indexOf(av.id) !== -1);
+    html += '<button class="avm3-item' + (sel ? ' selected' : '') + '" '
+      + 'onclick="selezionaAvatarNew(\'' + av.id + '\',\'' + prevId + '\',\'' + hiddenId + '\',\'' + prefix + '\')" '
+      + 'title="' + av.label + '" type="button">'
+      + '<div class="avm3-img-wrap">'
+      + '<img src="' + av.file + '" alt="' + av.label + '" loading="lazy">'
+      + (sel ? '<div class="avm3-check">✓</div>' : '')
+      + '</div>'
+      + '</button>';
+  });
+  html += '</div>';
+
+  if (!list.length) {
+    html += '<div class="avm3-empty">🚧 Avatar in arrivo</div>';
   }
 
-  renderGroup(uomini, '👨 Uomini');
-  renderGroup(donne,  '👩 Donne');
   return html;
+}
+
+// Cambia genere visibile nel picker
+function switchAvaGenere(prefix, cat, genere) {
+  var wrap = document.getElementById('ava-picker-m3-' + prefix);
+  if (!wrap) return;
+  wrap.dataset['genere_' + cat] = genere;
+
+  var prevId   = wrap.dataset.prevId;
+  var hiddenId = wrap.dataset.hiddenId;
+  var me = lsG('ct_me', null);
+  var currentAva = me && me.ava ? me.ava : '';
+
+  // Aggiorna chip genere
+  var genderBar = document.getElementById('avm3-gender-' + prefix + '-' + cat);
+  if (genderBar) {
+    genderBar.querySelectorAll('.avm3-gender-chip').forEach(function(btn) {
+      var isM = btn.textContent.indexOf('Uomini') !== -1;
+      btn.classList.toggle('active', (genere === 'm' && isM) || (genere === 'f' && !isM));
+    });
+  }
+
+  // Aggiorna grid con animazione
+  var grid = document.getElementById('avm3-genere-grid-' + prefix + '-' + cat);
+  if (grid) {
+    grid.style.opacity = '0';
+    grid.style.transform = 'translateY(4px)';
+    setTimeout(function() {
+      var list = _AVATARS.filter(function(a){ return a.categoria===cat && a.genere===genere; });
+      var html = '';
+      list.forEach(function(av) {
+        var sel = currentAva && (currentAva === av.file || currentAva.indexOf(av.id) !== -1);
+        html += '<button class="avm3-item' + (sel ? ' selected' : '') + '" '
+          + 'onclick="selezionaAvatarNew(\'' + av.id + '\',\'' + prevId + '\',\'' + hiddenId + '\',\'' + prefix + '\')" '
+          + 'title="' + av.label + '" type="button">'
+          + '<div class="avm3-img-wrap">'
+          + '<img src="' + av.file + '" alt="' + av.label + '" loading="lazy">'
+          + (sel ? '<div class="avm3-check">✓</div>' : '')
+          + '</div>'
+          + '</button>';
+      });
+      if (!list.length) html = '<div class="avm3-empty">🚧 Avatar in arrivo</div>';
+      grid.innerHTML = html;
+      grid.style.transition = 'opacity .15s ease, transform .15s ease';
+      grid.style.opacity = '1';
+      grid.style.transform = 'translateY(0)';
+    }, 100);
+  }
+  haptic('light');
 }
 
 // Compatibilità con vecchio renderAvatarPicker
@@ -3977,6 +4043,9 @@ function switchAvaTab(prefix, cat) {
   var wrap = document.getElementById('ava-picker-m3-' + prefix);
   if (!wrap) return;
   wrap.dataset.activeCat = cat;
+  // Reset genere alla categoria di default (uomini se disponibili)
+  var uominiNuovaCat = _AVATARS.filter(function(a){ return a.categoria===cat && a.genere==='m'; });
+  wrap.dataset['genere_' + cat] = wrap.dataset['genere_' + cat] || (uominiNuovaCat.length ? 'm' : 'f');
   var prevId   = wrap.dataset.prevId;
   var hiddenId = wrap.dataset.hiddenId;
 
@@ -4715,22 +4784,44 @@ function setFontSize(px, btn){
   toast("Testo: "+(nomi[px]||px+"px")+" ?","ok");
 }
 function caricaFontSize(){
-  var px=lsG("ct_font", 14);
-  var map={12:"sm",14:"md",16:"lg",18:"xl",20:"xxl"};
-  var key=map[px]||"md";
-  document.documentElement.setAttribute("data-font", key);
-  document.documentElement.style.setProperty("--fs-base", px+"px");
-  var lbl=document.getElementById("font-size-lbl");
-  var lblLive=document.getElementById("font-size-lbl-live");
-  var nomi={12:"Piccolo",14:"Normale",16:"Grande",18:"XL",20:"XXL"};
-  if(lbl) lbl.textContent = nomi[px]||px+"px";
-  if(lblLive) lblLive.textContent = nomi[px]||px+"px";
-  // Aggiorna lo slider alla posizione corretta
-  var slider=document.getElementById("font-slider");
+  var px = lsG("ct_font", 14);
+  _applicaFontSize(px);
+  // Aggiorna slider
+  var slider = document.getElementById("font-slider");
   if(slider) slider.value = px;
+  // Aggiorna bottoni sel
   document.querySelectorAll(".font-sz-btn").forEach(function(b){
-    b.classList.toggle("sel", parseInt(b.getAttribute("data-sz"))===px);
+    b.classList.toggle("sel", parseInt(b.getAttribute("data-sz")) === px);
   });
+}
+
+// Applica font size e zoom interfaccia
+function _applicaFontSize(px) {
+  var map = {12:"sm", 14:"md", 16:"lg", 18:"xl", 20:"xxl"};
+  var nomi = {12:"Piccolo", 14:"Normale", 16:"Grande", 18:"XL", 20:"XXL"};
+  var zoomMap = {12:0.85, 14:1.0, 16:1.10, 18:1.20, 20:1.35};
+  var key = map[px] || "md";
+  var zoomVal = zoomMap[px] || 1.0;
+
+  // Applica data-font per CSS
+  document.documentElement.setAttribute("data-font", key);
+  document.documentElement.style.setProperty("--fs-base", px + "px");
+
+  // Applica zoom direttamente su #pg-app
+  var pgApp = document.getElementById("pg-app");
+  if(pgApp) {
+    if(px === 14) {
+      pgApp.style.zoom = '';  // default — nessuno zoom
+    } else {
+      pgApp.style.zoom = zoomVal;
+    }
+  }
+
+  // Aggiorna label
+  var lbl = document.getElementById("font-size-lbl");
+  var lblLive = document.getElementById("font-size-lbl-live");
+  if(lbl) lbl.textContent = nomi[px] || px + "px";
+  if(lblLive) lblLive.textContent = nomi[px] || px + "px";
 }
 
 
@@ -4810,27 +4901,21 @@ function salvaTema(){
 
 function prevFontSize(px, btn){
   _fontPending = px;
-  var map={12:"sm",14:"md",16:"lg",18:"xl",20:"xxl"};
-  document.documentElement.setAttribute("data-font", map[px]||"md");
-  document.documentElement.style.setProperty("--fs-base", px+"px");
+  _applicaFontSize(px);
   document.querySelectorAll(".font-sz-btn").forEach(function(b){b.classList.remove("sel");});
   if(btn) btn.classList.add("sel");
-  var lbl=document.getElementById("font-size-lbl");
-  var lblLive=document.getElementById("font-size-lbl-live");
-  var nomi={12:"Piccolo",14:"Normale",16:"Grande",18:"XL",20:"XXL"};
-  if(lbl) lbl.textContent=nomi[px]||px+"px";
-  if(lblLive) lblLive.textContent=nomi[px]||px+"px";
-  var btnS=document.getElementById("btn-salva-font");
+  var btnS = document.getElementById("btn-salva-font");
   if(btnS){btnS.style.opacity="1";btnS.style.pointerEvents="auto";}
 }
 
 function salvaFontSize(){
   if(_fontPending===null)return;
   lsS("ct_font", _fontPending);
+  _applicaFontSize(_fontPending);
   var nomi={12:"Piccolo",14:"Normale",16:"Grande",18:"XL",20:"XXL"};
   var btnS=document.getElementById("btn-salva-font");
   if(btnS){btnS.style.opacity=".5";btnS.style.pointerEvents="none";}
-  toast("&#10003; Testo \u201c"+(nomi[_fontPending]||_fontPending+"px")+"\u201d salvato","ok");
+  toast("&#10003; Interfaccia \u201c"+(nomi[_fontPending]||_fontPending+"px")+"\u201d salvata","ok");
   _fontPending=null;
 }
 
