@@ -177,34 +177,34 @@
         <div id="reg-campi-reparto" style="display:none">
           <div class="fg" style="margin-bottom:10px">
             <label>Tipo Struttura *</label>
-            <select class="fc" id="reg-tipo-struttura" onchange="aggiornaRepartoId()">
-              <option value="">-- Seleziona --</option>
-              <option value="stazione">Stazione</option>
-              <option value="nucleo">Nucleo</option>
-              <option value="compagnia">Compagnia</option>
-              <option value="distaccamento">Distaccamento</option>
-              <option value="tenenza">Tenenza</option>
-              <option value="gruppo">Gruppo</option>
-              <option value="legione">Legione</option>
-            </select>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
+              <button type="button" class="tipo-rep-btn" onclick="selTipoRep('reg','stazione',this)">Stazione</button>
+              <button type="button" class="tipo-rep-btn" onclick="selTipoRep('reg','nucleo',this)">Nucleo</button>
+              <button type="button" class="tipo-rep-btn" onclick="selTipoRep('reg','compagnia',this)">Compagnia</button>
+              <button type="button" class="tipo-rep-btn" onclick="selTipoRep('reg','distaccamento',this)">Distaccamento</button>
+              <button type="button" class="tipo-rep-btn" onclick="selTipoRep('reg','tenenza',this)">Tenenza</button>
+              <button type="button" class="tipo-rep-btn" onclick="selTipoRep('reg','gruppo',this)">Gruppo</button>
+              <button type="button" class="tipo-rep-btn" onclick="selTipoRep('reg','legione',this)">Legione</button>
+            </div>
+            <input type="hidden" id="reg-tipo-struttura" value="">
           </div>
           <div class="fg" style="margin-bottom:10px">
             <label>Specialità *</label>
-            <select class="fc" id="reg-specialita" onchange="aggiornaRepartoId()">
-              <option value="">-- Seleziona --</option>
-              <option value="territoriale">Territoriale</option>
-              <option value="forestale">Forestale</option>
-              <option value="radiomobile">Radiomobile</option>
-              <option value="norm">N.O.R.M.</option>
-              <option value="sis">S.I.S.</option>
-              <option value="cacciatori">Cacciatori</option>
-              <option value="paracadutisti">Paracadutisti</option>
-              <option value="ros">R.O.S.</option>
-              <option value="gis">G.I.S.</option>
-              <option value="noe">N.O.E.</option>
-              <option value="nas">N.A.S.</option>
-              <option value="nit">N.I.T.</option>
-            </select>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
+              <button type="button" class="tipo-rep-btn" onclick="selSpecRep('reg','territoriale',this)">Territoriale</button>
+              <button type="button" class="tipo-rep-btn" onclick="selSpecRep('reg','forestale',this)">Forestale</button>
+              <button type="button" class="tipo-rep-btn" onclick="selSpecRep('reg','radiomobile',this)">Radiomobile</button>
+              <button type="button" class="tipo-rep-btn" onclick="selSpecRep('reg','norm',this)">N.O.R.M.</button>
+              <button type="button" class="tipo-rep-btn" onclick="selSpecRep('reg','sis',this)">S.I.S.</button>
+              <button type="button" class="tipo-rep-btn" onclick="selSpecRep('reg','cacciatori',this)">Cacciatori</button>
+              <button type="button" class="tipo-rep-btn" onclick="selSpecRep('reg','paracadutisti',this)">Paracadutisti</button>
+              <button type="button" class="tipo-rep-btn" onclick="selSpecRep('reg','ros',this)">R.O.S.</button>
+              <button type="button" class="tipo-rep-btn" onclick="selSpecRep('reg','gis',this)">G.I.S.</button>
+              <button type="button" class="tipo-rep-btn" onclick="selSpecRep('reg','noe',this)">N.O.E.</button>
+              <button type="button" class="tipo-rep-btn" onclick="selSpecRep('reg','nas',this)">N.A.S.</button>
+              <button type="button" class="tipo-rep-btn" onclick="selSpecRep('reg','nit',this)">N.I.T.</button>
+            </div>
+            <input type="hidden" id="reg-specialita" value="">
           </div>
           <div class="fg" style="margin-bottom:10px">
             <label>Sede / Città *</label>
@@ -222,63 +222,19 @@
       <div class="g2" style="margin-bottom:16px">
 
         <div class="fg" style="margin-bottom:0">
-
           <label>Grado</label>
-
-          <select class="fc" id="reg-grado">
-
-            <option value="">-- Seleziona --</option>
-
-            <option value="Car.">Car.</option>
-
-            <option value="Car.Sc.">Car.Sc.</option>
-
-            <option value="App.">App.</option>
-
-            <option value="App.Sc.">App.Sc.</option>
-
-            <option value="V.Brig.">V.Brig.</option>
-
-            <option value="Brig.">Brig.</option>
-
-            <option value="Brig.Ca.">Brig.Ca.</option>
-
-            <option value="Mar.">Mar.</option>
-
-            <option value="Mar.Ord.">Mar.Ord.</option>
-
-            <option value="Mar.Cap.">Mar.Cap.</option>
-
-            <option value="Mar.Magg.">Mar.Magg.</option>
-
-            <option value="Luog.">Luog.</option>
-
-            <option value="S.Ten.">S.Ten.</option>
-
-            <option value="Ten.">Ten.</option>
-
-            <option value="Cap.">Cap.</option>
-
-            <option value="Magg.">Magg.</option>
-
-            <option value="Ten.Col.">Ten.Col.</option>
-
-            <option value="Col.">Col.</option>
-
-            <option value="Gen.">Gen.</option>
-
-          </select>
-
+          <input type="hidden" id="reg-grado" value="">
+          <button type="button" class="fc" style="text-align:left;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="apriGradoPicker('reg-grado')" id="btn-reg-grado">
+            <span id="lbl-reg-grado" style="font-weight:600;color:var(--txt2)">Tocca per scegliere...</span>
+            <span style="font-size:14px">&#8250;</span>
+          </button>
         </div>
 
         <div class="fg" style="margin-bottom:0">
-
           <label>Ruolo</label>
-
           <div style="padding:10px 12px;background:rgba(41,121,255,.07);border-radius:10px;border:1px solid rgba(41,121,255,.15);font-size:12px;color:var(--txt2)">
             &#128161; Il ruolo viene assegnato automaticamente: il primo iscritto del reparto diventa <strong>Comandante</strong>, gli altri sono <strong>Addetti</strong> in attesa di approvazione.
           </div>
-
         </div>
 
       </div>
@@ -2077,11 +2033,12 @@
 <div id="m-profilo" class="modal"><div class="mbox">
   <div class="mhan"></div>
   <div class="mhd"><div class="mtit">&#128100; Il mio profilo</div><button class="mcl" onclick="closeM('m-profilo')">&#10005;</button></div>
-  <div class="mbod" style="display:grid;gap:10px">
+  <div class="mbod" style="display:grid;gap:14px">
+
+    <!-- Avatar -->
     <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:8px 0 4px">
       <div id="mpf-ava-prev" style="width:80px;height:80px;border-radius:50%;background:var(--bg2);border:3px solid var(--blue);display:flex;align-items:center;justify-content:center;font-size:40px;overflow:hidden;flex-shrink:0;box-shadow:0 0 0 4px rgba(91,159,255,.2)">👤</div>
       <div style="font-size:11px;color:var(--txt2)">Scegli il tuo avatar</div>
-      <!-- Avatar picker M3 -->
       <div style="width:100%">
         <div class="avm3-picker" id="ava-picker-m3-mpf"
           data-prev-id="mpf-ava-prev"
@@ -2091,23 +2048,27 @@
         <input type="hidden" id="mpf-ava" value="">
       </div>
     </div>
-    <div class="fg" style="margin-bottom:0"><label>Nome</label><input type="text" class="fc app-fc" id="mpf-nome" placeholder="Il tuo nome"></div>
-    <div class="fg" style="margin-bottom:0"><label>Reparto</label><input type="text" class="fc app-fc" id="mpf-rep" placeholder="Es. Stazione Roma Centro"></div>
-    <div class="fg" style="margin-bottom:0"><label>Nucleo</label><input type="text" class="fc app-fc" id="mpf-nuc" placeholder="Es. Compagnia Prati"></div>
-    <div class="fg" style="margin-bottom:0"><label>Grado</label>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;min-height:28px">
-        <img id="mpf-gr-prev" src="" alt="" style="display:none;height:28px;width:auto;max-width:72px;object-fit:contain;border-radius:4px;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4))">
-        <span id="mpf-gr-txt" style="font-size:12px;color:var(--blue);font-weight:700"></span>
-      </div>
-      <select class="fc app-fc" id="mpf-grado" onchange="prevGradoMpf(this.value)">
-        <option>Car.</option><option>Car.Sc.</option><option>App.</option><option>App.Sc.</option>
-        <option>V.Brig.</option><option>Brig.</option><option>Brig.Ca.</option>
-        <option>Mar.</option><option>Mar.Ord.</option><option>Mar.Cap.</option><option>Mar.Magg.</option>
-        <option>Luog.</option><option>S.Ten.</option><option>Ten.</option><option>Cap.</option>
-        <option>Magg.</option><option>Ten.Col.</option><option>Col.</option><option>Gen.</option>
-      </select>
+
+    <!-- Nome (solo locale — nickname) -->
+    <div class="fg" style="margin-bottom:0">
+      <label>Nome / Nickname <span style="font-size:10px;color:var(--txt3);font-weight:400">(visibile solo a te)</span></label>
+      <input type="text" class="fc app-fc" id="mpf-nome" placeholder="Il tuo nome o nickname">
     </div>
-    <div class="fg" style="margin-bottom:0"><label>Nuova password (lascia vuoto per non cambiarla)</label><input type="password" class="fc app-fc" id="mpf-pw" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;"></div>
+
+    <!-- Grado — picker in-app -->
+    <div class="fg" style="margin-bottom:0">
+      <label>Grado</label>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;min-height:36px">
+        <img id="mpf-gr-prev" src="" alt="" style="display:none;height:36px;width:auto;max-width:80px;object-fit:contain;border-radius:4px;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4))">
+        <span id="mpf-gr-txt" style="font-size:13px;color:var(--blue);font-weight:700"></span>
+      </div>
+      <input type="hidden" id="mpf-grado" value="">
+      <button type="button" class="fc" style="text-align:left;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="apriGradoPicker('mpf-grado')">
+        <span id="lbl-mpf-grado" style="font-weight:600;color:var(--txt2)">Tocca per scegliere...</span>
+        <span style="font-size:14px">&#8250;</span>
+      </button>
+    </div>
+
     <div id="mpf-err" class="emsg">Errore salvataggio</div>
   </div>
   <div class="mfoo">

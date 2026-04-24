@@ -37,6 +37,7 @@ body{height:100%;overflow-x:clip;font-size:var(--fs-base)}
   --border:rgba(0,0,0,.08);--border2:rgba(0,0,0,.14);
   --txt:#0d1b2a;--txt2:#3a5a7a;--txt3:#7a9ab8;
   --blue:#1a6fe8;--blue2:#2979ff;
+  --red:#c62828;--gold:#f9a825;--green:#2e7d32;--teal:#00838f;--orange:#e65100;--purple:#6a1b9a;
   --surface-tint:rgba(26,111,232,.04);
   --elevation-1:0 1px 3px rgba(0,0,0,.1),0 1px 2px rgba(0,0,0,.06);
   --elevation-2:0 3px 6px rgba(0,0,0,.1),0 2px 4px rgba(0,0,0,.06);
@@ -44,6 +45,7 @@ body{height:100%;overflow-x:clip;font-size:var(--fs-base)}
   --m3-shadow:0 2px 12px rgba(0,0,0,.06),0 1px 3px rgba(0,0,0,.04);
   --m3-shadow-md:0 4px 20px rgba(0,0,0,.09),0 2px 6px rgba(0,0,0,.05);
   --m3-shadow-lg:0 8px 32px rgba(0,0,0,.12),0 3px 10px rgba(0,0,0,.06);
+  --hdr-bg:rgba(255,255,255,.95)
 }
 
 
@@ -82,21 +84,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   border-bottom:none!important
 }
 [data-theme=forestale] .btn-p{background:linear-gradient(135deg,#1b5e20,#2E7D32)!important}
-
-/* ── TEMA FORESTALE GIORNO — Grigio-Verde chiaro M3 ── */
-[data-theme=forestale-light]{
-  --bg:#E8EFE9;--bg2:#d8e8da;--card:#F0F4F1;--card2:#e4ede6;
-  --border:rgba(0,0,0,.1);--border2:rgba(0,0,0,.18);
-  --txt:#0a1f0a;--txt2:#2e6030;--txt3:#507850;
-  --blue:#2E7D32;--blue2:#388e3c;--red:#b71c1c;
-  --gold:#558b2f;--green:#33691e;--teal:#1b5e20;--orange:#827717;--purple:#4a7a4a;
-  --hdr-bg:rgba(232,239,233,.95)
-}
-[data-theme=forestale-light] .hdr{
-  background:var(--hdr-bg)!important;
-  border-bottom:none!important
-}
-[data-theme=forestale-light] .btn-p{background:linear-gradient(135deg,#2E7D32,#388e3c)!important}
 
 /* ── PALETTE MATERIAL 3 — ARMA & FORESTALE (Task 2) ── */
 
@@ -605,18 +592,6 @@ tr.t-corso td:first-child{border-left:3px solid #2979ff}
 .fest-bdg{background:rgba(212,175,55,.15);color:var(--gold);border:1px solid rgba(212,175,55,.3);font-size:10px;font-weight:700;padding:2px 6px;border-radius:20px}
 
 /* --- TEMI --- */
-[data-theme=light]{
-  --bg:#f0f4f8;--bg2:#dce8f0;--card:#ffffff;--card2:#eef3f8;
-  --border:#c5d5e8;--border2:#b0c4da;
-  --txt:#0d1b2a;--txt2:#3a5a7a;--txt3:#7a9ab8;
-  --blue:#1565c0;--blue2:#1976d2;--red:#c62828;
-  --gold:#f9a825;--green:#2e7d32;--teal:#00838f;--orange:#e65100;--purple:#6a1b9a;
-  --surface-tint:rgba(21,101,192,.05);
-  --elevation-1:0 1px 3px rgba(0,0,0,.10),0 1px 2px rgba(0,0,0,.06);
-  --elevation-2:0 3px 8px rgba(0,0,0,.10),0 2px 4px rgba(0,0,0,.06);
-  --elevation-3:0 8px 24px rgba(0,0,0,.12),0 4px 8px rgba(0,0,0,.06);
-  --hdr-bg:rgba(255,255,255,.95)
-}
 
 /* --- ROSA 🌸 --- */
 [data-theme=rosa]{

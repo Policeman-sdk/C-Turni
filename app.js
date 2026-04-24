@@ -4942,13 +4942,16 @@ function selezionaGrado(val) {
   if(target) {
     target.value = val;
     var g = GR[val];
-    // Aggiornamento dinamico della label corretta (Registrazione, Profilo, o Persona)
+    // Aggiorna label bottone
     var lbl = document.getElementById('lbl-' + window._gradoTarget);
     if(lbl) { lbl.textContent = g ? g.nome : val; lbl.style.color = 'var(--txt)'; }
-    
-    // Aggiorna la preview dell'immagine solo se siamo nel Profilo
+
+    // Preview immagine grado — sia per pf-grado che mpf-grado
     if(window._gradoTarget === 'pf-grado' && typeof prevGrado === 'function') {
       prevGrado(val);
+    }
+    if(window._gradoTarget === 'mpf-grado' && typeof prevGradoMpf === 'function') {
+      prevGradoMpf(val);
     }
   }
   closeM('m-grado-picker');
@@ -7173,6 +7176,20 @@ function confermImportF(modoSost){
     return true;
   });
   lsS("ct_p", _Pall);
+  // Aggiungi uid utente corrente ai turni prima di salvare (richiesto dalle Security Rules)
+  var _sess = lsG('ct_session', null);
+  var _myUid = _sess && _sess.userId ? _sess.userId : null;
+  if(_myUid) {
+    var _T = lsG('ct_t', []);
+    var _myPid = localStorage.getItem('ct_my_pid');
+    _T = _T.map(function(t) {
+      if(!t.uid && _myPid && String(t.pid) === String(_myPid)) {
+        t.uid = _myUid;
+      }
+      return t;
+    });
+    lsS('ct_t', _T);
+  }
   // Salva turni su Firebase (sia in modalità aggiungi che sostituisci)
   if(window.FirebaseModule) window.FirebaseModule.saveTurni(lsG("ct_t",[])).catch(function(e){ console.warn('saveTurni post-import:', e.message); });
   renderTurni();renderOggi();renderPers();stats();aggSel();aggiornaWidget();
@@ -8160,34 +8177,33 @@ function toast(msg,tipo){
 
 function apriProfilo(){
   var me=lsG('ct_me',null);if(!me)return;
+
+  // Nome
   var pNome=document.getElementById('mpf-nome');
-  var pRep=document.getElementById('mpf-rep');
-  var pNuc=document.getElementById('mpf-nuc');
-  var pGrado=document.getElementById('mpf-grado');
   if(pNome)pNome.value=me.nome||'';
-  if(pRep)pRep.value=me.reparto||'';
-  if(pNuc)pNuc.value=me.nucleo||'';
+
+  // Grado — picker in-app
+  var pGrado=document.getElementById('mpf-grado');
   if(pGrado)pGrado.value=me.grado||'';
-  var pwEl=document.getElementById('mpf-pw');
-  if(pwEl)pwEl.value='';
-  var prev=document.getElementById('mpf-ava-prev');
-  if(prev){
-    if(me.ava){
-      prev.innerHTML='<img src="'+me.ava+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
-    }else{
-      prev.innerHTML='👤';
-    }
+  var gradoLbl=document.getElementById('lbl-mpf-grado');
+  if(gradoLbl){
+    var gNome = me.grado && GR[me.grado] ? GR[me.grado].nome : (me.grado||'');
+    gradoLbl.textContent = gNome || 'Tocca per scegliere...';
+    gradoLbl.style.color = me.grado ? 'var(--txt)' : 'var(--txt2)';
   }
-  // Renderizza picker avatar M3
+
+  // Preview grado
+  if(me.grado && typeof prevGradoMpf === 'function') prevGradoMpf(me.grado);
+
+  // Avatar
   setTimeout(function(){
     if(typeof renderAvatarPickerNew === 'function') renderAvatarPickerNew('mpf', 'mpf-ava-prev', 'mpf-ava');
-    // Popola select grado e mostra preview immagine
-    var mpfGrado = document.getElementById('mpf-grado');
-    if(mpfGrado && me.grado) {
-      mpfGrado.value = me.grado;
-      if(typeof prevGradoMpf === 'function') prevGradoMpf(me.grado);
+    var mpfAvaPrev = document.getElementById('mpf-ava-prev');
+    if(mpfAvaPrev && me.ava) {
+      mpfAvaPrev.innerHTML = '<img src="'+me.ava+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
     }
   }, 50);
+
   var errEl=document.getElementById('mpf-err');
   if(errEl)errEl.classList.remove('on');
   openM('m-profilo');
@@ -8196,15 +8212,16 @@ function apriProfilo(){
 function salvaProfilo(){
   var me=lsG('ct_me',null);if(!me)return;
   var nome=document.getElementById('mpf-nome').value.trim();
-  var rep=document.getElementById('mpf-rep').value.trim();
-  var nuc=document.getElementById('mpf-nuc').value.trim();
   var grado=document.getElementById('mpf-grado').value;
-  var pw=document.getElementById('mpf-pw').value;
   var errEl=document.getElementById('mpf-err');
   errEl.classList.remove('on');
   if(!nome){errEl.textContent='Il nome non può essere vuoto';errEl.classList.add('on');return;}
-  me.nome=nome;me.reparto=rep;me.nucleo=nuc;me.grado=grado;
-  if(pw)me.pw=pw;
+
+  // Nome — solo locale (nickname)
+  me.nome=nome;
+
+  // Grado — salvato anche su Firebase
+  if(grado) me.grado=grado;
 
   // Avatar: leggi dal campo hidden (selezionato dalla griglia)
   var avaHidden = document.getElementById('mpf-ava');
