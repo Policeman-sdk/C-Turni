@@ -8646,11 +8646,31 @@ function initWidgetResize() {
     return 1;
   }
 
-  function _showTooltip(label, x, y) {
+  function _showTooltip(label, x, y, presetIdx) {
     if (!tooltip) return;
-    tooltip.textContent = label;
-    tooltip.style.left = (x + 12) + 'px';
-    tooltip.style.top  = (y - 36) + 'px';
+    // Icone visive dei 4 preset come mini-SVG
+    var icons = [
+      // Compatto 1x1 S
+      '<svg width="20" height="20" viewBox="0 0 20 20"><rect x="2" y="2" width="16" height="16" rx="3" fill="currentColor" opacity=".9"/></svg>',
+      // Normale 1x1 M
+      '<svg width="20" height="20" viewBox="0 0 20 20"><rect x="1" y="1" width="18" height="18" rx="3" fill="currentColor" opacity=".9"/></svg>',
+      // Largo 2x1
+      '<svg width="36" height="20" viewBox="0 0 36 20"><rect x="1" y="1" width="34" height="18" rx="3" fill="currentColor" opacity=".9"/></svg>',
+      // Grande 2x2
+      '<svg width="36" height="36" viewBox="0 0 36 36"><rect x="1" y="1" width="34" height="34" rx="3" fill="currentColor" opacity=".9"/></svg>'
+    ];
+    var idx = presetIdx !== undefined ? presetIdx : -1;
+    var iconsHtml = icons.map(function(svg, i) {
+      return '<span style="opacity:' + (i === idx ? '1' : '.25') + ';color:' + (i === idx ? '#5b9fff' : 'var(--txt2)') + ';display:inline-flex;align-items:center">' + svg + '</span>';
+    }).join('');
+    tooltip.innerHTML = '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">' + iconsHtml + '</div>'
+      + '<div style="font-size:11px;font-weight:700;color:#fff;text-align:center">' + label + '</div>';
+    // Posiziona sopra il cursore, centrato, senza uscire dallo schermo
+    var tw = 170; // larghezza stimata tooltip
+    var left = Math.max(8, Math.min(x - tw / 2, window.innerWidth - tw - 8));
+    var top  = Math.max(8, y - 90);
+    tooltip.style.left = left + 'px';
+    tooltip.style.top  = top  + 'px';
     tooltip.classList.add('visible');
   }
 
@@ -8659,18 +8679,20 @@ function initWidgetResize() {
   }
 
   function _calcPreset(deltaX, deltaY, startIdx, cols) {
-    var STEP = 60;
+    var STEP = 45; // step ridotto per touch (era 60)
     var combined = Math.round(deltaX / STEP) + Math.round(deltaY / STEP);
     var idx = Math.max(0, Math.min(PRESETS.length - 1, startIdx + combined));
     var p = { col: Math.min(PRESETS[idx].col, cols), row: PRESETS[idx].row, size: PRESETS[idx].size, label: PRESETS[idx].label };
     return { idx: idx, preset: p };
   }
 
-  function _applyPreset(key, preset) {
-    saveWidgetSpan(key, { col: preset.col, row: preset.row });
-    saveWidgetSize(key, preset.size);
+  function _applyPreset(key, preset, skipSave) {
+    if (!skipSave) {
+      saveWidgetSpan(key, { col: preset.col, row: preset.row });
+      saveWidgetSize(key, preset.size);
+    }
     applyWidgetSizes();
-    renderDopList();
+    if (!skipSave) renderDopList();
     var el = document.getElementById(WIDGET_ID_MAP[key]);
     if (el) {
       el.classList.remove('snap-anim');
@@ -8678,7 +8700,19 @@ function initWidgetResize() {
       el.classList.add('snap-anim');
       setTimeout(function() { el.classList.remove('snap-anim'); }, 300);
     }
-    if (navigator.vibrate) navigator.vibrate([10, 30, 10]);
+    if (!skipSave && navigator.vibrate) navigator.vibrate([10, 30, 10]);
+  }
+
+  // Applica anteprima live senza salvare — aggiorna solo gridColumn/gridRow/size class
+  function _previewPreset(key, preset) {
+    var el = document.getElementById(WIDGET_ID_MAP[key]);
+    if (!el) return;
+    var cols = getGridCols();
+    var colSpan = Math.min(preset.col, cols);
+    el.style.gridColumn = 'span ' + colSpan;
+    el.style.gridRow    = 'span ' + (preset.row || 1);
+    el.classList.remove('wdg-size-s', 'wdg-size-m', 'wdg-size-l');
+    el.classList.add('wdg-size-' + preset.size);
   }
 
   container.querySelectorAll('.wdg-resize-handle').forEach(function(handle) {
@@ -8686,22 +8720,29 @@ function initWidgetResize() {
     var key  = wrap ? wrap.dataset.wid : null;
     if (!key) return;
 
-    var startX, startY, startIdx, isDragging = false;
+    var startX, startY, startIdx, lastIdx, isDragging = false;
 
     function onStart(cx, cy) {
       var sp = getWidgetSpans()[key] || { col:1, row:1 };
       var sz = getWidgetSizes()[key] || 'm';
       startX = cx; startY = cy;
       startIdx = _presetIndex(sp, sz);
+      lastIdx = startIdx;
       isDragging = true;
       wrap.classList.add('resizing');
-      _showTooltip(PRESETS[startIdx].label, cx, cy);
+      _showTooltip(PRESETS[startIdx].label, cx, cy, startIdx);
     }
 
     function onMove(cx, cy) {
       if (!isDragging) return;
       var r = _calcPreset(cx - startX, cy - startY, startIdx, getGridCols());
-      _showTooltip(r.preset.label, cx, cy);
+      _showTooltip(r.preset.label, cx, cy, r.idx);
+      // Anteprima live: applica dimensione senza salvare, solo se cambiata
+      if (r.idx !== lastIdx) {
+        lastIdx = r.idx;
+        _previewPreset(key, r.preset);
+        if (navigator.vibrate) navigator.vibrate(8); // micro-haptic per ogni snap
+      }
     }
 
     function onEnd(cx, cy) {
@@ -8710,7 +8751,13 @@ function initWidgetResize() {
       wrap.classList.remove('resizing');
       _hideTooltip();
       var r = _calcPreset(cx - startX, cy - startY, startIdx, getGridCols());
-      if (r.idx !== startIdx) _applyPreset(key, r.preset);
+      if (r.idx !== startIdx) {
+        // Conferma: salva e applica definitivamente
+        _applyPreset(key, r.preset);
+      } else {
+        // Annullato: ripristina lo stato originale
+        _previewPreset(key, PRESETS[startIdx]);
+      }
     }
 
     // Mouse
@@ -8950,12 +8997,12 @@ function renderDash() {
   aggiornaHeroCard();
   aggiornaSquadra();
   renderWidgetMeteo(me); // meteo sempre — popola la Hero Card
+  if (cfg.settimana)       renderWidgetSettimana(me);  // dopo meteo così la cache è già pronta se in cache
   if (cfg.prossimo)        renderWidgetProssimo(me);
   if (cfg.alert)           renderWidgetAlert();
   if (cfg.scadenze)        renderWidgetScadenze();
   if (cfg.agenda)          renderWidgetAgenda();
   if (cfg.todo)            renderWidgetTodo();
-  if (cfg.settimana)       renderWidgetSettimana(me);  // Hero Card aggiornata ogni minuto per l'Active Ring
   if(window._heroRingTimer) clearInterval(window._heroRingTimer);
   window._heroRingTimer = setInterval(aggiornaHeroCard, 60000);
   var map = {
@@ -9067,6 +9114,23 @@ function renderWidgetSettimana(me) {
     html += '<div class="wdg-sett-num' + (isOggi ? ' wdg-sett-num-oggi' : '') + '">' + giorno.getDate() + '</div>';
     html += '<div class="wdg-sett-chip" style="background:' + col + '22;color:' + col + ';border:1px solid ' + col + '55">' + sigla + '</div>';
     if(orario) html += '<div class="wdg-sett-ora">' + orario + '</div>';
+
+    // Icona meteo predittiva — solo giorni presenti e futuri con dati disponibili
+    var oggiStr = now.getFullYear()+'-'+('0'+(now.getMonth()+1)).slice(-2)+'-'+('0'+now.getDate()).slice(-2);
+    var isFutureOrToday = ds >= oggiStr;
+    var prevDs = (typeof _meteoPrevCache !== 'undefined') && _meteoPrevCache[ds];
+    if (isFutureOrToday && prevDs) {
+      var wEmoji = (typeof METEO_CAL_EMOJI !== 'undefined') ? (METEO_CAL_EMOJI[prevDs.wc] || '') : '';
+      var wTemp  = prevDs.tMax !== null ? prevDs.tMax + '°' : '';
+      var wDesc  = (typeof METEO_DESC !== 'undefined') ? (METEO_DESC[prevDs.wc] || '') : '';
+      if (wEmoji) {
+        html += '<div class="wdg-sett-meteo" title="' + wDesc + (wTemp ? ' · ' + wTemp : '') + '">'
+          + '<span>' + wEmoji + '</span>'
+          + (wTemp ? '<span class="wdg-sett-meteo-temp">' + wTemp + '</span>' : '')
+          + '</div>';
+      }
+    }
+
     html += '</div>';
   }
   html += '</div>';
@@ -9187,6 +9251,12 @@ function _aggiornaPrevisioniCal(data) {
   var calPag = document.getElementById('pag-cal');
   if (calPag && calPag.classList.contains('on')) {
     renderCal();
+  }
+
+  // Aggiorna il widget settimana (sempre — è sulla dashboard)
+  var me = lsG('ct_me', null);
+  if (me && typeof renderWidgetSettimana === 'function') {
+    renderWidgetSettimana(me);
   }
 }
 
@@ -11559,6 +11629,7 @@ var AuthModule = (function() {
         _hideOverlay();
         if (typeof aggUI === 'function') aggUI();
         if (typeof aggiornaWidget === 'function') aggiornaWidget();
+        if (typeof renderDash === 'function') renderDash();
         AuthModule.renderGestioneMemebri();
         _ripristinaPagina();
         if (window.FirebaseModule) window.FirebaseModule.onLogin(AuthModule.getSession()).catch(function(e){ console.warn('onLogin bio:', e.message); });

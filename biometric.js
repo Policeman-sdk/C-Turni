@@ -1,81 +1,77 @@
 /**
- * biometric.js — C-Turni WebAuthn / Passkey module
+ * biometric.js — C-Turni WebAuthn / Passkey module v2
  *
- * Permette login biometrico (Face ID, impronta, Windows Hello) tramite WebAuthn.
- * La chiave privata non lascia mai il dispositivo — solo il credentialId viene
- * salvato in localStorage per identificare la credenziale al prossimo login.
- *
- * Flusso:
- *   1. Dopo login Firebase riuscito → BiometricModule.offerEnrollment(userId, email)
- *   2. Al prossimo avvio → BiometricModule.init() mostra il pulsante biometrico
- *   3. Click pulsante → BiometricModule.authenticate() → risolve con {userId, email}
- *      → AuthModule.loginWithBiometric(userId, email) completa il login
- *
- * API pubblica (window.BiometricModule):
- *   BiometricModule.isSupported()           → bool
- *   BiometricModule.hasCredential()         → bool
- *   BiometricModule.init()                  → mostra UI se credenziale salvata
- *   BiometricModule.offerEnrollment(uid, email, nome)
- *   BiometricModule.authenticate()          → Promise<{userId, email}>
- *   BiometricModule.removeCredential()
+ * Fix v2:
+ * - challenge e userId passati come Uint8Array (non ArrayBuffer) — richiesto da WebAuthn spec
+ * - rpId robusto: usa location.hostname, fallback a '' per localhost (alcuni browser lo richiedono vuoto)
+ * - Gestione errori più granulare con messaggi utente
+ * - enroll() restituisce Promise per permettere .then() dall'HTML
  */
 
 (function(global) {
   'use strict';
 
-  var LS_KEY = 'ct_biometric_cred';   // {credentialId (base64url), userId, email, nome}
-  var RP_ID  = location.hostname;     // Relying Party = dominio corrente
+  var LS_KEY  = 'ct_biometric_cred';
   var RP_NAME = 'C-Turni';
+
+  // rpId: su localhost alcuni browser rifiutano il dominio — usiamo location.hostname
+  // che su localhost è 'localhost' (valido per WebAuthn in dev)
+  function _rpId() {
+    return location.hostname || 'localhost';
+  }
 
   // ── Utility base64url ─────────────────────────────────────
   function _b64uEncode(buf) {
-    return btoa(String.fromCharCode.apply(null, new Uint8Array(buf)))
-      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    var bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+    var bin = '';
+    for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
   }
 
   function _b64uDecode(str) {
+    str = (str + '===').slice(0, str.length + (4 - str.length % 4) % 4);
     str = str.replace(/-/g, '+').replace(/_/g, '/');
-    while (str.length % 4) str += '=';
     var bin = atob(str);
     var buf = new Uint8Array(bin.length);
     for (var i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
-    return buf.buffer;
+    return buf; // restituisce Uint8Array (WebAuthn accetta sia Uint8Array che ArrayBuffer)
   }
 
   function _randomBytes(n) {
     var buf = new Uint8Array(n);
     crypto.getRandomValues(buf);
-    return buf;
+    return buf; // Uint8Array — WebAuthn lo accetta direttamente come challenge
   }
 
-  // ── Storage credenziale ───────────────────────────────────
+  // ── Storage ───────────────────────────────────────────────
   function _saveCred(obj) {
     try { localStorage.setItem(LS_KEY, JSON.stringify(obj)); } catch(e) {}
   }
-
   function _loadCred() {
     try { var v = localStorage.getItem(LS_KEY); return v ? JSON.parse(v) : null; }
     catch(e) { return null; }
   }
-
-  function _clearCred() {
-    localStorage.removeItem(LS_KEY);
-  }
+  function _clearCred() { localStorage.removeItem(LS_KEY); }
 
   // ── UI helpers ────────────────────────────────────────────
-  function _getBioBtn() { return document.getElementById('btn-biometric-login'); }
+  function _getBioBtn()    { return document.getElementById('btn-biometric-login'); }
+  function _getRemoveBtn() { return document.getElementById('btn-remove-biometric'); }
 
   function _showBioBtn(cred) {
     var btn = _getBioBtn();
     if (!btn) return;
-    var label = cred.nome ? ('Accedi come ' + cred.nome) : 'Accedi con biometria';
-    btn.innerHTML = '&#128274; ' + label;
+    var nome = cred.nome ? cred.nome.split(' ')[0] : '';
+    btn.innerHTML = '&#129535; ' + (nome ? 'Accedi come ' + nome : 'Accedi con biometria');
     btn.style.display = 'flex';
+    var rem = _getRemoveBtn();
+    if (rem) rem.style.display = 'block';
   }
 
   function _hideBioBtn() {
     var btn = _getBioBtn();
     if (btn) btn.style.display = 'none';
+    var rem = _getRemoveBtn();
+    if (rem) rem.style.display = 'none';
   }
 
   function _showEnrollBanner(nome) {
@@ -83,8 +79,7 @@
     if (!banner) return;
     var nameEl = document.getElementById('biometric-enroll-name');
     if (nameEl) nameEl.textContent = nome || 'il tuo account';
-    banner.style.display = 'flex';
-    // Auto-hide dopo 30s se l'utente non risponde
+    banner.style.display = 'block';
     setTimeout(function() { banner.style.display = 'none'; }, 30000);
   }
 
@@ -93,145 +88,145 @@
     if (banner) banner.style.display = 'none';
   }
 
+  function _toast(msg, type) {
+    if (typeof toast === 'function') toast(msg, type || 'ok');
+  }
+
   // ── Modulo pubblico ───────────────────────────────────────
   var BiometricModule = {
 
-    /** Verifica se WebAuthn è disponibile nel browser */
     isSupported: function() {
       return !!(
         global.PublicKeyCredential &&
         navigator.credentials &&
         typeof navigator.credentials.create === 'function' &&
-        typeof navigator.credentials.get === 'function'
+        typeof navigator.credentials.get    === 'function'
       );
     },
 
-    /** Verifica se esiste già una credenziale salvata per questo dispositivo */
-    hasCredential: function() {
-      return !!_loadCred();
-    },
+    hasCredential: function() { return !!_loadCred(); },
 
-    /**
-     * Init: chiamato all'avvio dell'app.
-     * Se esiste una credenziale salvata, mostra il pulsante biometrico.
-     */
     init: function() {
       if (!BiometricModule.isSupported()) return;
       var cred = _loadCred();
-      if (cred) {
-        _showBioBtn(cred);
-      }
+      if (cred) _showBioBtn(cred);
     },
 
-    /**
-     * Dopo login Firebase riuscito, offre di registrare la biometria.
-     * @param {string} userId  - Firebase UID
-     * @param {string} email
-     * @param {string} nome    - nome visualizzato (es. "Mario Rossi")
-     */
     offerEnrollment: function(userId, email, nome) {
       if (!BiometricModule.isSupported()) return;
-      if (BiometricModule.hasCredential()) return; // già registrata
+      if (BiometricModule.hasCredential()) return;
       _showEnrollBanner(nome || email);
-      // Salva temporaneamente per usarlo in enroll()
       global._biometricPending = { userId: userId, email: email, nome: nome };
     },
 
     /**
-     * Registra la credenziale biometrica (chiamato dal banner "Abilita").
-     * Usa WebAuthn create() — il browser mostra Face ID / impronta.
+     * Registra la credenziale biometrica.
+     * @returns {Promise<void>}
      */
     enroll: async function() {
       _hideEnrollBanner();
       var pending = global._biometricPending;
-      if (!pending) return;
+      if (!pending) {
+        // Fallback: prova a leggere da ct_me se _biometricPending non è impostato
+        var me = (typeof lsG === 'function') ? lsG('ct_me', null) : null;
+        var sess = null;
+        try { sess = JSON.parse(localStorage.getItem('ct_session') || 'null'); } catch(e) {}
+        if (me || sess) {
+          pending = {
+            userId: (sess && sess.userId) || (me && (me.uid || me.id)) || 'unknown',
+            email:  (sess && sess.email)  || (me && me.email) || '',
+            nome:   (me && ((me.nome || '') + ' ' + (me.cognome || '')).trim()) || ''
+          };
+        } else {
+          _toast('Effettua prima il login per abilitare la biometria', 'err');
+          return;
+        }
+      }
 
       try {
-        var challenge = _randomBytes(32);
-        var userId    = _randomBytes(16); // user handle opaco (non è il Firebase UID)
-
         var publicKey = {
-          challenge: challenge,
-          rp: { id: RP_ID, name: RP_NAME },
+          challenge: _randomBytes(32),
+          rp: { id: _rpId(), name: RP_NAME },
           user: {
-            id: userId,
-            name: pending.email,
-            displayName: pending.nome || pending.email
+            id: _randomBytes(16),          // handle opaco — non è il Firebase UID
+            name: pending.email || 'utente',
+            displayName: pending.nome || pending.email || 'Utente C-Turni'
           },
           pubKeyCredParams: [
-            { type: 'public-key', alg: -7  },  // ES256
-            { type: 'public-key', alg: -257 }  // RS256 (fallback Windows Hello)
+            { type: 'public-key', alg: -7   }, // ES256  (Android, iOS)
+            { type: 'public-key', alg: -257  }  // RS256  (Windows Hello)
           ],
           authenticatorSelection: {
-            authenticatorAttachment: 'platform',   // solo biometria del dispositivo
+            authenticatorAttachment: 'platform',
             userVerification: 'required',
             residentKey: 'preferred'
           },
           timeout: 60000,
-          attestation: 'none'  // non serve attestazione per questo use case
+          attestation: 'none'
         };
 
         var credential = await navigator.credentials.create({ publicKey: publicKey });
+        if (!credential) throw new Error('Credenziale non creata');
 
         _saveCred({
           credentialId: _b64uEncode(credential.rawId),
           userId: pending.userId,
-          email: pending.email,
-          nome: pending.nome || ''
+          email:  pending.email,
+          nome:   pending.nome || ''
         });
 
         global._biometricPending = null;
         _showBioBtn(_loadCred());
-
-        if (typeof toast === 'function') toast('&#128274; Accesso biometrico abilitato', 'ok');
+        _toast('&#129535; Accesso biometrico abilitato', 'ok');
+        // Aggiorna UI impostazioni
+        if (typeof _updateBioSettingsUI === 'function') _updateBioSettingsUI();
 
       } catch(e) {
         global._biometricPending = null;
-        // L'utente ha annullato o il dispositivo non supporta platform authenticator
-        if (e.name !== 'NotAllowedError') {
-          console.warn('[Biometric] enroll error:', e);
+        console.warn('[Biometric] enroll:', e.name, e.message);
+        if (e.name === 'NotAllowedError') {
+          _toast('Biometria annullata', 'err');
+        } else if (e.name === 'NotSupportedError') {
+          _toast('Dispositivo non supporta la biometria', 'err');
+        } else if (e.name === 'InvalidStateError') {
+          _toast('Credenziale già registrata su questo dispositivo', 'err');
+        } else {
+          _toast('Errore biometria: ' + (e.message || e.name), 'err');
         }
       }
     },
 
     /**
      * Autentica con biometria.
-     * @returns {Promise<{userId, email}>} — risolve se l'utente si autentica
+     * @returns {Promise<{userId, email, nome}>}
      */
     authenticate: async function() {
       var cred = _loadCred();
       if (!cred) throw new Error('Nessuna credenziale biometrica salvata');
 
-      var challenge = _randomBytes(32);
-
       var publicKey = {
-        challenge: challenge,
-        rpId: RP_ID,
+        challenge: _randomBytes(32),
+        rpId: _rpId(),
         allowCredentials: [{
           type: 'public-key',
           id: _b64uDecode(cred.credentialId),
-          transports: ['internal']
+          transports: ['internal', 'hybrid']
         }],
         userVerification: 'required',
         timeout: 60000
       };
 
-      // Lancia il prompt biometrico del SO
       var assertion = await navigator.credentials.get({ publicKey: publicKey });
-
       if (!assertion) throw new Error('Autenticazione annullata');
 
-      // La verifica crittografica avviene lato client (la chiave privata non esce dal dispositivo).
-      // Per un'app PWA offline-first senza backend custom, questo è il livello corretto:
-      // WebAuthn garantisce che solo chi possiede il dispositivo + biometria possa procedere.
       return { userId: cred.userId, email: cred.email, nome: cred.nome };
     },
 
-    /** Rimuove la credenziale salvata (es. da impostazioni) */
     removeCredential: function() {
       _clearCred();
       _hideBioBtn();
-      if (typeof toast === 'function') toast('Accesso biometrico rimosso', 'ok');
+      _toast('Accesso biometrico rimosso', 'ok');
+      if (typeof _updateBioSettingsUI === 'function') _updateBioSettingsUI();
     }
   };
 

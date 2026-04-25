@@ -112,8 +112,8 @@
       <!-- Pulsante login biometrico (visibile solo se credenziale salvata) -->
       <button id="btn-biometric-login" class="btn btn-g"
         style="display:none;width:100%;padding:13px;font-size:14px;font-weight:700;border-radius:14px;margin-top:10px;gap:8px;align-items:center;justify-content:center"
-        onclick="BiometricModule.authenticate().then(function(r){ AuthModule.loginWithBiometric(r.userId, r.email); }).catch(function(e){ if(e.name!=='NotAllowedError') toast('Biometria non riuscita. Usa email e password.','err'); })">
-        &#128274; Accedi con Face ID / Impronta
+        onclick="(function(btn){btn.disabled=true;btn.innerHTML='&#129535; Verifica in corso...';BiometricModule.authenticate().then(function(r){AuthModule.loginWithBiometric(r.userId,r.email);}).catch(function(e){btn.disabled=false;btn.innerHTML='&#129535; Accedi con Face ID / Impronta';if(e.name==='NotAllowedError')toast('Biometria annullata','err');else toast('Biometria non riuscita: '+( e.message||e.name),'err');});})(this)">
+        &#129535; Accedi con Face ID / Impronta
       </button>
 
       <div style="text-align:center;margin-top:10px">
@@ -128,7 +128,7 @@
     <!-- Banner enrollment biometrico (appare dopo login riuscito) -->
     <div id="biometric-enroll-banner" style="display:none;position:fixed;bottom:calc(80px + env(safe-area-inset-bottom,0px));left:12px;right:12px;z-index:9999;background:var(--card);border:1px solid var(--border);border-radius:18px;padding:16px 18px;box-shadow:0 8px 32px rgba(0,0,0,.25)">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-        <span style="font-size:26px">&#128274;</span>
+        <span style="font-size:26px">&#129535;</span>
         <div>
           <div style="font-size:14px;font-weight:800;color:var(--txt)">Abilita accesso biometrico</div>
           <div style="font-size:12px;color:var(--txt2)">Accedi con Face ID o impronta per <strong id="biometric-enroll-name"></strong></div>
@@ -141,7 +141,7 @@
         </button>
         <button class="btn btn-p" style="flex:1;padding:10px;font-size:13px;font-weight:700;border-radius:12px"
           onclick="BiometricModule.enroll()">
-          &#128274; Abilita
+          &#129535; Abilita
         </button>
       </div>
     </div>
