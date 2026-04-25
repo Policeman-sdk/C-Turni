@@ -117,14 +117,22 @@ function _startListeners(reparto) {
   _unsubscribers.push(onSnapshot(turniRef, function(snap) {
     var arr = [];
     snap.forEach(function(d){ arr.push(d.data()); });
-    localStorage.setItem('ct_t', JSON.stringify(arr));
-    if(typeof window.renderTurni === 'function') window.renderTurni();
-    if(typeof window.renderOggi  === 'function') window.renderOggi();
-    if(typeof window.stats       === 'function') window.stats();
-    if(typeof window.aggiornaWidget === 'function') window.aggiornaWidget();
-    if(typeof window.renderDash  === 'function') window.renderDash();
-    var calPag = document.getElementById('pag-cal');
-    if(calPag && calPag.classList.contains('on') && typeof window.renderCal === 'function') window.renderCal();
+    // Salva su IndexedDB (con fallback localStorage via CDB)
+    var _saveAndRender = function() {
+      if(typeof window.renderTurni === 'function') window.renderTurni();
+      if(typeof window.renderOggi  === 'function') window.renderOggi();
+      if(typeof window.stats       === 'function') window.stats();
+      if(typeof window.aggiornaWidget === 'function') window.aggiornaWidget();
+      if(typeof window.renderDash  === 'function') window.renderDash();
+      var calPag = document.getElementById('pag-cal');
+      if(calPag && calPag.classList.contains('on') && typeof window.renderCal === 'function') window.renderCal();
+    };
+    if(window.CDB) {
+      CDB.set('ct_t', arr).then(_saveAndRender);
+    } else {
+      localStorage.setItem('ct_t', JSON.stringify(arr));
+      _saveAndRender();
+    }
   }, function(e){ console.warn('onSnapshot turni:', e.message); }));
 
   // Todo e Agenda (personali per utente, non per reparto)
@@ -137,13 +145,13 @@ function _startListeners(reparto) {
       snap.forEach(function(d){ arr.push(d.data()); });
       // Merge intelligente: non sovrascrivere todo locali recenti (ultimi 10s)
       var localTd = [];
-      try { localTd = JSON.parse(localStorage.getItem('ct_td') || '[]'); } catch(e) {}
+      try { localTd = (window.CDB ? CDB.getSync('ct_td', []) : JSON.parse(localStorage.getItem('ct_td') || '[]')) || []; } catch(e) {}
       var now10s2 = Date.now() - 10000;
       var tdRecenti = localTd.filter(function(t){
         return t.id > now10s2 && !arr.some(function(fb){ return String(fb.id) === String(t.id); });
       });
       var mergedTd = arr.concat(tdRecenti);
-      localStorage.setItem('ct_td', JSON.stringify(mergedTd));
+      if(window.CDB) { CDB.set('ct_td', mergedTd); } else { localStorage.setItem('ct_td', JSON.stringify(mergedTd)); }
       if(typeof window.renderTodo === 'function') window.renderTodo();
       if(typeof window.renderWidgetTodo === 'function') window.renderWidgetTodo();
     }, function(e){ console.warn('onSnapshot todo:', e.message); }));
@@ -154,14 +162,14 @@ function _startListeners(reparto) {
       snap.forEach(function(d){ arr.push(d.data()); });
       // Merge intelligente: non sovrascrivere appuntamenti locali recenti (ultimi 10s)
       var localAg = [];
-      try { localAg = JSON.parse(localStorage.getItem('ct_ag') || '[]'); } catch(e) {}
+      try { localAg = (window.CDB ? CDB.getSync('ct_ag', []) : JSON.parse(localStorage.getItem('ct_ag') || '[]')) || []; } catch(e) {}
       var now10s = Date.now() - 10000;
       var agRecenti = localAg.filter(function(a){
         return a.id > now10s && !arr.some(function(fb){ return String(fb.id) === String(a.id); });
       });
       var merged = arr.concat(agRecenti);
       merged.sort(function(a,b){ return a.data > b.data ? 1 : -1; });
-      localStorage.setItem('ct_ag', JSON.stringify(merged));
+      if(window.CDB) { CDB.set('ct_ag', merged); } else { localStorage.setItem('ct_ag', JSON.stringify(merged)); }
       if(typeof window.renderAgenda === 'function') window.renderAgenda();
       if(typeof window.renderWidgetAgenda === 'function') window.renderWidgetAgenda();
       if(typeof window.renderAgendaPg === 'function') {
@@ -203,7 +211,7 @@ function _startListeners(reparto) {
         // Aggiorna ct_p con il nuovo ava
         if(prof.ava) {
           try {
-            var P = JSON.parse(localStorage.getItem('ct_p') || '[]');
+            var P = window.CDB ? (CDB.getSync('ct_p', []) || []) : JSON.parse(localStorage.getItem('ct_p') || '[]');
             var uid2 = prof.uid || (JSON.parse(localStorage.getItem('ct_session')||'null')||{}).userId;
             var aggiornato = false;
             for(var pi=0; pi<P.length; pi++){
@@ -213,7 +221,7 @@ function _startListeners(reparto) {
                 break;
               }
             }
-            if(aggiornato) localStorage.setItem('ct_p', JSON.stringify(P));
+            if(aggiornato) { if(window.CDB) { CDB.set('ct_p', P); } else { localStorage.setItem('ct_p', JSON.stringify(P)); } }
           } catch(e3) {}
         }
         // Aggiorna ct_session con il nuovo ava
@@ -249,7 +257,7 @@ function _startListeners(reparto) {
   _unsubscribers.push(onSnapshot(usersRef, function(snap) {
     var arr = [];
     snap.forEach(function(d){ arr.push(d.data()); });
-    localStorage.setItem('ct_users', JSON.stringify(arr));
+    if(window.CDB) { CDB.set('ct_users', arr); } else { localStorage.setItem('ct_users', JSON.stringify(arr)); }
 
     // Auto-ripristino: se l'utente corrente non è più nella lista del reparto, ri-salvalo
     try {
@@ -336,7 +344,7 @@ function _startListeners(reparto) {
     if(arr.length > 0) {
       // Merge: mantieni voci locali non ancora su Firebase
       var localP = [];
-      try { localP = JSON.parse(localStorage.getItem('ct_p') || '[]'); } catch(e) {}
+      try { localP = (window.CDB ? CDB.getSync('ct_p', []) : JSON.parse(localStorage.getItem('ct_p') || '[]')) || []; } catch(e) {}
       var fbIds = arr.map(function(p){ return String(p.id); });
       var soloLocali = localP.filter(function(p){ return p.id && fbIds.indexOf(String(p.id)) === -1; });
       lsS('ct_p', arr.concat(soloLocali));
@@ -348,7 +356,7 @@ function _startListeners(reparto) {
   var todoCondRef = collection(db, 'reparti', reparto, 'todo_condivisi');
   _unsubscribers.push(onSnapshot(todoCondRef, function(snap) {
     var arr = []; snap.forEach(function(d){ arr.push(d.data()); });
-    localStorage.setItem('ct_td_condivisi', JSON.stringify(arr));
+    if(window.CDB) { CDB.set('ct_td_condivisi', arr); } else { localStorage.setItem('ct_td_condivisi', JSON.stringify(arr)); }
     if(typeof window.renderTodoCondivisi === 'function') window.renderTodoCondivisi();
   }, function(e){ console.warn('onSnapshot todo_condivisi:', e.message); }));
 
@@ -357,7 +365,7 @@ function _startListeners(reparto) {
   _unsubscribers.push(onSnapshot(agCondRef, function(snap) {
     var arr = []; snap.forEach(function(d){ arr.push(d.data()); });
     arr.sort(function(a,b){ return a.data>b.data?1:-1; });
-    localStorage.setItem('ct_ag_condivisa', JSON.stringify(arr));
+    if(window.CDB) { CDB.set('ct_ag_condivisa', arr); } else { localStorage.setItem('ct_ag_condivisa', JSON.stringify(arr)); }
     if(typeof window.renderAgendaCondivisa === 'function') window.renderAgendaCondivisa();
   }, function(e){ console.warn('onSnapshot agenda_condivisa:', e.message); }));
 
@@ -431,7 +439,7 @@ window.FirebaseModule = {
       if(rep && !rep.startsWith('privato_')) {
         var turniSnap = await getDocs(collection(db, 'reparti', rep, 'turni'));
         var turni = []; turniSnap.forEach(function(d){ turni.push(d.data()); });
-        if(turni.length > 0) localStorage.setItem('ct_t', JSON.stringify(turni));
+        if(turni.length > 0) { if(window.CDB) { await CDB.set('ct_t', turni); } else { localStorage.setItem('ct_t', JSON.stringify(turni)); } }
       }
       await this.syncUsers();
       _toast('Dati sincronizzati dal cloud', 'ok');
@@ -473,7 +481,7 @@ window.FirebaseModule = {
       if(!isPrivato) {
         var turniSnap = await getDocs(collection(db, 'reparti', rep, 'turni'));
         var turni = []; turniSnap.forEach(function(d){ turni.push(d.data()); });
-        if(turni.length > 0) localStorage.setItem('ct_t', JSON.stringify(turni));
+        if(turni.length > 0) { if(window.CDB) { await CDB.set('ct_t', turni); } else { localStorage.setItem('ct_t', JSON.stringify(turni)); } }
       }
 
       var uid = session.userId;
@@ -481,12 +489,12 @@ window.FirebaseModule = {
       // Todo personali
       var todoSnap = await getDocs(collection(db, 'utenti', uid, 'todo'));
       var todo = []; todoSnap.forEach(function(d){ todo.push(d.data()); });
-      if(todo.length > 0) localStorage.setItem('ct_td', JSON.stringify(todo));
+      if(todo.length > 0) { if(window.CDB) { await CDB.set('ct_td', todo); } else { localStorage.setItem('ct_td', JSON.stringify(todo)); } }
 
       // Agenda personale
       var agendaSnap = await getDocs(collection(db, 'utenti', uid, 'agenda'));
       var agenda = []; agendaSnap.forEach(function(d){ agenda.push(d.data()); });
-      if(agenda.length > 0) localStorage.setItem('ct_ag', JSON.stringify(agenda));
+      if(agenda.length > 0) { if(window.CDB) { await CDB.set('ct_ag', agenda); } else { localStorage.setItem('ct_ag', JSON.stringify(agenda)); } }
 
       // Profilo utente
       var profSnap = await getDoc(doc(db, 'utenti', uid));
@@ -507,11 +515,18 @@ window.FirebaseModule = {
         if(prof.myPid) localStorage.setItem('ct_my_pid', String(prof.myPid));
         if(typeof window._straordLoadFirebase === 'function') window._straordLoadFirebase(prof);
         if(prof.meteoCitta) lsS('ct_meteo_citta', prof.meteoCitta);
-        if(prof.tema !== undefined) {
+        // Tema: il valore locale ha sempre priorità su Firestore
+        // (l'utente può cambiare tema senza essere online)
+        var _localTema = null;
+        try { _localTema = localStorage.getItem('ct_tema'); } catch(e3){}
+        if(_localTema !== null && _localTema !== undefined) {
+          // Usa il tema locale — non sovrascrivere con Firestore
+          if(typeof window.caricaTema === 'function') window.caricaTema();
+        } else if(prof.tema !== undefined) {
+          // Nessun tema locale — usa quello di Firestore
           lsS('ct_tema', prof.tema);
           if(typeof window.caricaTema === 'function') window.caricaTema();
         } else {
-          // Firestore non ha tema — usa il valore locale (l'utente lo ha impostato manualmente)
           if(typeof window.caricaTema === 'function') window.caricaTema();
         }
         if(prof.licenzePool && prof.licenzePool.length) {
@@ -565,11 +580,11 @@ window.FirebaseModule = {
       try {
         var tdCondSnap = await getDocs(collection(db, 'reparti', rep, 'todo_condivisi'));
         var tdCond = []; tdCondSnap.forEach(function(d){ tdCond.push(d.data()); });
-        localStorage.setItem('ct_td_condivisi', JSON.stringify(tdCond));
+        if(window.CDB) { await CDB.set('ct_td_condivisi', tdCond); } else { localStorage.setItem('ct_td_condivisi', JSON.stringify(tdCond)); }
         var agCondSnap = await getDocs(collection(db, 'reparti', rep, 'agenda_condivisa'));
         var agCond = []; agCondSnap.forEach(function(d){ agCond.push(d.data()); });
         agCond.sort(function(a,b){ return a.data>b.data?1:-1; });
-        localStorage.setItem('ct_ag_condivisa', JSON.stringify(agCond));
+        if(window.CDB) { await CDB.set('ct_ag_condivisa', agCond); } else { localStorage.setItem('ct_ag_condivisa', JSON.stringify(agCond)); }
       } catch(e) {}
 
       // Ri-renderizza tutto
@@ -586,6 +601,7 @@ window.FirebaseModule = {
       if(typeof window.renderOrariPreset === 'function') window.renderOrariPreset();
       if(typeof window.renderRecuperi === 'function') window.renderRecuperi();
       if(typeof window.aggNotifStatus === 'function') window.aggNotifStatus();
+      if(window.AppState) AppState.refresh(); // notifica tutti i subscriber Pub/Sub
       window._widgetSyncPending = false;
       _hideSyncBanner();
       if(typeof window._hideSplash === 'function') window._hideSplash();
@@ -614,7 +630,7 @@ window.FirebaseModule = {
       var arr = [];
       snap.forEach(function(d){ arr.push(d.data()); });
       if(arr.length > 0) {
-        localStorage.setItem('ct_users', JSON.stringify(arr));
+        if(window.CDB) { CDB.set('ct_users', arr); } else { localStorage.setItem('ct_users', JSON.stringify(arr)); }
         // Collega automaticamente uid Firebase ai profili ct_p per nome
         var P = lsG('ct_p', []);
         var changed = false;
@@ -705,7 +721,7 @@ window.FirebaseModule = {
     try {
       var turniSnap = await getDocs(collection(db, 'reparti', rep, 'turni'));
       var turni = []; turniSnap.forEach(function(d){ turni.push(d.data()); });
-      localStorage.setItem('ct_t', JSON.stringify(turni));
+      if(window.CDB) { await CDB.set('ct_t', turni); } else { localStorage.setItem('ct_t', JSON.stringify(turni)); }
       if(typeof window.renderTurni === 'function') window.renderTurni();
       if(typeof window.renderOggi  === 'function') window.renderOggi();
       if(typeof window.stats       === 'function') window.stats();
@@ -759,11 +775,11 @@ window.FirebaseModule = {
     try { await deleteDoc(doc(db, 'utenti', uid, 'todo', String(id))); } catch(e) { console.warn('deleteTodo:', e.message); }
     // Cancella notifiche_push pendenti con titolo corrispondente
     try {
-      var TD = JSON.parse(localStorage.getItem('ct_td')||'[]');
+      var _ctTd = window.CDB ? (CDB.getSync('ct_td', []) || []) : JSON.parse(localStorage.getItem('ct_td')||'[]');
       // Il doc è già stato rimosso da ct_td prima di chiamare deleteTodo — non possiamo recuperare il titolo
       // Puliamo tutti i pending dell'utente con scheduleAt futuro che non hanno più un todo corrispondente
       var snap = await getDocs(collection(db, 'notifiche_push'));
-      var tdIds = (JSON.parse(localStorage.getItem('ct_td')||'[]')).map(function(t){return "\u2705 C-Turni \u2014 "+t.tit;});
+      var tdIds = _ctTd.map(function(t){return "\u2705 C-Turni \u2014 "+t.tit;});
       snap.forEach(async function(d){
         var data=d.data();
         if(data.uid===uid && data.title && data.title.startsWith('\u2705 C-Turni') && !data.inviata){
@@ -782,7 +798,7 @@ window.FirebaseModule = {
     // Cancella notifiche_push pendenti per appuntamenti eliminati
     try {
       var snap = await getDocs(collection(db, 'notifiche_push'));
-      var agTitoli = (JSON.parse(localStorage.getItem('ct_ag')||'[]')).map(function(a){return '\uD83D\uDCC5 C-Turni \u2014 '+a.tit;});
+      var agTitoli = (window.CDB ? (CDB.getSync('ct_ag', []) || []) : JSON.parse(localStorage.getItem('ct_ag')||'[]')).map(function(a){return '\uD83D\uDCC5 C-Turni \u2014 '+a.tit;});
       snap.forEach(async function(d){
         var data=d.data();
         if(data.uid===uid && data.title && data.title.startsWith('\uD83D\uDCC5 C-Turni') && !data.inviata){
@@ -930,7 +946,7 @@ window.FirebaseModule = {
     var rep = _reparto();
     if(!rep) return;
     try {
-      var arr = JSON.parse(localStorage.getItem('ct_p') || '[]');
+      var arr = window.CDB ? (CDB.getSync('ct_p', []) || []) : JSON.parse(localStorage.getItem('ct_p') || '[]');
       for(var i=0; i<arr.length; i++) {
         var p = arr[i];
         if(!p.id) continue;
@@ -960,7 +976,7 @@ window.FirebaseModule = {
     if(!rep || !uid) return;
     try {
       // Trova il docId corretto (uid o email_sanitized)
-      var U = JSON.parse(localStorage.getItem('ct_users') || '[]');
+      var U = window.CDB ? (CDB.getSync('ct_users', []) || []) : JSON.parse(localStorage.getItem('ct_users') || '[]');
       var u = U.find(function(x){ return x.uid === uid || String(x.id) === String(uid); });
       var docId = (u && u.uid) ? u.uid : (u && u.email ? u.email.replace(/[@.]/g,'_') : uid);
       await setDoc(doc(db, 'reparti', rep, 'utenti', docId), { stato: stato }, { merge: true });
@@ -992,7 +1008,7 @@ window.FirebaseModule = {
   migraTurniPersonali: async function(vecchioReparto, nuovoReparto, uid) {
     try {
       var oggi = (function(){var d=new Date();return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);})();
-      var T = JSON.parse(localStorage.getItem('ct_t') || '[]');
+      var T = window.CDB ? (CDB.getSync('ct_t', []) || []) : JSON.parse(localStorage.getItem('ct_t') || '[]');
       var nuovoRep = (nuovoReparto||'').toLowerCase().replace(/\s+/g,'_');
       var _tipiPers = ['riposo','ferie','recupero','licenza','permesso','937','104','ls','fest'];
       var personali = T.filter(function(t){
@@ -1009,12 +1025,12 @@ window.FirebaseModule = {
           await setDoc(doc(db, 'reparti', nuovoRep, 'turni', String(t.id)), t);
         }
       }
-      // Aggiorna localStorage
+      // Aggiorna cache locale
       T.forEach(function(t){
         if(t.categoria_evento==='personale'&&t.data>=oggi&&(!uid||String(t.pid)===String(uid)||t.uid===uid))
           t.reparto_id=nuovoReparto;
       });
-      localStorage.setItem('ct_t', JSON.stringify(T));
+      if(window.CDB) { await CDB.set('ct_t', T); } else { localStorage.setItem('ct_t', JSON.stringify(T)); }
     } catch(e){ console.warn('migraTurniPersonali:', e.message); }
   },
 
@@ -1038,15 +1054,15 @@ window.FirebaseModule = {
         });
         await Promise.all(batch);
       }
-      // Aggiorna localStorage
-      var T = JSON.parse(localStorage.getItem('ct_t') || '[]');
+      // Aggiorna cache locale
+      var T = window.CDB ? (CDB.getSync('ct_t', []) || []) : JSON.parse(localStorage.getItem('ct_t') || '[]');
       T = T.filter(function(t){
         if(_isServizio(t) && t.data >= oggi) {
           if(!uid || String(t.pid) === String(uid) || t.uid === uid) return false;
         }
         return true;
       });
-      localStorage.setItem('ct_t', JSON.stringify(T));
+      if(window.CDB) { await CDB.set('ct_t', T); } else { localStorage.setItem('ct_t', JSON.stringify(T)); }
     } catch(e){ console.warn('eliminaTurniServizioReparto:', e.message); }
   },
 

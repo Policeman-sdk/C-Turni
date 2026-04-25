@@ -43,8 +43,34 @@ var GR={
 // Ordine gerarchico gradi (0 = più alto)
 var _GRADO_ORDER = {"Gen.":0,"Col.":1,"Ten.Col.":2,"Magg.":3,"Cap.":4,"Ten.":5,"S.Ten.":6,"Luog.":7,"Mar.Magg.":8,"Mar.Cap.":9,"Mar.Ord.":10,"Mar.":11,"Brig.Ca.":12,"Brig.":13,"V.Brig.":14,"App.Sc.":15,"App.":16,"Car.Sc.":17,"Car.":18};
 function _gradoPrio(grado){ return _GRADO_ORDER.hasOwnProperty(grado) ? _GRADO_ORDER[grado] : 99; }
-function lsG(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
-function lsS(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true;}catch(e){if(e.name==='QuotaExceededError'||e.code===22){if(typeof toast==='function')toast('Spazio esaurito: riduci la foto','err');}return false;}}
+/**
+ * lsG / lsS — bridge retrocompatibile localStorage ↔ IndexedDB
+ *
+ * - Chiavi leggere (ct_font, ct_tema, ct_me, …): localStorage sincrono invariato
+ * - Chiavi pesanti (ct_t, ct_p, ct_u, …): lettura dalla cache CDB (sincrona dopo CDB.ready),
+ *   scrittura su IndexedDB + emissione evento Pub/Sub
+ *
+ * Tutto il codice esistente che chiama lsG/lsS continua a funzionare senza modifiche.
+ */
+function lsG(k,d){
+  if(window.CDB && CDB.isIdbKey(k)) return CDB.getSync(k, d);
+  try{var v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}
+}
+function lsS(k,v){
+  if(window.CDB && CDB.isIdbKey(k)){
+    CDB.set(k,v).then(function(){ if(window.AppState) AppState.emit('change:'+k, v); });
+    return true;
+  }
+  try{localStorage.setItem(k,JSON.stringify(v));return true;}catch(e){
+    if(e.name==='QuotaExceededError'||e.code===22){if(typeof toast==='function')toast('Spazio esaurito: riduci la foto','err');}
+    return false;
+  }
+}
+/** lsR — rimozione retrocompatibile (delega a CDB per chiavi pesanti) */
+function lsR(k){
+  if(window.CDB && CDB.isIdbKey(k)){ CDB.remove(k); return; }
+  localStorage.removeItem(k);
+}
 
 // -- CONFIRM CUSTOM (sostituisce window.confirm) --------------
 var _ctConfirmResolveFunc = null;
@@ -835,11 +861,13 @@ window.addEventListener("DOMContentLoaded",function(){
   });
   var me=lsG("ct_me",null);
   initNotifiche();
+  // Inizializza modulo biometrico (mostra pulsante se credenziale salvata)
+  if (window.BiometricModule) { BiometricModule.init(); _updateBioSettingsUI(); }
   // -- Auth & Sync init --
-  // Aspetta FirebaseModule prima di inizializzare AuthModule
+  // Aspetta CDB.ready + FirebaseModule prima di inizializzare
   function _initAuth() {
     if(typeof AuthModule !== "undefined") AuthModule.init();
-    // Renderizza subito con dati localStorage (evita dashboard vuota al refresh)
+    // Renderizza subito con dati dalla cache CDB (evita dashboard vuota al refresh)
     var _me = lsG("ct_me", null);
     if(_me) {
       // Segna sync pending finché Firebase non completa (evita "Riposo" prematuro)
@@ -856,12 +884,15 @@ window.addEventListener("DOMContentLoaded",function(){
     if(typeof _checkNovita === 'function') _checkNovita();
     initPWA();
   }
-  if(window.FirebaseModule) {
-    _initAuth();
-  } else {
-    window.addEventListener('firebase-ready', _initAuth, { once: true });
-    setTimeout(function() { if(typeof AuthModule !== "undefined") _initAuth(); }, 8000);
-  }
+  // Aspetta che CDB sia pronto (migrazione da localStorage completata) prima di avviare
+  (window.CDB ? CDB.ready : Promise.resolve()).then(function() {
+    if(window.FirebaseModule) {
+      _initAuth();
+    } else {
+      window.addEventListener('firebase-ready', _initAuth, { once: true });
+      setTimeout(function() { if(typeof AuthModule !== "undefined") _initAuth(); }, 8000);
+    }
+  });
   scheduleNotifMattutina();
   caricaTema();
   aggiornaBadgeNotif();
@@ -886,6 +917,50 @@ window.addEventListener("DOMContentLoaded",function(){
       if(newOrder.length !== order.length) localStorage.setItem('ct_dash_order', JSON.stringify(newOrder));
     }
   })();
+
+  // ── Pub/Sub: aggiorna UI automaticamente quando i dati cambiano ──────────
+  // Aspetta che CDB sia pronto prima di registrare i listener
+  (window.CDB ? CDB.ready : Promise.resolve()).then(function() {
+    if(!window.AppState) return;
+
+    // Turni aggiornati → ri-renderizza tutto ciò che dipende da ct_t
+    AppState.on('change:ct_t', function() {
+      if(typeof renderTurni  === 'function') renderTurni();
+      if(typeof renderOggi   === 'function') renderOggi();
+      if(typeof stats        === 'function') stats();
+      if(typeof aggiornaWidget === 'function') {
+        var _me = lsG('ct_me', null);
+        if(_me) aggiornaWidget();
+      }
+    });
+
+    // Persone aggiornate → ri-renderizza stats e widget
+    AppState.on('change:ct_p', function() {
+      if(typeof stats === 'function') stats();
+    });
+
+    // Profilo utente aggiornato → aggiorna UI header e widget
+    AppState.on('change:ct_me', function(me) {
+      if(typeof aggUI === 'function') aggUI();
+      if(me && typeof aggiornaWidget === 'function') aggiornaWidget();
+    });
+
+    // Agenda aggiornata → ri-renderizza agenda
+    AppState.on('change:ct_ag', function() {
+      if(typeof renderAgenda === 'function') renderAgenda();
+    });
+
+    // Sync Firebase completata → refresh completo
+    AppState.on('sync:complete', function() {
+      var _me = lsG('ct_me', null);
+      if(!_me) return;
+      if(typeof aggUI            === 'function') aggUI();
+      if(typeof aggiornaWidget   === 'function') aggiornaWidget();
+      if(typeof renderTurni      === 'function') renderTurni();
+      if(typeof renderOggi       === 'function') renderOggi();
+      if(typeof stats            === 'function') stats();
+    });
+  });
 });
 
 // ---- AUTH ----
@@ -1445,7 +1520,7 @@ function _isMyTurno(t, me) {
       localStorage.setItem('ct_my_pid', pidStr);
       if(!me.myPid || me.myPid !== pidStr) {
         me.myPid = pidStr;
-        localStorage.setItem('ct_me', JSON.stringify(me));
+        lsS('ct_me', me);
         // Persiste su Firebase in background
         var _sess = (typeof lsG === 'function') ? lsG('ct_session', null) : null;
         if(_sess && _sess.userId && window.FirebaseModule) {
@@ -2790,6 +2865,32 @@ function toggleImpSec(id,arrId){
   }
 }
 
+// ---- BIOMETRIA: aggiorna UI impostazioni ----
+function _updateBioSettingsUI() {
+  if (!window.BiometricModule) return;
+  var supported = BiometricModule.isSupported();
+  var hasCred   = BiometricModule.hasCredential();
+
+  // Riga nelle impostazioni
+  var row = document.getElementById('row-biometric');
+  if (row) row.style.display = supported ? 'flex' : 'none';
+
+  // Stato dentro la sezione
+  var statusEl  = document.getElementById('bio-status-registered');
+  var btnEnable = document.getElementById('btn-bio-enable');
+  var btnDisable= document.getElementById('btn-bio-disable');
+  var subEl     = document.getElementById('bio-settings-sub');
+
+  if (statusEl)  statusEl.style.display  = hasCred ? 'block' : 'none';
+  if (btnEnable) btnEnable.style.display  = (!hasCred && supported) ? 'inline-flex' : 'none';
+  if (btnDisable)btnDisable.style.display = hasCred ? 'inline-flex' : 'none';
+  if (subEl)     subEl.textContent = hasCred ? 'Attivo su questo dispositivo' : 'Face ID / Impronta digitale';
+
+  // Pulsante "Rimuovi" sotto il form login
+  var btnRemove = document.getElementById('btn-remove-biometric');
+  if (btnRemove) btnRemove.style.display = hasCred ? 'block' : 'none';
+}
+
 // ---- GESTIONE NOTIFICHE ----
 function aggNotifStatus(){
   var el=document.getElementById("notif-status-txt"),tog=document.getElementById("tog-notif-master");
@@ -3461,9 +3562,9 @@ function renderAgendaCondivisa(){
   }).join('');
 }
 function delTodoCondiviso(id){
-  // Aggiorna subito il localStorage locale
+  // Aggiorna subito la cache locale
   var TD = lsG('ct_td_condivisi', []).filter(function(x){ return x.id !== id; });
-  localStorage.setItem('ct_td_condivisi', JSON.stringify(TD));
+  lsS('ct_td_condivisi', TD);
   renderTodoCondivisi();
   if(window.FirebaseModule) window.FirebaseModule.deleteTodoCondiviso(id).catch(function(){});
 }
@@ -3472,7 +3573,7 @@ function toggleTodoCondiviso(id){
   var t = TD.find(function(x){ return x.id === id; });
   if(!t) return;
   t.done = !t.done;
-  localStorage.setItem('ct_td_condivisi', JSON.stringify(TD));
+  lsS('ct_td_condivisi', TD);
   renderTodoCondivisi();
   if(window.FirebaseModule) window.FirebaseModule.saveTodoCondiviso(t).catch(function(){});
 }
@@ -3509,7 +3610,7 @@ function _rinviaTCRel(id, giorni){
   base.setDate(base.getDate() + giorni);
   t.data = base.toISOString().slice(0,10);
   t.done = false;
-  localStorage.setItem('ct_td_condivisi', JSON.stringify(TD));
+  lsS('ct_td_condivisi', TD);
   if(window.FirebaseModule) window.FirebaseModule.saveTodoCondiviso(t).catch(function(){});
   var bs = document.getElementById('m-rinvia-tc'); if(bs) bs.remove();
   renderTodoCondivisi();
@@ -3522,16 +3623,16 @@ function _rinviaTCData(id){
   var t = TD.find(function(x){ return x.id === id; });
   if(!t) return;
   t.data = data; t.done = false;
-  localStorage.setItem('ct_td_condivisi', JSON.stringify(TD));
+  lsS('ct_td_condivisi', TD);
   if(window.FirebaseModule) window.FirebaseModule.saveTodoCondiviso(t).catch(function(){});
   var bs = document.getElementById('m-rinvia-tc'); if(bs) bs.remove();
   renderTodoCondivisi();
   toast('&#128336; Rinviato al '+data, 'ok');
 }
 function delAgendaCondivisa(id){
-  // Aggiorna subito il localStorage locale
+  // Aggiorna subito la cache locale
   var AG = lsG('ct_ag_condivisa', []).filter(function(x){ return x.id !== id; });
-  localStorage.setItem('ct_ag_condivisa', JSON.stringify(AG));
+  lsS('ct_ag_condivisa', AG);
   renderAgendaCondivisa();
   if(window.FirebaseModule) window.FirebaseModule.deleteAgendaCondivisa(id).catch(function(){});
 }
@@ -5588,6 +5689,8 @@ function aggUI(){
   }catch(e){
     console.warn("aggUI err", e);
   }
+  // Aggiorna UI impostazioni biometria
+  if (typeof _updateBioSettingsUI === 'function') _updateBioSettingsUI();
 }
 
 // ---- NOVITÀ VERSIONE ----
@@ -6159,6 +6262,26 @@ function renderCal(){
     h+="<div class=\"cal-cell"+(isO?" today":"")+"\" onclick=\"mostraGiorno('"+ds+"')\">";
     h+="<div style=\"display:flex;align-items:center;justify-content:space-between\">";
     h+="<div class=\"cal-day-n\" style=\""+(isO?"color:var(--blue);font-weight:800":"")+"\">"+g+"</div>";
+
+    // Icona meteo predittiva — solo giorni futuri (o oggi) con previsione disponibile
+    var dsDate = new Date(cYR, cMO, g);
+    var oggiDate = new Date(og.getFullYear(), og.getMonth(), og.getDate());
+    var isFutureOrToday = dsDate >= oggiDate;
+    var prevDs = _meteoPrevCache && _meteoPrevCache[ds];
+    if (isFutureOrToday && prevDs) {
+      var calEmoji = METEO_CAL_EMOJI[prevDs.wc] || '';
+      var calDesc  = METEO_DESC[prevDs.wc] || '';
+      var calTemp  = prevDs.tMax !== null ? prevDs.tMax + '°' : '';
+      if (calEmoji) {
+        h += '<span class="cal-meteo-ico" title="' + calDesc + (calTemp ? ' · ' + calTemp : '') + '">'
+          + calEmoji
+          + (calTemp ? '<span class="cal-meteo-temp">' + calTemp + '</span>' : '')
+          + '</span>';
+      }
+    } else {
+      h += '<span></span>'; // placeholder per mantenere il flex layout
+    }
+
     h+="<button type=\"button\" onclick=\"event.stopPropagation();apriNuovoTurno('"+ds+"')\" style=\"background:none;border:none;color:var(--txt3);font-size:14px;line-height:1;padding:0 1px;cursor:pointer;appearance:none;-webkit-appearance:none\">+</button>";
     h+="</div>";
 
@@ -7605,7 +7728,7 @@ async function _caricaMembriFirebase(wrap, me) {
     var snapshot = await getDocs(collection(db, 'reparti', rep, 'utenti'));
     users = [];
     snapshot.forEach(function(doc) { users.push(doc.data()); });
-    localStorage.setItem('ct_users', JSON.stringify(users));
+    lsS('ct_users', users);
     _renderMembriWrap(wrap, me, users);
   } catch(e) {
     console.warn('_caricaMembriFirebase fallback ct_u:', e.message);
@@ -7790,7 +7913,7 @@ function _nucleoSalva(uid, stato) {
       break;
     }
   }
-  localStorage.setItem('ct_users', JSON.stringify(U));
+  lsS('ct_users', U);
   // Aggiorna su Firestore tramite FirebaseModule
   if(typeof window.FirebaseModule !== 'undefined') {
     window.FirebaseModule.aggiornaStatoUtente(uid, stato).catch(function(e){
@@ -7811,7 +7934,7 @@ function nucleoRimuovi(uid)  {
     if(!ok) return;
     var U = lsG('ct_users', []);
     U = U.filter(function(u){ return u.uid !== uid && String(u.id) !== String(uid); });
-    localStorage.setItem('ct_users', JSON.stringify(U));
+    lsS('ct_users', U);
     if(typeof window.FirebaseModule !== 'undefined') {
       window.FirebaseModule.aggiornaStatoUtente(uid, 'rejected').catch(function(e){
         console.warn('nucleoRimuovi Firebase:', e.message);
@@ -8347,6 +8470,21 @@ var METEO_DESC = {
   82:'Rovesci violenti', 85:'Neve', 86:'Neve intensa', 95:'Temporale', 96:'Temporale', 99:'Temporale forte'
 };
 
+// Emoji compatte per il calendario (non SVG — leggere e inline)
+var METEO_CAL_EMOJI = {
+  0:'☀️', 1:'🌤️', 2:'⛅', 3:'☁️',
+  45:'🌫️', 48:'🌫️',
+  51:'🌦️', 53:'🌦️', 55:'🌧️',
+  61:'🌧️', 63:'🌧️', 65:'🌧️',
+  71:'🌨️', 73:'❄️', 75:'❄️', 77:'🌨️',
+  80:'🌦️', 81:'🌧️', 82:'⛈️',
+  85:'❄️', 86:'❄️',
+  95:'⛈️', 96:'⛈️', 99:'⛈️'
+};
+
+// Cache previsioni giornaliere: { 'YYYY-MM-DD': { wc, tMin, tMax } }
+var _meteoPrevCache = {};
+
 /* ---------- WIDGET CONF ---------- */
 var WIDGET_DEF = {
   'squadra-turni': { label: "&#128101; Squadra &amp; Turni",  default: true },
@@ -8474,6 +8612,154 @@ function cycleWidgetRow(key) {
   if(navigator.vibrate) navigator.vibrate(10);
 }
 
+// ─────────────────────────────────────────────────────────────
+// WIDGET RESIZE HANDLE — drag diretto sull'angolo del widget
+// Snap ai 4 preset: compact 1x1 · normal 1x1 · wide 2x1 · full 2x2
+// ─────────────────────────────────────────────────────────────
+function initWidgetResize() {
+  var container = document.getElementById('wdg-container');
+  if (!container) return;
+  var tooltip = document.getElementById('wdg-resize-tooltip');
+
+  // Inietta handle in ogni widget che non ce l'ha gia
+  container.querySelectorAll('.wdg-wrap[data-wid]').forEach(function(wrap) {
+    if (wrap.querySelector('.wdg-resize-handle')) return;
+    var handle = document.createElement('div');
+    handle.className = 'wdg-resize-handle';
+    handle.setAttribute('title', 'Trascina per ridimensionare · Doppio tap per ciclo preset');
+    wrap.style.position = 'relative';
+    wrap.appendChild(handle);
+  });
+
+  var PRESETS = [
+    { col:1, row:1, size:'s', label:'Compatto 1x1' },
+    { col:1, row:1, size:'m', label:'Normale 1x1'  },
+    { col:2, row:1, size:'m', label:'Largo 2x1'    },
+    { col:2, row:2, size:'l', label:'Grande 2x2'   }
+  ];
+
+  function _presetIndex(sp, sz) {
+    var c = sp.col || 1, r = sp.row || 1;
+    if (sz === 's') return 0;
+    if (c >= 2 && r >= 2) return 3;
+    if (c >= 2) return 2;
+    return 1;
+  }
+
+  function _showTooltip(label, x, y) {
+    if (!tooltip) return;
+    tooltip.textContent = label;
+    tooltip.style.left = (x + 12) + 'px';
+    tooltip.style.top  = (y - 36) + 'px';
+    tooltip.classList.add('visible');
+  }
+
+  function _hideTooltip() {
+    if (tooltip) tooltip.classList.remove('visible');
+  }
+
+  function _calcPreset(deltaX, deltaY, startIdx, cols) {
+    var STEP = 60;
+    var combined = Math.round(deltaX / STEP) + Math.round(deltaY / STEP);
+    var idx = Math.max(0, Math.min(PRESETS.length - 1, startIdx + combined));
+    var p = { col: Math.min(PRESETS[idx].col, cols), row: PRESETS[idx].row, size: PRESETS[idx].size, label: PRESETS[idx].label };
+    return { idx: idx, preset: p };
+  }
+
+  function _applyPreset(key, preset) {
+    saveWidgetSpan(key, { col: preset.col, row: preset.row });
+    saveWidgetSize(key, preset.size);
+    applyWidgetSizes();
+    renderDopList();
+    var el = document.getElementById(WIDGET_ID_MAP[key]);
+    if (el) {
+      el.classList.remove('snap-anim');
+      void el.offsetWidth;
+      el.classList.add('snap-anim');
+      setTimeout(function() { el.classList.remove('snap-anim'); }, 300);
+    }
+    if (navigator.vibrate) navigator.vibrate([10, 30, 10]);
+  }
+
+  container.querySelectorAll('.wdg-resize-handle').forEach(function(handle) {
+    var wrap = handle.closest('.wdg-wrap');
+    var key  = wrap ? wrap.dataset.wid : null;
+    if (!key) return;
+
+    var startX, startY, startIdx, isDragging = false;
+
+    function onStart(cx, cy) {
+      var sp = getWidgetSpans()[key] || { col:1, row:1 };
+      var sz = getWidgetSizes()[key] || 'm';
+      startX = cx; startY = cy;
+      startIdx = _presetIndex(sp, sz);
+      isDragging = true;
+      wrap.classList.add('resizing');
+      _showTooltip(PRESETS[startIdx].label, cx, cy);
+    }
+
+    function onMove(cx, cy) {
+      if (!isDragging) return;
+      var r = _calcPreset(cx - startX, cy - startY, startIdx, getGridCols());
+      _showTooltip(r.preset.label, cx, cy);
+    }
+
+    function onEnd(cx, cy) {
+      if (!isDragging) return;
+      isDragging = false;
+      wrap.classList.remove('resizing');
+      _hideTooltip();
+      var r = _calcPreset(cx - startX, cy - startY, startIdx, getGridCols());
+      if (r.idx !== startIdx) _applyPreset(key, r.preset);
+    }
+
+    // Mouse
+    handle.addEventListener('mousedown', function(e) {
+      e.preventDefault(); e.stopPropagation();
+      onStart(e.clientX, e.clientY);
+      function mm(e) { onMove(e.clientX, e.clientY); }
+      function mu(e) { onEnd(e.clientX, e.clientY); document.removeEventListener('mousemove', mm); document.removeEventListener('mouseup', mu); }
+      document.addEventListener('mousemove', mm);
+      document.addEventListener('mouseup', mu);
+    });
+
+    // Touch
+    handle.addEventListener('touchstart', function(e) {
+      e.stopPropagation();
+      var t = e.touches[0];
+      onStart(t.clientX, t.clientY);
+    }, { passive: true });
+
+    handle.addEventListener('touchmove', function(e) {
+      e.preventDefault();
+      var t = e.touches[0];
+      onMove(t.clientX, t.clientY);
+    }, { passive: false });
+
+    handle.addEventListener('touchend', function(e) {
+      var t = e.changedTouches[0];
+      onEnd(t.clientX, t.clientY);
+    });
+
+    // Double tap/click: cicla al preset successivo
+    var _lastTap = 0;
+    handle.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var now = Date.now();
+      if (now - _lastTap < 350) {
+        var sp  = getWidgetSpans()[key] || { col:1, row:1 };
+        var sz  = getWidgetSizes()[key] || 'm';
+        var idx = _presetIndex(sp, sz);
+        var next = (idx + 1) % PRESETS.length;
+        var cols = getGridCols();
+        var p = { col: Math.min(PRESETS[next].col, cols), row: PRESETS[next].row, size: PRESETS[next].size, label: PRESETS[next].label };
+        _applyPreset(key, p);
+      }
+      _lastTap = now;
+    });
+  });
+}
+
 function applyWidgetOrder() {
   var order = getWidgetOrder();
   var container = document.getElementById('wdg-container');
@@ -8483,6 +8769,8 @@ function applyWidgetOrder() {
     if (el) container.appendChild(el);
   });
   applyWidgetSizes();
+  // Inizializza/aggiorna gli handle di resize dopo ogni riordino
+  setTimeout(initWidgetResize, 0);
 }
 
 function moveWidget(key, dir) {
@@ -8691,6 +8979,8 @@ function renderDash() {
   if (panel && panel.classList.contains('open')) renderDopList();
   // Effetti premium — avvia dopo che il DOM è aggiornato
   setTimeout(initPremiumEffects, 50);
+  // Resize handle — ri-inietta dopo ogni render
+  setTimeout(initWidgetResize, 60);
 }
 
 /* ---------- WIDGET STRAORDINARI OGGI ---------- */
@@ -8802,6 +9092,7 @@ function renderWidgetMeteo(me){
   var cached=lsG(cacheKey,null);
   if(cached&&cached.ts&&(Date.now()-cached.ts<1800000)){
     _aggiornaUIMeteo(cached.data);
+    _aggiornaPrevisioniCal(cached.data); // ripristina cache previsioni da LS
     var cEl=document.getElementById('wm-citta');
     if(cEl)cEl.textContent=cached.citta;
     var heroCitta=document.getElementById('hero-meteo-citta');
@@ -8822,10 +9113,13 @@ function renderWidgetMeteo(me){
     var heroCitta=document.getElementById('hero-meteo-citta');
     if(heroCitta)heroCitta.textContent=nomeCitta;
     var meteoUrl='https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon
-      +'&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&wind_speed_unit=kmh&timezone=Europe%2FRome';
+      +'&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code'
+      +'&daily=weather_code,temperature_2m_max,temperature_2m_min'
+      +'&wind_speed_unit=kmh&timezone=Europe%2FRome&forecast_days=16';
     return fetch(meteoUrl).then(function(r){return r.json();}).then(function(data){
       lsS(cacheKey,{ts:Date.now(),data:data,citta:nomeCitta});
       _aggiornaUIMeteo(data);
+      _aggiornaPrevisioniCal(data); // popola _meteoPrevCache e aggiorna il calendario
     });
   }).catch(function(){
     var el=document.getElementById('wm-desc');
@@ -8864,6 +9158,36 @@ function _aggiornaUIMeteo(data) {
   if(heroDesc)  heroDesc.textContent = desc;
   if(heroUmi)   heroUmi.textContent  = umi;
   if(heroVento) heroVento.textContent= vento;
+}
+
+/**
+ * Popola _meteoPrevCache con le previsioni giornaliere (daily) da Open-Meteo.
+ * Poi aggiorna il calendario se è visibile.
+ * @param {object} data — risposta JSON di Open-Meteo (con .daily)
+ */
+function _aggiornaPrevisioniCal(data) {
+  if (!data || !data.daily) return;
+  var d = data.daily;
+  var dates   = d.time            || [];
+  var codes   = d.weather_code    || [];
+  var tMax    = d.temperature_2m_max || [];
+  var tMin    = d.temperature_2m_min || [];
+
+  // Ricostruisce la cache giornaliera
+  _meteoPrevCache = {};
+  for (var i = 0; i < dates.length; i++) {
+    _meteoPrevCache[dates[i]] = {
+      wc:   codes[i],
+      tMax: tMax[i] !== undefined ? Math.round(tMax[i]) : null,
+      tMin: tMin[i] !== undefined ? Math.round(tMin[i]) : null
+    };
+  }
+
+  // Aggiorna il calendario se è aperto
+  var calPag = document.getElementById('pag-cal');
+  if (calPag && calPag.classList.contains('on')) {
+    renderCal();
+  }
 }
 
 function salvaMeteoCity() {
@@ -9358,7 +9682,7 @@ function approvaUtente(id) {
       break;
     }
   }
-  localStorage.setItem('ct_users', JSON.stringify(CU));
+  lsS('ct_users', CU);
   // Aggiorna su Firebase
   if(window.FirebaseModule && approvatoUid) {
     window.FirebaseModule.aggiornaStatoUtente(approvatoUid, 'approved').catch(function(e){ console.warn('approvaUtente Firebase:', e.message); });
@@ -9374,7 +9698,7 @@ function approvaUtente(id) {
 function rifiutaUtente(id) {
   lsS('ct_u', lsG('ct_u', []).filter(function(u){ return u.id !== id; }));
   var CU = lsG('ct_users', []);
-  localStorage.setItem('ct_users', JSON.stringify(CU.filter(function(u){ return u.id !== id; })));
+  lsS('ct_users', CU.filter(function(u){ return u.id !== id; }));
   renderPers();
   toast('Utente rifiutato e rimosso', 'ok');
 }
@@ -10725,23 +11049,16 @@ var AuthModule = (function() {
   // -- Users CRUD --
 
   function _getUsers() {
-
     try {
-
-      return JSON.parse(localStorage.getItem('ct_users') || '[]') || [];
-
+      return (window.CDB ? CDB.getSync('ct_users', []) : JSON.parse(localStorage.getItem('ct_users') || '[]')) || [];
     } catch(e) { return []; }
-
   }
 
 
 
   function _saveUsers(users) {
-
-    localStorage.setItem('ct_users', JSON.stringify(users));
-
+    lsS('ct_users', users);
     if(window.FirebaseModule)window.FirebaseModule.saveUsers(users);
-
   }
 
 
@@ -11022,6 +11339,11 @@ var AuthModule = (function() {
         AuthModule.renderGestioneMemebri();
         _ripristinaPagina();
         if(window.FirebaseModule) window.FirebaseModule.onLogin(AuthModule.getSession()).catch(function(e){ console.warn('onLogin bg:', e.message); });
+        // Offri registrazione biometrica (solo se non già registrata)
+        if (window.BiometricModule) {
+          var _nomeCompleto = ((profile.nome||'') + ' ' + (profile.cognome||'')).trim();
+          BiometricModule.offerEnrollment(fbUser.uid, fbUser.email, _nomeCompleto);
+        }
       } catch(fbErr) {
         var msg = fbErr.code === 'auth/invalid-credential' || fbErr.code === 'auth/wrong-password' || fbErr.code === 'auth/user-not-found'
           ? 'Credenziali non valide'
@@ -11150,7 +11472,7 @@ var AuthModule = (function() {
 
         localUsers.push(Object.assign({ passwordHash: '' }, newProfile));
 
-        localStorage.setItem('ct_users', JSON.stringify(localUsers));
+        lsS('ct_users', localUsers);
 
 
 
@@ -11194,7 +11516,59 @@ var AuthModule = (function() {
       try { if(window.FirebaseModule) window.FirebaseModule.signOut(); } catch(e){ console.warn('signOut err:', e); }
     },
 
-
+    // -- Login biometrico (WebAuthn) --
+    // Chiamato da BiometricModule dopo autenticazione biometrica riuscita.
+    // Ripristina la sessione senza richiedere email+password.
+    loginWithBiometric: async function(userId, email) {
+      try {
+        ctSpinner(true, 'Verifica biometrica...');
+        // Recupera il profilo da Firebase usando l'UID salvato
+        var profile = null;
+        if (window.FirebaseModule) {
+          profile = await window.FirebaseModule.getUserProfile(userId);
+        }
+        if (!profile) {
+          // Fallback: usa ct_me se disponibile e corrisponde
+          var cached = lsG('ct_me', null);
+          if (cached && (cached.uid === userId || cached.email === email)) profile = cached;
+        }
+        if (!profile) {
+          ctSpinner(false);
+          if (typeof toast === 'function') toast('Sessione scaduta. Effettua il login manuale.', 'err');
+          if (window.BiometricModule) window.BiometricModule.removeCredential();
+          _showOverlay('login');
+          return;
+        }
+        if (profile.stato === 'pending' || profile.stato === 'rejected') {
+          ctSpinner(false);
+          if (typeof toast === 'function') toast('Account non attivo. Contatta il Comandante.', 'err');
+          _showOverlay('login');
+          return;
+        }
+        _saveSession({
+          userId: userId, email: email,
+          ruolo: profile.ruolo || 'addetto',
+          reparto: profile.reparto || '',
+          nome: profile.nome || '', cognome: profile.cognome || '',
+          loginAt: new Date().toISOString(), isDebug: false
+        });
+        if (!profile.id) profile.id = userId;
+        profile.uid = userId;
+        lsS('ct_me', profile);
+        ctSpinner(false);
+        _hideOverlay();
+        if (typeof aggUI === 'function') aggUI();
+        if (typeof aggiornaWidget === 'function') aggiornaWidget();
+        AuthModule.renderGestioneMemebri();
+        _ripristinaPagina();
+        if (window.FirebaseModule) window.FirebaseModule.onLogin(AuthModule.getSession()).catch(function(e){ console.warn('onLogin bio:', e.message); });
+      } catch(e) {
+        ctSpinner(false);
+        console.warn('[BiometricLogin]', e);
+        if (typeof toast === 'function') toast('Errore accesso biometrico. Usa email e password.', 'err');
+        _showOverlay('login');
+      }
+    },
 
     // -- Render Gestione Membri section (called from aggUI) --
 

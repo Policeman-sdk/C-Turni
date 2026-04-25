@@ -32,21 +32,6 @@ body{height:100%;overflow-x:clip;font-size:var(--fs-base)}
   --motion-accel:cubic-bezier(.4,0,1,1);
   --motion-spring:cubic-bezier(.34,1.56,.64,1);
 }
-[data-theme=light]{
-  --bg:#f4f6fb;--bg2:#eaeff8;--card:#fff;--card2:#f0f5fc;
-  --border:rgba(0,0,0,.08);--border2:rgba(0,0,0,.14);
-  --txt:#0d1b2a;--txt2:#3a5a7a;--txt3:#7a9ab8;
-  --blue:#1a6fe8;--blue2:#2979ff;
-  --red:#c62828;--gold:#f9a825;--green:#2e7d32;--teal:#00838f;--orange:#e65100;--purple:#6a1b9a;
-  --surface-tint:rgba(26,111,232,.04);
-  --elevation-1:0 1px 3px rgba(0,0,0,.1),0 1px 2px rgba(0,0,0,.06);
-  --elevation-2:0 3px 6px rgba(0,0,0,.1),0 2px 4px rgba(0,0,0,.06);
-  --elevation-3:0 8px 24px rgba(0,0,0,.12),0 4px 8px rgba(0,0,0,.06);
-  --m3-shadow:0 2px 12px rgba(0,0,0,.06),0 1px 3px rgba(0,0,0,.04);
-  --m3-shadow-md:0 4px 20px rgba(0,0,0,.09),0 2px 6px rgba(0,0,0,.05);
-  --m3-shadow-lg:0 8px 32px rgba(0,0,0,.12),0 3px 10px rgba(0,0,0,.06);
-  --hdr-bg:rgba(255,255,255,.95)
-}
 
 
 
@@ -69,6 +54,59 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   --blue:#5b9fff;--blue2:#90c2ff;
   --red:#D32F2F;--gold:#ffd166;--green:#06d6a0;
   --teal:#00e5ff;--orange:#ff9f43;--purple:#c084fc;
+}
+
+/* ── TEMI CHIARI — specificità html[] per battere :root ── */
+html[data-theme=light]{
+  --bg:#f4f6fb;--bg2:#eaeff8;--card:#fff;--card2:#f0f5fc;
+  --border:rgba(0,0,0,.08);--border2:rgba(0,0,0,.14);
+  --txt:#0d1b2a;--txt2:#3a5a7a;--txt3:#7a9ab8;
+  --blue:#1a6fe8;--blue2:#2979ff;
+  --red:#c62828;--gold:#f9a825;--green:#2e7d32;--teal:#00838f;--orange:#e65100;--purple:#6a1b9a;
+  --surface-tint:rgba(26,111,232,.04);
+  --elevation-1:0 1px 3px rgba(0,0,0,.1),0 1px 2px rgba(0,0,0,.06);
+  --elevation-2:0 3px 6px rgba(0,0,0,.1),0 2px 4px rgba(0,0,0,.06);
+  --elevation-3:0 8px 24px rgba(0,0,0,.12),0 4px 8px rgba(0,0,0,.06);
+  --m3-shadow:0 2px 12px rgba(0,0,0,.06),0 1px 3px rgba(0,0,0,.04);
+  --m3-shadow-md:0 4px 20px rgba(0,0,0,.09),0 2px 6px rgba(0,0,0,.05);
+  --m3-shadow-lg:0 8px 32px rgba(0,0,0,.12),0 3px 10px rgba(0,0,0,.06);
+  --hdr-bg:rgba(255,255,255,.95)
+}
+html[data-theme=rosa-light]{
+  --bg:#fff5f8;--bg2:#ffe0ea;--card:#ffffff;--card2:#fdf0f4;
+  --border:#f0b0c8;--border2:#e890b0;
+  --txt:#3a0a18;--txt2:#8a3055;--txt3:#c06080;
+  --blue:#d63070;--blue2:#e8508a;--red:#c00040;
+  --gold:#e8608a;--green:#d05080;--teal:#e07095;--orange:#d84070;--purple:#b03060;
+  --surface-tint:rgba(214,48,112,.05);
+  --elevation-1:0 1px 3px rgba(0,0,0,.10),0 1px 2px rgba(0,0,0,.06);
+  --elevation-2:0 3px 8px rgba(0,0,0,.10),0 2px 4px rgba(0,0,0,.06);
+  --elevation-3:0 8px 24px rgba(0,0,0,.12),0 4px 8px rgba(0,0,0,.06);
+  --hdr-bg:rgba(255,245,248,.95)
+}
+html[data-theme=forestale-light]{
+  --bg:#f4f8f4;--bg2:#e4ede4;--card:#ffffff;--card2:#edf5ed;
+  --border:#b0d0b0;--border2:#90c090;
+  --txt:#0a1f0a;--txt2:#2e6030;--txt3:#507850;
+  --blue:#2e7d32;--blue2:#388e3c;--red:#b71c1c;
+  --gold:#558b2f;--green:#33691e;--teal:#1b5e20;--orange:#827717;--purple:#4a7a4a;
+  --surface-tint:rgba(46,125,50,.05);
+  --elevation-1:0 1px 3px rgba(0,0,0,.10),0 1px 2px rgba(0,0,0,.06);
+  --elevation-2:0 3px 8px rgba(0,0,0,.10),0 2px 4px rgba(0,0,0,.06);
+  --elevation-3:0 8px 24px rgba(0,0,0,.12),0 4px 8px rgba(0,0,0,.06);
+  --hdr-bg:rgba(244,248,244,.95)
+}
+html[data-theme=carabinieri-light]{
+  --bg:#f5f5f0;--bg2:#eaeae0;--card:#ffffff;--card2:#f2f2ea;
+  --border:#c8b89a;--border2:#b0a080;
+  --txt:#1a1208;--txt2:#5a4020;--txt3:#8a6840;
+  --blue:#8b0000;--blue2:#a00010;--red:#8b0000;
+  --gold:#c8a96e;--green:#5a7a2a;--teal:#6a7a5a;--orange:#a05a00;--purple:#7a4a00;
+  --surface-tint:rgba(139,0,0,.05);
+  --elevation-1:0 1px 3px rgba(0,0,0,.10),0 1px 2px rgba(0,0,0,.06);
+  --elevation-2:0 3px 8px rgba(0,0,0,.10),0 2px 4px rgba(0,0,0,.06);
+  --elevation-3:0 8px 24px rgba(0,0,0,.12),0 4px 8px rgba(0,0,0,.06);
+  --hdr-bg:rgba(245,245,240,.95)
 }
 
 /* ── TEMA FORESTALE (dark) — Grigio-Verde M3 ── */
@@ -549,6 +587,25 @@ tbody tr:last-child td{border-bottom:none}
 .cal-badge{font-size:7px;padding:1px 4px;border-radius:4px;margin-top:2px;display:flex;align-items:center;gap:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-weight:700}
 .cal-badge-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
 .cal-badge-cnt{font-size:8px;font-weight:800;flex-shrink:0}
+
+/* Icona meteo predittiva nel calendario */
+.cal-meteo-ico {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  font-size: 11px;
+  line-height: 1;
+  opacity: .85;
+  cursor: default;
+  flex-shrink: 0;
+}
+.cal-meteo-temp {
+  font-size: 7px;
+  font-weight: 700;
+  color: var(--txt2);
+  letter-spacing: -.2px;
+  line-height: 1;
+}
 .day-item{padding:10px 12px;background:var(--card);border-radius:14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;box-shadow:var(--m3-shadow)}
 /* Sidebar: solo su desktop (=768px) */
 @media(max-width:700px){
@@ -660,46 +717,6 @@ tr.t-corso td:first-child{border-left:3px solid #2979ff}
 @keyframes radar{0%,100%{box-shadow:0 0 0 0 rgba(106,191,105,.7)}50%{box-shadow:0 0 0 10px rgba(106,191,105,0)}}
 
 /* --- CARABINIERI 🛡 --- */
-
-/* -- Rosa Giorno -- */
-[data-theme=rosa-light]{
-  --bg:#fff5f8;--bg2:#ffe0ea;--card:#ffffff;--card2:#fdf0f4;
-  --border:#f0b0c8;--border2:#e890b0;
-  --txt:#3a0a18;--txt2:#8a3055;--txt3:#c06080;
-  --blue:#d63070;--blue2:#e8508a;--red:#c00040;
-  --gold:#e8608a;--green:#d05080;--teal:#e07095;--orange:#d84070;--purple:#b03060;
-  --surface-tint:rgba(214,48,112,.05);
-  --elevation-1:0 1px 3px rgba(0,0,0,.10),0 1px 2px rgba(0,0,0,.06);
-  --elevation-2:0 3px 8px rgba(0,0,0,.10),0 2px 4px rgba(0,0,0,.06);
-  --elevation-3:0 8px 24px rgba(0,0,0,.12),0 4px 8px rgba(0,0,0,.06);
-  --hdr-bg:rgba(255,240,245,.95)
-}
-/* -- Forestale Giorno -- */
-[data-theme=forestale-light]{
-  --bg:#f4f8f4;--bg2:#e4ede4;--card:#ffffff;--card2:#edf5ed;
-  --border:#b0d0b0;--border2:#90c090;
-  --txt:#0a1f0a;--txt2:#2e6030;--txt3:#507850;
-  --blue:#2e7d32;--blue2:#388e3c;--red:#b71c1c;
-  --gold:#558b2f;--green:#33691e;--teal:#1b5e20;--orange:#827717;--purple:#4a7a4a;
-  --surface-tint:rgba(46,125,50,.05);
-  --elevation-1:0 1px 3px rgba(0,0,0,.10),0 1px 2px rgba(0,0,0,.06);
-  --elevation-2:0 3px 8px rgba(0,0,0,.10),0 2px 4px rgba(0,0,0,.06);
-  --elevation-3:0 8px 24px rgba(0,0,0,.12),0 4px 8px rgba(0,0,0,.06);
-  --hdr-bg:rgba(244,248,244,.95)
-}
-/* -- Carabinieri Giorno -- */
-[data-theme=carabinieri-light]{
-  --bg:#f5f5f0;--bg2:#eaeae0;--card:#ffffff;--card2:#f2f2ea;
-  --border:#c8b89a;--border2:#b0a080;
-  --txt:#1a1208;--txt2:#5a4020;--txt3:#8a6840;
-  --blue:#8b0000;--blue2:#a00010;--red:#8b0000;
-  --gold:#c8a96e;--green:#5a7a2a;--teal:#6a7a5a;--orange:#a05a00;--purple:#7a4a00;
-  --surface-tint:rgba(139,0,0,.05);
-  --elevation-1:0 1px 3px rgba(0,0,0,.10),0 1px 2px rgba(0,0,0,.06);
-  --elevation-2:0 3px 8px rgba(0,0,0,.10),0 2px 4px rgba(0,0,0,.06);
-  --elevation-3:0 8px 24px rgba(0,0,0,.12),0 4px 8px rgba(0,0,0,.06);
-  --hdr-bg:rgba(245,245,240,.95)
-}
 
 [data-theme=carabinieri]{
   --bg:#080b10;--bg2:#0c1020;--card:#111828;--card2:#162030;
@@ -4961,4 +4978,99 @@ body[data-atmosfera="oasi"]       .hero-ring-fill { stroke: #00C853; }
 .avm3-gender-chip:not(.active) .avm3-gender-count {
   background: rgba(91,159,255,.2);
   color: var(--blue);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   WIDGET RESIZE HANDLE — Bento Grid direct resize
+   ═══════════════════════════════════════════════════════════ */
+
+/* Handle angolo in basso a destra */
+.wdg-resize-handle {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 32px;
+  height: 32px;
+  cursor: se-resize;
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 6px;
+  opacity: 0;
+  transition: opacity .2s ease;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Icona grip 3×3 dots */
+.wdg-resize-handle::before {
+  content: '';
+  display: block;
+  width: 14px;
+  height: 14px;
+  background-image: radial-gradient(circle, var(--txt3) 1.5px, transparent 1.5px);
+  background-size: 5px 5px;
+  background-position: 0 0;
+  opacity: .6;
+  transition: opacity .15s, transform .15s;
+}
+
+/* Mostra handle al hover del widget */
+.wdg-wrap:hover .wdg-resize-handle,
+.wdg-wrap.resizing .wdg-resize-handle {
+  opacity: 1;
+}
+
+.wdg-resize-handle:hover::before,
+.wdg-resize-handle:active::before {
+  opacity: 1;
+  transform: scale(1.2);
+}
+
+/* Stato durante il resize */
+.wdg-wrap.resizing {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+  transition: none !important;
+  z-index: 10;
+}
+
+/* Tooltip preset che appare durante il resize */
+#wdg-resize-tooltip {
+  position: fixed;
+  background: rgba(13, 21, 32, 0.92);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 8px;
+  pointer-events: none;
+  z-index: 9999;
+  white-space: nowrap;
+  border: 1px solid rgba(91,159,255,.3);
+  box-shadow: 0 4px 16px rgba(0,0,0,.4);
+  opacity: 0;
+  transition: opacity .15s;
+  letter-spacing: .3px;
+}
+#wdg-resize-tooltip.visible {
+  opacity: 1;
+}
+
+/* Animazione snap al preset */
+@keyframes wdg-snap {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.025); }
+  100% { transform: scale(1); }
+}
+.wdg-wrap.snap-anim {
+  animation: wdg-snap .25s cubic-bezier(.34,1.56,.64,1);
+}
+
+/* Indicatore preset attivo nel pannello organizza */
+.dop-preset-btn.active {
+  background: rgba(91,159,255,0.2) !important;
+  border-color: var(--blue) !important;
+  color: var(--blue) !important;
 }
