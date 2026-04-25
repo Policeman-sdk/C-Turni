@@ -507,7 +507,13 @@ window.FirebaseModule = {
         if(prof.myPid) localStorage.setItem('ct_my_pid', String(prof.myPid));
         if(typeof window._straordLoadFirebase === 'function') window._straordLoadFirebase(prof);
         if(prof.meteoCitta) lsS('ct_meteo_citta', prof.meteoCitta);
-        if(prof.tema !== undefined) { lsS('ct_tema', prof.tema); if(typeof window.caricaTema === 'function') window.caricaTema(); }
+        if(prof.tema !== undefined) {
+          lsS('ct_tema', prof.tema);
+          if(typeof window.caricaTema === 'function') window.caricaTema();
+        } else {
+          // Firestore non ha tema — usa il valore locale (l'utente lo ha impostato manualmente)
+          if(typeof window.caricaTema === 'function') window.caricaTema();
+        }
         if(prof.licenzePool && prof.licenzePool.length) {
           var _U2 = lsG('ct_u', []); var _found2 = false;
           for(var _i2=0; _i2<_U2.length; _i2++){
@@ -515,6 +521,18 @@ window.FirebaseModule = {
           }
           if(!_found2 && prof.id) _U2.push(prof);
           lsS('ct_u', _U2);
+        } else {
+          // Firestore non ha licenzePool — preserva le licenze locali
+          var _U2loc = lsG('ct_u', []);
+          var _meLocal = JSON.parse(localStorage.getItem('ct_me') || 'null');
+          if(_meLocal && _meLocal.licenzePool && _meLocal.licenzePool.length) {
+            prof.licenzePool = _meLocal.licenzePool;
+            prof.ferieRes = _meLocal.ferieRes || 30;
+            // Salva su Firebase per non perderle di nuovo
+            if(window.FirebaseModule && prof.uid) {
+              window.FirebaseModule.saveUserProfile(prof.uid, prof, prof.reparto).catch(function(){});
+            }
+          }
         }
         if(prof.ct_recuperi) lsS('ct_recuperi', prof.ct_recuperi);
         if(prof.notif_prefs) lsS('ct_notif_prefs', prof.notif_prefs);

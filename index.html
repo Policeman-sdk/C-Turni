@@ -254,14 +254,6 @@
           </span>
         </label>
 
-        <!-- Condivisione turni opzionale -->
-        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:12px;background:var(--bg2);border-radius:12px;border:1.5px solid var(--border)">
-          <input type="checkbox" id="reg-condividi-turni" checked style="margin-top:2px;width:18px;height:18px;flex-shrink:0;accent-color:var(--blue)">
-          <span style="font-size:12px;color:var(--txt2);line-height:1.6">
-            <strong style="color:var(--txt)">Modalità Reparto</strong> — Consenti ai colleghi del reparto di vedere i dettagli dei miei turni di servizio
-          </span>
-        </label>
-
       </div>
 
       <button class="btn btn-p" style="width:100%;padding:14px;font-size:15px;font-weight:700;border-radius:14px" id="reg-btn-avanza"
@@ -1411,19 +1403,6 @@
             <div class="m3-row-body"><div class="m3-row-title">Vibrazione</div><div class="m3-row-sub">Feedback aptico per azioni e notifiche</div></div>
             <label class="m3-switch">
               <input type="checkbox" id="tog-vibra" onchange="(function(v){var s=lsG('ct_prefs',{});s.vibra=v;lsS('ct_prefs',s);})(this.checked)">
-              <span class="m3-switch-track"></span>
-            </label>
-          </div>
-
-          <!-- Toggle Privacy turni -->
-          <div class="m3-row" style="border-top:1px solid var(--border)">
-            <div class="m3-row-ico" style="background:rgba(200,16,46,.12)">&#128274;</div>
-            <div class="m3-row-body">
-              <div class="m3-row-title">Condividi turni con il reparto</div>
-              <div class="m3-row-sub" id="privacy-turni-sub">I colleghi possono vedere i tuoi turni</div>
-            </div>
-            <label class="m3-switch">
-              <input type="checkbox" id="tog-condividi-turni" onchange="salvaPrivacyTurni(this.checked)">
               <span class="m3-switch-track"></span>
             </label>
           </div>
@@ -2586,13 +2565,8 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
         <span style="color:var(--red,#f2453d);font-weight:700"> *</span>
       </span>
     </label>
-    <!-- Checkbox condivisione turni opzionale -->
-    <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:14px;background:var(--bg2,#0d1520);border-radius:14px;border:1.5px solid var(--border,rgba(255,255,255,.09));margin-bottom:20px">
-      <input type="checkbox" id="fp-condividi" checked style="margin-top:2px;width:18px;height:18px;flex-shrink:0;accent-color:var(--blue,#5b9fff)">
-      <span style="font-size:12px;color:var(--txt2,#8faac8);line-height:1.6">
-        <strong style="color:var(--txt,#e8edf5)">Modalità Reparto</strong> — Consenti ai colleghi del reparto di vedere i dettagli dei miei turni di servizio
-      </span>
-    </label>
+    <!-- Checkbox condivisione turni — rimossa, turni sempre visibili al reparto -->
+    <input type="hidden" id="fp-condividi" value="true">
     <!-- Bottone — disabilitato finché TOS non è spuntato -->
     <button id="fp-btn-accetta" onclick="accettaForzaPrivacy()" disabled
       style="width:100%;padding:15px;border:none;border-radius:var(--radius-pill,50px);font-size:15px;font-weight:800;cursor:not-allowed;appearance:none;-webkit-appearance:none;background:rgba(91,159,255,.25);color:rgba(255,255,255,.4);transition:all .2s">

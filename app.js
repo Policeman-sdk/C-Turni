@@ -161,7 +161,7 @@ function regConferma(){
     return;
   }
 
-  var condividiTurni = document.getElementById('reg-condividi-turni') ? document.getElementById('reg-condividi-turni').checked : true;
+  var condividiTurni = true; // turni sempre visibili al reparto
 
   var tipoStruttura = modalita === 'reparto' ? ((document.getElementById('reg-tipo-struttura')||{}).value||'') : '';
   var specialita    = modalita === 'reparto' ? ((document.getElementById('reg-specialita')||{}).value||'') : '';
@@ -1783,15 +1783,8 @@ function aggiornaSquadra(){
       : '<span>'+ini+'</span>';
     var liveBadge = p.inServizio ? '<div class="squadra-live-badge"></div>' : '';
 
-    // Controlla privacy: se addetto e collega ha turni privati, mostra lucchetto
-    var targetUser = p.uid ? (fbUsersMap[p.uid] || null) : null;
-    var puoVedere = _canViewTurno(meRuolo, targetUser);
-    var privacyBadge = (p.inServizio && !puoVedere)
-      ? '<div style="position:absolute;bottom:-2px;right:-2px;width:14px;height:14px;background:var(--bg2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px">🔒</div>'
-      : '';
-
     return '<div class="squadra-avatar">'
-      + '<div class="squadra-avatar-circle' + (p.inServizio ? ' squadra-in-servizio' : '') + '" style="position:relative">'+avatarContent+liveBadge+privacyBadge+'</div>'
+      + '<div class="squadra-avatar-circle' + (p.inServizio ? ' squadra-in-servizio' : '') + '" style="position:relative">'+avatarContent+liveBadge+'</div>'
       + '<div class="squadra-nome">'+nomeBreve+'</div>'
       + '</div>';
   }).join('');
@@ -4525,48 +4518,6 @@ function _mostraCheckboxLegali() {
   if (wrap) wrap.style.display = 'block';
 }
 
-// Salva preferenza condivisione turni (chiamata dal toggle impostazioni)
-function salvaPrivacyTurni(val) {
-  var me = lsG('ct_me', null);
-  if (!me) return;
-  if (!me.privacy) me.privacy = {};
-  me.privacy.condividiTurni = val;
-  lsS('ct_me', me);
-  // Aggiorna sub-label
-  var sub = document.getElementById('privacy-turni-sub');
-  if (sub) sub.textContent = val ? 'I colleghi possono vedere i tuoi turni' : 'I tuoi turni sono privati per gli Addetti';
-  // Salva su Firebase
-  var sess = lsG('ct_session', null);
-  if (sess && sess.userId && window.FirebaseModule) {
-    window.FirebaseModule.aggiornaPrivacyTurni(sess.userId, val).catch(function(e){
-      console.warn('aggiornaPrivacyTurni:', e.message);
-    });
-  }
-  toast(val ? '🔓 Turni visibili al reparto' : '🔒 Turni privati', 'ok');
-}
-
-// Carica stato toggle privacy nelle impostazioni
-function caricaPrivacyToggle() {
-  var me = lsG('ct_me', null);
-  var val = me && me.privacy && me.privacy.condividiTurni !== undefined ? me.privacy.condividiTurni : true;
-  var tog = document.getElementById('tog-condividi-turni');
-  if (tog) tog.checked = val;
-  var sub = document.getElementById('privacy-turni-sub');
-  if (sub) sub.textContent = val ? 'I colleghi possono vedere i tuoi turni' : 'I tuoi turni sono privati per gli Addetti';
-}
-
-// Controlla se un utente ha condividiTurni abilitato
-// Comandante e Vice vedono sempre tutto
-function _canViewTurno(meRuolo, targetUser) {
-  if (meRuolo === 'comandante' || meRuolo === 'vice') return true;
-  // Addetto: controlla privacy del collega
-  if (!targetUser) return true; // se non troviamo il profilo, mostriamo
-  var privacy = targetUser.privacy;
-  if (!privacy) return true; // default: visibile (retrocompatibilità)
-  return privacy.condividiTurni !== false;
-}
-
-
 var _backupDaConfermare = null;
 
 function esportaBackup(){
@@ -5731,15 +5682,9 @@ function renderTurni(){
   tb.innerHTML=arr.map(function(t){
     var p=P.find(function(x){return x.id===t.pid;});
     var grado=p&&p.grado?'<span style="font-size:10px;color:var(--txt2)">'+p.grado+'</span>':'';
-    // Privacy: cerca profilo Firebase per condividiTurni
-    var fbU = fbUsers.find(function(u){ return u.uid && p && u.uid===p.uid; });
-    var targetUser = fbU || p;
-    var puoVedere = _canViewTurno(meRuolo, targetUser);
-    var orarioDisplay = puoVedere ? t.orario : '<span style="color:var(--txt3);font-style:italic">🔒 Privato</span>';
-    var codiceDisplay = puoVedere ? (t.codice||'') : '';
     return "<tr class=\"t-"+t.tipo+"\"><td><strong>"+t.pnome+"</strong><br>"+grado+"</td><td>"+fmtD(t.data)+"</td>"+
-      "<td>"+tbdg(t.tipo,t.codice)+"</td><td style=\"font-size:11px\">"+orarioDisplay+"</td>"+
-      "<td style=\"font-size:11px;color:var(--txt2)\">"+codiceDisplay+"</td>"+
+      "<td>"+tbdg(t.tipo,t.codice)+"</td><td style=\"font-size:11px\">"+t.orario+"</td>"+
+      "<td style=\"font-size:11px;color:var(--txt2)\">"+(t.codice||"")+"</td>"+
       "<td><button class=\"btn btn-d btn-xs\" onclick=\"delT("+t.id+")\">"+"&#128465;</button></td></tr>";
   }).join("");
 }
@@ -7902,7 +7847,7 @@ function vai(pg, btn) {
   if(pg==="ag")  { renderAgendaPg(); }
   if(pg==="rep") { renderRep(); renderStraord(); }
   if(pg==="straord") { renderStraord(); }
-  if(pg==="imp"){ aggUI(); caricaSaldoFerie(); aggNotifStatus(); aggTemaUI(lsG("ct_tema","")||""); aggLastBackupDate(); caricaFontSize(); caricaPrivacyToggle(); if(typeof GSync!=='undefined'&&GSync.ui) GSync.ui.renderPanel(); }
+  if(pg==="imp"){ aggUI(); caricaSaldoFerie(); aggNotifStatus(); aggTemaUI(lsG("ct_tema","")||""); aggLastBackupDate(); caricaFontSize(); if(typeof GSync!=='undefined'&&GSync.ui) GSync.ui.renderPanel(); }
   if(pg==="todo"){ renderTodoAg(_tdFiltroAg); }
   if(pg==="agenda") { renderAgendaPg(); }
   if(pg==="membri") renderGestioneNucleo();
