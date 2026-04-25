@@ -1158,7 +1158,7 @@
               </div>
               <div style="display:flex;gap:8px;flex-wrap:wrap">
                 <button id="btn-bio-enable" class="btn btn-p btn-sm" style="display:none"
-                  onclick="BiometricModule.enroll().then(function(){ _updateBioSettingsUI(); })">
+                  onclick="(function(btn){btn.disabled=true;btn.textContent='⏳ Attendi...';BiometricModule.enroll().finally(function(){btn.disabled=false;btn.innerHTML='&#129535; Abilita biometria';_updateBioSettingsUI();});})(this)">
                   &#129535; Abilita biometria
                 </button>
                 <button id="btn-bio-disable" class="btn btn-g btn-sm" style="display:none"

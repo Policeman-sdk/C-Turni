@@ -2873,7 +2873,8 @@ function _updateBioSettingsUI() {
 
   // Riga nelle impostazioni
   var row = document.getElementById('row-biometric');
-  if (row) row.style.display = supported ? 'flex' : 'none';
+  // Mostra la riga anche se non supportato, per dare feedback all'utente
+  if (row) row.style.display = 'flex';
 
   // Stato dentro la sezione
   var statusEl  = document.getElementById('bio-status-registered');
@@ -2881,8 +2882,18 @@ function _updateBioSettingsUI() {
   var btnDisable= document.getElementById('btn-bio-disable');
   var subEl     = document.getElementById('bio-settings-sub');
 
+  if (!supported) {
+    // Non supportato: mostra messaggio esplicativo
+    if (subEl) subEl.textContent = 'Non disponibile (richiede HTTPS)';
+    if (statusEl)  statusEl.style.display  = 'none';
+    if (btnEnable) btnEnable.style.display  = 'none';
+    if (btnDisable)btnDisable.style.display = 'none';
+    if (row) row.style.display = 'none'; // nascondi se non supportato
+    return;
+  }
+
   if (statusEl)  statusEl.style.display  = hasCred ? 'block' : 'none';
-  if (btnEnable) btnEnable.style.display  = (!hasCred && supported) ? 'inline-flex' : 'none';
+  if (btnEnable) btnEnable.style.display  = hasCred ? 'none' : 'inline-flex';
   if (btnDisable)btnDisable.style.display = hasCred ? 'inline-flex' : 'none';
   if (subEl)     subEl.textContent = hasCred ? 'Attivo su questo dispositivo' : 'Face ID / Impronta digitale';
 
@@ -8997,7 +9008,9 @@ function renderDash() {
   aggiornaHeroCard();
   aggiornaSquadra();
   renderWidgetMeteo(me); // meteo sempre — popola la Hero Card
-  if (cfg.settimana)       renderWidgetSettimana(me);  // dopo meteo così la cache è già pronta se in cache
+  // Widget settimana: renderizzato subito (senza meteo se cache vuota),
+  // poi ri-renderizzato da _aggiornaPrevisioniCal con le icone meteo
+  if (cfg.settimana)       renderWidgetSettimana(me);
   if (cfg.prossimo)        renderWidgetProssimo(me);
   if (cfg.alert)           renderWidgetAlert();
   if (cfg.scadenze)        renderWidgetScadenze();
@@ -9118,10 +9131,11 @@ function renderWidgetSettimana(me) {
     // Icona meteo predittiva — solo giorni presenti e futuri con dati disponibili
     var oggiStr = now.getFullYear()+'-'+('0'+(now.getMonth()+1)).slice(-2)+'-'+('0'+now.getDate()).slice(-2);
     var isFutureOrToday = ds >= oggiStr;
-    var prevDs = (typeof _meteoPrevCache !== 'undefined') && _meteoPrevCache[ds];
-    if (isFutureOrToday && prevDs) {
+    var meteoCache = (typeof _meteoPrevCache !== 'undefined') ? _meteoPrevCache : {};
+    var prevDs = meteoCache[ds];
+    if (isFutureOrToday && prevDs && prevDs.wc !== undefined) {
       var wEmoji = (typeof METEO_CAL_EMOJI !== 'undefined') ? (METEO_CAL_EMOJI[prevDs.wc] || '') : '';
-      var wTemp  = prevDs.tMax !== null ? prevDs.tMax + '°' : '';
+      var wTemp  = (prevDs.tMax !== null && prevDs.tMax !== undefined) ? prevDs.tMax + '°' : '';
       var wDesc  = (typeof METEO_DESC !== 'undefined') ? (METEO_DESC[prevDs.wc] || '') : '';
       if (wEmoji) {
         html += '<div class="wdg-sett-meteo" title="' + wDesc + (wTemp ? ' · ' + wTemp : '') + '">'
@@ -9254,9 +9268,11 @@ function _aggiornaPrevisioniCal(data) {
   }
 
   // Aggiorna il widget settimana (sempre — è sulla dashboard)
+  // Usa setTimeout(0) per non sovrascrivere il render di renderDash che potrebbe
+  // chiamare renderWidgetSettimana subito dopo con _meteoPrevCache già popolato
   var me = lsG('ct_me', null);
   if (me && typeof renderWidgetSettimana === 'function') {
-    renderWidgetSettimana(me);
+    setTimeout(function() { renderWidgetSettimana(me); }, 0);
   }
 }
 
