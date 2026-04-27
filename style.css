@@ -5094,3 +5094,6 @@ body[data-atmosfera="oasi"]       .hero-ring-fill { stroke: #00C853; }
   border-color: var(--blue) !important;
   color: var(--blue) !important;
 }
+
+/* Widget Dino — nessun resize handle, sempre grande */
+#widget-dino-dash .wdg-resize-handle { display: none !important; }

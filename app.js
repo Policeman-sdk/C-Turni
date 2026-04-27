@@ -1158,7 +1158,15 @@ function caricaPoolLicenzeMe(){
   var el=document.getElementById("pool-licenze-me");
   if(!el)return;
   var P=lsG("ct_p",[]);
-  var p=P.find(function(x){return x.id===me.id;});
+  var p=P.find(function(x){return x.id===me.id||x.uid===me.uid;});
+  // Fallback: cerca anche in ct_users (Firebase sync)
+  if(!p){
+    var CU=lsG("ct_users",[]);
+    var cu=CU.find(function(x){return x.uid===me.uid||x.id===me.id;});
+    if(cu&&cu.licenzePool) p=cu;
+  }
+  // Fallback: usa ct_me direttamente
+  if(!p&&me.licenzePool) p=me;
   if(!p){el.innerHTML='<div style="font-size:11px;color:var(--txt2);text-align:center;padding:8px">Nessun profilo trovato</div>';return;}
   var pool=(p.licenzePool||[]).slice().sort(function(a,b){return a.anno-b.anno;});
   var annoC=new Date().getFullYear();
@@ -1187,12 +1195,22 @@ var _annoEditCorrente = null;
 var _giorniEditTemp   = 0;
 
 function getFeriePool(pid){
-  // Prima prova ct_u, poi ct_me come fallback (utenti Firebase)
+  // Cerca in ct_p (fonte principale), poi ct_u, ct_users, ct_me
+  var P=lsG("ct_p",[]);
+  var p=P.find(function(x){return x.id===pid||x.uid===pid;});
+  if(p&&p.licenzePool&&p.licenzePool.length)
+    return p.licenzePool.slice().sort(function(a,b){return a.anno-b.anno;});
+  // Fallback ct_u
   var U=lsG("ct_u",[]);
   var u=U.find(function(x){return x.id===pid||x.uid===pid;});
   if(u&&u.licenzePool&&u.licenzePool.length)
     return u.licenzePool.slice().sort(function(a,b){return a.anno-b.anno;});
-  // Fallback: ct_me
+  // Fallback ct_users (Firebase)
+  var CU=lsG("ct_users",[]);
+  var cu=CU.find(function(x){return x.id===pid||x.uid===pid;});
+  if(cu&&cu.licenzePool&&cu.licenzePool.length)
+    return cu.licenzePool.slice().sort(function(a,b){return a.anno-b.anno;});
+  // Fallback ct_me
   var me=lsG("ct_me",null);
   if(me&&(me.id===pid||me.uid===pid)&&me.licenzePool&&me.licenzePool.length)
     return me.licenzePool.slice().sort(function(a,b){return a.anno-b.anno;});
@@ -2299,6 +2317,43 @@ function _openTodoMenu(id, filtro) {
   document.body.insertAdjacentHTML('beforeend', html);
 }
 
+/**
+ * _ctDatePicker — genera HTML per selettore data in-app
+ * @param {string} inputId  ID dell'input hidden che riceve il valore YYYY-MM-DD
+ * @param {string} value    Valore iniziale YYYY-MM-DD
+ * @param {string} [timeId] ID opzionale input ora (HH:MM)
+ * @param {string} [timeVal] Valore ora iniziale
+ */
+function _ctDatePicker(inputId, value, timeId, timeVal) {
+  var parts = (value||'').split('-');
+  var d = parts[2]||'', m = parts[1]||'', y = parts[0]||'';
+  var timeHtml = timeId
+    ? '<div style="display:flex;align-items:center;gap:8px;margin-top:8px">'
+      + '<span style="font-size:12px;color:var(--txt2);flex-shrink:0">Ora:</span>'
+      + '<input type="text" id="'+timeId+'" class="fc" value="'+(timeVal||'')+'" placeholder="HH:MM" maxlength="5" style="width:80px;text-align:center" oninput="this.value=this.value.replace(/[^0-9:]/g,\'\')">'
+      + '</div>'
+    : '';
+  return '<input type="hidden" id="'+inputId+'" value="'+(value||'')+'">'
+    + '<div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">'
+    + '<input type="text" id="'+inputId+'_d" class="fc" value="'+d+'" placeholder="GG" maxlength="2" style="width:52px;text-align:center;font-size:15px;font-weight:700" oninput="_ctDpSync(\''+inputId+'\')">'
+    + '<span style="color:var(--txt2);font-weight:700">/</span>'
+    + '<input type="text" id="'+inputId+'_m" class="fc" value="'+m+'" placeholder="MM" maxlength="2" style="width:52px;text-align:center;font-size:15px;font-weight:700" oninput="_ctDpSync(\''+inputId+'\')">'
+    + '<span style="color:var(--txt2);font-weight:700">/</span>'
+    + '<input type="text" id="'+inputId+'_y" class="fc" value="'+y+'" placeholder="AAAA" maxlength="4" style="width:72px;text-align:center;font-size:15px;font-weight:700" oninput="_ctDpSync(\''+inputId+'\')">'
+    + '</div>'
+    + timeHtml;
+}
+
+function _ctDpSync(inputId) {
+  var d = (document.getElementById(inputId+'_d')||{}).value||'';
+  var m = (document.getElementById(inputId+'_m')||{}).value||'';
+  var y = (document.getElementById(inputId+'_y')||{}).value||'';
+  if (d.length===2 && m.length===2 && y.length===4) {
+    var el = document.getElementById(inputId);
+    if (el) el.value = y+'-'+m+'-'+d;
+  }
+}
+
 function rinviaTodo(id){
   var TD=lsG("ct_td",[]);
   var t=TD.find(function(x){return x.id===id;});
@@ -2316,8 +2371,8 @@ function rinviaTodo(id){
     +'<button class="btn btn-g btn-sm" onclick="_rinviaTodoRel('+id+',7)">+1 settimana</button>'
     +'</div>'
     +'<div class="fg"><label>Oppure scegli data e ora</label>'
-    +'<input type="date" id="rt-data" class="fc" value="'+dataBase+'" style="margin-bottom:8px">'
-    +'<input type="time" id="rt-ora" class="fc" value="'+(t.ora||'')+'"></div>'
+    +_ctDatePicker('rt-data', dataBase, 'rt-ora', t.ora||'')
+    +'</div>'
     +'<div style="display:flex;gap:10px;margin-top:4px">'
     +'<button class="btn btn-g" style="flex:1" onclick="document.getElementById(\'m-rinvia-todo\').remove()">Annulla</button>'
     +'<button class="btn btn-p" style="flex:1" onclick="_rinviaTodoData('+id+')">&#128336; Rinvia</button>'
@@ -3209,8 +3264,8 @@ function rinviaAgenda(id){
     +'<button class="btn btn-g btn-sm" onclick="_rinviaAgRel('+id+',7,'+isCondivisa+')">+1 settimana</button>'
     +'</div>'
     +'<div class="fg"><label>Oppure scegli data e ora</label>'
-    +'<input type="date" id="ra-data" class="fc" value="'+a.data+'" style="margin-bottom:8px">'
-    +'<input type="time" id="ra-ora" class="fc" value="'+(a.ora||'')+'"></div>'
+    +_ctDatePicker('ra-data', a.data, 'ra-ora', a.ora||'')
+    +'</div>'
     +'<div style="display:flex;gap:10px;margin-top:4px">'
     +'<button class="btn btn-g" style="flex:1" onclick="document.getElementById(\'m-rinvia-ag\').remove()">Annulla</button>'
     +'<button class="btn btn-p" style="flex:1" onclick="_rinviaAgData('+id+','+isCondivisa+')">&#128336; Rinvia</button>'
@@ -3605,7 +3660,8 @@ function rinviaTodoCondiviso(id){
     +'<button class="btn btn-g btn-sm" onclick="_rinviaTCRel('+id+',7)">+1 settimana</button>'
     +'</div>'
     +'<div class="fg"><label>Oppure scegli data</label>'
-    +'<input type="date" id="rtc-data" class="fc" value="'+dataBase+'"></div>'
+    +_ctDatePicker('rtc-data', dataBase)
+    +'</div>'
     +'<div style="display:flex;gap:10px;margin-top:12px">'
     +'<button class="btn btn-g" style="flex:1" onclick="document.getElementById(\'m-rinvia-tc\').remove()">Annulla</button>'
     +'<button class="btn btn-p" style="flex:1" onclick="_rinviaTCData('+id+')">&#128336; Rinvia</button>'
@@ -5001,21 +5057,23 @@ function renderGradoGrid(){
 }
 
 function selezionaGrado(val) {
+  // Callback per cambio grado membro (comandante/vice)
+  if (window._gradoCambioCallback && window._gradoTarget === '_grado_membro_hidden') {
+    var cb = window._gradoCambioCallback;
+    window._gradoCambioCallback = null;
+    window._gradoTarget = null;
+    closeM('m-grado-picker');
+    cb(val);
+    return;
+  }
   var target = document.getElementById(window._gradoTarget);
   if(target) {
     target.value = val;
     var g = GR[val];
-    // Aggiorna label bottone
     var lbl = document.getElementById('lbl-' + window._gradoTarget);
     if(lbl) { lbl.textContent = g ? g.nome : val; lbl.style.color = 'var(--txt)'; }
-
-    // Preview immagine grado — sia per pf-grado che mpf-grado
-    if(window._gradoTarget === 'pf-grado' && typeof prevGrado === 'function') {
-      prevGrado(val);
-    }
-    if(window._gradoTarget === 'mpf-grado' && typeof prevGradoMpf === 'function') {
-      prevGradoMpf(val);
-    }
+    if(window._gradoTarget === 'pf-grado' && typeof prevGrado === 'function') prevGrado(val);
+    if(window._gradoTarget === 'mpf-grado' && typeof prevGradoMpf === 'function') prevGradoMpf(val);
   }
   closeM('m-grado-picker');
 }
@@ -7876,8 +7934,8 @@ function _renderMembriWrap(wrap, me, U) {
     approved.forEach(function(u) {
 
       var uid = u.uid || u.id;
-      var az = '<button class="btn btn-sm" style="background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.3)" onclick="nucleoSospendi(\''+uid+'\')">&#9208; Sospendi</button>'
-
+      var az = '<button class="btn btn-sm" style="background:rgba(41,121,255,.12);color:var(--blue);border:1px solid rgba(41,121,255,.3)" onclick="apriCambioGradoMembro(\''+uid+'\',\''+( u.grado||'')+'\')">&#127894; Grado</button>'
+             + '<button class="btn btn-sm" style="background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.3)" onclick="nucleoSospendi(\''+uid+'\')">&#9208; Sospendi</button>'
              + '<button class="btn btn-d btn-sm" onclick="nucleoRimuovi(\''+uid+'\')">&#128465; Rimuovi</button>';
 
       html += cardMembro(u, az);
@@ -7953,6 +8011,70 @@ function nucleoRimuovi(uid)  {
     }
     renderGestioneNucleo();
     toast('Membro rimosso','ok');
+  });
+}
+
+/** Apre il grado picker per modificare il grado di un membro (solo comandante/vice) */
+function apriCambioGradoMembro(uid, gradoAttuale) {
+  var me = lsG('ct_me', null);
+  if (!me || (me.ruolo !== 'comandante' && me.ruolo !== 'vice')) {
+    toast('Solo il Comandante o il Vice possono modificare i gradi', 'err');
+    return;
+  }
+  // Usa il grado picker esistente con un target hidden
+  window._gradoCambioUid = uid;
+  window._gradoTarget = '_grado_membro_hidden';
+  // Crea input hidden temporaneo se non esiste
+  var hidden = document.getElementById('_grado_membro_hidden');
+  if (!hidden) {
+    hidden = document.createElement('input');
+    hidden.type = 'hidden';
+    hidden.id = '_grado_membro_hidden';
+    document.body.appendChild(hidden);
+  }
+  hidden.value = gradoAttuale || '';
+  // Override selezionaGrado per intercettare la selezione
+  window._gradoCambioCallback = function(val) {
+    salvaCambioGradoMembro(uid, val);
+  };
+  renderGradoGrid();
+  openM('m-grado-picker');
+}
+
+/** Salva il nuovo grado del membro su Firebase e localmente */
+function salvaCambioGradoMembro(uid, nuovoGrado) {
+  if (!nuovoGrado) return;
+  var gradoNome = (typeof GR !== 'undefined' && GR[nuovoGrado]) ? GR[nuovoGrado].nome : nuovoGrado;
+  ctConfirm('Cambiare il grado in <strong>' + gradoNome + '</strong>?', {
+    title: 'Modifica Grado', ico: '🎖️', ok: 'Conferma'
+  }).then(function(ok) {
+    if (!ok) return;
+    // Aggiorna ct_users
+    var CU = lsG('ct_users', []);
+    var found = false;
+    CU.forEach(function(u) {
+      if (u.uid === uid || String(u.id) === String(uid)) {
+        u.grado = nuovoGrado; found = true;
+      }
+    });
+    if (found) lsS('ct_users', CU);
+    // Aggiorna ct_p
+    var P = lsG('ct_p', []);
+    P.forEach(function(p) {
+      if (p.uid === uid || String(p.id) === String(uid)) p.grado = nuovoGrado;
+    });
+    lsS('ct_p', P);
+    // Aggiorna ct_me se è l'utente corrente
+    var me = lsG('ct_me', null);
+    if (me && (me.uid === uid || String(me.id) === String(uid))) {
+      me.grado = nuovoGrado; lsS('ct_me', me);
+    }
+    // Salva su Firebase
+    if (window.FirebaseModule) {
+      window.FirebaseModule.saveUserProfile(uid, {grado: nuovoGrado}, null).catch(function(){});
+    }
+    renderGestioneNucleo();
+    toast('Grado aggiornato: ' + gradoNome, 'ok');
   });
 }
 
@@ -8558,9 +8680,10 @@ function saveWidgetSize(k, v)  { var d=getWidgetSizes();  d[k]=v; lsS('ct_dash_s
 function saveWidgetShape(k, v) { var d=getWidgetShapes(); d[k]=v; lsS('ct_dash_shapes', d); }
 function saveWidgetSpan(k, v)  { var d=getWidgetSpans();  d[k]=v; lsS('ct_dash_spans',  d); }
 
-// Numero di colonne della griglia (2 o 3)
-function getGridCols() { return lsG('ct_dash_cols', 2); }
+// Numero di colonne della griglia (max 2)
+function getGridCols() { return Math.min(2, lsG('ct_dash_cols', 2)); }
 function setGridCols(n) {
+  n = Math.min(2, Math.max(1, n)); // clamp 1-2
   lsS('ct_dash_cols', n);
   var c = document.getElementById('wdg-container');
   if(c) c.style.gridTemplateColumns = 'repeat(' + n + ', 1fr)';
@@ -8591,6 +8714,15 @@ function applyWidgetSizes() {
     el.style.gridColumn = 'span ' + colSpan;
     el.style.gridRow    = 'span ' + (sp.row || 1);
   });
+
+  // Dino: sempre full-width × 2 righe, size L — non ridimensionabile
+  var dinoEl = document.getElementById('widget-dino-dash');
+  if (dinoEl) {
+    dinoEl.classList.remove('wdg-size-s', 'wdg-size-m', 'wdg-size-l');
+    dinoEl.classList.add('wdg-size-l');
+    dinoEl.style.gridColumn = '1 / -1';
+    dinoEl.style.gridRow    = 'span 2';
+  }
 }
 
 function cycleWidgetSize(key) {
@@ -8860,10 +8992,10 @@ function renderDopList() {
   var spans  = getWidgetSpans();
   var cols   = getGridCols();
 
-  // Selettore colonne griglia — bottoni visivi con SVG
+  // Selettore colonne griglia — solo 1 e 2 colonne (3 rimossa)
   var gridHtml = '<div class="dop-grid-sel">'
     + '<span class="dop-grid-lbl">&#9783; Colonne griglia</span>'
-    + [1,2,3].map(function(n){
+    + [1,2].map(function(n){
         var rects = Array(n).fill(0).map(function(_,i){
           var w = Math.floor(26/n)-2;
           var x = 1 + i*(w+2);
@@ -11900,545 +12032,7 @@ var AuthModule = (function() {
 
 
 
-// -----------------------------------------------------------
-// CARABINIERE RUNNER — minigioco canvas tema polizia
-// -----------------------------------------------------------
-(function(){
 
-  var _dinoInited = false;
-  var _dinoRunning = false;
-  var _dinoRaf = null;
-
-  // Costanti fisiche
-  var GROUND_RATIO = 0.78;
-  var GRAVITY      = 0.7;
-  var JUMP_VY      = -13;
-  var BASE_SPEED   = 4;
-  var MAX_SPEED    = 14;
-  var ACCEL        = 0.0015;
-  var SIRENA_SCORE = 300; // punteggio da cui partono le luci
-
-  var state = {};
-
-  // Skyline pixel art — array di rettangoli {x,w,h,col}
-  var _skyline = [];
-  function _buildSkyline(cw, ch) {
-    _skyline = [];
-    var x = 0;
-    var cols = ['#1a2a4a','#162038','#1e2e52','#0f1a30','#243050'];
-    while(x < cw + 80) {
-      var w = 18 + Math.floor(Math.random()*28);
-      var h = 20 + Math.floor(Math.random()*55);
-      _skyline.push({ x:x, w:w, h:h, col:cols[Math.floor(Math.random()*cols.length)],
-        windows: _buildWindows(w, h) });
-      x += w + 2 + Math.floor(Math.random()*8);
-    }
-  }
-  function _buildWindows(bw, bh) {
-    var wins = [];
-    for(var wy=6; wy<bh-6; wy+=9){
-      for(var wx=4; wx<bw-4; wx+=8){
-        wins.push({ x:wx, y:wy, on: Math.random()>0.45 });
-      }
-    }
-    return wins;
-  }
-
-  // Parallasse skyline
-  var _skyOffsets = [0, 0]; // layer 0 (lento), layer 1 (veloce)
-
-  function resetState(cw, ch) {
-    var ground = Math.floor(ch * GROUND_RATIO);
-    _buildSkyline(cw, ch);
-    _skyOffsets = [0, 0];
-    state = {
-      score:    0,
-      speed:    BASE_SPEED,
-      over:     false,
-      started:  false,
-      ground:   ground,
-      // Protagonista
-      dx:       Math.floor(cw * 0.12),
-      dy:       ground,
-      vy:       0,
-      onGround: true,
-      frame:    0,
-      // Ostacoli
-      obstacles: [],
-      nextObs:   90,
-      // Luci sirena
-      siren:     false,
-      sirenPhase: 0
-    };
-  }
-
-  var HERO_W = 32, HERO_H = 36;
-  var OBS_W  = 28, OBS_H  = 32;
-
-  // Disegna il carabiniere pixel art
-  function _drawHero(ctx, x, y, frame) {
-    var run = Math.floor(frame / 8) % 2; // animazione corsa
-    ctx.save();
-    // Corpo — giubbotto catarifrangente giallo
-    ctx.fillStyle = '#f5c518';
-    ctx.fillRect(x - 10, y - 28, 20, 16);
-    // Strisce rifrangenti
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(x - 10, y - 22, 20, 3);
-    ctx.fillRect(x - 10, y - 16, 20, 3);
-    // Testa
-    ctx.fillStyle = '#c8a882';
-    ctx.fillRect(x - 7, y - 38, 14, 12);
-    // Cappello da poliziotto (blu scuro con visiera)
-    ctx.fillStyle = '#1a2a6c';
-    ctx.fillRect(x - 9, y - 44, 18, 8);
-    ctx.fillStyle = '#0d1a4a';
-    ctx.fillRect(x - 11, y - 37, 22, 3); // tesa
-    // Stella sul cappello
-    ctx.fillStyle = '#ffd700';
-    ctx.fillRect(x - 2, y - 42, 4, 4);
-    // Gambe animate
-    ctx.fillStyle = '#1a2a6c';
-    if(run === 0){
-      ctx.fillRect(x - 7, y - 12, 6, 14);
-      ctx.fillRect(x + 1, y - 12, 6, 10);
-    } else {
-      ctx.fillRect(x - 7, y - 12, 6, 10);
-      ctx.fillRect(x + 1, y - 12, 6, 14);
-    }
-    // Scarpe
-    ctx.fillStyle = '#111';
-    ctx.fillRect(x - 8, y + 1, 8, 4);
-    ctx.fillRect(x, y + 1, 8, 4);
-    ctx.restore();
-  }
-
-  // Disegna cono stradale
-  function _drawCone(ctx, x, y) {
-    ctx.save();
-    // Cono arancione
-    ctx.fillStyle = '#ff6600';
-    ctx.beginPath();
-    ctx.moveTo(x, y - OBS_H + 4);
-    ctx.lineTo(x - OBS_W/2 + 4, y);
-    ctx.lineTo(x + OBS_W/2 - 4, y);
-    ctx.closePath();
-    ctx.fill();
-    // Strisce bianche
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(x - 8, y - OBS_H/2 - 2, 16, 4);
-    ctx.fillRect(x - 5, y - OBS_H/4, 10, 3);
-    // Base
-    ctx.fillStyle = '#cc4400';
-    ctx.fillRect(x - OBS_W/2 + 2, y - 4, OBS_W - 4, 4);
-    ctx.restore();
-  }
-
-  // Disegna auto civetta
-  function _drawCar(ctx, x, y) {
-    ctx.save();
-    var bw = OBS_W + 10, bh = 18;
-    // Carrozzeria
-    ctx.fillStyle = '#1a3a8f';
-    ctx.fillRect(x - bw/2, y - bh, bw, bh);
-    // Tetto
-    ctx.fillStyle = '#0d2060';
-    ctx.fillRect(x - bw/2 + 6, y - bh - 10, bw - 12, 10);
-    // Finestrini
-    ctx.fillStyle = '#7ec8e3';
-    ctx.fillRect(x - bw/2 + 8, y - bh - 8, 10, 7);
-    ctx.fillRect(x + 2, y - bh - 8, 10, 7);
-    // Luci
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(x - bw/2, y - bh/2 - 2, 5, 4);
-    ctx.fillStyle = '#ff4444';
-    ctx.fillRect(x + bw/2 - 5, y - bh/2 - 2, 5, 4);
-    // Ruote
-    ctx.fillStyle = '#222';
-    ctx.beginPath(); ctx.arc(x - bw/2 + 8, y, 5, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x + bw/2 - 8, y, 5, 0, Math.PI*2); ctx.fill();
-    ctx.restore();
-  }
-
-  // Disegna drone
-  function _drawDrone(ctx, x, y, frame) {
-    ctx.save();
-    var spin = Math.floor(frame/4)%2;
-    // Corpo drone
-    ctx.fillStyle = '#333';
-    ctx.fillRect(x - 10, y - 6, 20, 10);
-    // Occhio/camera
-    ctx.fillStyle = '#ff3333';
-    ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI*2); ctx.fill();
-    // Braccia
-    ctx.strokeStyle = '#555'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(x-10,y-2); ctx.lineTo(x-20,y-8); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(x+10,y-2); ctx.lineTo(x+20,y-8); ctx.stroke();
-    // Eliche (animate)
-    ctx.fillStyle = spin ? 'rgba(200,200,200,0.8)' : 'rgba(150,150,150,0.5)';
-    ctx.fillRect(x - 26, y - 11, 12, 3);
-    ctx.fillRect(x + 14, y - 11, 12, 3);
-    // Fascio luce verso il basso
-    ctx.fillStyle = 'rgba(255,255,100,0.12)';
-    ctx.beginPath();
-    ctx.moveTo(x-4, y+4);
-    ctx.lineTo(x-12, y+28);
-    ctx.lineTo(x+12, y+28);
-    ctx.lineTo(x+4, y+4);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-  }
-
-  function draw(ctx, cw, ch) {
-    var s = state;
-    ctx.clearRect(0, 0, cw, ch);
-
-    // ── Effetto sirena (luci blu/rosse lampeggianti) ──
-    if(s.siren && s.started && !s.over) {
-      s.sirenPhase = (s.sirenPhase + 1) % 40;
-      var sirenAlpha = 0.08 + 0.06 * Math.sin(s.sirenPhase * Math.PI / 10);
-      ctx.fillStyle = s.sirenPhase < 20
-        ? 'rgba(0,80,255,' + sirenAlpha + ')'
-        : 'rgba(255,20,20,' + sirenAlpha + ')';
-      ctx.fillRect(0, 0, cw, ch);
-    }
-
-    // ── Cielo notturno urbano ──
-    var skyGrad = ctx.createLinearGradient(0, 0, 0, s.ground);
-    skyGrad.addColorStop(0, '#050d1a');
-    skyGrad.addColorStop(0.7, '#0a1428');
-    skyGrad.addColorStop(1, '#0f1e3a');
-    ctx.fillStyle = skyGrad;
-    ctx.fillRect(0, 0, cw, s.ground);
-
-    // ── Stelle ──
-    ctx.fillStyle = 'rgba(255,255,255,0.6)';
-    [[cw*.08,ch*.06],[cw*.22,ch*.04],[cw*.38,ch*.09],[cw*.52,ch*.03],
-     [cw*.65,ch*.07],[cw*.78,ch*.05],[cw*.88,ch*.10],[cw*.95,ch*.04]].forEach(function(p){
-      ctx.fillRect(p[0], p[1], 1.5, 1.5);
-    });
-
-    // ── Skyline parallasse layer 0 (lontano, lento) ──
-    var groundY = s.ground;
-    _skyline.forEach(function(b) {
-      var bx = (b.x - _skyOffsets[0] % (cw + 100) + cw + 100) % (cw + 100) - 50;
-      var by = groundY - b.h;
-      ctx.fillStyle = b.col;
-      ctx.fillRect(bx, by, b.w, b.h);
-      // Finestre
-      b.windows.forEach(function(w){
-        ctx.fillStyle = w.on ? 'rgba(255,240,150,0.7)' : 'rgba(20,30,60,0.8)';
-        ctx.fillRect(bx + w.x, by + w.y, 4, 5);
-      });
-    });
-
-    // ── Strada ──
-    ctx.fillStyle = '#1a1a2e';
-    ctx.fillRect(0, groundY, cw, ch - groundY);
-    // Linea tratteggiata strada
-    ctx.strokeStyle = 'rgba(255,200,0,0.4)';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([18, 14]);
-    ctx.beginPath();
-    ctx.moveTo(0, groundY + (ch - groundY) * 0.5);
-    ctx.lineTo(cw, groundY + (ch - groundY) * 0.5);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    // Bordo strada
-    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(cw, groundY); ctx.stroke();
-
-    // ── Punteggio ──
-    var scoreStr = Math.floor(s.score).toString().padStart(5, '0');
-    ctx.font = 'bold 13px monospace';
-    ctx.fillStyle = 'rgba(255,255,255,0.7)';
-    ctx.textAlign = 'right';
-    ctx.fillText(scoreStr, cw - 10, 18);
-    ctx.textAlign = 'left';
-
-    // Barra velocità
-    if(s.started && !s.over){
-      var spPct = (s.speed - BASE_SPEED) / (MAX_SPEED - BASE_SPEED);
-      ctx.fillStyle = s.siren ? 'rgba(255,60,60,0.5)' : 'rgba(91,159,255,0.4)';
-      ctx.fillRect(0, 0, cw * spPct, 3);
-    }
-
-    // ── Protagonista ──
-    _drawHero(ctx, s.dx, s.dy, s.frame);
-
-    // ── Ostacoli ──
-    s.obstacles.forEach(function(o){
-      if(o.flying){
-        _drawDrone(ctx, o.x, o.y, s.frame);
-      } else if(o.tipo === 'car'){
-        _drawCar(ctx, o.x, groundY);
-      } else {
-        _drawCone(ctx, o.x, groundY);
-      }
-    });
-
-    // ── Schermata iniziale ──
-    if(!s.started && !s.over){
-      ctx.fillStyle = 'rgba(0,0,0,0.5)';
-      ctx.fillRect(cw/2 - 110, ch/2 - 32, 220, 52);
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 14px -apple-system, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('👮 Tocca per iniziare', cw/2, ch/2 - 8);
-      ctx.font = '11px -apple-system, sans-serif';
-      ctx.fillStyle = 'rgba(255,255,255,0.55)';
-      ctx.fillText('Spazio / Tap per saltare', cw/2, ch/2 + 12);
-      ctx.textAlign = 'left';
-    }
-
-    // ── ARRESTATO! ──
-    if(s.over){
-      // Flash rosso/blu
-      ctx.fillStyle = (s.frame % 20 < 10) ? 'rgba(0,50,200,0.35)' : 'rgba(200,0,0,0.35)';
-      ctx.fillRect(0, 0, cw, ch);
-      // Box
-      var bw = 220, bh = 90;
-      var bx = (cw - bw)/2, by = (ch - bh)/2;
-      ctx.fillStyle = 'rgba(10,10,30,0.96)';
-      ctx.beginPath();
-      if(ctx.roundRect) ctx.roundRect(bx, by, bw, bh, 16); else ctx.rect(bx, by, bw, bh);
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(255,50,50,0.7)';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.fillStyle = '#ff3333';
-      ctx.font = 'bold 22px -apple-system, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('🚨 ARRESTATO!', cw/2, by + 32);
-      ctx.font = '12px -apple-system, sans-serif';
-      ctx.fillStyle = 'rgba(255,255,255,0.75)';
-      ctx.fillText('Punteggio: ' + Math.floor(s.score), cw/2, by + 54);
-      ctx.fillText('Tocca per riprovare', cw/2, by + 74);
-      ctx.textAlign = 'left';
-    }
-  }
-
-  function update(cw) {
-    var s = state;
-    if(!s.started || s.over) return;
-
-    s.frame++;
-    s.score += s.speed * 0.04;
-    s.speed = Math.min(MAX_SPEED, BASE_SPEED + s.frame * ACCEL);
-    s.siren = s.score >= SIRENA_SCORE;
-
-    // Fisica
-    s.vy += GRAVITY;
-    s.dy += s.vy;
-    if(s.dy >= s.ground){ s.dy = s.ground; s.vy = 0; s.onGround = true; }
-
-    // Parallasse skyline
-    _skyOffsets[0] += s.speed * 0.18;
-    _skyOffsets[1] += s.speed * 0.45;
-
-    // Spawn ostacoli
-    s.nextObs--;
-    if(s.nextObs <= 0){
-      var r = Math.random();
-      if(s.score > 200 && r < 0.28){
-        // Drone volante
-        var flyH = s.ground - HERO_H * (Math.random() < 0.5 ? 2.0 : 3.4);
-        s.obstacles.push({ x: cw + OBS_W, flying: true, y: flyH });
-      } else if(s.score > 100 && r < 0.55){
-        // Auto civetta
-        s.obstacles.push({ x: cw + OBS_W + 10, flying: false, tipo: 'car' });
-      } else {
-        // Cono stradale
-        s.obstacles.push({ x: cw + OBS_W, flying: false, tipo: 'cone' });
-      }
-      var interval = Math.floor(50 + Math.random()*60 - s.speed * 1.5);
-      s.nextObs = Math.max(28, interval);
-    }
-
-    // Muovi ostacoli
-    s.obstacles = s.obstacles.filter(function(o){ o.x -= s.speed; return o.x > -OBS_W - 20; });
-
-    // Collisione AABB
-    var mg = 0.28;
-    var dL = s.dx - HERO_W*(0.5-mg), dR = s.dx + HERO_W*(0.5-mg);
-    var dT = s.dy - HERO_H*(1-mg*0.5), dB = s.dy + 4;
-
-    for(var i=0; i<s.obstacles.length; i++){
-      var o = s.obstacles[i];
-      var ow = o.tipo==='car' ? OBS_W+10 : OBS_W;
-      var oL = o.x - ow*(0.5-mg), oR = o.x + ow*(0.5-mg);
-      var oT, oB;
-      if(o.flying){
-        oT = o.y - (OBS_W+4)*0.8; oB = o.y + 8;
-      } else if(o.tipo==='car'){
-        oT = s.ground - 22; oB = s.ground + 4;
-      } else {
-        oT = s.ground - OBS_H*(1-mg*0.5); oB = s.ground + 4;
-      }
-      if(dR>oL && dL<oR && dB>oT && dT<oB){ gameOver(); return; }
-    }
-  }
-
-  function gameOver() {
-    state.over = true;
-    _dinoRunning = false;
-    cancelAnimationFrame(_dinoRaf);
-    var hi = parseInt(localStorage.getItem('ct_dino_hi')||'0',10);
-    var sc = Math.floor(state.score);
-    if(sc > hi){ localStorage.setItem('ct_dino_hi', sc); hi = sc; }
-    var recEl = document.getElementById('dino-record');
-    if(recEl) recEl.textContent = hi;
-    _dinoSaveScore(sc);
-    // Continua a disegnare il frame ARRESTATO con flash
-    var _ctx2 = _ctx, _cw2 = _cw, _ch2 = _ch;
-    var _flashFrames = 0;
-    function flashLoop(){
-      state.frame++;
-      draw(_ctx2, _cw2, _ch2);
-      if(++_flashFrames < 60) _dinoRaf = requestAnimationFrame(flashLoop);
-    }
-    flashLoop();
-  }
-
-  function _dinoSaveScore(sc) {
-    try {
-      var sess = lsG('ct_session', null);
-      var me = lsG('ct_me', null);
-      if(!sess||!sess.userId||!window.FirebaseModule) return;
-      var rep = (me&&me.reparto)?me.reparto:null;
-      if(!rep||rep.startsWith('privato_')) return;
-      var nome = me?((me.nome||'')+' '+(me.cognome||'')).trim():'Anonimo';
-      window.FirebaseModule.saveDinoScore(sess.userId, nome, sc, rep)
-        .then(function(){ return window.FirebaseModule.getDinoLeaderboard(rep); })
-        .then(function(top5){ if(top5&&top5.length) _dinoShowLeaderboard(top5, sc); })
-        .catch(function(){});
-    } catch(e){}
-  }
-
-  function _dinoShowLeaderboard(top5, myScore) {
-    var old = document.getElementById('dino-lb-popup'); if(old) old.remove();
-    var html = '<div id="dino-lb-popup" style="position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(10,15,35,.97);border:1px solid rgba(255,50,50,.4);border-radius:16px;padding:14px 18px;z-index:99999;min-width:220px;max-width:300px;box-shadow:0 8px 32px rgba(0,0,0,.7)">'
-      +'<div style="font-size:13px;font-weight:800;color:#ffd700;margin-bottom:10px;text-align:center">🏆 Top Reparto</div>';
-    top5.forEach(function(s,i){
-      var isMe = s.score===myScore;
-      html+='<div style="display:flex;align-items:center;gap:8px;padding:4px 0;'+(isMe?'color:#5b9fff;font-weight:800':'color:rgba(255,255,255,.8)')+'">'
-        +'<span style="font-size:12px;width:18px;text-align:center">'+(i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.')+' </span>'
-        +'<span style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+s.nome+'</span>'
-        +'<span style="font-size:13px;font-weight:900">'+s.score+'</span>'
-        +'</div>';
-    });
-    html+='<button onclick="document.getElementById(\'dino-lb-popup\').remove()" style="width:100%;margin-top:10px;background:rgba(255,255,255,.1);border:none;border-radius:8px;padding:6px;font-size:11px;color:rgba(255,255,255,.7);cursor:pointer;appearance:none;-webkit-appearance:none">Chiudi</button></div>';
-    document.body.insertAdjacentHTML('beforeend', html);
-    setTimeout(function(){ var lb=document.getElementById('dino-lb-popup'); if(lb) lb.remove(); }, 7000);
-  }
-
-  function loop(ctx, cw, ch) {
-    update(cw);
-    draw(ctx, cw, ch);
-    if(!state.over){ _dinoRaf = requestAnimationFrame(function(){ loop(ctx, cw, ch); }); }
-  }
-
-  var _ctx = null, _cw = 0, _ch = 0;
-
-  function jump() {
-    if(state.over){
-      resetState(_cw, _ch);
-      state.started = true;
-      if(_dinoRaf){ cancelAnimationFrame(_dinoRaf); _dinoRaf = null; }
-      _dinoRunning = false;
-      return;
-    }
-    if(!state.started) state.started = true;
-    if(state.onGround){ state.vy = JUMP_VY; state.onGround = false; }
-  }
-
-  var _dinoListenerAdded = false;
-
-  window.initDinoGame = function() {
-    var canvas = document.getElementById('dino-canvas');
-    if(!canvas) return;
-    var rect = canvas.getBoundingClientRect();
-    if(rect.width < 10 || rect.height < 10){
-      _dinoInited = false;
-      setTimeout(function(){ window.initDinoGame(); }, 200);
-      return;
-    }
-    if(_dinoInited) return;
-    _dinoInited = true;
-    if(_dinoRaf){ cancelAnimationFrame(_dinoRaf); _dinoRaf = null; }
-    _dinoRunning = false;
-    var dpr = window.devicePixelRatio || 1;
-    _cw = rect.width; _ch = rect.height;
-    canvas.width  = Math.round(_cw * dpr);
-    canvas.height = Math.round(_ch * dpr);
-    _ctx = canvas.getContext('2d');
-    _ctx.scale(dpr, dpr);
-    resetState(_cw, _ch);
-    draw(_ctx, _cw, _ch);
-    var hi = parseInt(localStorage.getItem('ct_dino_hi')||'0',10);
-    var recEl = document.getElementById('dino-record');
-    if(recEl) recEl.textContent = hi;
-
-    function onInput(e){ if(e&&e.preventDefault) e.preventDefault(); jump();
-      if(state.started&&!state.over&&!_dinoRaf){ _dinoRunning=true; loop(_ctx,_cw,_ch); } }
-    canvas.onclick = onInput;
-    canvas.ontouchstart = onInput;
-    if(!_dinoListenerAdded){
-      _dinoListenerAdded = true;
-      document.addEventListener('keydown', function(e){
-        if(e.code==='Space'||e.code==='ArrowUp'){
-          var w=document.getElementById('widget-dino-dash');
-          if(w&&w.style.display!=='none') onInput(e);
-        }
-      });
-    }
-  };
-
-  document.addEventListener('DOMContentLoaded', function(){ _applyDinoPrefs(); });
-  if(document.readyState !== 'loading') setTimeout(_applyDinoPrefs, 400);
-
-  function _applyDinoPrefs() {
-    var prefs = lsG('ct_prefs', {});
-    var tog = document.getElementById('tog-dino');
-    var enabled = prefs.dino === true;
-    if(tog) tog.checked = enabled;
-    _updateDinoVisibility();
-    var cfg = lsG('ct_dash_widgets', {});
-    cfg.dino = enabled;
-    lsS('ct_dash_widgets', cfg);
-    if(enabled) setTimeout(function(){ window.initDinoGame(); }, 300);
-    if(tog){
-      tog.onchange = function(){
-        var v = this.checked;
-        var s = lsG('ct_prefs', {}); s.dino = v; lsS('ct_prefs', s);
-        var c = lsG('ct_dash_widgets', {}); c.dino = v; lsS('ct_dash_widgets', c);
-        _updateDinoVisibility();
-        if(v){ _dinoInited=false; setTimeout(function(){ window.initDinoGame(); }, 150); }
-        else { if(_dinoRaf) cancelAnimationFrame(_dinoRaf); _dinoRunning=false; }
-        if(typeof renderDopList==='function') renderDopList();
-      };
-    }
-  }
-
-  window._updateDinoVisibility = function() {
-    var prefs = lsG('ct_prefs', {});
-    var widget = document.getElementById('widget-dino-dash');
-    if(!widget) return;
-    var onHome = (typeof _pgCurrent!=='undefined'?_pgCurrent:lsG('ct_pg','dash'))==='dash';
-    var enabled = prefs.dino === true;
-    var shouldShow = enabled && onHome;
-    widget.style.display = shouldShow ? '' : 'none';
-    if(shouldShow){
-      _dinoInited = false;
-      if(_dinoRaf){ cancelAnimationFrame(_dinoRaf); _dinoRaf=null; }
-      _dinoRunning = false;
-      requestAnimationFrame(function(){ requestAnimationFrame(function(){ window.initDinoGame(); }); });
-    }
-  };
-
-})();
 
 // ---------------------------------------------------------------
 // EFFETTI PREMIUM — Glass Shimmer, Ripple Pulse, Magnetic Snap,
