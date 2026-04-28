@@ -186,6 +186,9 @@ function _startListeners(reparto) {
       if(snap.exists()) {
         var prof = snap.data();
         var oldMe = JSON.parse(localStorage.getItem('ct_me') || 'null');
+        // Salva le licenze locali PRIMA di sovrascrivere ct_me
+        var _licenzeOld = (oldMe && oldMe.licenzePool && oldMe.licenzePool.length) ? oldMe.licenzePool : null;
+        var _ferieOld   = (oldMe && oldMe.ferieRes) ? oldMe.ferieRes : null;
         // Preserva ava locale
         var firestoreAva = prof.ava || '';
         var localAva = (oldMe && oldMe.ava) ? oldMe.ava : '';
@@ -208,6 +211,27 @@ function _startListeners(reparto) {
           }
         }
         localStorage.setItem('ct_me', JSON.stringify(prof));
+        // Se Firestore non ha licenzePool ma ne avevamo localmente, ripristinale
+        if ((!prof.licenzePool || !prof.licenzePool.length) && _licenzeOld) {
+          prof.licenzePool = _licenzeOld;
+          prof.ferieRes    = _ferieOld || 30;
+          localStorage.setItem('ct_me', JSON.stringify(prof));
+          if(window.FirebaseModule && prof.uid) {
+            window.FirebaseModule.saveUserProfile(prof.uid, prof, prof.reparto).catch(function(){});
+          }
+        }
+        // Aggiorna ct_u e ct_p con le licenze
+        if(prof.licenzePool && prof.licenzePool.length) {
+          var _Uss = lsG('ct_u', []); var _fss = false;
+          for(var _iss=0; _iss<_Uss.length; _iss++){
+            if(_Uss[_iss].id===prof.id||_Uss[_iss].uid===prof.uid){ _Uss[_iss].licenzePool=prof.licenzePool; _Uss[_iss].ferieRes=prof.ferieRes||30; _fss=true; break; }
+          }
+          if(!_fss && prof.id) _Uss.push(prof);
+          lsS('ct_u', _Uss);
+          var _Pss = lsG('ct_p', []);
+          _Pss.forEach(function(p){ if(p.uid===prof.uid||p.id===prof.id){ p.licenzePool=prof.licenzePool; p.ferieRes=prof.ferieRes||30; } });
+          lsS('ct_p', _Pss);
+        }
         // Aggiorna ct_p con il nuovo ava
         if(prof.ava) {
           try {
@@ -500,8 +524,11 @@ window.FirebaseModule = {
       var profSnap = await getDoc(doc(db, 'utenti', uid));
       if(profSnap.exists()) {
         var prof = profSnap.data();
-        // Preserva ava locale se Firestore non ce l'ha
+        // Leggi ct_me PRIMA di sovrascriverlo — serve per preservare licenze locali
         var _lm = JSON.parse(localStorage.getItem('ct_me') || 'null');
+        var _licenzeLocali = (_lm && _lm.licenzePool && _lm.licenzePool.length) ? _lm.licenzePool : null;
+        var _ferieLocali   = (_lm && _lm.ferieRes) ? _lm.ferieRes : null;
+        // Preserva ava locale se Firestore non ce l'ha
         if(!prof.ava && _lm && _lm.ava) prof.ava = _lm.ava;
         // Preserva privacy locale (condividiTurni è controllato dall'utente)
         if(_lm && _lm.privacy) {
@@ -516,19 +543,17 @@ window.FirebaseModule = {
         if(typeof window._straordLoadFirebase === 'function') window._straordLoadFirebase(prof);
         if(prof.meteoCitta) lsS('ct_meteo_citta', prof.meteoCitta);
         // Tema: il valore locale ha sempre priorità su Firestore
-        // (l'utente può cambiare tema senza essere online)
         var _localTema = null;
         try { _localTema = localStorage.getItem('ct_tema'); } catch(e3){}
         if(_localTema !== null && _localTema !== undefined) {
-          // Usa il tema locale — non sovrascrivere con Firestore
           if(typeof window.caricaTema === 'function') window.caricaTema();
         } else if(prof.tema !== undefined) {
-          // Nessun tema locale — usa quello di Firestore
           lsS('ct_tema', prof.tema);
           if(typeof window.caricaTema === 'function') window.caricaTema();
         } else {
           if(typeof window.caricaTema === 'function') window.caricaTema();
         }
+        // Licenze: Firestore ha la priorità, ma se Firestore è vuoto preserva le locali
         if(prof.licenzePool && prof.licenzePool.length) {
           var _U2 = lsG('ct_u', []); var _found2 = false;
           for(var _i2=0; _i2<_U2.length; _i2++){
@@ -536,17 +561,30 @@ window.FirebaseModule = {
           }
           if(!_found2 && prof.id) _U2.push(prof);
           lsS('ct_u', _U2);
-        } else {
-          // Firestore non ha licenzePool — preserva le licenze locali
-          var _U2loc = lsG('ct_u', []);
-          var _meLocal = JSON.parse(localStorage.getItem('ct_me') || 'null');
-          if(_meLocal && _meLocal.licenzePool && _meLocal.licenzePool.length) {
-            prof.licenzePool = _meLocal.licenzePool;
-            prof.ferieRes = _meLocal.ferieRes || 30;
-            // Salva su Firebase per non perderle di nuovo
-            if(window.FirebaseModule && prof.uid) {
-              window.FirebaseModule.saveUserProfile(prof.uid, prof, prof.reparto).catch(function(){});
-            }
+          // Aggiorna anche ct_p
+          var _P2 = lsG('ct_p', []);
+          _P2.forEach(function(p){ if(p.uid===prof.uid||p.id===prof.id){ p.licenzePool=prof.licenzePool; p.ferieRes=prof.ferieRes||30; } });
+          lsS('ct_p', _P2);
+        } else if(_licenzeLocali) {
+          // Firestore non ha licenzePool — usa quelle locali salvate PRIMA della sovrascrittura
+          prof.licenzePool = _licenzeLocali;
+          prof.ferieRes    = _ferieLocali || 30;
+          // Aggiorna ct_me con le licenze locali
+          localStorage.setItem('ct_me', JSON.stringify(prof));
+          // Aggiorna ct_u
+          var _U2loc = lsG('ct_u', []); var _f2 = false;
+          for(var _j=0; _j<_U2loc.length; _j++){
+            if(_U2loc[_j].id===prof.id||_U2loc[_j].uid===prof.uid){ _U2loc[_j].licenzePool=_licenzeLocali; _U2loc[_j].ferieRes=_ferieLocali||30; _f2=true; break; }
+          }
+          if(!_f2 && prof.id) _U2loc.push(prof);
+          lsS('ct_u', _U2loc);
+          // Aggiorna ct_p
+          var _P2loc = lsG('ct_p', []);
+          _P2loc.forEach(function(p){ if(p.uid===prof.uid||p.id===prof.id){ p.licenzePool=_licenzeLocali; p.ferieRes=_ferieLocali||30; } });
+          lsS('ct_p', _P2loc);
+          // Salva su Firebase per non perderle di nuovo
+          if(window.FirebaseModule && prof.uid) {
+            window.FirebaseModule.saveUserProfile(prof.uid, prof, prof.reparto).catch(function(){});
           }
         }
         if(prof.ct_recuperi) lsS('ct_recuperi', prof.ct_recuperi);
@@ -1143,8 +1181,8 @@ window.FirebaseModule = {
         }
       }
 
-      // Salva profilo completo in /utenti/{uid}
-      await window._fbSetDoc(window._fbDoc(db, 'utenti', uid), profileClean);
+      // Salva profilo completo in /utenti/{uid} — merge:true per non cancellare campi esistenti
+      await window._fbSetDoc(window._fbDoc(db, 'utenti', uid), profileClean, { merge: true });
 
       // Nel reparto salva solo i campi necessari — NO avatar (evita documenti enormi)
       if(reparto) {
