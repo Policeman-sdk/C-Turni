@@ -88,7 +88,11 @@ var _unsubNotifiche = null;
 function _reparto() {
   try {
     var s = JSON.parse(localStorage.getItem('ct_session') || 'null');
-    return s && s.reparto ? s.reparto.toLowerCase().replace(/\s+/g,'_') : null;
+    if(s && s.reparto) return s.reparto.toLowerCase().replace(/\s+/g,'_');
+    // Fallback: leggi da ct_me (aggiornato da Firestore)
+    var me = JSON.parse(localStorage.getItem('ct_me') || 'null');
+    if(me && me.reparto) return me.reparto.toLowerCase().replace(/\s+/g,'_');
+    return null;
   } catch(e) { return null; }
 }
 
@@ -210,6 +214,20 @@ function _startListeners(reparto) {
             }
           }
         }
+        // ── Preserva nome e cognome locali se già impostati dall'utente
+        // Firestore /utenti/{uid} può contenere il nome in formato Excel (es. "ROSSI MARIO")
+        // mentre l'utente potrebbe aver salvato "Mario Rossi" nelle Impostazioni
+        if(oldMe && oldMe.nome && prof.nome && oldMe.nome !== prof.nome) {
+          // Mantieni il nome locale solo se non è vuoto e non è identico (case insensitive)
+          if(oldMe.nome.toLowerCase().replace(/\s+/g,' ').trim() !== prof.nome.toLowerCase().replace(/\s+/g,' ').trim()) {
+            prof.nome = oldMe.nome;
+          }
+        }
+        if(oldMe && oldMe.cognome && prof.cognome && oldMe.cognome !== prof.cognome) {
+          if(oldMe.cognome.toLowerCase().replace(/\s+/g,' ').trim() !== prof.cognome.toLowerCase().replace(/\s+/g,' ').trim()) {
+            prof.cognome = oldMe.cognome;
+          }
+        }
         localStorage.setItem('ct_me', JSON.stringify(prof));
         // Se Firestore non ha licenzePool ma ne avevamo localmente, ripristinale
         if ((!prof.licenzePool || !prof.licenzePool.length) && _licenzeOld) {
@@ -316,6 +334,11 @@ function _startListeners(reparto) {
             myProfile.ava = oldMe.ava;
             myProfile.fotoURL = oldMe.ava;
           }
+          // Preserva nome e cognome locali — l'utente li imposta in Impostazioni,
+          // non devono essere sovrascritti dal profilo del reparto (che potrebbe avere
+          // il formato MAIUSCOLO dell'Excel o un valore vecchio)
+          if(oldMe && oldMe.nome) myProfile.nome = oldMe.nome;
+          if(oldMe && oldMe.cognome) myProfile.cognome = oldMe.cognome;
           // Aggiorna ct_me con il profilo aggiornato — preserva privacy locale se Firestore non ce l'ha
           var _oldMePrivacy = oldMe && oldMe.privacy ? oldMe.privacy : null;
           if(_oldMePrivacy && (!myProfile.privacy || !myProfile.privacy.tosAccepted)) {
@@ -364,6 +387,11 @@ function _startListeners(reparto) {
   // Persone (ct_p) — sincronizzazione real-time del personale del reparto
   var personeRef = collection(db, 'reparti', reparto, 'persone');
   _unsubscribers.push(onSnapshot(personeRef, function(snap) {
+    // Se è in corso un import Excel, non sovrascrivere ct_p per evitare di perdere i nuovi nomi
+    if(window._importPersoneLock && Date.now() < window._importPersoneLock) {
+      console.log('[Firebase] onSnapshot persone ignorato — import in corso');
+      return;
+    }
     var arr = []; snap.forEach(function(d){ arr.push(d.data()); });
     if(arr.length > 0) {
       // Merge: mantieni voci locali non ancora su Firebase
@@ -371,6 +399,16 @@ function _startListeners(reparto) {
       try { localP = (window.CDB ? CDB.getSync('ct_p', []) : JSON.parse(localStorage.getItem('ct_p') || '[]')) || []; } catch(e) {}
       var fbIds = arr.map(function(p){ return String(p.id); });
       var soloLocali = localP.filter(function(p){ return p.id && fbIds.indexOf(String(p.id)) === -1; });
+      // Preserva licenzePool e ferieRes locali — Firebase non li salva nelle persone del reparto
+      arr.forEach(function(fbP){
+        var localMatch = localP.find(function(lp){
+          return String(lp.id) === String(fbP.id) || (lp.uid && lp.uid === fbP.uid);
+        });
+        if(localMatch){
+          if(localMatch.licenzePool && localMatch.licenzePool.length) fbP.licenzePool = localMatch.licenzePool;
+          if(localMatch.ferieRes !== undefined && !fbP.ferieRes) fbP.ferieRes = localMatch.ferieRes;
+        }
+      });
       lsS('ct_p', arr.concat(soloLocali));
       if(typeof window.renderPers === 'function') window.renderPers();
     }
@@ -1353,16 +1391,34 @@ window.FirebaseModule = {
         perm = await Notification.requestPermission();
         if(perm !== 'granted') { console.warn('[FCM] Permesso non concesso:', perm); return; }
       }
-      // Usa il SW FCM esterno
-      var swReg = await navigator.serviceWorker.getRegistration('/C-Turni/');
+      // Trova o registra il SW FCM — prova scope multipli per compatibilità con hosting diversi
+      var swReg = null;
+      var swScopes = ['/C-Turni/', '/', location.pathname.replace(/\/[^/]*$/, '/') || '/'];
+      for(var _si = 0; _si < swScopes.length; _si++) {
+        try { swReg = await navigator.serviceWorker.getRegistration(swScopes[_si]); } catch(e2) {}
+        if(swReg) { console.log('[FCM] SW trovato per scope:', swScopes[_si]); break; }
+      }
       if(!swReg) {
         console.log('[FCM] SW non trovato, registro...');
-        swReg = await navigator.serviceWorker.register('/C-Turni/firebase-messaging-sw.js', { scope: '/C-Turni/' });
+        var swUrl = location.pathname.replace(/\/[^/]*$/, '/') + 'firebase-messaging-sw.js';
+        try {
+          swReg = await navigator.serviceWorker.register(swUrl);
+        } catch(e3) {
+          swReg = await navigator.serviceWorker.register('/C-Turni/firebase-messaging-sw.js', { scope: '/C-Turni/' });
+        }
         await navigator.serviceWorker.ready;
       }
       console.log('[FCM] SW registrato:', swReg.scope);
-      var token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg });
-      if(!token) { console.warn('[FCM] Token non ottenuto — verifica VAPID_KEY e SW'); return; }
+      // Prova a ottenere il token con un retry in caso di fallimento transitorio
+      var token = null;
+      for(var _retry = 0; _retry < 3; _retry++) {
+        try {
+          token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg });
+          if(token) break;
+        } catch(eTok) { console.warn('[FCM] getToken tentativo', _retry+1, ':', eTok.message); }
+        if(_retry < 2) await new Promise(function(r){ setTimeout(r, 2000); });
+      }
+      if(!token) { console.warn('[FCM] Token non ottenuto dopo 3 tentativi — verifica VAPID_KEY e SW'); return; }
       console.log('[FCM] Token ottenuto:', token.substring(0,20)+'...');
       // Salva token su Firestore
       var session = JSON.parse(localStorage.getItem('ct_session') || 'null');

@@ -981,6 +981,17 @@ function initNotifiche(){
   setInterval(controllaNotifiche,60000);
   // Schedula push pre-turno su Firestore (funziona anche con app chiusa)
   setTimeout(schedulaPreTurniFirebase, 3000);
+  // Reschedule automatico: ogni ora ricontrolla (copre cambio giorno e nuovi turni)
+  setInterval(function(){
+    // Reset lista schedulati se è un nuovo giorno
+    var todayKey = new Date().toISOString().slice(0,10);
+    var lastDay = localStorage.getItem('ct_push_sched_day');
+    if(lastDay !== todayKey){
+      lsS("ct_push_scheduled",[]);
+      localStorage.setItem('ct_push_sched_day', todayKey);
+    }
+    schedulaPreTurniFirebase();
+  }, 3600000); // ogni ora
 }
 function controllaNotifiche(){
   if(Notification.permission!=="granted")return;
@@ -1228,6 +1239,14 @@ function saveFeriePool(pid,pool){
   }
   if(!trovato){ U.push({id:pid,licenzePool:pool,ferie:tot,ferieRes:tot}); }
   lsS("ct_u",U);
+  // Salva anche in ct_p (fonte primaria di getFeriePool) — evita che Firebase lo sovrascriva senza licenze
+  var P=lsG("ct_p",[]);
+  var trovatoP=false;
+  for(var j=0;j<P.length;j++){
+    if(P[j].id===pid||P[j].uid===pid){P[j].licenzePool=pool;P[j].ferie=tot;P[j].ferieRes=tot;trovatoP=true;break;}
+  }
+  if(!trovatoP){ P.push({id:pid,licenzePool:pool,ferie:tot,ferieRes:tot}); }
+  lsS("ct_p",P);
   // Aggiorna ct_me
   var me=lsG("ct_me",null);
   if(me&&(me.id===pid||me.uid===pid)){me.licenzePool=pool;me.ferie=tot;me.ferieRes=tot;lsS("ct_me",me);}
@@ -1629,8 +1648,17 @@ function aggiornaWidget(){
     }
   }
 
-  // Colleghi in servizio oggi (escludi me stesso)
-  var turniOggi=T.filter(function(t){return t.data===oggi && t.pid!=me.id && t.pid!==me.uid;});
+  // Colleghi in servizio oggi (escludi me stesso — confronto robusto stringa+numero+uid)
+  var _myPidStr = String(localStorage.getItem('ct_my_pid')||me.id||'');
+  var turniOggi=T.filter(function(t){
+    if(t.data!==oggi) return false;
+    var pidStr = String(t.pid);
+    if(pidStr === String(me.id)) return false;
+    if(me.uid && pidStr === String(me.uid)) return false;
+    if(_myPidStr && pidStr === _myPidStr) return false;
+    if(_isMyTurno(t, me)) return false;
+    return true;
+  });
   var wColWrap=document.getElementById("w-colleghi-wrap");
   var wCol=document.getElementById("w-colleghi");
   if(wCol && turniOggi.length>0){
@@ -1819,11 +1847,16 @@ function aggiornaSquadra(){
     return (fbU && fbU.ava && fbU.ava.startsWith('https')) ? fbU.ava : (p.ava || null);
   }
 
-  // 1. Aggiungi persone da ct_p
+  // 1. Aggiungi persone da ct_p (escludi l'utente corrente — appare già nel widget principale)
+  var _myPidSq = String(localStorage.getItem('ct_my_pid')||me.id||'');
   P.forEach(function(p){
     var idStr = String(p.id);
     var uid   = p.uid || null;
     var nome  = _normNome(p.nome);
+    // Salta l'utente corrente
+    if(idStr === String(me.id)) return;
+    if(me.uid && uid && uid === me.uid) return;
+    if(_myPidSq && idStr === _myPidSq) return;
     // Salta se già visto per uid o id
     if(uid && vistiUid[uid]) return;
     if(vistiId[idStr]) return;
@@ -1836,9 +1869,14 @@ function aggiornaSquadra(){
     persone.push({ nome: p.nome||'', cognome: p.cognome||'', ava: ava, inServizio: inServizio });
   });
 
-  // 2. Aggiungi persone dai turni di oggi non ancora in ct_p
+  // 2. Aggiungi persone dai turni di oggi non ancora in ct_p (escludi l'utente corrente)
   turniOggi.forEach(function(t){
     var pidStr = String(t.pid);
+    // Salta l'utente corrente
+    if(pidStr === String(me.id)) return;
+    if(me.uid && pidStr === String(me.uid)) return;
+    if(_myPidSq && pidStr === _myPidSq) return;
+    if(_isMyTurno(t, me)) return;
     var nomeBreve = t.pnome || t.nome || '';
     if(!nomeBreve) return;
     var nome = _normNome(nomeBreve);
@@ -3170,8 +3208,18 @@ function salvaTodo(){
   var condividi = document.getElementById('td-condividi') && document.getElementById('td-condividi').checked;
   if(condividi){
     var me=lsG('ct_me',null);
-    item.condiviso=true; item.autore=(me?(me.nome||'')+(me.cognome?' '+me.cognome:''):'').trim(); item.autoreUid=me?me.uid:'';
-    if(window.FirebaseModule) window.FirebaseModule.saveTodoCondiviso(item).catch(function(e){ toast('Errore condivisione: '+e.message,'err'); });
+    // Verifica che l'utente abbia un reparto assegnato prima di condividere
+    var _repTodo = (me && me.reparto) ? me.reparto.toLowerCase().replace(/\s+/g,'_') : null;
+    var _sessTodo = lsG('ct_session', null);
+    if(!_repTodo && _sessTodo && _sessTodo.reparto) _repTodo = _sessTodo.reparto.toLowerCase().replace(/\s+/g,'_');
+    if(!_repTodo || _repTodo.startsWith('privato_')) {
+      toast('Per condividere devi essere assegnato a un reparto','err');
+      condividi = false;
+      item.condiviso = false;
+    } else {
+      item.condiviso=true; item.autore=(me?(me.nome||'')+(me.cognome?' '+me.cognome:''):'').trim(); item.autoreUid=me?me.uid:'';
+      if(window.FirebaseModule) window.FirebaseModule.saveTodoCondiviso(item).catch(function(e){ toast('Errore condivisione: '+e.message,'err'); });
+    }
   }
   var TD=lsG("ct_td",[]);TD.push(item);lsS("ct_td",TD);
   if(window.FirebaseModule)window.FirebaseModule.saveTodo(TD);
@@ -3182,7 +3230,7 @@ function salvaTodo(){
   if(typeof renderWidgetTodo === 'function') renderWidgetTodo();
   var chk=document.getElementById('td-condividi');if(chk)chk.checked=false;
   ["td-tit","td-note","td-data","td-ora"].forEach(function(id){var e=document.getElementById(id);if(e)e.value="";});
-  var rep=(typeof _reparto==='function')?_reparto():(lsG('ct_me',null)||{}).reparto||'?';
+  var _meRep=lsG('ct_me',null); var rep=(_meRep&&_meRep.reparto)?_meRep.reparto:'?';
   toast(condividi?"\u2705 Condiviso nel reparto ["+rep+"]":"Promemoria salvato","ok");
 }
 
@@ -3219,8 +3267,18 @@ function salvaAgenda(){
   var condividi = document.getElementById('ag-condividi') && document.getElementById('ag-condividi').checked;
   if(condividi){
     var me=lsG('ct_me',null);
-    item.condiviso=true; item.autore=(me?(me.nome||'')+(me.cognome?' '+me.cognome:''):'').trim(); item.autoreUid=me?me.uid:'';
-    if(window.FirebaseModule) window.FirebaseModule.saveAgendaCondivisa(item).catch(function(e){ toast('Errore condivisione: '+e.message,'err'); });
+    // Verifica che l'utente abbia un reparto assegnato prima di condividere
+    var _repAg = (me && me.reparto) ? me.reparto.toLowerCase().replace(/\s+/g,'_') : null;
+    var _sessAg = lsG('ct_session', null);
+    if(!_repAg && _sessAg && _sessAg.reparto) _repAg = _sessAg.reparto.toLowerCase().replace(/\s+/g,'_');
+    if(!_repAg || _repAg.startsWith('privato_')) {
+      toast('Per condividere devi essere assegnato a un reparto','err');
+      condividi = false;
+      item.condiviso = false;
+    } else {
+      item.condiviso=true; item.autore=(me?(me.nome||'')+(me.cognome?' '+me.cognome:''):'').trim(); item.autoreUid=me?me.uid:'';
+      if(window.FirebaseModule) window.FirebaseModule.saveAgendaCondivisa(item).catch(function(e){ toast('Errore condivisione: '+e.message,'err'); });
+    }
   }
   var AG=lsG("ct_ag",[]);AG.push(item);AG.sort(function(a,b){return a.data>b.data?1:-1;});lsS("ct_ag",AG);
   if(item.notif>0)schedulaNotifAgenda(item);
@@ -3230,7 +3288,7 @@ function salvaAgenda(){
   if(typeof renderWidgetAgenda === 'function') renderWidgetAgenda();
   var chk=document.getElementById('ag-condividi');if(chk)chk.checked=false;
   ["ag-tit","ag-data","ag-ora","ag-luogo","ag-note"].forEach(function(id){var e=document.getElementById(id);if(e)e.value="";});
-  var rep2=(typeof _reparto==='function')?_reparto():(lsG('ct_me',null)||{}).reparto||'?';
+  var _meRep2=lsG('ct_me',null); var rep2=(_meRep2&&_meRep2.reparto)?_meRep2.reparto:'?';
   toast(condividi?"\u2705 Condiviso nel reparto ["+rep2+"]":"Appuntamento salvato","ok");
 }
 function delAgenda(id){
@@ -6160,6 +6218,10 @@ function salvaTurno(){
   window._turnoFromCalendar = false;
   checkFestivoTurno(_nt);
   notificaTurno(_nt.pnome,_nt.tipo,_nt.data);
+  // Reschedula notifiche pre-turno con il nuovo turno aggiunto
+  setTimeout(function(){
+    if(typeof schedulaPreTurniFirebase === 'function') schedulaPreTurniFirebase();
+  }, 1500);
   document.getElementById("mt-tipo").value="";document.getElementById("mt-note").value="";
   var _ri=document.getElementById("mt-ora-in"),_rf=document.getElementById("mt-ora-fi");
   if(_ri)_ri.value="";if(_rf)_rf.value="";
@@ -6617,6 +6679,8 @@ function setRepPer(p){
 function renderRepData(){
   var T=lsG("ct_t",[]);
   var P=lsG("ct_p",[]).slice();
+  var me=lsG("ct_me",null);
+  var isCom = me && (me.ruolo==='comandante' || me.ruolo==='vice');
 
   // Aggiungi utenti Firebase non ancora in ct_p (per uid)
   var fbUsers=lsG('ct_users',[]);
@@ -6669,9 +6733,14 @@ function renderRepData(){
 
   var Tf=T.filter(function(t){
     var dt=new Date(t.data+"T00:00:00");
-    if(per==="m")return dt.getFullYear()===anno&&dt.getMonth()===mesSel;
-    if(per==="s"){var m=dt.getMonth();return dt.getFullYear()===anno&&(mesSel<6?(m<6):(m>=6));}
-    return dt.getFullYear()===anno;
+    var inPeriodo;
+    if(per==="m")inPeriodo=dt.getFullYear()===anno&&dt.getMonth()===mesSel;
+    else if(per==="s"){var m=dt.getMonth();inPeriodo=dt.getFullYear()===anno&&(mesSel<6?(m<6):(m>=6));}
+    else inPeriodo=dt.getFullYear()===anno;
+    if(!inPeriodo)return false;
+    // Addetti vedono solo i propri turni nei conteggi in alto
+    if(!isCom && me) return _isMyTurno(t, me);
+    return true;
   });
   if(!Tf.length){d.innerHTML='<div style="padding:30px;text-align:center;color:var(--txt2);font-size:13px">Nessun dato nel periodo selezionato</div>';return;}
 
@@ -6699,7 +6768,14 @@ function renderRepData(){
   if(P.length){
     // Indice turni per pid e per pnome
     var tByPid={}, tByNome={};
-    Tf.forEach(function(t){
+    // Per il carico per persona usa TUTTI i turni del periodo (non solo i miei)
+    var TfAll = isCom ? Tf : T.filter(function(t){
+      var dt=new Date(t.data+"T00:00:00");
+      if(per==="m")return dt.getFullYear()===anno&&dt.getMonth()===mesSel;
+      if(per==="s"){var m=dt.getMonth();return dt.getFullYear()===anno&&(mesSel<6?(m<6):(m>=6));}
+      return dt.getFullYear()===anno;
+    });
+    TfAll.forEach(function(t){
       var k=String(t.pid);
       if(!tByPid[k])tByPid[k]=[];
       tByPid[k].push(t);
@@ -6710,9 +6786,16 @@ function renderRepData(){
       }
     });
 
+    // Se addetto: mostra solo se stesso; se comandante: mostra tutti
+    var PfiltRep = isCom ? P : P.filter(function(p){
+      if(!me) return false;
+      var myPidStr = String(localStorage.getItem('ct_my_pid')||me.id||'');
+      return String(p.id)===myPidStr || (me.uid && p.uid===me.uid) || String(p.id)===String(me.id);
+    });
+
     var righe='';
-    var totT=Tf.length||1;
-    P.forEach(function(p){
+    var totT=TfAll.length||1;
+    PfiltRep.forEach(function(p){
       var visti={}, turniP=[];
       function addT(arr){(arr||[]).forEach(function(t){if(!visti[t.id]){visti[t.id]=true;turniP.push(t);}});}
       addT(tByPid[String(p.id)]);
@@ -7328,6 +7411,8 @@ function confermImportF(modoSost){
     lsS('ct_t', _T);
   }
   // Salva turni e personale su Firebase dopo import
+  // Imposta lock temporaneo: l'onSnapshot persone non sovrascriverà ct_p per 8 secondi
+  window._importPersoneLock = Date.now() + 8000;
   if(window.FirebaseModule) {
     window.FirebaseModule.saveTurni(lsG("ct_t",[])).catch(function(e){ console.warn('saveTurni post-import:', e.message); });
     window.FirebaseModule.savePersona().catch(function(e){ console.warn('savePersona post-import:', e.message); });
@@ -7337,6 +7422,11 @@ function confermImportF(modoSost){
   if(_me3&&typeof renderWidgetProssimo==='function') renderWidgetProssimo(_me3);
   var modo=modoSost?"sostituiti":"aggiunti";
   toast("&#9989; "+tot+" turni "+modo+" da "+selezionati.length+" foglio/i","ok");
+  // Reschedula notifiche con i nuovi turni
+  setTimeout(function(){
+    lsS("ct_push_scheduled",[]);
+    if(typeof schedulaPreTurniFirebase === 'function') schedulaPreTurniFirebase();
+  }, 2000);
   // Notifica import turni
   if(tot > 0) {
     aggiungiNotifica("turni","Turni importati","&#128229; "+tot+" turni "+modo+" da Excel ("+selezionati.length+" foglio/i)","&#128229;","var(--teal)");
@@ -7572,7 +7662,7 @@ function parseSheet(rows, sn) {
     // Trova persona — match robusto per evitare doppioni
     var nRnorm = nR.toLowerCase().replace(/\s+/g,' ').trim();
     var persona = P.find(function(x){
-      return x.nome.toLowerCase().replace(/\s+/g,' ').trim() === nRnorm;
+      return (x.nome||'').toLowerCase().replace(/\s+/g,' ').trim() === nRnorm;
     }) || null;
     if(!persona){
       // Controlla anche per uid (utente Firebase già collegato)
@@ -7585,7 +7675,18 @@ function parseSheet(rows, sn) {
       });
       if(fbMatch){
         // Usa la persona Firebase esistente invece di creare un placeholder
+        // Cerca prima per uid, poi per nome (incluse varianti cognome+nome / nome+cognome)
         persona = P.find(function(x){ return x.uid === fbMatch.uid; });
+        if(!persona){
+          var fbNomeCompleto = ((fbMatch.cognome||'')+' '+(fbMatch.nome||'')).toLowerCase().replace(/\s+/g,' ').trim();
+          var fbNomeInv = ((fbMatch.nome||'')+' '+(fbMatch.cognome||'')).toLowerCase().replace(/\s+/g,' ').trim();
+          persona = P.find(function(x){
+            var pn = (x.nome||'').toLowerCase().replace(/\s+/g,' ').trim();
+            return pn === fbNomeCompleto || pn === fbNomeInv;
+          });
+          // Se trovata per nome, aggiorna uid
+          if(persona && !persona.uid && fbMatch.uid) persona.uid = fbMatch.uid;
+        }
       }
       if(!persona){
         persona = {id: Date.now()+Math.floor(Math.random()*9999), nome: nR, grado: _pg.grado, reparto: '', ferieRes: 30, uid: fbMatch?fbMatch.uid:null, placeholder: true};
