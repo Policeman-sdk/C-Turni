@@ -5999,18 +5999,26 @@ function renderPers(){
   });
 
   // Deduplicazione ct_p per nome normalizzato (rimuove cloni creati da assegnazione turni)
+  // Gestisce anche il caso cognome+nome vs nome+cognome
   var _normN = function(s){ return (s||'').toLowerCase().replace(/\s+/g,' ').trim(); };
   var _seenNomi = {};
   P = P.filter(function(p){
     var k = _normN(p.nome);
     if(!k) return true;
-    if(_seenNomi[k]) {
-      // Tieni quello con uid (più completo), scarta il duplicato senza uid
-      if(p.uid && !_seenNomi[k].uid) { _seenNomi[k].uid = p.uid; }
-      if(p.ava && !_seenNomi[k].ava) { _seenNomi[k].ava = p.ava; }
+    // Genera variante invertita
+    var parti = k.split(' ');
+    var kInv = parti.length >= 2 ? parti.slice(1).join(' ')+' '+parti[0] : k;
+    // Controlla entrambe le varianti
+    var existKey = _seenNomi[k] ? k : (_seenNomi[kInv] ? kInv : null);
+    if(existKey) {
+      var ref = _seenNomi[existKey];
+      if(p.uid && !ref.uid) ref.uid = p.uid;
+      if(p.ava && !ref.ava) ref.ava = p.ava;
+      if(p.licenzePool && p.licenzePool.length && (!ref.licenzePool || !ref.licenzePool.length)) ref.licenzePool = p.licenzePool;
       return false;
     }
     _seenNomi[k] = p;
+    if(kInv !== k) _seenNomi[kInv] = p;
     return true;
   });
 
@@ -6739,7 +6747,18 @@ function renderRepData(){
     else inPeriodo=dt.getFullYear()===anno;
     if(!inPeriodo)return false;
     // Addetti vedono solo i propri turni nei conteggi in alto
-    if(!isCom && me) return _isMyTurno(t, me);
+    if(!isCom && me){
+      // Match per pid/uid/myPid
+      if(_isMyTurno(t, me)) return true;
+      // Fallback match per nome (robustezza massima)
+      if(me.nome || me.cognome){
+        var meN = ((me.cognome||'')+' '+(me.nome||'')).toLowerCase().replace(/\s+/g,' ').trim();
+        var meN2 = ((me.nome||'')+' '+(me.cognome||'')).toLowerCase().replace(/\s+/g,' ').trim();
+        var tN = (t.pnome||'').toLowerCase().replace(/\s+/g,' ').trim();
+        if(tN && (tN===meN || tN===meN2 || meN.indexOf(tN)!==-1 || meN2.indexOf(tN)!==-1)) return true;
+      }
+      return false;
+    }
     return true;
   });
   if(!Tf.length){d.innerHTML='<div style="padding:30px;text-align:center;color:var(--txt2);font-size:13px">Nessun dato nel periodo selezionato</div>';return;}
@@ -6790,7 +6809,17 @@ function renderRepData(){
     var PfiltRep = isCom ? P : P.filter(function(p){
       if(!me) return false;
       var myPidStr = String(localStorage.getItem('ct_my_pid')||me.id||'');
-      return String(p.id)===myPidStr || (me.uid && p.uid===me.uid) || String(p.id)===String(me.id);
+      if(String(p.id) === myPidStr) return true;
+      if(me.uid && p.uid === me.uid) return true;
+      if(String(p.id) === String(me.id)) return true;
+      // Fallback: match per nome (nel caso ct_my_pid non sia ancora impostato)
+      if(me.nome || me.cognome){
+        var meNome = ((me.cognome||'')+' '+(me.nome||'')).toLowerCase().replace(/\s+/g,' ').trim();
+        var meNome2 = ((me.nome||'')+' '+(me.cognome||'')).toLowerCase().replace(/\s+/g,' ').trim();
+        var pNome = (p.nome||'').toLowerCase().replace(/\s+/g,' ').trim();
+        if(pNome && (pNome === meNome || pNome === meNome2)) return true;
+      }
+      return false;
     });
 
     var righe='';
@@ -6804,6 +6833,10 @@ function renderRepData(){
       addT(tByNome[pn]);
       var parti=pn.split(' ');
       if(parti.length>=2){ addT(tByNome[parti.slice(1).join(' ')+' '+parti[0]]); }
+      // Per l'utente corrente: usa _isMyTurno come fallback definitivo
+      if(!isCom && me && (p.uid===me.uid || String(p.id)===String(me.id) || String(p.id)===String(localStorage.getItem('ct_my_pid')||''))){
+        TfAll.forEach(function(t){ if(_isMyTurno(t,me)&&!visti[t.id]){visti[t.id]=true;turniP.push(t);} });
+      }
       if(!turniP.length)return;
       var pc=turniP.length;
       var pct=Math.round(pc/totT*100);
@@ -7382,20 +7415,46 @@ function confermImportF(modoSost){
   document.getElementById("xi").value="";
   _xlsWb=null;
   // Deduplicazione ct_p: rimuovi persone con stesso nome normalizzato
+  // Gestisce anche il caso cognome+nome vs nome+cognome (formato Excel vs Firebase)
   var _Pall = lsG("ct_p",[]);
-  var _seen = {};
-  _Pall = _Pall.filter(function(p){
-    var k = (p.nome||'').toLowerCase().replace(/\s+/g,' ').trim();
-    if(!k) return false;
-    if(_seen[k]){
-      // Tieni quello con uid (più completo)
-      if(p.uid && !_seen[k].uid){ _seen[k].uid = p.uid; }
-      return false;
+  var _seenMap = {}; // chiave → oggetto persona tenuto
+  var _PallDedup = [];
+
+  function _nNorm(s){ return (s||'').toLowerCase().replace(/\s+/g,' ').trim(); }
+  function _chiavi(nome){
+    // Genera tutte le varianti: diretta + invertita (2 tokens)
+    var k = _nNorm(nome);
+    var parti = k.split(' ');
+    var keys = [k];
+    if(parti.length >= 2) keys.push(parti.slice(1).join(' ')+' '+parti[0]);
+    return keys;
+  }
+
+  _Pall.forEach(function(p){
+    var k = _nNorm(p.nome);
+    if(!k) return;
+    var kv = _chiavi(p.nome);
+    // Cerca se già presente con una delle varianti del nome
+    var existingKey = null;
+    for(var _ki=0; _ki<kv.length; _ki++){
+      if(_seenMap[kv[_ki]]){ existingKey = kv[_ki]; break; }
     }
-    _seen[k] = p;
-    return true;
+    if(existingKey){
+      var existing = _seenMap[existingKey];
+      // Trasferisci campi mancanti al record tenuto
+      if(p.uid && !existing.uid) existing.uid = p.uid;
+      if(p.licenzePool && p.licenzePool.length && (!existing.licenzePool || !existing.licenzePool.length))
+        existing.licenzePool = p.licenzePool;
+      if(p.ferieRes !== undefined && existing.ferieRes === undefined) existing.ferieRes = p.ferieRes;
+      if(p.ava && !existing.ava) existing.ava = p.ava;
+      if(p.grado && !existing.grado) existing.grado = p.grado;
+      return; // scarta duplicato
+    }
+    // Prima occorrenza: registra tutte le varianti del nome
+    kv.forEach(function(kk){ _seenMap[kk] = p; });
+    _PallDedup.push(p);
   });
-  lsS("ct_p", _Pall);
+  lsS("ct_p", _PallDedup);
   // Aggiungi uid utente corrente ai turni prima di salvare (richiesto dalle Security Rules)
   var _sess = lsG('ct_session', null);
   var _myUid = _sess && _sess.userId ? _sess.userId : null;
