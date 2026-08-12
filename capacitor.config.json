@@ -1,0 +1,12 @@
+{
+  "appId": "it.policemansdk.cturni",
+  "appName": "C-Turni",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#0d1b2a"
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

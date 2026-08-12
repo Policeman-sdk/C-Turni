@@ -1,6 +1,7 @@
 ﻿// -- SERVICE WORKER --
 if("serviceWorker" in navigator){
-  navigator.serviceWorker.register('/C-Turni/firebase-messaging-sw.js', { scope: '/C-Turni/' })
+  var _swBase = new URL('./', location.href);
+  navigator.serviceWorker.register(new URL('firebase-messaging-sw.js', _swBase).href, { scope: _swBase.pathname })
     .then(function(reg){ console.log("SW FCM registrato:", reg.scope); })
     .catch(function(e){ console.warn("SW err:", e); });
 }
@@ -122,7 +123,54 @@ function _parseDate(ds){
 function _isPrivato(reparto){ return !reparto || reparto.startsWith('privato_'); }
 
 // Tipi turno "personale" (seguono l'utente al cambio reparto)
-var _TIPI_PERSONALE = ['riposo','ferie','recupero','licenza','permesso','937','104','ls','fest'];
+var _TIPI_PERSONALE = ['riposo','ferie','recupero','licenza','permesso','studio','937','104','ls','fest'];
+var _STUDIO_MONTE_ANNUO = 150;
+var _STUDIO_ORE_TURNO = 6;
+
+function _studioIsMyPid(pid, me) {
+  if(!me) return false;
+  var myPid = localStorage.getItem('ct_my_pid');
+  return String(pid) === String(me.id) || (me.uid && String(pid) === String(me.uid)) || (myPid && String(pid) === String(myPid));
+}
+function ctEsc(value){
+  return String(value==null?'':value).replace(/[&<>"']/g,function(ch){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];
+  });
+}
+function getPermessoStudioSummary(anno, turniOverride) {
+  anno = parseInt(anno,10) || new Date().getFullYear();
+  var me = lsG('ct_me', null);
+  var monteMap = me && me.permessiStudioMonte ? me.permessiStudioMonte : {};
+  var monte = Math.max(0, Number(monteMap[String(anno)]) || 0);
+  var T = turniOverride || lsG('ct_t', []);
+  var usati = T.filter(function(t){
+    return t && t.tipo === 'studio' && t.data && parseInt(t.data.slice(0,4),10) === anno && _studioIsMyPid(t.pid, me);
+  }).length * _STUDIO_ORE_TURNO;
+  return {anno:anno, monte:monte, usati:usati, rimanenti:Math.max(0, monte-usati), eccedenza:Math.max(0, usati-monte)};
+}
+function renderPermessiStudio() {
+  var anno = new Date().getFullYear();
+  var s = getPermessoStudioSummary(anno);
+  var a = document.getElementById('studio-anno'); if(a) a.textContent = anno;
+  var r = document.getElementById('studio-rimanenti'); if(r){ r.textContent = s.rimanenti+' h'; r.style.color = s.rimanenti <= 12 ? 'var(--red)' : 'var(--blue)'; }
+  var d = document.getElementById('studio-dettaglio');
+  if(d) d.textContent = s.monte ? (s.usati+' h utilizzate su '+s.monte+' h · '+(s.usati/_STUDIO_ORE_TURNO)+' turni') : 'Monte ore non attivato.';
+  var p = document.getElementById('studio-progress'); if(p) p.style.width = (s.monte ? Math.min(100,(s.usati/s.monte)*100) : 0)+'%';
+  var b = document.getElementById('studio-attiva-btn'); if(b) b.style.display = s.monte ? 'none' : 'block';
+}
+function attivaPermessiStudio() {
+  var me = lsG('ct_me', null); if(!me){ toast('Profilo non disponibile','err'); return; }
+  var anno = new Date().getFullYear();
+  me.permessiStudioMonte = me.permessiStudioMonte || {};
+  if(Number(me.permessiStudioMonte[String(anno)]) > 0){ renderPermessiStudio(); return; }
+  me.permessiStudioMonte[String(anno)] = _STUDIO_MONTE_ANNUO;
+  lsS('ct_me', me);
+  var P=lsG('ct_p',[]); P.forEach(function(p){ if(_studioIsMyPid(p.id,me) || (p.uid&&p.uid===me.uid)) p.permessiStudioMonte=me.permessiStudioMonte; }); lsS('ct_p',P);
+  var U=lsG('ct_u',[]); U.forEach(function(u){ if((u.uid&&u.uid===me.uid)||String(u.id)===String(me.id)) u.permessiStudioMonte=me.permessiStudioMonte; }); lsS('ct_u',U);
+  var sess=lsG('ct_session',null);
+  if(sess&&sess.userId&&window.FirebaseModule) window.FirebaseModule.saveUserProfile(sess.userId,{permessiStudioMonte:me.permessiStudioMonte},null).catch(function(){ toast('Ore salvate sul dispositivo; sincronizzazione cloud non riuscita','warn'); });
+  renderPermessiStudio(); toast('Monte permessi studio attivato: 150 ore per il '+anno,'ok');
+}
 
 function regAvanzaStep2(){
   var nome = document.getElementById('reg-nome').value.trim();
@@ -1083,6 +1131,7 @@ function caricaSaldoFerie(){
   var fs=document.getElementById("ferie-saldo-n");
   if(fs){var fv=me.ferie||30;fs.textContent=fv;fs.style.color=fv<5?"var(--red)":fv<15?"var(--gold)":"var(--green)";}
   renderRecuperi();
+  renderPermessiStudio();
 }
 function aggSeldoFerie_onImp(){caricaSaldoFerie();}
 function aggiornaSaldoFerie(){caricaSaldoFerie();}
@@ -1503,9 +1552,9 @@ var _tipoIco={
   mattina:"🌅",pomeriggio:"☀️",ml:"🌄",pl:"🌞",
   notte:"🌙",sera:"🌆",
   riposo:"🛋️",recupero:"♻️",
-  ferie:"🏖️",licenza:"📚","937":"🏝️",
+  ferie:"🏖️",licenza:"📚",studio:"🎓","937":"🏝️",
   "104":"♿",ls:"🩸",
-  permesso:"📋",fest:"🎉",
+  permesso:"📋",studio:"🎓",fest:"🎉",
   corso:"🎓",esame:"📝"
 };
 var _tipoBg={
@@ -1531,7 +1580,7 @@ var _tipoBg={
 var _codiceToTipo={
   "M":"mattina","ML":"ml","P":"pomeriggio","PL":"pl",
   "N":"notte","S":"sera","R":"riposo","RR":"recupero",
-  "L":"ferie","LICSTU":"licenza","ESAME":"esame","CORSO":"corso",
+  "L":"ferie","LICSTU":"licenza","PSTUDIO":"studio","ESAME":"esame","CORSO":"corso",
   "FEST":"fest","104":"104","LS":"ls","937":"937"
 };
 // -- Helper: riconosce se un turno appartiene all'utente loggato --
@@ -1602,7 +1651,7 @@ function aggiornaWidget(){
   var titoloTipoMap={
     mattina:"Mattina",ml:"Mattina Lunga",pomeriggio:"Pomeriggio",pl:"Pomeriggio Lungo",
     notte:"Notte",sera:"Sera",riposo:"Riposo",recupero:"Recupero Riposo",
-    ferie:"Ferie","937":"Licenza 937",licenza:"Lic. Studio",
+    ferie:"Ferie","937":"Licenza 937",licenza:"Lic. Studio",studio:"Permesso studio",
     "104":"Art. 104","ls":"Donaz. Sangue / Malattia",
     permesso:"Permesso",fest:"Festivit",corso:"Corso",esame:"Esame",
     obbm:"Obbligatorio Mattina",obbp:"Obbligatorio Pomeriggio"
@@ -1700,14 +1749,14 @@ var _TURNO_ICO_HERO = {
   mattina:'🌅', ml:'🌄', pomeriggio:'☀️', pl:'🌞',
   notte:'🌙', sera:'🌆', riposo:'🛋️', recupero:'♻️',
   ferie:'🏖️', '937':'🏝️', '104':'♿', ls:'🩸',
-  licenza:'📚', permesso:'📋', fest:'🎉', corso:'🎓', esame:'📝',
+    licenza:'📚', studio:'🎓', permesso:'📋', fest:'🎉', corso:'🎓', esame:'📝',
   obbm:'🔶', obbp:'🔷'
 };
 var _TURNO_SIGLA = {
   mattina:'M', ml:'ML', pomeriggio:'P', pl:'PL',
   notte:'N', sera:'S', riposo:'R', recupero:'RR',
   ferie:'F', '937':'937', '104':'104', ls:'LS',
-  licenza:'LIC', permesso:'PER', fest:'FEST', corso:'COR', esame:'ES',
+    licenza:'LIC', studio:'PS', permesso:'PER', fest:'FEST', corso:'COR', esame:'ES',
   obbm:'OBBM', obbp:'OBBP'
 };
 
@@ -2402,7 +2451,7 @@ function rinviaTodo(id){
     '<div id="m-rinvia-todo" style="display:flex;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99999;align-items:flex-end;justify-content:center;backdrop-filter:blur(3px)">'
     +'<div style="background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:520px;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 32px rgba(0,0,0,.4)">'
     +'<div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 14px"></div>'
-    +'<div style="font-size:15px;font-weight:800;margin-bottom:14px">&#128336; Rinvia: '+t.tit+'</div>'
+    +'<div style="font-size:15px;font-weight:800;margin-bottom:14px">&#128336; Rinvia: '+ctEsc(t.tit)+'</div>'
     +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'
     +'<button class="btn btn-g btn-sm" onclick="_rinviaTodoRel('+id+',1)">+1 giorno</button>'
     +'<button class="btn btn-g btn-sm" onclick="_rinviaTodoRel('+id+',3)">+3 giorni</button>'
@@ -2483,7 +2532,7 @@ function renderTodo(){
   el.innerHTML=TD.map(function(t){
     var ds=t.data?'<span style="font-size:10px;color:var(--txt2);margin-left:6px">&#128197; '+t.data+(t.ora?' &#9201; '+t.ora:'')+'</span>':"";
     var rc=t.ricor?'<span style="font-size:10px;color:var(--teal);margin-left:6px">&#128260; Ricorrente</span>':"";
-    var nt=t.note?'<div style="font-size:11px;color:var(--txt2);margin-top:3px">'+t.note+'</div>':"";
+    var nt=t.note?'<div style="font-size:11px;color:var(--txt2);margin-top:3px">'+ctEsc(t.note)+'</div>':"";
     return '<div class="swipe-wrap">'+
       '<div class="swipe-bg right">&#10003;</div>'+
       '<div class="swipe-item todo-item p-'+t.prio+(t.done?" done":"")+ '" id="tditem-'+t.id+'" data-tid="'+t.id+'">'+
@@ -3315,7 +3364,7 @@ function rinviaAgenda(id){
     '<div id="m-rinvia-ag" style="display:flex;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99999;align-items:flex-end;justify-content:center;backdrop-filter:blur(3px)">'
     +'<div style="background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:520px;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 32px rgba(0,0,0,.4)">'
     +'<div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 14px"></div>'
-    +'<div style="font-size:15px;font-weight:800;margin-bottom:14px">&#128336; Rinvia: '+a.tit+'</div>'
+    +'<div style="font-size:15px;font-weight:800;margin-bottom:14px">&#128336; Rinvia: '+ctEsc(a.tit)+'</div>'
     +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'
     +'<button class="btn btn-g btn-sm" onclick="_rinviaAgRel('+id+',1,'+isCondivisa+')">+1 giorno</button>'
     +'<button class="btn btn-g btn-sm" onclick="_rinviaAgRel('+id+',3,'+isCondivisa+')">+3 giorni</button>'
@@ -3403,9 +3452,9 @@ function apriDettaglioAgenda(id){
   var html = '<div id="m-det-ag" style="display:flex;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99999;align-items:flex-end;justify-content:center;backdrop-filter:blur(3px)">'
     +'<div style="background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:520px;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 32px rgba(0,0,0,.4)">'
     +'<div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 16px"></div>'
-    +'<div style="font-size:18px;font-weight:900;margin-bottom:4px">'+a.tit+'</div>'
+    +'<div style="font-size:18px;font-weight:900;margin-bottom:4px">'+ctEsc(a.tit)+'</div>'
     +'<div style="font-size:13px;color:var(--txt2);margin-bottom:14px">&#128197; '+d.getDate()+' '+mN[d.getMonth()]+' '+d.getFullYear()+(a.ora?' &nbsp;&#128336; '+a.ora:'')+'</div>'
-    +(a.luogo?'<div style="font-size:12px;color:var(--txt2);margin-bottom:8px">&#128205; '+a.luogo+'</div>':'')
+    +(a.luogo?'<div style="font-size:12px;color:var(--txt2);margin-bottom:8px">&#128205; '+ctEsc(a.luogo)+'</div>':'')
     +(a.note?'<div style="font-size:12px;color:var(--txt2);margin-bottom:14px;padding:10px;background:var(--bg2);border-radius:10px">'+a.note+'</div>':'')
     +'<div style="display:flex;gap:10px;margin-top:8px">'
     +'<button class="btn btn-g" style="flex:1" onclick="document.getElementById(\'m-det-ag\').remove()">Chiudi</button>'
@@ -3424,9 +3473,9 @@ function apriDettaglioAgendaCondivisa(id){
     +'<div style="background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:520px;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 32px rgba(0,0,0,.4)">'
     +'<div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 16px"></div>'
     +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--blue);margin-bottom:6px">&#128101; Impegno Reparto</div>'
-    +'<div style="font-size:18px;font-weight:900;margin-bottom:4px">'+a.tit+'</div>'
+    +'<div style="font-size:18px;font-weight:900;margin-bottom:4px">'+ctEsc(a.tit)+'</div>'
     +'<div style="font-size:13px;color:var(--txt2);margin-bottom:14px">&#128197; '+d.getDate()+' '+mN[d.getMonth()]+' '+d.getFullYear()+(a.ora?' &nbsp;&#128336; '+a.ora:'')+'</div>'
-    +(a.luogo?'<div style="font-size:12px;color:var(--txt2);margin-bottom:8px">&#128205; '+a.luogo+'</div>':'')
+    +(a.luogo?'<div style="font-size:12px;color:var(--txt2);margin-bottom:8px">&#128205; '+ctEsc(a.luogo)+'</div>':'')
     +(a.note?'<div style="font-size:12px;color:var(--txt2);margin-bottom:8px;padding:10px;background:var(--bg2);border-radius:10px">'+a.note+'</div>':'')
     +(a.autore?'<div style="font-size:11px;color:var(--txt3);margin-bottom:14px">Aggiunto da: '+a.autore+'</div>':'')
     +'<div style="display:flex;gap:10px;margin-top:8px">'
@@ -3501,11 +3550,11 @@ function renderAgendaPg(filtro) {
     el.innerHTML = AG.map(function(a){
       var d = new Date(a.data+"T00:00:00");
       var ora = a.ora ? '<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128336; '+a.ora+'</div>' : '';
-      var luogo = a.luogo ? '<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128205; '+a.luogo+'</div>' : '';
+      var luogo = a.luogo ? '<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128205; '+ctEsc(a.luogo)+'</div>' : '';
       var note = a.note ? '<div style="font-size:11px;color:var(--txt2);margin-top:2px;font-style:italic">'+a.note+'</div>' : '';
       return '<div class="ag-item" onclick="apriDettaglioAgenda('+a.id+')" style="cursor:pointer">'+
         '<div class="ag-item-date"><div class="ag-item-date-day">'+d.getDate()+'</div><div class="ag-item-date-mon">'+mN[d.getMonth()]+'</div></div>'+
-        '<div class="ag-item-body"><div class="ag-item-title">'+a.tit+'</div>'+ora+luogo+note+'</div>'+
+        '<div class="ag-item-body"><div class="ag-item-title">'+ctEsc(a.tit)+'</div>'+ora+luogo+note+'</div>'+
         '<div class="ag-item-snooze"><button class="ag-snooze-btn" onclick="event.stopPropagation();rinviaAgenda('+a.id+')" title="Rinvia">&#128336;</button></div>'+
         '<button onclick="event.stopPropagation();delAgenda('+a.id+')" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:16px;appearance:none;-webkit-appearance:none;padding:10px 12px 10px 0;align-self:flex-start">&#128465;</button>'+
       '</div>';
@@ -3519,12 +3568,12 @@ function renderAgendaPg(filtro) {
       el2.innerHTML = AGcond.map(function(a){
         var d = new Date(a.data+"T00:00:00");
         var ora = a.ora ? '<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128336; '+a.ora+'</div>' : '';
-        var luogo = a.luogo ? '<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128205; '+a.luogo+'</div>' : '';
+        var luogo = a.luogo ? '<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128205; '+ctEsc(a.luogo)+'</div>' : '';
         var note = a.note ? '<div style="font-size:11px;color:var(--txt2);margin-top:2px;font-style:italic">'+a.note+'</div>' : '';
         var autore = a.autore ? '<div style="font-size:10px;color:var(--txt3);margin-top:2px">&#128100; '+a.autore+'</div>' : '';
         return '<div class="ag-item" onclick="apriDettaglioAgendaCondivisa('+a.id+')" style="cursor:pointer">'+
           '<div class="ag-item-date"><div class="ag-item-date-day">'+d.getDate()+'</div><div class="ag-item-date-mon">'+mN[d.getMonth()]+'</div></div>'+
-          '<div class="ag-item-body"><div class="ag-item-title">&#128101; '+a.tit+'</div>'+ora+luogo+note+autore+'</div>'+
+          '<div class="ag-item-body"><div class="ag-item-title">&#128101; '+ctEsc(a.tit)+'</div>'+ora+luogo+note+autore+'</div>'+
           '<div class="ag-item-snooze"><button class="ag-snooze-btn" onclick="event.stopPropagation();rinviaAgenda('+a.id+')" title="Rinvia">&#128336;</button></div>'+
           '<button onclick="event.stopPropagation();delAgendaCondivisa('+a.id+')" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:16px;appearance:none;-webkit-appearance:none;padding:10px 12px 10px 0;align-self:flex-start">&#128465;</button>'+
         '</div>';
@@ -3585,12 +3634,12 @@ function renderTodoAg(filtro, skipBento) {
     var isAlta = t.prio === 'alta';
     var dataStr = '';
     if(t.data){ var d=new Date(t.data+"T00:00:00"); dataStr='<span class="ag-todo-date">&#128197; '+d.getDate()+' '+mN[d.getMonth()]+'</span>'; }
-    var noteStr = t.note ? '<div class="ag-todo-note">'+t.note+'</div>' : '';
+    var noteStr = t.note ? '<div class="ag-todo-note">'+ctEsc(t.note)+'</div>' : '';
     var prioBadge = t.prio ? '<span class="ag-todo-prio ag-todo-prio-'+t.prio+'">'+(t.prio==='alta'?'Alta':t.prio==='media'?'Media':'Bassa')+'</span>' : '';
     return '<div class="ag-todo-card'+(done?' ag-todo-done':'')+(isAlta?' ag-todo-alta':'')+'">'
       +'<button class="ag-todo-chk'+(done?' on':'')+'" onclick="toggleTodo('+t.id+');renderTodoAg(\''+(filtro||'tutti')+'\')">'+(done?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>':'')+'</button>'
       +'<div class="ag-todo-body">'
-        +'<div class="ag-todo-title'+(done?' ag-todo-done-txt':'')+'">'+t.tit+'</div>'
+        +'<div class="ag-todo-title'+(done?' ag-todo-done-txt':'')+'">'+ctEsc(t.tit)+'</div>'
         +noteStr
         +'<div class="ag-todo-meta">'
           +prioBadge
@@ -3616,12 +3665,12 @@ function renderAgenda(){
     var dayNum=d.getDate();
     var monStr=mN[d.getMonth()];
     var ora=a.ora?'<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128336; '+a.ora+'</div>':"";
-    var luogo=a.luogo?'<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128205; '+a.luogo+'</div>':"";
+    var luogo=a.luogo?'<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128205; '+ctEsc(a.luogo)+'</div>':"";
     var note=a.note?'<div style="font-size:11px;color:var(--txt2);margin-top:2px">'+a.note+'</div>':"";
     return '<div class="ag-item">'+
       '<div class="ag-item-date"><div class="ag-item-date-day">'+dayNum+'</div><div class="ag-item-date-mon">'+monStr+'</div></div>'+
       '<div class="ag-item-body">'+
-        '<div class="ag-item-title">'+a.tit+'</div>'+
+        '<div class="ag-item-title">'+ctEsc(a.tit)+'</div>'+
         ora+luogo+note+
       '</div>'+
       '<div class="ag-item-snooze">'+
@@ -3647,8 +3696,8 @@ function renderTodoCondivisi(){
     var prio=t.prio?'<span style="font-size:9px;font-weight:700;color:'+prioCol+';text-transform:uppercase;margin-left:6px">'+t.prio+'</span>':"";
     return '<div class="todo-item" style="opacity:'+(t.done?.5:1)+';flex-direction:column;align-items:stretch;gap:6px">'
       +'<div style="display:flex;align-items:flex-start;gap:8px">'
-      +'<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13px">&#128101; '+t.tit+autore+'</div>'
-      +(t.note?'<div style="font-size:11px;color:var(--txt2);margin-top:2px">'+t.note+'</div>':"")
+      +'<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13px">&#128101; '+ctEsc(t.tit)+autore+'</div>'
+      +(t.note?'<div style="font-size:11px;color:var(--txt2);margin-top:2px">'+ctEsc(t.note)+'</div>':"")
       +'<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-top:4px">'+scad+prio+'</div>'
       +'</div>'
       +'<button onclick="delTodoCondiviso('+t.id+')" title="Completato/Elimina" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:14px;appearance:none;-webkit-appearance:none;flex-shrink:0;padding:4px">&#128465;</button>'
@@ -3674,9 +3723,9 @@ function renderAgendaCondivisa(){
     var autore=a.autore?'<span style="font-size:10px;color:var(--txt2)"> — '+a.autore+'</span>':"";
     return '<div class="ag-item" style="flex-direction:column;align-items:stretch;gap:6px">'
       +'<div style="display:flex;justify-content:space-between;align-items:flex-start">'
-      +'<div><div style="font-weight:700;font-size:13px">&#128101; '+a.tit+autore+'</div>'
+      +'<div><div style="font-weight:700;font-size:13px">&#128101; '+ctEsc(a.tit)+autore+'</div>'
       +'<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128197; '+ds+ora+'</div>'
-      +(a.luogo?'<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128205; '+a.luogo+'</div>':"")
+      +(a.luogo?'<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128205; '+ctEsc(a.luogo)+'</div>':"")
       +(a.note?'<div style="font-size:11px;color:var(--txt2);margin-top:2px">'+a.note+'</div>':"")
       +'</div>'
       +'<button onclick="delAgendaCondivisa('+a.id+')" title="Elimina" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:16px;appearance:none;-webkit-appearance:none">&#128465;</button>'
@@ -3711,7 +3760,7 @@ function rinviaTodoCondiviso(id){
     '<div id="m-rinvia-tc" style="display:flex;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99999;align-items:flex-end;justify-content:center;backdrop-filter:blur(3px)">'
     +'<div style="background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:520px;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 32px rgba(0,0,0,.4)">'
     +'<div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 14px"></div>'
-    +'<div style="font-size:15px;font-weight:800;margin-bottom:14px">&#128336; Rinvia: '+t.tit+'</div>'
+    +'<div style="font-size:15px;font-weight:800;margin-bottom:14px">&#128336; Rinvia: '+ctEsc(t.tit)+'</div>'
     +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'
     +'<button class="btn btn-g btn-sm" onclick="_rinviaTCRel('+id+',1)">+1 giorno</button>'
     +'<button class="btn btn-g btn-sm" onclick="_rinviaTCRel('+id+',3)">+3 giorni</button>'
@@ -5821,7 +5870,7 @@ function aggUI(){
 }
 
 // ---- NOVITÀ VERSIONE ----
-var _APP_VERSION = '4.2';
+var _APP_VERSION = '4.3.0';
 function _checkNovita(){
   localStorage.setItem('ct_novita_v4', _APP_VERSION);
 }
@@ -6076,7 +6125,7 @@ function renderPers(){
       ? '<span class="sb ok">Attivo</span>'
       : '<span class="sb" style="background:rgba(255,159,67,.15);color:var(--orange)">&#9711; Non registrato</span>';
     var delBtn = p._fromFirebase ? '' : "<button class=\"btn btn-d btn-xs\" onclick=\"delP("+p.id+")\">&#128465;</button>";
-    return "<tr><td><strong>"+p.nome+"</strong>"+_badgeP(p)+"</td><td style=\"font-size:11px\">"+g.nome+"</td>"+
+    return "<tr><td><strong>"+ctEsc(p.nome)+"</strong>"+_badgeP(p)+"</td><td style=\"font-size:11px\">"+ctEsc(g.nome)+"</td>"+
       "<td>"+si+"</td><td style=\"font-size:11px\">"+(p.reparto||"")+"</td>"+
       "<td>"+statoLabel+"</td><td>"+tc+"</td>"+
       "<td style=\"font-weight:800;color:"+frC+"\">"+fr+"</td>"+
@@ -6136,15 +6185,16 @@ function salvaTurno(){
   }
   var P=lsG("ct_p",[]);var p=P.find(function(x){return x.id===pid;});
   var OR={mattina:"06:00-14:00",pomeriggio:"14:00-22:00",notte:"22:00-06:00",
-    riposo:"Riposo",ferie:"Ferie",licenza:"Licenza",recupero:"Recupero",permesso:"Permesso",corso:"Corso"};
+    riposo:"Riposo",ferie:"Ferie",licenza:"Licenza",studio:"Permesso studio",recupero:"Recupero",permesso:"Permesso",corso:"Corso"};
   var _oraIn=document.getElementById("mt-ora-in"),_oraFi=document.getElementById("mt-ora-fi");
   var _orario=(_oraIn&&_oraIn.value&&_oraFi&&_oraFi.value)?(_oraIn.value+"-"+_oraFi.value):(OR[tp]||tp);
   var T=lsG("ct_t",[]);
   var _codEl=document.getElementById("mt-turno-codice");
   var _cod=_codEl&&_codEl.value?_codEl.value:null;
-  var _catEv = ['riposo','ferie','recupero','licenza','permesso','937','104','ls','fest'].indexOf(tp) !== -1 ? 'personale' : 'servizio';
+  var _catEv = _TIPI_PERSONALE.indexOf(tp) !== -1 ? 'personale' : 'servizio';
   var _nt = {id:Date.now(),pid:pid,pnome:p.nome,data:dt,tipo:tp,
     orario:_orario,note:document.getElementById("mt-note").value,codice:_customCodice||_cod,categoria_evento:_catEv};
+  if(_me && _me.uid && _studioIsMyPid(pid,_me)) _nt.ownerUid = _me.uid;
   // push gestito dopo
   if(tp==="ferie"){
     // Scala pool licenze della persona (cerca per id numerico O uid Firebase)
@@ -6208,10 +6258,15 @@ function salvaTurno(){
     T=T.filter(function(x){return x.id!==_eidV;});
     _eid.value="";
   }
+  if(tp==='studio' && _studioIsMyPid(pid,_me)){
+    var _studioAnno=parseInt(dt.slice(0,4),10), _studioCheck=getPermessoStudioSummary(_studioAnno,T.concat([_nt]));
+    if(!_studioCheck.monte){ toast('Prima attiva le 150 ore di permesso studio nelle Impostazioni','err'); return; }
+    if(_studioCheck.eccedenza>0){ toast('Ore permesso studio insufficienti: restano '+getPermessoStudioSummary(_studioAnno,T).rimanenti+' h','err'); return; }
+  }
   T.push(_nt);
   lsS("ct_t",T);
   if(window.FirebaseModule)window.FirebaseModule.saveTurni(T);
-  renderTurni();renderOggi();stats();aggiornaWidget();
+  renderTurni();renderOggi();stats();aggiornaWidget();renderPermessiStudio();
   closeM("m-turno");
   closeM("m-giorno");
   // Riapri la vista del giorno SOLO se il turno è stato aggiunto dal calendario
@@ -6269,7 +6324,7 @@ function delT(id){
     if(!ok) return;
     lsS("ct_t",lsG("ct_t",[]).filter(function(t){return t.id!==id;}));
     if(window.FirebaseModule) window.FirebaseModule.deleteTurno(id);
-    renderTurni();renderOggi();stats();
+    renderTurni();renderOggi();stats();renderPermessiStudio();
     _playUiSound('delete'); haptic('warning');
     toast("Eliminato","ok");
   });
@@ -6339,7 +6394,7 @@ function aggSel(){
     var isMeLabel = p._isMe ? ' <span style="font-size:10px;background:rgba(91,159,255,.2);color:var(--blue);border-radius:8px;padding:1px 6px">Tu</span>' : '';
     return '<div class="pers-card" onclick="selezionaPersona(\''+p.id+'\',\''+p.nome.replace(/'/g,"\\'")+'\')" style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:center;cursor:pointer;transition:background .2s" onmouseover="this.style.background=\'var(--card2)\'" onmouseout="this.style.background=\'transparent\'">'+
       (gradoSrc?'<img src="'+gradoSrc+'" alt="'+(p.grado||'')+'" style="height:32px;width:50px;object-fit:contain;flex-shrink:0;border-radius:3px">':'<div style="width:50px;height:32px;display:flex;align-items:center;justify-content:center;font-size:22px">&#128100;</div>')+
-      '<div style="flex:1;min-width:0"><div style="font-weight:700;color:var(--txt);font-size:14px">'+p.nome+isMeLabel+_badgeP(p)+'</div><div style="font-size:12px;color:var(--txt2)">'+gn+'</div></div>'+
+      '<div style="flex:1;min-width:0"><div style="font-weight:700;color:var(--txt);font-size:14px">'+ctEsc(p.nome)+isMeLabel+_badgeP(p)+'</div><div style="font-size:12px;color:var(--txt2)">'+ctEsc(gn)+'</div></div>'+
     '</div>';
   }).join("");
 }
@@ -6360,16 +6415,16 @@ function renderCal(){
 
   var cols={
     mattina:"#ffb300",pomeriggio:"#ff6d00",notte:"#7c4dff",
-    riposo:"#c8102e",ferie:"#00c853",licenza:"#00c853",
+    riposo:"#c8102e",ferie:"#00c853",licenza:"#00c853",studio:"#00bcd4",
     recupero:"#00c853",permesso:"#00c853",corso:"#2979ff",
     ml:"#ffb300",pl:"#ff6d00"
   };
   var labels={
     mattina:"M",pomeriggio:"P",notte:"N",riposo:"R",
-    ferie:"F",licenza:"L",recupero:"Rec",permesso:"Per",corso:"C",
+    ferie:"F",licenza:"L",studio:"PS",recupero:"Rec",permesso:"Per",corso:"C",
     ml:"ML",pl:"PL"
   };
-  var ord=['mattina','ml','pomeriggio','pl','notte','riposo','ferie','licenza','recupero','permesso','corso'];
+  var ord=['mattina','ml','pomeriggio','pl','notte','riposo','ferie','licenza','studio','recupero','permesso','corso'];
 
   var h="";
   h+="<div style=\"background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:12px\">";
@@ -6521,7 +6576,7 @@ function mostraGiorno(ds){
       mattina:'Mattina',ml:'Mattina Lunga',pomeriggio:'Pomeriggio',pl:'Pomeriggio Lungo',
       notte:'Notte',sera:'Sera',
       riposo:'Riposo',ferie:'Ferie',recupero:'Recupero',permesso:'Permesso',
-      corso:'Corso',licenza:'Lic. Studio','937':'Lic. 937','104':'Art. 104',
+      corso:'Corso',licenza:'Lic. Studio',studio:'Permesso studio','937':'Lic. 937','104':'Art. 104',
       ls:'Donaz./Malattia',fest:'Festivo',esame:'Esame',custom:'Custom'
     };
 
@@ -6529,7 +6584,7 @@ function mostraGiorno(ds){
     var _codiceToTipoExact = {
       'M':'mattina', 'ML':'ml', 'P':'pomeriggio', 'PL':'pl',
       'N':'notte', 'S':'sera', 'R':'riposo', 'RR':'recupero',
-      'L':'ferie', 'LICSTU':'licenza', 'ESAME':'esame', 'CORSO':'corso',
+      'L':'ferie', 'LICSTU':'licenza', 'PSTUDIO':'studio', 'ESAME':'esame', 'CORSO':'corso',
       'FEST':'fest', '104':'104', 'LS':'ls', '937':'937'
     };
     var gruppi = {};
@@ -6763,16 +6818,16 @@ function renderRepData(){
   });
   if(!Tf.length){d.innerHTML='<div style="padding:30px;text-align:center;color:var(--txt2);font-size:13px">Nessun dato nel periodo selezionato</div>';return;}
 
-  var conti={mattina:0,pomeriggio:0,notte:0,riposo:0,recupero:0,ferie:0,licenza:0,permesso:0,corso:0};
+  var conti={mattina:0,pomeriggio:0,notte:0,riposo:0,recupero:0,ferie:0,licenza:0,studio:0,permesso:0,corso:0};
   var conti1515=0;
   Tf.forEach(function(t){
     if(conti[t.tipo]!==undefined)conti[t.tipo]++;
     if(t.codice==="1515")conti1515++;
   });
   var lbl={mattina:"Mattine (M/ML)",pomeriggio:"Pomeriggi (P/PL)",notte:"Notti",riposo:"Riposi (R)",
-    recupero:"Recuperi (RR)",ferie:"Licenze (L)",licenza:"Lic.Studio",permesso:"Permessi",corso:"Corsi"};
+    recupero:"Recuperi (RR)",ferie:"Licenze (L)",licenza:"Lic.Studio",studio:"Permessi studio (6h)",permesso:"Permessi",corso:"Corsi"};
   var cl={mattina:"#ffb300",pomeriggio:"#ff6d00",notte:"#7c4dff",riposo:"#00c853",
-    recupero:"#d4af37",ferie:"#00bcd4",licenza:"#00bcd4",permesso:"#e91e8c",corso:"#2979ff"};
+    recupero:"#d4af37",ferie:"#00bcd4",licenza:"#00bcd4",studio:"#00bcd4",permesso:"#e91e8c",corso:"#2979ff"};
 
   var h='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px">';
   Object.keys(conti).forEach(function(k){
@@ -7241,7 +7296,7 @@ function _condividiGiornoWA(ds){
   var tipoLabel = {
     mattina:'🌅 Mattina', ml:'🌅 Mattina Lunga', pomeriggio:'☀️ Pomeriggio', pl:'☀️ Pomeriggio Lungo',
     notte:'🌙 Notte', riposo:'💤 Riposo', recupero:'🔄 Recupero', ferie:'🏖️ Ferie',
-    permesso:'🕐 Permesso', corso:'🎓 Corso', licenza:'📚 Licenza'
+    permesso:'🕐 Permesso', studio:'🎓 Permesso studio', corso:'🎓 Corso', licenza:'📚 Licenza'
   };
   var righe = ['📅 *Turni ' + dataLabel + '*', '─────────────────'];
   if(!T.length){
@@ -7280,7 +7335,7 @@ function condividiTurniWA() {
     pomeriggio:'☀️ Pomeriggio', pl:'☀️ Pomeriggio Lungo',
     notte:'🌙 Notte', riposo:'💤 Riposo',
     recupero:'🔄 Recupero', ferie:'🏖️ Ferie',
-    permesso:'🕐 Permesso', corso:'🎓 Corso', licenza:'📚 Licenza'
+    permesso:'🕐 Permesso', studio:'🎓 Permesso studio', corso:'🎓 Corso', licenza:'📚 Licenza'
   };
 
   var nome = ((me.nome||'') + ' ' + (me.cognome||'')).trim();
@@ -7621,7 +7676,7 @@ function parseSheet(rows, sn) {
 
   // -- STEP 3: Codici turno ----------------------------------------------
   var cM2 = {"M":"mattina","ML":"ml","1515":"mattina","P":"pomeriggio","PL":"pl",
-    "N":"notte","NL":"notte","S":"sera","R":"riposo","RR":"recupero","L":"ferie","LICSTU":"licenza",
+    "N":"notte","NL":"notte","S":"sera","R":"riposo","RR":"recupero","L":"ferie","LICSTU":"licenza","PSTUDIO":"studio",
     "104":"permesso","937":"permesso","FEST":"permesso","CORSO":"corso","LS":"permesso","ESAME":"corso"};
 
   // Usa preset configurabili dall'utente
@@ -7645,7 +7700,7 @@ function parseSheet(rows, sn) {
     "pl":         _orario("pl"),
     "notte":      _orario("notte"),
     "sera":       _orario("sera"),
-    "riposo":"Riposo","recupero":"Recupero","ferie":"Ferie","licenza":"Lic. Studio","permesso":"Permesso","corso":"Corso"
+    "riposo":"Riposo","recupero":"Recupero","ferie":"Ferie","licenza":"Lic. Studio","studio":"Permesso studio","permesso":"Permesso","corso":"Corso"
   };
 
 
@@ -9723,8 +9778,8 @@ function renderWidgetAgenda() {
       ? ' <a href="https://www.google.com/maps/search/' + encodeURIComponent(a.luogo) + '" target="_blank" style="font-size:10px;color:var(--blue);text-decoration:none">&#128205; Maps</a>'
       : '';
     return '<div style="padding:6px 0;border-bottom:1px solid var(--border)">'
-      + '<div style="font-size:12px;font-weight:700;color:var(--txt)">' + a.tit + (a.ora ? ' <span style="color:var(--blue);font-size:11px">&#9201; ' + a.ora + '</span>' : '') + '</div>'
-      + (a.luogo ? '<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128205; ' + a.luogo + mapsLink + '</div>' : '') + '</div>';
+      + '<div style="font-size:12px;font-weight:700;color:var(--txt)">' + ctEsc(a.tit) + (a.ora ? ' <span style="color:var(--blue);font-size:11px">&#9201; ' + ctEsc(a.ora) + '</span>' : '') + '</div>'
+      + (a.luogo ? '<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128205; ' + ctEsc(a.luogo) + mapsLink + '</div>' : '') + '</div>';
   }).join('');
 }
 
@@ -9748,7 +9803,7 @@ function renderWidgetTodo() {
   el.innerHTML = TD.slice(0,3).map(function(t){
     return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">'
       + '<button onclick="toggleTodo(' + t.id + ');renderWidgetTodo()" style="width:22px;height:22px;border-radius:50%;border:2px solid var(--border);background:none;cursor:pointer;appearance:none;-webkit-appearance:none;flex-shrink:0"></button>'
-      +'<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:var(--txt)">' + t.tit + '</div>'
+      +'<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:var(--txt)">' + ctEsc(t.tit) + '</div>'
       + '<span style="font-size:9px;color:var(--txt2)">' + (pLbl[t.prio]||'') + (t.data ? ' &#128197; ' + t.data + (t.ora ? ' &#9201; ' + t.ora : '') : '') + '</span></div></div>';
   }).join('');
 }
@@ -9855,7 +9910,7 @@ function apriModTurno(id) {
   // Evidenzia il bottone corretto
   document.querySelectorAll('#m-mod-turno .btn-turno-r').forEach(function(b){ b.classList.remove('sel'); });
   // Mappa tipo ? codice bottone
-  var tipoMap = {mattina:'M',ml:'ML',pomeriggio:'P',pl:'PL',notte:'N',sera:'S',riposo:'R',recupero:'RR',ferie:'L','104':'104','937':'937',licenza:'LICSTU',esame:'ESAME',ls:'LS',fest:'FEST',permesso:'PERM',corso:'CORSO'};
+  var tipoMap = {mattina:'M',ml:'ML',pomeriggio:'P',pl:'PL',notte:'N',sera:'S',riposo:'R',recupero:'RR',ferie:'L','104':'104','937':'937',licenza:'LICSTU',studio:'PSTUDIO',esame:'ESAME',ls:'LS',fest:'FEST',permesso:'PERM',corso:'CORSO'};
   var cod = tipoMap[tipo];
   if(cod) {
     document.querySelectorAll('#m-mod-turno .btn-turno-r').forEach(function(b){
@@ -9910,14 +9965,22 @@ function salvaModTurno() {
   var oraFi = (document.getElementById('mmt-ora-fi')||{}).value || '';
   var orario = (oraIn && oraFi) ? oraIn + '-' + oraFi : '';
   var nuovoTipo = document.getElementById('mmt-tipo').value;
+  var _turnoOriginale = T.find(function(x){return x.id===id;});
+  if(nuovoTipo==='studio' && _turnoOriginale && _studioIsMyPid(_turnoOriginale.pid,lsG('ct_me',null))){
+    var _sim=T.map(function(x){return x.id===id?Object.assign({},x,{tipo:'studio'}):x;});
+    var _annoStudio=parseInt((_turnoOriginale.data||'').slice(0,4),10), _saldoStudio=getPermessoStudioSummary(_annoStudio,_sim);
+    if(!_saldoStudio.monte){toast('Prima attiva le 150 ore di permesso studio nelle Impostazioni','err');return;}
+    if(_saldoStudio.eccedenza>0){toast('Ore permesso studio insufficienti','err');return;}
+  }
   for (var i=0; i<T.length; i++) {
     if (T[i].id === id) {
       T[i].tipo = nuovoTipo;
       T[i].orario = orario;
       T[i].note = document.getElementById('mmt-note').value.trim();
+      T[i].categoria_evento = _TIPI_PERSONALE.indexOf(nuovoTipo)!==-1 ? 'personale' : 'servizio';
       // Aggiorna anche il codice in base al tipo
       var tipoToCod = {mattina:'M',ml:'ML',pomeriggio:'P',pl:'PL',notte:'N',sera:'S',
-        riposo:'R',recupero:'RR',ferie:'L','104':'104','937':'937',licenza:'LICSTU',
+        riposo:'R',recupero:'RR',ferie:'L','104':'104','937':'937',licenza:'LICSTU',studio:'PSTUDIO',
         esame:'ESAME',ls:'LS',fest:'FEST',permesso:'PERM',corso:'CORSO',
         obbm:'OBBM',obbp:'OBBP'};
       if(tipoToCod[nuovoTipo]) T[i].codice = tipoToCod[nuovoTipo];
@@ -9927,7 +9990,7 @@ function salvaModTurno() {
   lsS('ct_t', T);
   if(window.FirebaseModule) window.FirebaseModule.saveTurni(T);
   closeM('m-mod-turno');
-  renderTurni(); aggiornaWidget(); renderDash(); renderOggi();
+  renderTurni(); aggiornaWidget(); renderDash(); renderOggi(); renderPermessiStudio();
   if(typeof renderCal === 'function') renderCal();
   // Aggiorna anche il sheet del giorno se aperto
   var sgData = document.getElementById('sg-data');
@@ -9958,7 +10021,7 @@ function eliminaTurnoMod() {
     lsS('ct_t', T);
     if(window.FirebaseModule) window.FirebaseModule.deleteTurno(id);
     closeM('m-mod-turno');
-    renderTurni(); aggiornaWidget(); renderDash(); renderOggi(); stats();
+    renderTurni(); aggiornaWidget(); renderDash(); renderOggi(); stats(); renderPermessiStudio();
     toast('Turno eliminato', 'ok');
   });
 }
@@ -10705,7 +10768,7 @@ var _PRESET_ORA = {
     M:      null, ML:     null,
     P:      null, PL:     null,
     N:      null, S:      null,
-    R:      null, RR:     null, L:      null, LICSTU: null,
+    R:      null, RR:     null, L:      null, LICSTU: null, PSTUDIO: null,
     ESAME:  null, '104':  null, '937':  null, LS:     null,
     FEST:   null, CORSO:  null,
     OBBM:   ['07:00','13:00'],
@@ -10725,7 +10788,7 @@ function _aggiornaPresetOra(){
 }
 var _PRESET_TIPO = {
     M:'mattina', ML:'ml', P:'pomeriggio', PL:'pl', N:'notte', S:'sera',
-    R:'riposo', RR:'recupero', L:'ferie', LICSTU:'licenza',
+    R:'riposo', RR:'recupero', L:'ferie', LICSTU:'licenza', PSTUDIO:'studio',
     ESAME:'corso', '104':'permesso', '937':'permesso',
     LS:'permesso', FEST:'permesso', CORSO:'corso',
     OBBM:'obbm', OBBP:'obbp'
@@ -10735,7 +10798,8 @@ function eliminaTurnoDaGiorno(tid, ds) {
       if(!ok) return;
       var T = lsG("ct_t", []).filter(function(x){ return x.id !== tid; });
       lsS("ct_t", T);
-      renderTurni(); renderOggi(); stats(); aggiornaWidget();
+      if(window.FirebaseModule) window.FirebaseModule.deleteTurno(tid);
+      renderTurni(); renderOggi(); stats(); aggiornaWidget(); renderPermessiStudio();
       if (typeof renderCal === "function") renderCal();
       toast("Turno eliminato", "ok");
       // Riapri la vista giornaliera aggiornata
@@ -11359,6 +11423,7 @@ var AuthModule = (function() {
   var DEBUG_USER2 = 'debug';
 
   var DEBUG_PASS2 = 'debug';
+  var DEBUG_ENABLED = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 
 
 
@@ -11580,7 +11645,7 @@ var AuthModule = (function() {
 
       // Debug bypass
 
-      if (email === DEBUG_USER && pass === DEBUG_PASS) {
+      if (DEBUG_ENABLED && email === DEBUG_USER && pass === DEBUG_PASS) {
 
         _saveSession({
 
@@ -11626,7 +11691,7 @@ var AuthModule = (function() {
       }
 
       // Debug bypass 2 (addetto)
-      if (email === DEBUG_USER2 && pass === DEBUG_PASS2) {
+      if (DEBUG_ENABLED && email === DEBUG_USER2 && pass === DEBUG_PASS2) {
         _saveSession({
           userId: 'debug2',
           ruolo: 'addetto',
@@ -11767,16 +11832,16 @@ var AuthModule = (function() {
 
       if (!nome || !cognome || !email || !pass) {
 
-        _showAuthError('auth-reg-err', 'Compila tutti i campi'); return;
+        _showAuthError('auth-reg-err', 'Compila tutti i campi'); _riabilitaBtn(); return;
 
       }
       if (modalita === 'reparto' && !reparto) {
-        _showAuthError('auth-reg-err', 'Seleziona il reparto o scegli "Solo per me"'); return;
+        _showAuthError('auth-reg-err', 'Seleziona il reparto o scegli "Solo per me"'); _riabilitaBtn(); return;
       }
 
       if (!_validateEmail(email)) {
 
-        _showAuthError('auth-reg-err', 'Email deve essere @carabinieri.it'); return;
+        _showAuthError('auth-reg-err', 'Email deve essere @carabinieri.it'); _riabilitaBtn(); return;
 
       }
 
@@ -11805,19 +11870,11 @@ var AuthModule = (function() {
             stato = 'pending';
             window._joinInviteReparto = null; // reset flag
           } else {
-            // Se nessun comandante approvato esiste ? primo iscritto diventa comandante approved
-            var existingUsers = await window.FirebaseModule.getUsersByReparto(repartoFinale);
-
-            var hasCmdApproved = existingUsers.some(function(u) {
-
-              return u.ruolo === 'comandante' && u.stato === 'approved';
-
-            });
-
-            // Pioniere: nessun utente nel reparto ? comandante approved
-            var isPioniere = existingUsers.length === 0 || !hasCmdApproved;
-            ruoloFinale = isPioniere ? 'comandante' : 'addetto';
-            stato = isPioniere ? 'approved' : 'pending';
+            // L'assegnazione del Comandante non può essere decisa dal browser.
+            // Un nuovo membro entra sempre come addetto in attesa; un Comandante
+            // esistente o il superadmin lo approverà dal profilo autorevole.
+            ruoloFinale = 'addetto';
+            stato = 'pending';
           }
         }
 

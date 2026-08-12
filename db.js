@@ -29,6 +29,7 @@
   var _cacheReady = false;
 
   var _db = null;
+  var _idbFailed = false;
   var _readyResolve, _readyReject;
   var _ready = new Promise(function(res, rej){ _readyResolve = res; _readyReject = rej; });
 
@@ -51,6 +52,11 @@
     };
     req.onerror = function(e) {
       console.warn('[CDB] IDB open error, fallback to localStorage', e);
+      _idbFailed = true;
+      IDB_KEYS.forEach(function(key){
+        try { var raw=localStorage.getItem(key); if(raw!==null) _cache[key]=JSON.parse(raw); } catch(ignore) {}
+      });
+      _cacheReady = true;
       _readyResolve(); // non bloccare l'app
     };
   }
@@ -74,7 +80,11 @@
   // ── Operazioni IDB low-level ──────────────────────────────
   function _idbGet(key) {
     return new Promise(function(resolve) {
-      if(!_db) { resolve(undefined); return; }
+      if(!_db) {
+        try { var raw=localStorage.getItem(key); resolve(raw===null?undefined:JSON.parse(raw)); }
+        catch(e) { resolve(undefined); }
+        return;
+      }
       try {
         var tx  = _db.transaction(STORE_NAME, 'readonly');
         var req = tx.objectStore(STORE_NAME).get(key);
@@ -86,7 +96,11 @@
 
   function _idbSet(key, value) {
     return new Promise(function(resolve) {
-      if(!_db) { resolve(false); return; }
+      if(!_db) {
+        try { localStorage.setItem(key, JSON.stringify(value)); resolve(true); }
+        catch(e) { resolve(false); }
+        return;
+      }
       try {
         var tx  = _db.transaction(STORE_NAME, 'readwrite');
         var req = tx.objectStore(STORE_NAME).put(value, key);
@@ -98,7 +112,7 @@
 
   function _idbRemove(key) {
     return new Promise(function(resolve) {
-      if(!_db) { resolve(); return; }
+      if(!_db) { localStorage.removeItem(key); resolve(); return; }
       try {
         var tx  = _db.transaction(STORE_NAME, 'readwrite');
         var req = tx.objectStore(STORE_NAME).delete(key);
@@ -124,7 +138,12 @@
         catch(e) { return Promise.resolve(defaultVal); }
       }
       if(_cacheReady) {
-        return Promise.resolve(_cache.hasOwnProperty(key) ? _cache[key] : defaultVal);
+        if(_cache.hasOwnProperty(key)) return Promise.resolve(_cache[key]);
+        if(_idbFailed) {
+          try { var raw=localStorage.getItem(key); return Promise.resolve(raw===null?defaultVal:JSON.parse(raw)); }
+          catch(e) { return Promise.resolve(defaultVal); }
+        }
+        return Promise.resolve(defaultVal);
       }
       return _ready.then(function() {
         return _idbGet(key).then(function(v) {
@@ -162,7 +181,12 @@
         try { var v = localStorage.getItem(key); return v ? JSON.parse(v) : defaultVal; }
         catch(e) { return defaultVal; }
       }
-      return _cache.hasOwnProperty(key) ? _cache[key] : defaultVal;
+      if(_cache.hasOwnProperty(key)) return _cache[key];
+      if(_idbFailed) {
+        try { var raw=localStorage.getItem(key); return raw===null?defaultVal:JSON.parse(raw); }
+        catch(e) { return defaultVal; }
+      }
+      return defaultVal;
     },
 
     /** Aggiorna la cache interna (usato da FirebaseModule dopo sync) */

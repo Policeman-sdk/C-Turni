@@ -290,6 +290,14 @@ function _startListeners(reparto) {
           }
         } catch(e2) {}
         if(typeof window.aggUI === 'function') window.aggUI();
+      } else {
+        // Profilo eliminato o revocato: non lasciare attiva una sessione locale obsoleta.
+        _stopListeners();
+        localStorage.removeItem('ct_session');
+        localStorage.removeItem('ct_me');
+        signOut(auth).catch(function(){});
+        if(window.AuthModule && typeof window.AuthModule.showLogin === 'function') window.AuthModule.showLogin();
+        _toast('Account non più attivo. Effettua nuovamente l’accesso.', 'err');
       }
     }, function(e){ console.warn('onSnapshot profilo:', e.message); }));
   }
@@ -301,24 +309,8 @@ function _startListeners(reparto) {
     snap.forEach(function(d){ arr.push(d.data()); });
     if(window.CDB) { CDB.set('ct_users', arr); } else { localStorage.setItem('ct_users', JSON.stringify(arr)); }
 
-    // Auto-ripristino: se l'utente corrente non è più nella lista del reparto, ri-salvalo
-    try {
-      var session = JSON.parse(localStorage.getItem('ct_session') || 'null');
-      var me = JSON.parse(localStorage.getItem('ct_me') || 'null');
-      if(session && session.userId && me && me.reparto) {
-        var uid = session.userId;
-        var meInLista = arr.some(function(u){ return u.uid === uid || u.email === session.email; });
-        var meReparto = (me.reparto||'').toLowerCase().replace(/\s+/g,'_');
-        var repartoCorrente = reparto.toLowerCase().replace(/\s+/g,'_');
-        // Ripristina solo se il reparto del listener corrisponde al reparto corrente dell'utente
-        if(!meInLista && meReparto === repartoCorrente && me.stato !== 'pending' && me.stato !== 'rejected') {
-          console.log('[C-Turni] Auto-ripristino profilo nel reparto:', reparto);
-          window.FirebaseModule.saveUserProfile(uid, me, reparto).catch(function(e){
-            console.warn('auto-ripristino profilo:', e.message);
-          });
-        }
-      }
-    } catch(e2) { console.warn('auto-ripristino check:', e2.message); }
+    // Non ricreare automaticamente profili rimossi: una rimozione effettuata dal
+    // Comandante deve rimanere autorevole. L'eventuale rientro passa da una nuova richiesta.
 
     // Aggiorna ct_session e ct_me se il ruolo dell'utente corrente è cambiato
     try {
@@ -501,7 +493,7 @@ window.FirebaseModule = {
       if(rep && !rep.startsWith('privato_')) {
         var turniSnap = await getDocs(collection(db, 'reparti', rep, 'turni'));
         var turni = []; turniSnap.forEach(function(d){ turni.push(d.data()); });
-        if(turni.length > 0) { if(window.CDB) { await CDB.set('ct_t', turni); } else { localStorage.setItem('ct_t', JSON.stringify(turni)); } }
+        if(window.CDB) { await CDB.set('ct_t', turni); } else { localStorage.setItem('ct_t', JSON.stringify(turni)); }
       }
       await this.syncUsers();
       _toast('Dati sincronizzati dal cloud', 'ok');
@@ -543,7 +535,7 @@ window.FirebaseModule = {
       if(!isPrivato) {
         var turniSnap = await getDocs(collection(db, 'reparti', rep, 'turni'));
         var turni = []; turniSnap.forEach(function(d){ turni.push(d.data()); });
-        if(turni.length > 0) { if(window.CDB) { await CDB.set('ct_t', turni); } else { localStorage.setItem('ct_t', JSON.stringify(turni)); } }
+        if(window.CDB) { await CDB.set('ct_t', turni); } else { localStorage.setItem('ct_t', JSON.stringify(turni)); }
       }
 
       var uid = session.userId;
@@ -551,12 +543,12 @@ window.FirebaseModule = {
       // Todo personali
       var todoSnap = await getDocs(collection(db, 'utenti', uid, 'todo'));
       var todo = []; todoSnap.forEach(function(d){ todo.push(d.data()); });
-      if(todo.length > 0) { if(window.CDB) { await CDB.set('ct_td', todo); } else { localStorage.setItem('ct_td', JSON.stringify(todo)); } }
+      if(window.CDB) { await CDB.set('ct_td', todo); } else { localStorage.setItem('ct_td', JSON.stringify(todo)); }
 
       // Agenda personale
       var agendaSnap = await getDocs(collection(db, 'utenti', uid, 'agenda'));
       var agenda = []; agendaSnap.forEach(function(d){ agenda.push(d.data()); });
-      if(agenda.length > 0) { if(window.CDB) { await CDB.set('ct_ag', agenda); } else { localStorage.setItem('ct_ag', JSON.stringify(agenda)); } }
+      if(window.CDB) { await CDB.set('ct_ag', agenda); } else { localStorage.setItem('ct_ag', JSON.stringify(agenda)); }
 
       // Profilo utente
       var profSnap = await getDoc(doc(db, 'utenti', uid));
@@ -742,6 +734,10 @@ window.FirebaseModule = {
     if(!rep || !turniArr) { console.warn('[saveTurni] rep o turniArr mancante'); return; }
     try {
       var arr = typeof turniArr === 'string' ? JSON.parse(turniArr) : turniArr;
+      var session = JSON.parse(localStorage.getItem('ct_session') || 'null');
+      var canManageAll = session && (session.ruolo === 'comandante' || session.ruolo === 'vice');
+      var currentUid = session && session.userId;
+      if(!canManageAll) arr = arr.filter(function(t){ return currentUid && (t.ownerUid === currentUid || t.uid === currentUid || t.userId === currentUid); });
       if(!arr.length) return;
 
       // Raggruppa per anno-mese — aggiorna solo i mesi presenti, non tocca gli altri
@@ -767,7 +763,9 @@ window.FirebaseModule = {
           .then(function(snap){
             var del = [];
             snap.forEach(function(d){
-              if(localIds.indexOf(d.id) === -1) del.push(deleteDoc(doc(db, 'reparti', rep, 'turni', d.id)));
+              var remote = d.data();
+              var mayDelete = canManageAll || (currentUid && (remote.ownerUid===currentUid || remote.uid===currentUid || remote.userId===currentUid));
+              if(mayDelete && localIds.indexOf(d.id) === -1) del.push(deleteDoc(doc(db, 'reparti', rep, 'turni', d.id)));
             });
             return Promise.all(del);
           })
@@ -1086,7 +1084,7 @@ window.FirebaseModule = {
       var oggi = (function(){var d=new Date();return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);})();
       var T = window.CDB ? (CDB.getSync('ct_t', []) || []) : JSON.parse(localStorage.getItem('ct_t') || '[]');
       var nuovoRep = (nuovoReparto||'').toLowerCase().replace(/\s+/g,'_');
-      var _tipiPers = ['riposo','ferie','recupero','licenza','permesso','937','104','ls','fest'];
+      var _tipiPers = ['riposo','ferie','recupero','licenza','permesso','studio','937','104','ls','fest'];
       var personali = T.filter(function(t){
         // Fallback per turni vecchi senza categoria_evento: usa il tipo
         var isPersonale = t.categoria_evento === 'personale' ||
@@ -1115,7 +1113,7 @@ window.FirebaseModule = {
     try {
       var oggi = (function(){var d=new Date();return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);})();
       var rep = (reparto||'').toLowerCase().replace(/\s+/g,'_');
-      var _tipiPers = ['riposo','ferie','recupero','licenza','permesso','937','104','ls','fest'];
+      var _tipiPers = ['riposo','ferie','recupero','licenza','permesso','studio','937','104','ls','fest'];
       var _isServizio = function(t){ return t.categoria_evento === 'servizio' || (!t.categoria_evento && _tipiPers.indexOf(t.tipo) === -1); };
       if(rep && !rep.startsWith('privato_')) {
         var snap = await getDocs(collection(db, 'reparti', rep, 'turni'));
@@ -1519,6 +1517,19 @@ window.FirebaseModule = {
   }
 
 };
+
+// La sessione UI deve corrispondere sempre alla sessione Firebase autorevole.
+// Offline il modulo non viene caricato e la cache locale resta consultabile.
+onAuthStateChanged(auth, function(user) {
+  var session = null;
+  try { session = JSON.parse(localStorage.getItem('ct_session') || 'null'); } catch(e) {}
+  if(session && !session.isDebug && (!user || user.uid !== session.userId)) {
+    _stopListeners();
+    localStorage.removeItem('ct_session');
+    localStorage.removeItem('ct_me');
+    if(window.AuthModule && typeof window.AuthModule.showLogin === 'function') window.AuthModule.showLogin();
+  }
+});
 
 // ── Notifica app che FirebaseModule e' pronto ────────────────────
 window.dispatchEvent(new CustomEvent('firebase-ready'));

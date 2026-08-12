@@ -512,7 +512,7 @@ tbody tr:last-child td{border-bottom:none}
 .tb.pomeriggio{background:rgba(255,109,0,.15);color:var(--orange);border:1px solid rgba(255,109,0,.25)}
 .tb.notte{background:rgba(124,77,255,.15);color:var(--purple);border:1px solid rgba(124,77,255,.25)}
 .tb.riposo{background:rgba(0,200,83,.15);color:var(--green);border:1px solid rgba(0,200,83,.25)}
-.tb.ferie,.tb.licenza{background:rgba(0,188,212,.15);color:var(--teal);border:1px solid rgba(0,188,212,.25)}
+.tb.ferie,.tb.licenza,.tb.studio{background:rgba(0,188,212,.15);color:var(--teal);border:1px solid rgba(0,188,212,.25)}
 .tb.recupero{background:rgba(212,175,55,.15);color:var(--gold);border:1px solid rgba(212,175,55,.25)}
 .tb.permesso{background:rgba(233,30,140,.15);color:#e91e8c;border:1px solid rgba(233,30,140,.25)}
 .tb.corso{background:rgba(41,121,255,.15);color:var(--blue);border:1px solid rgba(41,121,255,.25)}
@@ -623,7 +623,7 @@ tr.t-pomeriggio td:first-child{border-left:3px solid #e65100}
 tr.t-notte td:first-child{border-left:3px solid #7c4dff}
 tr.t-riposo td:first-child{border-left:3px solid #00c853}
 tr.t-recupero td:first-child{border-left:3px solid #d4af37}
-tr.t-ferie td:first-child,tr.t-licenza td:first-child{border-left:3px solid #00bcd4}
+tr.t-ferie td:first-child,tr.t-licenza td:first-child,tr.t-studio td:first-child{border-left:3px solid #00bcd4}
 tr.t-permesso td:first-child{border-left:3px solid #e91e63}
 tr.t-corso td:first-child{border-left:3px solid #2979ff}
 /* todo */

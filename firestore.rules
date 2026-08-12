@@ -1,0 +1,81 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function globalUser(uid) {
+      return get(/databases/$(database)/documents/utenti/$(uid));
+    }
+    function isSuperAdmin() {
+      return signedIn() && globalUser(request.auth.uid).data.ruolo == 'superadmin';
+    }
+    function member(reparto, uid) {
+      return get(/databases/$(database)/documents/reparti/$(reparto)/utenti/$(uid));
+    }
+    function isApproved(reparto) {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/reparti/$(reparto)/utenti/$(request.auth.uid)) &&
+        member(reparto, request.auth.uid).data.stato == 'approved';
+    }
+    function isCommand(reparto) {
+      return isApproved(reparto) && member(reparto, request.auth.uid).data.ruolo in ['comandante', 'vice'];
+    }
+    function ownsTurn(data) {
+      return signedIn() && (data.ownerUid == request.auth.uid || data.uid == request.auth.uid || data.userId == request.auth.uid);
+    }
+
+    match /utenti/{uid} {
+      allow read: if isSuperAdmin() || (signedIn() && request.auth.uid == uid);
+      allow create: if signedIn() && request.auth.uid == uid &&
+        request.resource.data.uid == uid && request.resource.data.ruolo == 'addetto';
+      allow update: if isSuperAdmin() ||
+        (signedIn() && request.auth.uid == uid &&
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['uid','email','ruolo','stato','reparto'])) ||
+        (isCommand(resource.data.reparto) && request.resource.data.reparto == resource.data.reparto &&
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['uid','email','reparto']));
+      allow delete: if isSuperAdmin();
+
+      match /todo/{id} { allow read, write: if isSuperAdmin() || (signedIn() && request.auth.uid == uid); }
+      match /agenda/{id} { allow read, write: if isSuperAdmin() || (signedIn() && request.auth.uid == uid); }
+      match /notifiche/{id} { allow read, write: if isSuperAdmin() || (signedIn() && request.auth.uid == uid); }
+    }
+
+    match /notifiche_push/{id} {
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow read, update, delete: if isSuperAdmin();
+    }
+
+    match /reparti/{reparto} {
+      allow read, write: if isSuperAdmin();
+
+      match /utenti/{uid} {
+        allow read: if isSuperAdmin() || isApproved(reparto) || (signedIn() && request.auth.uid == uid);
+        allow create: if isSuperAdmin() || (signedIn() && request.auth.uid == uid &&
+          request.resource.data.uid == uid && request.resource.data.ruolo == 'addetto' &&
+          ((reparto == 'privato_' + uid && request.resource.data.stato == 'approved') ||
+           (reparto != 'privato_' + uid && request.resource.data.stato == 'pending')));
+        allow update: if isSuperAdmin() || isCommand(reparto) ||
+          (signedIn() && request.auth.uid == uid &&
+           !request.resource.data.diff(resource.data).affectedKeys().hasAny(['uid','email','ruolo','stato','reparto']));
+        allow delete: if isSuperAdmin() || isCommand(reparto) || (signedIn() && request.auth.uid == uid);
+      }
+
+      match /turni/{id} {
+        allow read: if isSuperAdmin() || isApproved(reparto);
+        allow create: if isSuperAdmin() || isCommand(reparto) || (isApproved(reparto) && ownsTurn(request.resource.data));
+        allow update: if isSuperAdmin() || isCommand(reparto) ||
+          (isApproved(reparto) && ownsTurn(resource.data) && ownsTurn(request.resource.data));
+        allow delete: if isSuperAdmin() || isCommand(reparto) || (isApproved(reparto) && ownsTurn(resource.data));
+      }
+
+      match /personale/{id} { allow read: if isSuperAdmin() || isApproved(reparto); allow write: if isSuperAdmin() || isCommand(reparto); }
+      match /persone/{id} { allow read: if isSuperAdmin() || isApproved(reparto); allow write: if isSuperAdmin() || isCommand(reparto); }
+      match /config/{id} { allow read: if isSuperAdmin() || isApproved(reparto); allow write: if isSuperAdmin() || isCommand(reparto); }
+      match /todo_condivisi/{id} { allow read, write: if isSuperAdmin() || isApproved(reparto); }
+      match /agenda_condivisa/{id} { allow read, write: if isSuperAdmin() || isApproved(reparto); }
+      match /link_utenti/{uid} {
+        allow read: if isSuperAdmin() || isApproved(reparto);
+        allow write: if isSuperAdmin() || isCommand(reparto) || (isApproved(reparto) && request.auth.uid == uid);
+      }
+    }
+  }
+}

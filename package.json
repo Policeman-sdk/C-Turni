@@ -1,0 +1,19 @@
+{
+  "name": "c-turni",
+  "version": "4.3.0",
+  "private": true,
+  "scripts": {
+    "test": "node scripts/smoke.mjs",
+    "prepare:web": "node scripts/prepareWeb.mjs",
+    "android:add": "npm run prepare:web && npx cap add android",
+    "android:sync": "npm run prepare:web && npx cap sync android",
+    "android:open": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "latest",
+    "@capacitor/core": "latest"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "latest"
+  }
+}
