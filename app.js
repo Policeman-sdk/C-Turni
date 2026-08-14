@@ -132,6 +132,50 @@ function _studioIsMyPid(pid, me) {
   var myPid = localStorage.getItem('ct_my_pid');
   return String(pid) === String(me.id) || (me.uid && String(pid) === String(me.uid)) || (myPid && String(pid) === String(myPid));
 }
+
+// Restituisce una sola riga per persona senza perdere i dati più completi.
+// Serve come fonte unica per import Excel, Firebase, tabelle e statistiche.
+function ctDedupPersone(items){
+  var result=[];
+  var byUid={};
+  var byName={};
+  function norm(value){
+    return (value||'').toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  }
+  function nameKeys(person){
+    var direct=norm(person&&person.nome);
+    if(!direct) return [];
+    var parts=direct.split(' '), keys=[direct];
+    if(parts.length===2) keys.push(parts[1]+' '+parts[0]);
+    return keys;
+  }
+  (Array.isArray(items)?items:[]).forEach(function(person){
+    if(!person || !norm(person.nome)) return;
+    var uid=person.uid ? String(person.uid) : '';
+    var keys=nameKeys(person);
+    var index=uid && byUid[uid]!==undefined ? byUid[uid] : undefined;
+    if(index===undefined){
+      for(var i=0;i<keys.length;i++) if(byName[keys[i]]!==undefined){ index=byName[keys[i]]; break; }
+    }
+    if(index===undefined){
+      index=result.length;
+      result.push(Object.assign({},person));
+    } else {
+      var current=result[index];
+      // Preferisci l'identità registrata, mantenendo saldi e campi locali mancanti.
+      if(uid && !current.uid) current.uid=person.uid;
+      ['grado','reparto','ava','nucleo'].forEach(function(field){ if(!current[field]&&person[field]) current[field]=person[field]; });
+      if((!current.licenzePool||!current.licenzePool.length)&&person.licenzePool&&person.licenzePool.length) current.licenzePool=person.licenzePool;
+      if(current.ferieRes===undefined&&person.ferieRes!==undefined) current.ferieRes=person.ferieRes;
+    }
+    var kept=result[index];
+    if(kept.uid) byUid[String(kept.uid)]=index;
+    nameKeys(kept).concat(keys).forEach(function(key){ byName[key]=index; });
+  });
+  return result;
+}
+window.ctDedupPersone=ctDedupPersone;
 function ctEsc(value){
   return String(value==null?'':value).replace(/[&<>"']/g,function(ch){
     return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];
@@ -170,6 +214,56 @@ function attivaPermessiStudio() {
   var sess=lsG('ct_session',null);
   if(sess&&sess.userId&&window.FirebaseModule) window.FirebaseModule.saveUserProfile(sess.userId,{permessiStudioMonte:me.permessiStudioMonte},null).catch(function(){ toast('Ore salvate sul dispositivo; sincronizzazione cloud non riuscita','warn'); });
   renderPermessiStudio(); toast('Monte permessi studio attivato: 150 ore per il '+anno,'ok');
+}
+
+// Movimenti reversibili collegati ai turni. Ogni consumo conserva sul turno
+// l'origine utilizzata, così modifica ed eliminazione possono restituirla.
+function _entitlementOwner(t){return String(t.ownerUid||t.uid||t.pid||'');}
+function _isRecuperoConsumatoTurno(t){return !!t&&(t.tipo==='recupero'||String(t.codice||'').trim()==='2');}
+function _syncEntitlements(){var me=lsG('ct_me',null),s=lsG('ct_session',null);if(me){me.ct_recuperi=lsG('ct_recuperi',[]);me.ct_fest_sopp=lsG('ct_fest_sopp',[]);me.recuperiExtra=me.ct_recuperi.filter(function(r){return !r.usato;}).length;lsS('ct_me',me);}if(window.FirebaseModule){window.FirebaseModule.savePersona().catch(function(){});if(me&&s&&s.userId)window.FirebaseModule.saveUserProfile(s.userId,me,me.reparto).catch(function(){});}}
+function _consumaLicenzaTurno(t){
+  if(!t||['ferie','licenza'].indexOf(t.tipo)===-1)return true;
+  var pool=getFeriePool(t.pid).slice().sort(function(a,b){return a.anno-b.anno;});
+  var e=pool.find(function(x){return Number(x.giorni)>0;});
+  if(!e){toast('Nessun giorno di ferie/licenza disponibile','err');return false;}
+  e.giorni--;t.licenzaAnnoConsumata=e.anno;saveFeriePool(t.pid,pool);return true;
+}
+function _restituisciLicenzaTurno(t){
+  if(!t||(!t.licenzaAnnoConsumata&&t.tipo!=='ferie'))return;
+  var pool=getFeriePool(t.pid).slice().sort(function(a,b){return a.anno-b.anno;});if(!pool.length)return;
+  var anno=Number(t.licenzaAnnoConsumata||pool[0].anno),e=pool.find(function(x){return Number(x.anno)===anno;});
+  if(e)e.giorni=Number(e.giorni||0)+1;else pool.push({anno:anno,giorni:1});
+  saveFeriePool(t.pid,pool);delete t.licenzaAnnoConsumata;
+}
+function _consuma937Turno(t){
+  if(!t||t.tipo!=='937')return true;
+  var owner=_entitlementOwner(t),anno=parseInt((t.data||'').slice(0,4),10),FS=lsG('ct_fest_sopp',[]);
+  if(FS.filter(function(f){return String(f.uid)===owner&&Number(f.anno)===anno&&f.usato;}).length>=4){toast('Tutte le 4 festività soppresse del '+anno+' sono già utilizzate','err');return false;}
+  var m={id:Date.now()+Math.random(),uid:owner,anno:anno,data:t.data,nota:'Licenza 937',usato:true,turnoId:t.id};FS.push(m);t.festSoppMovimentoId=m.id;lsS('ct_fest_sopp',FS);renderFestSopp();return true;
+}
+function _restituisci937Turno(t){if(!t||t.tipo!=='937')return;var owner=_entitlementOwner(t),removed=false,FS=lsG('ct_fest_sopp',[]).filter(function(f){var match=String(f.turnoId)===String(t.id)||(t.festSoppMovimentoId&&String(f.id)===String(t.festSoppMovimentoId));if(!match&&!removed&&!f.turnoId&&f.usato&&String(f.uid)===owner&&f.data===t.data)match=true;if(match)removed=true;return !match;});lsS('ct_fest_sopp',FS);renderFestSopp();delete t.festSoppMovimentoId;}
+function _consumaRecuperoTurno(t){
+  if(!_isRecuperoConsumatoTurno(t))return true;
+  var REC=lsG('ct_recuperi',[]),disponibili=REC.filter(function(r){return !r.usato;}).sort(function(a,b){return String(a.data||'').localeCompare(String(b.data||''))||Number(a.id)-Number(b.id);});
+  if(!disponibili.length){toast('Nessun recupero festivo disponibile','err');return false;}
+  var target=disponibili[0];for(var i=0;i<REC.length;i++)if(String(REC[i].id)===String(target.id)){REC[i].usato=true;REC[i].usatoDaTurnoId=t.id;break;}
+  t.recuperoConsumatoId=target.id;lsS('ct_recuperi',REC);renderRecuperi();return true;
+}
+function _restituisciRecuperoTurno(t){if(!t||!t.recuperoConsumatoId)return;var REC=lsG('ct_recuperi',[]);for(var i=0;i<REC.length;i++)if(String(REC[i].id)===String(t.recuperoConsumatoId)){REC[i].usato=false;delete REC[i].usatoDaTurnoId;break;}lsS('ct_recuperi',REC);renderRecuperi();delete t.recuperoConsumatoId;}
+function applicaMovimentiTurno(t){if(!_consumaLicenzaTurno(t))return false;if(!_consuma937Turno(t)){_restituisciLicenzaTurno(t);return false;}if(!_consumaRecuperoTurno(t)){_restituisci937Turno(t);_restituisciLicenzaTurno(t);return false;}_syncEntitlements();return true;}
+function restituisciMovimentiTurno(t){_restituisciRecuperoTurno(t);_restituisci937Turno(t);_restituisciLicenzaTurno(t);_syncEntitlements();}
+function rimuoviRecuperoMaturatoTurno(t){
+  if(!t)return;
+  var REC=lsG('ct_recuperi',[]),maturato=REC.find(function(r){return String(r.id)===String(t.id);});
+  if(!maturato){localStorage.removeItem('ct_rec_'+t.id);return;}
+  REC=REC.filter(function(r){return String(r.id)!==String(t.id);});lsS('ct_recuperi',REC);localStorage.removeItem('ct_rec_'+t.id);
+  // Se quel recupero era già stato utilizzato, prova a collegare al turno di
+  // consumo il successivo recupero disponibile, sempre in ordine cronologico.
+  if(maturato.usatoDaTurnoId){
+    var consumo=lsG('ct_t',[]).find(function(x){return String(x.id)===String(maturato.usatoDaTurnoId);});
+    if(consumo){delete consumo.recuperoConsumatoId;_consumaRecuperoTurno(consumo);lsS('ct_t',lsG('ct_t',[]));}
+  }
+  renderRecuperi();
 }
 
 function regAvanzaStep2(){
@@ -890,12 +984,14 @@ window.addEventListener("DOMContentLoaded",function(){
       if(s){ s.style.opacity='0'; s.style.visibility='hidden'; setTimeout(function(){s.remove();},500); }
     }
   }, 8000);
-  var U=lsG("ct_u",[]);
-  // Aggiorna o crea utente admin (id=1)
-  var _adminIdx = -1; for(var _ai=0;_ai<U.length;_ai++){if(U[_ai].id===1||U[_ai].nome==='admin'){_adminIdx=_ai;break;}}
-  var _adminObj = {id:1,nome:'Gerry',cognome:'Scotti',pw:'admin',grado:'Gen.',ruolo:'comandante',reparto:'Varazze',nucleo:'Stazione Varazze',tipo:'ter',stato:'approved',ava:null};
-  if(_adminIdx>=0){U[_adminIdx]=Object.assign({},U[_adminIdx],_adminObj);}else{U.push(_adminObj);}
-  lsS('ct_u',U);
+  // L'account dimostrativo non deve mai entrare nei dati di produzione.
+  if(location.hostname==='localhost'||location.hostname==='127.0.0.1'){
+    var U=lsG("ct_u",[]);
+    var _adminIdx=-1;for(var _ai=0;_ai<U.length;_ai++){if(U[_ai].id===1||U[_ai].nome==='admin'){_adminIdx=_ai;break;}}
+    var _adminObj={id:1,nome:'Gerry',cognome:'Scotti',pw:'admin',grado:'Gen.',ruolo:'comandante',reparto:'Varazze',nucleo:'Stazione Varazze',tipo:'ter',stato:'approved',ava:null};
+    if(_adminIdx>=0)U[_adminIdx]=Object.assign({},U[_adminIdx],_adminObj);else U.push(_adminObj);
+    lsS('ct_u',U);
+  }
 
 
 
@@ -1257,22 +1353,22 @@ var _giorniEditTemp   = 0;
 function getFeriePool(pid){
   // Cerca in ct_p (fonte principale), poi ct_u, ct_users, ct_me
   var P=lsG("ct_p",[]);
-  var p=P.find(function(x){return x.id===pid||x.uid===pid;});
+  var p=P.find(function(x){return String(x.id)===String(pid)||(x.uid&&String(x.uid)===String(pid));});
   if(p&&p.licenzePool&&p.licenzePool.length)
     return p.licenzePool.slice().sort(function(a,b){return a.anno-b.anno;});
   // Fallback ct_u
   var U=lsG("ct_u",[]);
-  var u=U.find(function(x){return x.id===pid||x.uid===pid;});
+  var u=U.find(function(x){return String(x.id)===String(pid)||(x.uid&&String(x.uid)===String(pid));});
   if(u&&u.licenzePool&&u.licenzePool.length)
     return u.licenzePool.slice().sort(function(a,b){return a.anno-b.anno;});
   // Fallback ct_users (Firebase)
   var CU=lsG("ct_users",[]);
-  var cu=CU.find(function(x){return x.id===pid||x.uid===pid;});
+  var cu=CU.find(function(x){return String(x.id)===String(pid)||(x.uid&&String(x.uid)===String(pid));});
   if(cu&&cu.licenzePool&&cu.licenzePool.length)
     return cu.licenzePool.slice().sort(function(a,b){return a.anno-b.anno;});
   // Fallback ct_me
   var me=lsG("ct_me",null);
-  if(me&&(me.id===pid||me.uid===pid)&&me.licenzePool&&me.licenzePool.length)
+  if(me&&(String(me.id)===String(pid)||(me.uid&&String(me.uid)===String(pid)))&&me.licenzePool&&me.licenzePool.length)
     return me.licenzePool.slice().sort(function(a,b){return a.anno-b.anno;});
   return [];
 }
@@ -1284,7 +1380,7 @@ function saveFeriePool(pid,pool){
   var U=lsG("ct_u",[]);
   var trovato=false;
   for(var i=0;i<U.length;i++){
-    if(U[i].id===pid||U[i].uid===pid){U[i].licenzePool=pool;U[i].ferie=tot;U[i].ferieRes=tot;trovato=true;break;}
+    if(String(U[i].id)===String(pid)||(U[i].uid&&String(U[i].uid)===String(pid))){U[i].licenzePool=pool;U[i].ferie=tot;U[i].ferieRes=tot;trovato=true;break;}
   }
   if(!trovato){ U.push({id:pid,licenzePool:pool,ferie:tot,ferieRes:tot}); }
   lsS("ct_u",U);
@@ -1292,13 +1388,13 @@ function saveFeriePool(pid,pool){
   var P=lsG("ct_p",[]);
   var trovatoP=false;
   for(var j=0;j<P.length;j++){
-    if(P[j].id===pid||P[j].uid===pid){P[j].licenzePool=pool;P[j].ferie=tot;P[j].ferieRes=tot;trovatoP=true;break;}
+    if(String(P[j].id)===String(pid)||(P[j].uid&&String(P[j].uid)===String(pid))){P[j].licenzePool=pool;P[j].ferie=tot;P[j].ferieRes=tot;trovatoP=true;break;}
   }
   if(!trovatoP){ P.push({id:pid,licenzePool:pool,ferie:tot,ferieRes:tot}); }
   lsS("ct_p",P);
   // Aggiorna ct_me
   var me=lsG("ct_me",null);
-  if(me&&(me.id===pid||me.uid===pid)){me.licenzePool=pool;me.ferie=tot;me.ferieRes=tot;lsS("ct_me",me);}
+  if(me&&(String(me.id)===String(pid)||(me.uid&&String(me.uid)===String(pid)))){me.licenzePool=pool;me.ferie=tot;me.ferieRes=tot;lsS("ct_me",me);}
   // Aggiorna UI
   var fs=document.getElementById("ferie-saldo-n");
   if(fs){fs.textContent=tot;fs.style.color=tot<5?"var(--red)":tot<15?"var(--gold)":"var(--green)";}
@@ -1588,19 +1684,14 @@ var _codiceToTipo={
 function _isMyTurno(t, me) {
   if(!t || !me) return false;
   var myPid = me.myPid || localStorage.getItem('ct_my_pid');
-  // Match per id/uid/pid salvato
-  if(t.pid == me.id || t.pid === me.uid || (myPid && t.pid == myPid)) return true;
-  // Match per pnome: tokenizza e verifica che tutti i token di nome+cognome siano presenti in pnome
+  var owner=String(t.ownerUid||t.uid||t.userId||'');
+  if(me.uid&&owner===String(me.uid))return true;
+  if(String(t.pid)===String(me.id)||(me.uid&&String(t.pid)===String(me.uid))||(myPid&&String(t.pid)===String(myPid)))return true;
+  // Fallback per vecchie importazioni: nome completo esatto, mai parziale.
   if(t.pnome && (me.nome || me.cognome)) {
-    var pnTokens = (t.pnome || '').toLowerCase().replace(/[^a-z\u00c0-\u024f\s]/gi,'').split(/\s+/).filter(function(x){ return x.length > 1; });
-    var n = (me.nome    || '').toLowerCase().trim();
-    var c = (me.cognome || '').toLowerCase().trim();
-    // Costruisce i token dell'utente (nome e cognome separati)
-    var myTokens = [n, c].filter(function(x){ return x.length > 1; });
-    // Match: tutti i token dell'utente devono essere presenti nei token del pnome
-    if(myTokens.length > 0 && myTokens.every(function(mt){
-      return pnTokens.some(function(pt){ return pt === mt || pt.indexOf(mt) !== -1 || mt.indexOf(pt) !== -1; });
-    })) {
+    var norm=function(v){return (v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();};
+    var pn=norm(t.pnome),n=norm(me.nome),c=norm(me.cognome);
+    if(pn&&[norm(c+' '+n),norm(n+' '+c)].indexOf(pn)!==-1) {
       // Salva il pid per i prossimi confronti (localStorage + Firebase profilo)
       var pidStr = String(t.pid);
       localStorage.setItem('ct_my_pid', pidStr);
@@ -3146,9 +3237,9 @@ function checkFestivoTurno(t){
   if(!t) return;
   var me = lsG("ct_me", null);
   if(!me) return;
-  var myPid = parseInt(localStorage.getItem('ct_my_pid')||'0');
+  var myPid = localStorage.getItem('ct_my_pid')||'';
   // Verifica che il turno appartenga all'utente
-  if(t.pid !== me.id && t.pid !== myPid && !(me.uid && t.uid === me.uid)) return;
+  if(String(t.pid)!==String(me.id) && String(t.pid)!==String(myPid) && !(me.uid && (t.uid===me.uid||t.ownerUid===me.uid))) return;
 
   var d = _parseDate(t.data);
   var isDomenica = (d.getDay() === 0);
@@ -3159,8 +3250,6 @@ function checkFestivoTurno(t){
   if(patrono && t.data === patrono && !isDomenica) nomeFest = nomeFest || 'Patrono';
 
   var tipiLavorativi = {mattina:1, ml:1, pomeriggio:1, pl:1, notte:1, sera:1};
-  var tipiRiposo = {riposo:1, recupero:1};
-
   var matura = false;
   var motivo = '';
 
@@ -3169,21 +3258,6 @@ function checkFestivoTurno(t){
     if(tipiLavorativi[t.tipo]){
       matura = true;
       motivo = 'Lavoro festivo: ' + nomeFest;
-    }
-    // REGOLA 2: Festivo + Riposo + NON domenica ? +1 recupero maturato
-    else if(tipiRiposo[t.tipo] && !isDomenica){
-      matura = true;
-      motivo = 'Riposo festivo: ' + nomeFest;
-    }
-    // REGOLA 3: Festivo + Riposo + Domenica ? Festività Pagata (nessun recupero)
-    else if(tipiRiposo[t.tipo] && isDomenica){
-      var keyPag = 'ct_festpag_' + t.id;
-      if(!localStorage.getItem(keyPag)){
-        localStorage.setItem(keyPag, '1');
-        var prefs3 = lsG("ct_notif_prefs", {festivi:true});
-        if(prefs3.festivi !== false) toast('📅 Festività Pagata: ' + nomeFest + ' (domenica)', 'ok');
-      }
-      return;
     }
   }
 
@@ -3204,6 +3278,7 @@ function checkFestivoTurno(t){
   });
   lsS("ct_recuperi", REC);
   me.recuperiExtra = REC.filter(function(r){ return !r.usato; }).length;
+  me.ct_recuperi = REC;
   lsS("ct_me", me);
   var U = lsG("ct_u", []);
   for(var i=0; i<U.length; i++){
@@ -3970,23 +4045,24 @@ function renderRecuperi(){
 }
 function toggleRecupero(idx,cb){
   var REC=lsG("ct_recuperi",[]);
+  if(REC[idx]&&REC[idx].usatoDaTurnoId&&!cb.checked){cb.checked=true;toast('Questo recupero è collegato a un turno codice 2: elimina o modifica quel turno per restituirlo','warn');return;}
   if(REC[idx])REC[idx].usato=cb.checked;
   lsS("ct_recuperi",REC);
   renderRecuperi();
-  _syncFerieFirebase();
+  _syncEntitlements();
   toast(cb.checked?"&#10003; Recupero marcato come usufruito":"Recupero riattivato","ok");
 }
 function delRecuperi(){
   var REC=lsG("ct_recuperi",[]);
-  var da_cancellare=REC.filter(function(r){return r.usato;}).length;
+  var da_cancellare=REC.filter(function(r){return r.usato&&!r.usatoDaTurnoId;}).length;
   if(!da_cancellare){toast("Nessun recupero smarcato da eliminare","err");return;}
   ctConfirm('Eliminare '+da_cancellare+' recupero/i smarcato/i?', {title:'Elimina Recuperi', ico:'🗑️', ok:'Elimina', danger:true}).then(function(ok){
     if(!ok) return;
-    lsS("ct_recuperi",REC.filter(function(r){return !r.usato;}));
+    lsS("ct_recuperi",REC.filter(function(r){return !r.usato||r.usatoDaTurnoId;}));
     var me=lsG("ct_me",null);
     if(me){me.recuperiExtra=lsG("ct_recuperi",[]).length;lsS("ct_me",me);}
     renderRecuperi();
-    _syncFerieFirebase();
+    _syncEntitlements();
     toast("🗑️ "+da_cancellare+" recupero/i eliminato/i","ok");
   });
 }
@@ -4022,7 +4098,7 @@ function _salvaRecuperoManuale(){
   var me = lsG("ct_me", null);
   if(me){ me.recuperiExtra = REC.filter(function(r){return !r.usato;}).length; lsS("ct_me",me); }
   renderRecuperi();
-  _syncFerieFirebase();
+  _syncEntitlements();
   document.getElementById('m-rec-manuale').remove();
   toast("&#127941; Recupero aggiunto","ok");
 }
@@ -4808,6 +4884,7 @@ function esportaBackup(){
     ct_td:       lsG("ct_td",     []),
     ct_ag:       lsG("ct_ag",     []),
     ct_recuperi: lsG("ct_recuperi",[]),
+    ct_fest_sopp: lsG("ct_fest_sopp",[]),
     ct_tema:     lsG("ct_tema",   ""),
     ct_notif_prefs: lsG("ct_notif_prefs", {}),
     ct_notif_pre:   lsG("ct_notif_pre",  60),
@@ -4899,6 +4976,7 @@ function confermaCricaBackup(){
     if(d.ct_td)        lsS("ct_td",        d.ct_td);
     if(d.ct_ag)        lsS("ct_ag",        d.ct_ag);
     if(d.ct_recuperi)  lsS("ct_recuperi",  d.ct_recuperi);
+    if(d.ct_fest_sopp) lsS("ct_fest_sopp", d.ct_fest_sopp);
     if(d.ct_tema!==undefined) lsS("ct_tema", d.ct_tema);
     if(d.ct_notif_prefs) lsS("ct_notif_prefs", d.ct_notif_prefs);
     if(d.ct_notif_pre!==undefined) lsS("ct_notif_pre", d.ct_notif_pre);
@@ -5924,7 +6002,7 @@ function cambiaPassword(){
 
 // ---- STATS ----
 function stats(){
-  var T=lsG("ct_t",[]),P=lsG("ct_p",[]);
+  var T=lsG("ct_t",[]),P=ctDedupPersone(lsG("ct_p",[]));
   var sp=document.getElementById("st-p"); if(sp) sp.textContent=P.length;
   var st=document.getElementById("st-t"); if(st) st.textContent=T.length;
   var n=0,f=0;
@@ -6037,7 +6115,8 @@ function _syncMyPid(){
 function renderPers(){
   _syncMyPid();
   var tb=document.getElementById("tb-pers");
-  var P=lsG("ct_p",[]);
+  var _rawPersonale=lsG("ct_p",[]),P=ctDedupPersone(_rawPersonale);
+  if(P.length!==_rawPersonale.length)lsS('ct_p',P);
   // Filtra voci legenda o placeholder (non utenti reali)
   P = P.filter(function(p){
     if(!p.nome) return false;
@@ -6124,7 +6203,7 @@ function renderPers(){
     var statoLabel = _isVerif
       ? '<span class="sb ok">Attivo</span>'
       : '<span class="sb" style="background:rgba(255,159,67,.15);color:var(--orange)">&#9711; Non registrato</span>';
-    var delBtn = p._fromFirebase ? '' : "<button class=\"btn btn-d btn-xs\" onclick=\"delP("+p.id+")\">&#128465;</button>";
+    var delBtn = p._fromFirebase ? '' : "<button class=\"btn btn-d btn-xs\" onclick='delP("+JSON.stringify(String(p.id))+")'>&#128465;</button>";
     return "<tr><td><strong>"+ctEsc(p.nome)+"</strong>"+_badgeP(p)+"</td><td style=\"font-size:11px\">"+ctEsc(g.nome)+"</td>"+
       "<td>"+si+"</td><td style=\"font-size:11px\">"+(p.reparto||"")+"</td>"+
       "<td>"+statoLabel+"</td><td>"+tc+"</td>"+
@@ -6196,74 +6275,26 @@ function salvaTurno(){
     orario:_orario,note:document.getElementById("mt-note").value,codice:_customCodice||_cod,categoria_evento:_catEv};
   if(_me && _me.uid && _studioIsMyPid(pid,_me)) _nt.ownerUid = _me.uid;
   // push gestito dopo
-  if(tp==="ferie"){
-    // Scala pool licenze della persona (cerca per id numerico O uid Firebase)
-    var _me=lsG("ct_me",null);
-    var _myPid=localStorage.getItem('ct_my_pid');
-    // Determina il pid reale della persona da scalare
-    var _pidScala=pid;
-    // Se il turno è assegnato all'utente loggato (per uid o per pid), usa ct_my_pid
-    if(_me&&(_myPid&&String(pid)===String(_myPid)||(_me.uid&&String(pid)===String(_me.uid))||String(pid)===String(_me.id))){
-      _pidScala=parseInt(_myPid)||_me.id;
-    }
-    var _Pf=lsG("ct_p",[]);
-    for(var _fi=0;_fi<_Pf.length;_fi++){
-      if(_Pf[_fi].id===_pidScala||String(_Pf[_fi].id)===String(_pidScala)||(_Pf[_fi].uid&&_Pf[_fi].uid===String(pid))){
-        var _pool=(_Pf[_fi].licenzePool||[]).slice().sort(function(a,b){return a.anno-b.anno;});
-        // Fallback: usa pool da ct_u se ct_p non ha il pool
-        if(!_pool.length&&_me&&(String(_Pf[_fi].id)===String(_me.id)||_Pf[_fi].uid===_me.uid)){
-          _pool=getFeriePool(_me.id);
-        }
-        var _da=1;
-        for(var _pi=0;_pi<_pool.length&&_da>0;_pi++){
-          var _sc=Math.min(_pool[_pi].giorni,_da);
-          _pool[_pi].giorni-=_sc;_da-=_sc;
-        }
-        _Pf[_fi].licenzePool=_pool;
-        _Pf[_fi].ferieRes=_pool.reduce(function(s,x){return s+x.giorni;},0);
-        _Pf[_fi].ferie=_Pf[_fi].ferieRes;
-        if(_me&&(String(_me.id)===String(_Pf[_fi].id)||_me.uid===_Pf[_fi].uid)){
-          _me.ferie=_Pf[_fi].ferieRes;_me.ferieRes=_Pf[_fi].ferieRes;lsS("ct_me",_me);
-          saveFeriePool(_me.id,_pool);
-        }
-        break;
-      }
-    }
-    lsS("ct_p",_Pf);
-    renderFeriePool();
-  }
-  // 937 ? scala festività soppresse dell'utente loggato
-  if(tp==="937"){
-    var _me937=lsG("ct_me",null);
-    var _myPid937=localStorage.getItem('ct_my_pid');
-    // Scala solo se il turno è dell'utente loggato
-    var _isMe937=_me937&&(String(pid)===String(_me937.id)||(_me937.uid&&String(pid)===String(_me937.uid))||String(pid)===String(_myPid937));
-    if(_me937&&_isMe937){
-      var _anno937=new Date(dt+'T00:00:00').getFullYear()||new Date().getFullYear();
-      var _FS=lsG("ct_fest_sopp",[]);
-      var _usate937=_FS.filter(function(f){return f.uid===_me937.id&&f.anno===_anno937&&f.usato;}).length;
-      if(_usate937<4){
-        _FS.push({id:Date.now(),uid:_me937.id,anno:_anno937,data:dt,nota:'Licenza 937',usato:true});
-        lsS("ct_fest_sopp",_FS);
-        renderFestSopp();
-        toast("\uD83C\uDF89 Festivit\u00E0 soppressa scalata per "+_anno937,"ok");
-      } else {
-        toast("Hai gi\u00E0 usato tutte e 4 le festivit\u00E0 soppresse per il "+_anno937,"warn");
-      }
-    }
-  }
+  var _me=lsG("ct_me",null);
   var _eid=document.getElementById("mt-edit-id");
+  var _turnoSostituito=null;
   if(_eid&&_eid.value){
     var _eidV=parseInt(_eid.value);
+    _turnoSostituito=T.find(function(x){return x.id===_eidV;})||null;
     T=T.filter(function(x){return x.id!==_eidV;});
-    _eid.value="";
   }
   if(tp==='studio' && _studioIsMyPid(pid,_me)){
     var _studioAnno=parseInt(dt.slice(0,4),10), _studioCheck=getPermessoStudioSummary(_studioAnno,T.concat([_nt]));
     if(!_studioCheck.monte){ toast('Prima attiva le 150 ore di permesso studio nelle Impostazioni','err'); return; }
     if(_studioCheck.eccedenza>0){ toast('Ore permesso studio insufficienti: restano '+getPermessoStudioSummary(_studioAnno,T).rimanenti+' h','err'); return; }
   }
+  if(_turnoSostituito) restituisciMovimentiTurno(_turnoSostituito);
+  if(!applicaMovimentiTurno(_nt)){
+    if(_turnoSostituito) applicaMovimentiTurno(_turnoSostituito);
+    return;
+  }
   T.push(_nt);
+  if(_eid)_eid.value="";
   lsS("ct_t",T);
   if(window.FirebaseModule)window.FirebaseModule.saveTurni(T);
   renderTurni();renderOggi();stats();aggiornaWidget();renderPermessiStudio();
@@ -6302,8 +6333,10 @@ function salvaTurno(){
 function delP(id){
   ctConfirm('Eliminare questa persona e tutti i suoi turni?', {title:'Elimina Persona', ico:'⚠️', ok:'Elimina', danger:true}).then(function(ok){
     if(!ok) return;
-    lsS("ct_p",lsG("ct_p",[]).filter(function(p){return p.id!==id;}));
-    lsS("ct_t",lsG("ct_t",[]).filter(function(t){return t.pid!==id;}));
+    lsG("ct_t",[]).filter(function(t){return String(t.pid)===String(id);}).forEach(function(t){restituisciMovimentiTurno(t);rimuoviRecuperoMaturatoTurno(t);});
+    lsS("ct_p",lsG("ct_p",[]).filter(function(p){return String(p.id)!==String(id);}));
+    lsS("ct_t",lsG("ct_t",[]).filter(function(t){return String(t.pid)!==String(id);}));
+    if(window.FirebaseModule&&window.FirebaseModule.deletePersona)window.FirebaseModule.deletePersona(id).catch(function(e){console.warn('deletePersona:',e.message);});
     renderPers();renderTurni();renderOggi();stats();aggSel();
     _playUiSound('delete'); haptic('warning');
     toast("Eliminato","ok");
@@ -6322,7 +6355,9 @@ function delT(id){
   }
   ctConfirm('Eliminare questo turno?', {title:'Elimina Turno', ico:'⚠️', ok:'Elimina', danger:true}).then(function(ok){
     if(!ok) return;
-    lsS("ct_t",lsG("ct_t",[]).filter(function(t){return t.id!==id;}));
+    var _all=lsG("ct_t",[]),_deleted=_all.find(function(t){return String(t.id)===String(id);});
+    if(_deleted){restituisciMovimentiTurno(_deleted);rimuoviRecuperoMaturatoTurno(_deleted);}
+    lsS("ct_t",_all.filter(function(t){return String(t.id)!==String(id);}));
     if(window.FirebaseModule) window.FirebaseModule.deleteTurno(id);
     renderTurni();renderOggi();stats();renderPermessiStudio();
     _playUiSound('delete'); haptic('warning');
@@ -6741,7 +6776,7 @@ function setRepPer(p){
 }
 function renderRepData(){
   var T=lsG("ct_t",[]);
-  var P=lsG("ct_p",[]).slice();
+  var P=ctDedupPersone(lsG("ct_p",[]));
   var me=lsG("ct_me",null);
   var isCom = me && (me.ruolo==='comandante' || me.ruolo==='vice');
 
@@ -6810,7 +6845,7 @@ function renderRepData(){
         var meN = ((me.cognome||'')+' '+(me.nome||'')).toLowerCase().replace(/\s+/g,' ').trim();
         var meN2 = ((me.nome||'')+' '+(me.cognome||'')).toLowerCase().replace(/\s+/g,' ').trim();
         var tN = (t.pnome||'').toLowerCase().replace(/\s+/g,' ').trim();
-        if(tN && (tN===meN || tN===meN2 || meN.indexOf(tN)!==-1 || meN2.indexOf(tN)!==-1)) return true;
+        if(tN && (tN===meN || tN===meN2)) return true;
       }
       return false;
     }
@@ -6842,13 +6877,9 @@ function renderRepData(){
   if(P.length){
     // Indice turni per pid e per pnome
     var tByPid={}, tByNome={};
-    // Per il carico per persona usa TUTTI i turni del periodo (non solo i miei)
-    var TfAll = isCom ? Tf : T.filter(function(t){
-      var dt=new Date(t.data+"T00:00:00");
-      if(per==="m")return dt.getFullYear()===anno&&dt.getMonth()===mesSel;
-      if(per==="s"){var m=dt.getMonth();return dt.getFullYear()===anno&&(mesSel<6?(m<6):(m>=6));}
-      return dt.getFullYear()===anno;
-    });
+    // Tf è già filtrato: per Addetto contiene solo i propri turni;
+    // Comandante e Vice continuano a vedere l'intero reparto.
+    var TfAll = Tf;
     TfAll.forEach(function(t){
       var k=String(t.pid);
       if(!tByPid[k])tByPid[k]=[];
@@ -7163,6 +7194,15 @@ function straordSetMin(min, btn) {
   haptic('light');
 }
 
+// Selezione tipo straordinario (il markup la richiamava ma la funzione mancava).
+function straordSetTipo(tipo, btn) {
+  document.querySelectorAll('#m-straord .straord-tipo-pill').forEach(function(b){ b.classList.remove('active'); });
+  if(btn) btn.classList.add('active');
+  var el=document.getElementById('straord-tipo');
+  if(el) el.value=tipo;
+  haptic('light');
+}
+
 // Selezione tipo alert
 function alertSetTipo(tipo, btn) {
   document.querySelectorAll('#m-alert .straord-tipo-pill').forEach(function(b){ b.classList.remove('active'); });
@@ -7453,6 +7493,7 @@ function confermImportF(modoSost){
 
     // Rimuovi dal localStorage
     var T=lsG("ct_t",[]);
+    T.filter(function(t){return dateDaRimuovere[t.data.substring(0,7)];}).forEach(function(t){restituisciMovimentiTurno(t);rimuoviRecuperoMaturatoTurno(t);});
     T=T.filter(function(t){ return !dateDaRimuovere[t.data.substring(0,7)]; });
     lsS("ct_t",T);
 
@@ -7509,7 +7550,7 @@ function confermImportF(modoSost){
     kv.forEach(function(kk){ _seenMap[kk] = p; });
     _PallDedup.push(p);
   });
-  lsS("ct_p", _PallDedup);
+  lsS("ct_p", ctDedupPersone(_PallDedup));
   // Aggiungi uid utente corrente ai turni prima di salvare (richiesto dalle Security Rules)
   var _sess = lsG('ct_session', null);
   var _myUid = _sess && _sess.userId ? _sess.userId : null;
@@ -7677,7 +7718,7 @@ function parseSheet(rows, sn) {
   // -- STEP 3: Codici turno ----------------------------------------------
   var cM2 = {"M":"mattina","ML":"ml","1515":"mattina","P":"pomeriggio","PL":"pl",
     "N":"notte","NL":"notte","S":"sera","R":"riposo","RR":"recupero","L":"ferie","LICSTU":"licenza","PSTUDIO":"studio",
-    "104":"permesso","937":"permesso","FEST":"permesso","CORSO":"corso","LS":"permesso","ESAME":"corso"};
+    "104":"104","937":"937","FEST":"fest","CORSO":"corso","LS":"ls","ESAME":"esame","2":"recupero"};
 
   // Usa preset configurabili dall'utente
   var _op = (typeof getOrariPreset === 'function') ? getOrariPreset() : {};
@@ -7856,47 +7897,14 @@ function parseSheet(rows, sn) {
 
       if(!dup){
 
-        T.push({id:Date.now()+Math.floor(Math.random()*99999), pid:persona.id,
-
-          pnome:persona.nome, data:ds, tipo:tipo, orario:oM[tipo]||tipo, note:'', codice:raw});
-
-        tot++;
-
-        if(tipo==='ferie'||raw==='L'){
-          // Scala pool licenze solo per la persona collegata all'utente loggato
-          var _meImp=lsG("ct_me",null);
-          var _myPidImp=localStorage.getItem('ct_my_pid');
-          var _isMeImp=_meImp&&(String(persona.id)===String(_myPidImp)||(_meImp.uid&&persona.uid===_meImp.uid)||String(persona.id)===String(_meImp.id));
-          if(_isMeImp){
-            var _poolImp=getFeriePool(_meImp.id);
-            var _daImp=1;
-            for(var _pii=0;_pii<_poolImp.length&&_daImp>0;_pii++){
-              var _scImp=Math.min(_poolImp[_pii].giorni,_daImp);
-              _poolImp[_pii].giorni-=_scImp;_daImp-=_scImp;
-            }
-            saveFeriePool(_meImp.id,_poolImp);
-          } else {
-            // Per altri utenti scala solo ferieRes in ct_p
-            for(var _fi=0;_fi<P.length;_fi++){
-              if(P[_fi].id===persona.id){P[_fi].ferieRes=Math.max(0,(P[_fi].ferieRes||30)-1);break;}
-            }
-          }
+        var _importTurno={id:Date.now()+Math.floor(Math.random()*99999),pid:persona.id,pnome:persona.nome,data:ds,tipo:tipo,orario:oM[tipo]||tipo,note:'',codice:raw,categoria_evento:_TIPI_PERSONALE.indexOf(tipo)!==-1?'personale':'servizio'};
+        var _meImp=lsG('ct_me',null),_isMeImp=_meImp&&(_studioIsMyPid(persona.id,_meImp)||(_meImp.uid&&persona.uid===_meImp.uid));
+        if(_isMeImp&&tipo==='studio'){
+          var _saldoImpStudio=getPermessoStudioSummary(parseInt(ds.slice(0,4),10),T.concat([_importTurno]));
+          if(!_saldoImpStudio.monte||_saldoImpStudio.eccedenza>0){console.warn('PSTUDIO non importato per saldo insufficiente:',ds);return;}
         }
-
-        if(tipo==='937'||raw==='937'){
-          var _me937i=lsG("ct_me",null);
-          var _myPid937i=localStorage.getItem('ct_my_pid');
-          var _isMe937i=_me937i&&(String(persona.id)===String(_myPid937i)||(_me937i.uid&&persona.uid===_me937i.uid)||String(persona.id)===String(_me937i.id));
-          if(_isMe937i){
-            var _anno937i=new Date(ds+'T00:00:00').getFullYear()||new Date().getFullYear();
-            var _FSi=lsG("ct_fest_sopp",[]);
-            var _usate937i=_FSi.filter(function(f){return f.uid===_me937i.id&&f.anno===_anno937i&&f.usato;}).length;
-            if(_usate937i<4){
-              _FSi.push({id:Date.now()+Math.random(),uid:_me937i.id,anno:_anno937i,data:ds,nota:'Licenza 937 (import)',usato:true});
-              lsS("ct_fest_sopp",_FSi);
-            }
-          }
-        }
+        if(_isMeImp){if(_meImp.uid)_importTurno.ownerUid=_meImp.uid;applicaMovimentiTurno(_importTurno);}
+        T.push(_importTurno);if(_isMeImp)checkFestivoTurno(_importTurno);tot++;
 
       }
 
@@ -9907,11 +9915,12 @@ function apriModTurno(id) {
   // Imposta tipo via button grid
   var tipo = t.tipo || 'mattina';
   document.getElementById('mmt-tipo').value = tipo;
+  var codiceEl=document.getElementById('mmt-codice');if(codiceEl)codiceEl.value=t.codice||'';
   // Evidenzia il bottone corretto
   document.querySelectorAll('#m-mod-turno .btn-turno-r').forEach(function(b){ b.classList.remove('sel'); });
   // Mappa tipo ? codice bottone
   var tipoMap = {mattina:'M',ml:'ML',pomeriggio:'P',pl:'PL',notte:'N',sera:'S',riposo:'R',recupero:'RR',ferie:'L','104':'104','937':'937',licenza:'LICSTU',studio:'PSTUDIO',esame:'ESAME',ls:'LS',fest:'FEST',permesso:'PERM',corso:'CORSO'};
-  var cod = tipoMap[tipo];
+  var cod = t.codice || tipoMap[tipo];
   if(cod) {
     document.querySelectorAll('#m-mod-turno .btn-turno-r').forEach(function(b){
       if(b.textContent.trim() === cod) b.classList.add('sel');
@@ -9942,6 +9951,7 @@ function apriModTurno(id) {
 // Seleziona tipo turno nel modal modifica
 function setModTurnoTipo(tipo, codice, btn) {
   document.getElementById('mmt-tipo').value = tipo;
+  var codiceEl=document.getElementById('mmt-codice');if(codiceEl)codiceEl.value=codice||'';
   document.querySelectorAll('#m-mod-turno .btn-turno-r').forEach(function(b){ b.classList.remove('sel'); });
   if(btn) btn.classList.add('sel');
   // Aggiorna SEMPRE orario con preset quando si cambia tipo
@@ -9966,32 +9976,27 @@ function salvaModTurno() {
   var orario = (oraIn && oraFi) ? oraIn + '-' + oraFi : '';
   var nuovoTipo = document.getElementById('mmt-tipo').value;
   var _turnoOriginale = T.find(function(x){return x.id===id;});
+  if(!_turnoOriginale){toast('Turno non trovato','err');return;}
+  var tipoToCod = {mattina:'M',ml:'ML',pomeriggio:'P',pl:'PL',notte:'N',sera:'S',
+    riposo:'R',recupero:'RR',ferie:'L','104':'104','937':'937',licenza:'LICSTU',studio:'PSTUDIO',
+    esame:'ESAME',ls:'LS',fest:'FEST',permesso:'PERM',corso:'CORSO',obbm:'OBBM',obbp:'OBBP'};
+  var aggiornato=Object.assign({},_turnoOriginale,{tipo:nuovoTipo,orario:orario,note:document.getElementById('mmt-note').value.trim(),categoria_evento:_TIPI_PERSONALE.indexOf(nuovoTipo)!==-1?'personale':'servizio'});
+  aggiornato.codice=(document.getElementById('mmt-codice')||{}).value||tipoToCod[nuovoTipo]||aggiornato.codice;
   if(nuovoTipo==='studio' && _turnoOriginale && _studioIsMyPid(_turnoOriginale.pid,lsG('ct_me',null))){
-    var _sim=T.map(function(x){return x.id===id?Object.assign({},x,{tipo:'studio'}):x;});
+    var _sim=T.map(function(x){return x.id===id?aggiornato:x;});
     var _annoStudio=parseInt((_turnoOriginale.data||'').slice(0,4),10), _saldoStudio=getPermessoStudioSummary(_annoStudio,_sim);
     if(!_saldoStudio.monte){toast('Prima attiva le 150 ore di permesso studio nelle Impostazioni','err');return;}
     if(_saldoStudio.eccedenza>0){toast('Ore permesso studio insufficienti','err');return;}
   }
-  for (var i=0; i<T.length; i++) {
-    if (T[i].id === id) {
-      T[i].tipo = nuovoTipo;
-      T[i].orario = orario;
-      T[i].note = document.getElementById('mmt-note').value.trim();
-      T[i].categoria_evento = _TIPI_PERSONALE.indexOf(nuovoTipo)!==-1 ? 'personale' : 'servizio';
-      // Aggiorna anche il codice in base al tipo
-      var tipoToCod = {mattina:'M',ml:'ML',pomeriggio:'P',pl:'PL',notte:'N',sera:'S',
-        riposo:'R',recupero:'RR',ferie:'L','104':'104','937':'937',licenza:'LICSTU',studio:'PSTUDIO',
-        esame:'ESAME',ls:'LS',fest:'FEST',permesso:'PERM',corso:'CORSO',
-        obbm:'OBBM',obbp:'OBBP'};
-      if(tipoToCod[nuovoTipo]) T[i].codice = tipoToCod[nuovoTipo];
-      break;
-    }
-  }
+  restituisciMovimentiTurno(_turnoOriginale);rimuoviRecuperoMaturatoTurno(_turnoOriginale);
+  if(!applicaMovimentiTurno(aggiornato)){applicaMovimentiTurno(_turnoOriginale);checkFestivoTurno(_turnoOriginale);return;}
+  T=T.map(function(x){return x.id===id?aggiornato:x;});
   lsS('ct_t', T);
   if(window.FirebaseModule) window.FirebaseModule.saveTurni(T);
   closeM('m-mod-turno');
   renderTurni(); aggiornaWidget(); renderDash(); renderOggi(); renderPermessiStudio();
   if(typeof renderCal === 'function') renderCal();
+  checkFestivoTurno(aggiornato);
   // Aggiorna anche il sheet del giorno se aperto
   var sgData = document.getElementById('sg-data');
   if(sgData && sgData.value && typeof mostraGiorno === 'function') mostraGiorno(sgData.value);
@@ -10017,7 +10022,9 @@ function eliminaTurnoMod() {
   if(!id) return;
   ctConfirm('Eliminare questo turno?', {title:'Elimina Turno', ico:'⚠️', ok:'Elimina', danger:true}).then(function(ok){
     if(!ok) return;
-    var T = lsG('ct_t', []).filter(function(x){ return x.id !== id; });
+    var tutti=lsG('ct_t',[]),eliminato=tutti.find(function(x){return String(x.id)===String(id);});
+    if(eliminato){restituisciMovimentiTurno(eliminato);rimuoviRecuperoMaturatoTurno(eliminato);}
+    var T = tutti.filter(function(x){ return String(x.id) !== String(id); });
     lsS('ct_t', T);
     if(window.FirebaseModule) window.FirebaseModule.deleteTurno(id);
     closeM('m-mod-turno');
@@ -10033,7 +10040,7 @@ function renderFestSopp() {
   if (!el) return;
   var me = lsG('ct_me', null); if (!me) return;
   var anno = new Date().getFullYear();
-  var FS = lsG('ct_fest_sopp', []).filter(function(f){ return f.uid === me.id && f.anno === anno; });
+  var owner=String(me.uid||me.id),FS = lsG('ct_fest_sopp', []).filter(function(f){ return (String(f.uid)===owner||String(f.uid)===String(me.id)) && Number(f.anno)===anno; });
   var usate = FS.filter(function(f){ return f.usato; }).length;
   var rimaste = 4 - usate;
   if (nEl) { nEl.textContent = rimaste; nEl.style.color = rimaste <= 0 ? 'var(--red)' : 'var(--teal)'; }
@@ -10050,25 +10057,27 @@ function aggFestSopp() {
   var me = lsG('ct_me', null); if (!me) return;
   var anno = new Date().getFullYear();
   var FS = lsG('ct_fest_sopp', []);
-  var usate = FS.filter(function(f){ return f.uid === me.id && f.anno === anno && f.usato; }).length;
+  var owner=String(me.uid||me.id),usate = FS.filter(function(f){ return (String(f.uid)===owner||String(f.uid)===String(me.id)) && Number(f.anno)===anno && f.usato; }).length;
   if (usate >= 4) { toast('Hai gi usato tutte e 4 le festivit soppresse per il ' + anno, 'err'); return; }
   var oggi = new Date().toISOString().slice(0,10);
   FS.push({ id: Date.now(), uid: me.id, anno: anno, data: oggi, nota: '', usato: false });
   lsS('ct_fest_sopp', FS);
-  renderFestSopp();
+  renderFestSopp();_syncEntitlements();
   toast('Festivit soppressa aggiunta', 'ok');
 }
 
 function toggleFestSopp(id) {
   var FS = lsG('ct_fest_sopp', []);
+  var linked=FS.find(function(f){return String(f.id)===String(id)&&f.turnoId;});if(linked){toast('Questa festività soppressa è collegata a un turno 937','warn');return;}
   for (var i=0;i<FS.length;i++){ if(FS[i].id===id){ FS[i].usato=!FS[i].usato; break; } }
   lsS('ct_fest_sopp', FS);
-  renderFestSopp();
+  renderFestSopp();_syncEntitlements();
 }
 
 function delFestSopp(id) {
+  var linked=lsG('ct_fest_sopp',[]).find(function(f){return String(f.id)===String(id)&&f.turnoId;});if(linked){toast('Elimina o modifica il turno 937 collegato','warn');return;}
   lsS('ct_fest_sopp', lsG('ct_fest_sopp', []).filter(function(f){ return f.id !== id; }));
-  renderFestSopp();
+  renderFestSopp();_syncEntitlements();
 }
 
 /* ---------- GERARCHIA: APPROVAZIONE PERSONALE ---------- */
@@ -10295,7 +10304,8 @@ var _GUIDE = {
       {ico:"&#9312;", tit:"Aggiungere giorni", txt:"Vai su <strong>Impostazioni &#8594; Ferie &amp; Licenze</strong>. Premi <strong>+ Anno</strong> e inserisci l'anno e i giorni disponibili per ogni persona."},
       {ico:"&#9313;", tit:"Ordine di consumo", txt:"I giorni vengono scalati partendo dall'anno più vecchio (<em>FIFO</em>). Se l'anno corrente è esaurito si passa al successivo."},
       {ico:"&#9314;", tit:"Saldo residuo", txt:"Il saldo aggiornato  visibile nella card di ogni persona in <strong>Personale</strong> e nel widget statistiche."},
-      {ico:"937", tit:"Licenza 937", txt:"Funziona come le ferie ma con codice <strong>937</strong>. Scalano dallo stesso pool."},
+      {ico:"937", tit:"Festività soppresse", txt:"Il codice <strong>937</strong> utilizza una delle 4 festività soppresse annuali, separatamente dal monte ferie."},
+      {ico:"&#9313;", tit:"Recupero festivo", txt:"Il codice <strong>2</strong> consuma automaticamente il recupero disponibile più vecchio. Eliminando il turno, il recupero viene restituito."},
       {ico:"&#128218;", tit:"Licenza Studio", txt:"Codice <strong>LICSTU</strong>. Non scala dal pool ferie — è un tipo separato."}
     ]
   },

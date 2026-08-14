@@ -384,7 +384,7 @@ function _startListeners(reparto) {
       console.log('[Firebase] onSnapshot persone ignorato — import in corso');
       return;
     }
-    var arr = []; snap.forEach(function(d){ arr.push(d.data()); });
+    var arr = []; snap.forEach(function(d){ arr.push(Object.assign({id:d.id},d.data())); });
     if(arr.length > 0) {
       // Merge: mantieni voci locali non ancora su Firebase
       var localP = [];
@@ -401,7 +401,9 @@ function _startListeners(reparto) {
           if(localMatch.ferieRes !== undefined && !fbP.ferieRes) fbP.ferieRes = localMatch.ferieRes;
         }
       });
-      lsS('ct_p', arr.concat(soloLocali));
+      var merged=arr.concat(soloLocali);
+      if(window.ctDedupPersone) merged=window.ctDedupPersone(merged);
+      lsS('ct_p', merged);
       if(typeof window.renderPers === 'function') window.renderPers();
     }
   }, function(e){ console.warn('onSnapshot persone:', e.message); }));
@@ -618,6 +620,7 @@ window.FirebaseModule = {
           }
         }
         if(prof.ct_recuperi) lsS('ct_recuperi', prof.ct_recuperi);
+        if(prof.ct_fest_sopp) lsS('ct_fest_sopp', prof.ct_fest_sopp);
         if(prof.notif_prefs) lsS('ct_notif_prefs', prof.notif_prefs);
         if(prof.notif_pre !== undefined) lsS('ct_notif_pre', prof.notif_pre);
       }
@@ -1021,12 +1024,20 @@ window.FirebaseModule = {
     if(!rep) return;
     try {
       var arr = window.CDB ? (CDB.getSync('ct_p', []) || []) : JSON.parse(localStorage.getItem('ct_p') || '[]');
+      if(window.ctDedupPersone) arr=window.ctDedupPersone(arr);
       for(var i=0; i<arr.length; i++) {
         var p = arr[i];
         if(!p.id) continue;
         await setDoc(doc(db, 'reparti', rep, 'persone', String(p.id)), p);
       }
     } catch(e) { console.warn('savePersona:', e.message); }
+  },
+
+  // Elimina la stessa persona anche dal cloud: altrimenti il listener la ricrea in locale.
+  deletePersona: async function(id) {
+    var rep=_reparto();
+    if(!rep||id===undefined||id===null) return;
+    await deleteDoc(doc(db,'reparti',rep,'persone',String(id)));
   },
 
   // ── Salva array utenti (ct_users) su Firestore ──────────────

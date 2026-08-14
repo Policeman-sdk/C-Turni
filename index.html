@@ -1652,39 +1652,20 @@
             <div style="padding:14px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:10px">
               <button class="btn btn-p btn-sm" style="width:100%" onclick="esportaBackup()">&#128190; Esporta backup JSON</button>
               <label class="btn btn-g btn-sm" style="width:100%;cursor:pointer;text-align:center">&#128229; Importa backup<input type="file" accept=".json" onchange="importaBackup(this.files[0])" style="display:none"></label>
-              <button class="btn btn-sm" style="width:100%;background:rgba(200,16,46,.1);color:var(--red);border-color:rgba(200,16,46,.3)" onclick="resetTotale()">&#128465; Reset totale dati</button>
+              <button class="btn btn-sm" style="width:100%;background:rgba(200,16,46,.1);color:var(--red);border-color:rgba(200,16,46,.3)" onclick="resetAll('all')">&#128465; Reset totale dati</button>
             </div>
           </div>
 
         </div><!-- /isola dati orari -->
 
         <!-- ═══ ISOLA 5: STATO COMANDO (solo Comandante/Vice) ═══ -->
-        <div id="sec-stato-comando" style="display:none">
+        <div>
           <div class="m3-list-group-title">&#128081; Gestione Comando</div>
           <div class="m3-list-group">
-            <div style="padding:14px">
-              <div id="stato-comando-info" style="font-size:13px;color:var(--txt2);margin-bottom:10px"></div>
-              <div style="display:flex;gap:8px;flex-wrap:wrap">
-                <button id="btn-passa-comando" class="btn btn-sm" style="width:auto;font-size:12px;display:none" onclick="apriPassaComando()">&#128081; Passa il Comando</button>
-                <button id="btn-promuovi-vice" class="btn btn-sm" style="width:auto;font-size:12px;display:none" onclick="apriPromuoviVice()">&#11088; Promuovi Vice</button>
-                <button id="btn-degrada-vice" class="btn btn-sm" style="width:auto;font-size:12px;display:none;background:rgba(200,16,46,.1);color:var(--red);border-color:rgba(200,16,46,.3)" onclick="degradaVice()">&#128683; Rimuovi Vice</button>
-              </div>
-            </div>
-            <div id="form-passa-comando" style="display:none;padding:14px;border-top:1px solid var(--border)">
-              <div style="font-size:12px;color:var(--txt2);margin-bottom:8px">Seleziona il membro a cui trasferire il comando:</div>
-              <select class="fc" id="sel-nuovo-comandante" style="margin-bottom:10px"><option value="">-- Seleziona membro --</option></select>
-              <div style="display:flex;gap:8px">
-                <button class="btn btn-p btn-sm" style="width:auto" onclick="confermaPassaComando()">&#10004; Conferma</button>
-                <button class="btn btn-sm" style="width:auto" onclick="document.getElementById('form-passa-comando').style.display='none'">Annulla</button>
-              </div>
-            </div>
-            <div id="form-promuovi-vice" style="display:none;padding:14px;border-top:1px solid var(--border)">
-              <div style="font-size:12px;color:var(--txt2);margin-bottom:8px">Seleziona il membro da promuovere a Vice:</div>
-              <select class="fc" id="sel-nuovo-vice" style="margin-bottom:10px"><option value="">-- Seleziona membro --</option></select>
-              <div style="display:flex;gap:8px">
-                <button class="btn btn-p btn-sm" style="width:auto" onclick="confermaPromuoviVice()">&#10004; Conferma</button>
-                <button class="btn btn-sm" style="width:auto" onclick="document.getElementById('form-promuovi-vice').style.display='none'">Annulla</button>
-              </div>
+            <div class="m3-row tap" onclick="vaiBN('pers',4)">
+              <div class="m3-row-ico" style="background:rgba(200,169,110,.12)">&#128081;</div>
+              <div class="m3-row-body"><div class="m3-row-title">Ruoli e passaggio del comando</div><div class="m3-row-sub">Apri Personale per gestire Comandante, Vice e membri</div></div>
+              <div class="m3-row-right">&#8250;</div>
             </div>
           </div>
         </div>
@@ -2019,6 +2000,7 @@
   <div class="mbod" style="display:grid;gap:12px">
     <input type="hidden" id="mmt-id">
     <input type="hidden" id="mmt-tipo" value="mattina">
+    <input type="hidden" id="mmt-codice" value="M">
     <div class="fg" style="margin-bottom:0">
       <label>Tipo turno</label>
       <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:6px">
@@ -2032,6 +2014,7 @@
       <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:6px">
         <button type="button" class="btn-turno-r btn-turno-r-red" onclick="setModTurnoTipo('riposo','R',this)">R</button>
         <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('recupero','RR',this)">RR</button>
+        <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('recupero','2',this)" title="Consuma il recupero festivo disponibile più vecchio">2</button>
         <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('ferie','L',this)">L</button>
         <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('104','104',this)">104</button>
         <button type="button" class="btn-turno-r" onclick="setModTurnoTipo('937','937',this)">937</button>
@@ -2341,6 +2324,7 @@
       <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:6px">
         <button type="button" class="btn-turno-r btn-turno-r-red" onclick="setTurnoRapido('riposo','R',this)">R</button>
         <button type="button" class="btn-turno-r" onclick="setTurnoRapido('recupero','RR',this)">RR</button>
+        <button type="button" class="btn-turno-r" onclick="setTurnoRapido('recupero','2',this)" title="Consuma il recupero festivo disponibile più vecchio">2</button>
         <button type="button" class="btn-turno-r" onclick="setTurnoRapido('ferie','L',this)">L</button>
         <button type="button" class="btn-turno-r" onclick="setTurnoRapido('104','104',this)">104</button>
         <button type="button" class="btn-turno-r" onclick="setTurnoRapido('937','937',this)">937</button>
