@@ -1,4 +1,4 @@
-﻿// -- SERVICE WORKER --
+// -- SERVICE WORKER --
 if("serviceWorker" in navigator){
   var _swBase = new URL('./', location.href);
   navigator.serviceWorker.register(new URL('firebase-messaging-sw.js', _swBase).href, { scope: _swBase.pathname })
@@ -127,6 +127,14 @@ var _TIPI_PERSONALE = ['riposo','ferie','recupero','licenza','permesso','studio'
 var _STUDIO_MONTE_ANNUO = 150;
 var _STUDIO_ORE_TURNO = 6;
 
+// ---- Stato turni multipli (più colleghi / più giorni) ----
+window._persMulti      = false;   // multi-selezione attiva nel pers-picker
+window._persPickSel    = [];      // [{id,nome}] selezione corrente nel picker
+window._turnoPersMulti = [];      // colleghi scelti nel form turno
+window._multiGiorni    = false;   // periodo Dal/Al attivo
+window._giorniSett     = [true,true,true,true,true,true,true]; // Lun..Dom
+var _GIORNI_LBL = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
+
 function _studioIsMyPid(pid, me) {
   if(!me) return false;
   var myPid = localStorage.getItem('ct_my_pid');
@@ -223,6 +231,7 @@ function _isRecuperoConsumatoTurno(t){return !!t&&(t.tipo==='recupero'||String(t
 function _syncEntitlements(){var me=lsG('ct_me',null),s=lsG('ct_session',null);if(me){me.ct_recuperi=lsG('ct_recuperi',[]);me.ct_fest_sopp=lsG('ct_fest_sopp',[]);me.recuperiExtra=me.ct_recuperi.filter(function(r){return !r.usato;}).length;lsS('ct_me',me);}if(window.FirebaseModule){window.FirebaseModule.savePersona().catch(function(){});if(me&&s&&s.userId)window.FirebaseModule.saveUserProfile(s.userId,me,me.reparto).catch(function(){});}}
 function _consumaLicenzaTurno(t){
   if(!t||['ferie','licenza'].indexOf(t.tipo)===-1)return true;
+  if(_isRecuperoOreTurno(t))return true; // giorno pagato con le ore del salvadanaio: non scala dal pool
   var pool=getFeriePool(t.pid).slice().sort(function(a,b){return a.anno-b.anno;});
   var e=pool.find(function(x){return Number(x.giorni)>0;});
   if(!e){toast('Nessun giorno di ferie/licenza disponibile','err');return false;}
@@ -234,6 +243,29 @@ function _restituisciLicenzaTurno(t){
   var anno=Number(t.licenzaAnnoConsumata||pool[0].anno),e=pool.find(function(x){return Number(x.anno)===anno;});
   if(e)e.giorni=Number(e.giorni||0)+1;else pool.push({anno:anno,giorni:1});
   saveFeriePool(t.pid,pool);delete t.licenzaAnnoConsumata;
+}
+// ── RECUPERO ORE: giorni di licenza generati dal salvadanaio straordinari ──
+// Il turno ha tipo 'licenza' + codice 'RECUPERO ORE': non scala il pool ferie/licenze,
+// consuma invece le ore del salvadanaio (e le restituisce se il turno viene eliminato o modificato).
+function _isRecuperoOreTurno(t){
+  return !!t && (t.recuperoOre===true || String(t.codice||'').trim().toUpperCase()==='RECUPERO ORE');
+}
+function _consumaRecuperoOreTurno(t){
+  if(!_isRecuperoOreTurno(t))return true;
+  var ore=Number(t.oreRecupero||oreGiornoLicenza());
+  var s=salvadanaioOre();
+  if(s.minDisponibili<ore*60){
+    toast('Ore insufficienti nel salvadanaio: servono '+_minLabel(ore*60)+', disponibili '+_minLabel(s.minDisponibili),'err');
+    return false;
+  }
+  var mov=_salvConsumoAdd(ore*60,t.data,t.id);
+  t.oreRecupero=ore;t.salvadanaioMovId=mov.id;
+  return true;
+}
+function _restituisciRecuperoOreTurno(t){
+  if(!_isRecuperoOreTurno(t))return;
+  _salvConsumoRemove(t.salvadanaioMovId,t.id);
+  delete t.salvadanaioMovId;
 }
 function _consuma937Turno(t){
   if(!t||t.tipo!=='937')return true;
@@ -250,8 +282,8 @@ function _consumaRecuperoTurno(t){
   t.recuperoConsumatoId=target.id;lsS('ct_recuperi',REC);renderRecuperi();return true;
 }
 function _restituisciRecuperoTurno(t){if(!t||!t.recuperoConsumatoId)return;var REC=lsG('ct_recuperi',[]);for(var i=0;i<REC.length;i++)if(String(REC[i].id)===String(t.recuperoConsumatoId)){REC[i].usato=false;delete REC[i].usatoDaTurnoId;break;}lsS('ct_recuperi',REC);renderRecuperi();delete t.recuperoConsumatoId;}
-function applicaMovimentiTurno(t){if(!_consumaLicenzaTurno(t))return false;if(!_consuma937Turno(t)){_restituisciLicenzaTurno(t);return false;}if(!_consumaRecuperoTurno(t)){_restituisci937Turno(t);_restituisciLicenzaTurno(t);return false;}_syncEntitlements();return true;}
-function restituisciMovimentiTurno(t){_restituisciRecuperoTurno(t);_restituisci937Turno(t);_restituisciLicenzaTurno(t);_syncEntitlements();}
+function applicaMovimentiTurno(t){if(!_consumaLicenzaTurno(t))return false;if(!_consuma937Turno(t)){_restituisciLicenzaTurno(t);return false;}if(!_consumaRecuperoTurno(t)){_restituisci937Turno(t);_restituisciLicenzaTurno(t);return false;}if(!_consumaRecuperoOreTurno(t)){_restituisciRecuperoTurno(t);_restituisci937Turno(t);_restituisciLicenzaTurno(t);return false;}_syncEntitlements();return true;}
+function restituisciMovimentiTurno(t){_restituisciRecuperoTurno(t);_restituisci937Turno(t);_restituisciLicenzaTurno(t);_restituisciRecuperoOreTurno(t);_syncEntitlements();}
 function rimuoviRecuperoMaturatoTurno(t){
   if(!t)return;
   var REC=lsG('ct_recuperi',[]),maturato=REC.find(function(r){return String(r.id)===String(t.id);});
@@ -947,6 +979,1182 @@ function degradaVice(){
       '</div></div></div>';
     document.body.insertAdjacentHTML('beforeend', html);
   }
+}
+
+// ════════════════════════════════════════════════════════════════
+// MENU COMANDO — gestione personale e ufficio (Comandante/Vice)
+// ════════════════════════════════════════════════════════════════
+function _isComandoUI(){
+  var me = lsG('ct_me', null);
+  return !!(me && (me.ruolo === 'comandante' || me.ruolo === 'vice' || me.ruolo === 'superadmin' || me.id === 1));
+}
+function _isComandanteUI(){
+  var me = lsG('ct_me', null);
+  return !!(me && (me.ruolo === 'comandante' || me.ruolo === 'superadmin' || me.id === 1));
+}
+
+// Stato richieste: cache locale + flag caricamento
+window._richieste = [];
+window._richLoaded = false;
+
+function _richSave(arr){
+  window._richieste = arr || [];
+  lsS('ct_rich', window._richieste);
+}
+function _richLoad(){
+  try { window._richieste = lsG('ct_rich', []) || []; } catch(e){ window._richieste = []; }
+  return window._richieste;
+}
+
+// Richieste "aperte" per badge
+function _countRichiesteAperte(tipo){
+  _richLoad();
+  var t = tipo || 'cambio_turno';
+  return window._richieste.filter(function(r){
+    if((r.tipo||'cambio_turno') !== t) return false;
+    return r.stato === 'attesa_collega' || r.stato === 'attesa_comando' || r.stato === 'nuova';
+  }).length;
+}
+
+function _aggiornaBadgeComando(){
+  var badge = document.getElementById('badge-comando-aperte');
+  var n = _countRichiesteAperte('cambio_turno');
+  if(badge){
+    if(n > 0){ badge.style.display = 'inline-block'; badge.textContent = n > 99 ? '99+' : String(n); }
+    else { badge.style.display = 'none'; badge.textContent = '0'; }
+  }
+  // Aggiorna anche la lista "le mie richieste" (lato militare, calendario)
+  if(typeof _renderMieRichieste === 'function') _renderMieRichieste();
+}
+
+function _nomeUtente(uidOrObj, fallback){
+  if(typeof uidOrObj === 'object' && uidOrObj) return ((uidOrObj.nome||'')+' '+(uidOrObj.cognome||'')).trim() || uidOrObj.nome || uidOrObj.email || fallback || '';
+  var uid = uidOrObj;
+  if(!uid) return fallback || '';
+  var U = lsG('ct_users', []); if(!U.length) U = lsG('ct_u', []);
+  var u = U.find(function(x){ return String(x.uid)===String(uid) || String(x.id)===String(uid); });
+  if(u) return ((u.cognome||'')+' '+(u.nome||'')).trim() || u.nome || uid;
+  return fallback || uid;
+}
+
+function _ruoloCanVedereComando(){
+  return _isComandoUI();
+}
+
+// Rendering pagina Comando
+function renderComando(){
+  var wrap = document.getElementById('pg-comando-wrap');
+  if(!wrap) return;
+  if(!_ruoloCanVedereComando()){
+    wrap.innerHTML = '<div style="padding:20px;color:var(--txt2);text-align:center">&#128274; Accesso riservato a Comandante e Vice.</div>';
+    return;
+  }
+  _richLoad();
+  var nRichieste = _countRichiesteAperte('cambio_turno');
+  var html = '';
+
+  // Banner delega (Blocco extra 11)
+  var delega = lsG('ct_delega', null);
+  if(delega && delega.attiva){
+    html += '<div style="background:rgba(212,175,55,.1);border:1px solid var(--gold);border-radius:14px;padding:12px 14px;margin-bottom:16px">'
+      + '<div style="font-size:12px;font-weight:800;color:var(--gold)">&#128081; Delega comando attiva</div>'
+      + '<div style="font-size:12px;color:var(--txt2);margin-top:4px">Comando retto da <strong>'+ _nomeUtente(delega.aUid, 'Vice') +'</strong>'
+      + (delega.al ? ' fino al ' + fmtD(delega.al) : '')
+      + '.</div></div>';
+  }
+
+  // Sezione Richieste cambio turno
+  html += '<div class="m3-list-group-title">&#128257; Richieste cambio turno</div>';
+  html += '<div class="m3-list-group">'
+    + '<div class="m3-row" style="padding:12px 14px">'
+    + '<div style="font-size:13px;color:var(--txt2)">'
+    + (nRichieste > 0
+        ? 'Ci sono <strong style="color:var(--red)">'+nRichieste+'</strong> richiesta/e in attesa da valutare.'
+        : 'Nessuna richiesta di cambio turno in attesa.')
+    + '</div></div>'
+    + (nRichieste > 0 ? '<div id="pg-cmd-richieste-lista"></div>' : '')
+    + '</div>';
+
+  // Compiti assegnati (Blocco 3)
+  html += '<div class="m3-list-group-title">&#9989; Compiti e appuntamenti</div>';
+  html += '<div class="m3-list-group">'
+    + '<div class="m3-row tap" onclick="openM(\'m-todo\')">'
+    + '<div class="m3-row-ico" style="background:rgba(66,133,244,.12)">&#128287;</div>'
+    + '<div class="m3-row-body"><div class="m3-row-title">Assegna un compito</div><div class="m3-row-sub">Promemoria con scadenza per uno o pi&ugrave; militari</div></div>'
+    + '<div class="m3-row-right">&#8250;</div></div>'
+    + '<div class="m3-row tap" onclick="openM(\'m-agenda\')">'
+    + '<div class="m3-row-ico" style="background:rgba(212,175,55,.12)">&#128209;</div>'
+    + '<div class="m3-row-body"><div class="m3-row-title">Assegna un appuntamento</div><div class="m3-row-sub">Fissa un impegno per il reparto</div></div>'
+    + '<div class="m3-row-right">&#8250;</div></div>'
+    + '</div>';
+  html += '<div id="pg-cmd-compiti-lista" class="m3-list-group" style="margin-top:8px"></div>';
+
+  // Bacheca avvisi del Comando (Blocco 4)
+  html += '<div class="m3-list-group-title">&#128227; Bacheca</div>';
+  html += '<div class="m3-list-group">'
+    + '<div class="m3-row tap" onclick="apriBacheca()">'
+    + '<div class="m3-row-ico" style="background:rgba(212,175,55,.12)">&#128227;</div>'
+    + '<div class="m3-row-body"><div class="m3-row-title">Nuovo avviso</div><div class="m3-row-sub">Pubblica un avviso per tutto il reparto</div></div>'
+    + '<div class="m3-row-right">&#8250;</div></div>'
+    + '<div id="pg-cmd-bacheca-lista"></div>'
+    + '</div>';
+
+  // Situazione e statistiche (Blocco 5/12)
+  html += '<div class="m3-list-group-title">&#128202; Situazione e statistiche</div>';
+  html += '<div class="m3-list-group"><div class="m3-row" style="padding:12px 14px">'
+    + '<div id="pg-cmd-situazione" style="width:100%;font-size:13px;color:var(--txt2)">Copertura dei prossimi 7 giorni in aggiornamento...</div>'
+    + '</div></div>';
+
+  // Gestione turni + trasferimento militare — spostati da Impostazioni (solo Comando)
+  html += _cmdGestioneTurniHtml();
+  html += _cmdTrasferimentoHtml();
+
+  // Link esistenti: membri
+  html += '<div class="m3-list-group-title">&#128101; Personale</div>';
+  html += '<div class="m3-list-group">'
+    + '<div class="m3-row tap" onclick="window._persFrom=\'comando\';vaiBN(\'pers\',0)">'
+    + '<div class="m3-row-ico" style="background:rgba(0,200,83,.12)">&#128101;</div>'
+    + '<div class="m3-row-body"><div class="m3-row-title">Gestisci Personale</div><div class="m3-row-sub">Visualizza e gestisci il personale del reparto</div></div>'
+    + '<div class="m3-row-right">&#8250;</div></div>'
+    + '<div class="m3-row tap" onclick="vaiBN(\'membri\',0)">'
+    + '<div class="m3-row-ico" style="background:rgba(200,16,46,.12)">&#128101;</div>'
+    + '<div class="m3-row-body"><div class="m3-row-title">Approvazione Militari</div><div class="m3-row-sub">Approva o rifiuta le richieste di accesso</div></div>'
+    + '<div class="m3-row-right">&#8250;</div></div>'
+    + '</div>';
+
+  wrap.innerHTML = html;
+  _aggiornaBadgeComando();
+  if(document.getElementById('pg-cmd-richieste-lista')) _renderRichiesteComando();
+  if(document.getElementById('pg-cmd-compiti-lista')) _renderCompitiComando();
+  if(document.getElementById('pg-cmd-bacheca-lista')) _renderBachecaComando();
+  if(document.getElementById('pg-cmd-situazione')) _renderSituazioneComando();
+  if(document.getElementById('trasf-militare')) _renderTrasfMilitari();
+}
+
+function _renderRichiesteComando(){
+  var el = document.getElementById('pg-cmd-richieste-lista');
+  if(!el) return;
+  var aperte = window._richieste.filter(function(r){ return r.stato==='attesa_collega' || r.stato==='attesa_comando' || r.stato==='nuova'; });
+  aperte.sort(function(a,b){ return (b.creataIl||0) - (a.creataIl||0); });
+  var html = aperte.map(function(r){
+    var rich = _nomeUtente(r.richiedenteUid, r.richiedenteNome||'Richiedente');
+    var verso = _nomeUtente(r.versoUid, r.versoNome||'Collega');
+    var stLbl = r.stato==='attesa_comando' ? '<span style="color:var(--gold)">attesa comando</span>'
+              : r.stato==='attesa_collega' ? '<span style="color:var(--blue)">attesa collega</span>'
+              : '<span style="color:var(--txt2)">nuova</span>';
+    var mio = r.mioTurno || {};
+    var suo = r.versoTurno || {};
+    return '<div style="padding:12px 14px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-bottom:8px">'
+      + '<div style="font-size:13px;font-weight:700">'+rich+' &#8646; '+verso+'</div>'
+      + '<div style="font-size:12px;color:var(--txt2);margin-top:4px">'
+      + (mio.tipo||'?') + ' ' + (fmtD(mio.data)||'') + (mio.codice ? ' ('+mio.codice+')' : '')
+      + ' &#8596; '
+      + (suo.tipo||'?') + ' ' + (fmtD(suo.data)||'') + (suo.codice ? ' ('+suo.codice+')' : '')
+      + '</div>'
+      + '<div style="font-size:11px;color:var(--txt3);margin-top:3px">Stato: '+stLbl+(r.confermatoVoce ? ' · <span style="color:var(--blue);font-weight:700">collega sentito a voce</span>' : '')+'</div>'
+      + (r.stato==='attesa_collega'
+          ? '<div style="display:flex;gap:8px;margin-top:8px">'
+            + '<button class="btn btn-p btn-sm" style="flex:1;font-size:11px" onclick="fsmCambioTurno(\''+r.id+'\',\'collega_accetta\')">&#10003; Accetta (come collega)</button>'
+            + '<button class="btn btn-sm" style="flex:1;font-size:11px;background:rgba(200,16,46,.1);color:var(--red);border-color:rgba(200,16,46,.3)" onclick="fsmCambioTurno(\''+r.id+'\',\'collega_rifiuta\')">&#10005; Rifiuta</button>'
+            + '</div>'
+          : '')
+      + (r.stato==='attesa_comando'
+          ? '<div style="display:flex;gap:8px;margin-top:6px">'
+            + '<button class="btn btn-g btn-sm" style="flex:1;font-size:11px" onclick="fsmCambioTurno(\''+r.id+'\',\'comando_approva\')">&#128081; Approva (comando)</button>'
+            + '<button class="btn btn-sm" style="flex:1;font-size:11px;background:rgba(200,16,46,.1);color:var(--red);border-color:rgba(200,16,46,.3)" onclick="fsmCambioTurno(\''+r.id+'\',\'comando_rifiuta\')">&#10005; Rifiuta</button>'
+            + '</div>'
+          : '')
+      + '</div>';
+  }).join('');
+  el.innerHTML = html || '<div style="padding:10px;color:var(--txt3);font-size:12px">Nessuna richiesta aperta</div>';
+}
+
+// Lista compiti/appuntamenti assegnati (Blocco 3) nella pagina Comando
+function _renderCompitiComando(){
+  var el = document.getElementById('pg-cmd-compiti-lista');
+  if(!el) return;
+  var oggi = _oggi();
+  var TD = lsG('ct_td_condivisi', []).filter(function(t){ return t.assegnatoA && t.assegnatoA.length; });
+  var AG = lsG('ct_ag_condivisa', []).filter(function(a){ return a.assegnatoA && a.assegnatoA.length; });
+  TD.sort(function(a,b){
+    var fa = (a.stato==='fatto' || a.done) ? 1 : 0;
+    var fb = (b.stato==='fatto' || b.done) ? 1 : 0;
+    if(fa !== fb) return fa - fb;
+    return String(a.data||'9999-99-99').localeCompare(String(b.data||'9999-99-99'));
+  });
+  AG.sort(function(a,b){ return String(a.data||'').localeCompare(String(b.data||'')); });
+
+  var html = TD.map(function(t){
+    var destinatari = t.assegnatoNomi ? ctEsc(t.assegnatoNomi.join(', ')) : '';
+    var scad = t.data ? '&#128197; ' + String(t.data).split('-').reverse().join('/') : '';
+    var fatto = (t.stato==='fatto' || t.done);
+    var badge = fatto
+      ? '<span style="font-size:9px;font-weight:800;color:var(--green);background:rgba(6,214,160,.16);border-radius:6px;padding:2px 6px">&#10003; Fatto'+(t.fattoDa?' da '+ctEsc(t.fattoDa):'')+'</span>'
+      : '<span style="font-size:9px;font-weight:800;color:var(--gold);background:rgba(212,175,55,.16);border-radius:6px;padding:2px 6px">&#128229; Da fare</span>';
+    return '<div class="m3-row" style="padding:11px 14px;align-items:flex-start">'
+      + '<div class="m3-row-ico" style="background:rgba(66,133,244,.12)">&#128287;</div>'
+      + '<div class="m3-row-body"><div class="m3-row-title">'+ctEsc(t.tit)+'</div>'
+      + '<div class="m3-row-sub">&#128101; '+destinatari+(scad?' &middot; '+scad:'')+'</div>'
+      + '<div style="margin-top:5px;display:flex;gap:5px;align-items:center;flex-wrap:wrap">'+badge
+      + '<button class="btn btn-sm btn-g" style="font-size:10px;padding:3px 8px" onclick="toggleTodoCondiviso('+t.id+')">'+(fatto?'Riapri':'Segna fatto')+'</button>'
+      + '</div></div></div>';
+  }).join('');
+
+  html += AG.map(function(a){
+    var destinatari = a.assegnatoNomi ? ctEsc(a.assegnatoNomi.join(', ')) : '';
+    var quando = String(a.data).split('-').reverse().join('/') + (a.ora ? ' &#128336; ' + a.ora : '');
+    var passato = String(a.data) < oggi;
+    return '<div class="m3-row" style="padding:11px 14px;align-items:flex-start'+(passato?';opacity:.55':'')+'">'
+      + '<div class="m3-row-ico" style="background:rgba(212,175,55,.12)">&#128209;</div>'
+      + '<div class="m3-row-body"><div class="m3-row-title">'+ctEsc(a.tit)+'</div>'
+      + '<div class="m3-row-sub">&#128101; '+destinatari+' &middot; &#128197; '+quando+(a.luogo?' &middot; &#128205; '+ctEsc(a.luogo):'')+'</div>'
+      + '</div></div>';
+  }).join('');
+
+  if(!html){
+    el.style.display = 'none';
+    el.innerHTML = '';
+    return;
+  }
+  el.style.display = 'block';
+  el.innerHTML = html;
+}
+
+// ════════════════════════════════════════════════════════════════
+// GESTIONE TURNI in Menu Comando — carica Excel, orari preset, turni custom
+// (spostate da Impostazioni: visibili solo a Comandante/Vice)
+function _cmdGestioneTurniHtml(){
+  var h = '<div class="m3-list-group-title">&#128197; Gestione turni</div>';
+  h += '<div class="m3-list-group">'
+    + '<div class="m3-row tap" onclick="document.getElementById(\'xi\').click()">'
+    + '<div class="m3-row-ico" style="background:rgba(0,200,83,.12)">&#128202;</div>'
+    + '<div class="m3-row-body"><div class="m3-row-title">Carica turni da Excel</div><div class="m3-row-sub">Importa un file .xlsx con i turni del reparto</div></div>'
+    + '<div class="m3-row-right">&#8250;</div></div>'
+    + '<div class="m3-row tap" onclick="toggleImpSec(\'orari-body\',\'arr-orari\');renderOrariPreset();">'
+    + '<div class="m3-row-ico" style="background:rgba(0,188,212,.12)">&#9200;</div>'
+    + '<div class="m3-row-body"><div class="m3-row-title">Orari preset turni</div><div class="m3-row-sub">Personalizza gli orari di ogni tipo di turno</div></div>'
+    + '<div class="m3-row-right" id="arr-orari">&#8250;</div></div>'
+    + '<div id="orari-body" class="imp-sub"><div style="padding:14px;border-top:1px solid var(--border)">'
+    + '<div style="font-size:11px;color:var(--txt2);margin-bottom:10px">&#9200; Modifica gli orari preset per ogni tipo di turno e premi Salva.</div>'
+    + '<div id="orari-preset-list"></div>'
+    + '<div id="orari-ok" class="smsg" style="margin-top:8px">&#10003; Salvato!</div>'
+    + '<button onclick="resetOrariPreset()" style="width:100%;padding:10px;border-radius:10px;background:rgba(200,16,46,.08);color:var(--red);border:1px solid rgba(200,16,46,.25);font-size:12px;font-weight:700;cursor:pointer;margin-top:8px">&#8635; Ripristina default</button>'
+    + '</div></div>'
+    + '<div class="m3-row tap" onclick="apriTurniCustom()">'
+    + '<div class="m3-row-ico" style="background:rgba(255,159,67,.12)">&#128197;</div>'
+    + '<div class="m3-row-body"><div class="m3-row-title">Turni Personalizzati</div><div class="m3-row-sub">Crea e gestisci tipi di turno custom</div></div>'
+    + '<div class="m3-row-right">&#8250;</div></div>'
+    + '</div>';
+  return h;
+}
+// TRASFERIMENTO MILITARE in Menu Comando — il Comandante sposta un dipendente
+// (form spostato da Impostazioni > Opzioni Avanzate)
+function _cmdTrasferimentoHtml(){
+  var h = '<div class="m3-list-group-title">&#128680; Trasferimento militare</div>';
+  h += '<div class="m3-list-group">'
+    + '<div style="padding:12px 14px;font-size:12px;color:var(--txt2);line-height:1.6">Seleziona il militare e la nuova struttura: al raggiungimento il Comandante del reparto destinatario ne curer&#224; l\'approvazione.</div>'
+    + '<div id="cmd-trasf" style="padding:0 14px 14px">'
+    + '<div class="fg" style="margin-bottom:8px"><label>Militare</label>'
+    + '<select class="fc" id="trasf-militare"><option value="">Caricamento...</option></select></div>'
+    + '<div class="fg" style="margin-bottom:8px"><label>Tipo Struttura</label>'
+    + '<div id="trasf-tipo-btns" style="display:flex;flex-wrap:wrap;gap:6px">'
+    + '<button type="button" class="tipo-rep-btn" data-val="stazione" onclick="selTipoRep(\'trasf\',\'stazione\',this)">Stazione</button>'
+    + '<button type="button" class="tipo-rep-btn" data-val="nucleo" onclick="selTipoRep(\'trasf\',\'nucleo\',this)">Nucleo</button>'
+    + '<button type="button" class="tipo-rep-btn" data-val="compagnia" onclick="selTipoRep(\'trasf\',\'compagnia\',this)">Compagnia</button>'
+    + '<button type="button" class="tipo-rep-btn" data-val="distaccamento" onclick="selTipoRep(\'trasf\',\'distaccamento\',this)">Distaccamento</button>'
+    + '<button type="button" class="tipo-rep-btn" data-val="tenenza" onclick="selTipoRep(\'trasf\',\'tenenza\',this)">Tenenza</button>'
+    + '<button type="button" class="tipo-rep-btn" data-val="gruppo" onclick="selTipoRep(\'trasf\',\'gruppo\',this)">Gruppo</button>'
+    + '<button type="button" class="tipo-rep-btn" data-val="legione" onclick="selTipoRep(\'trasf\',\'legione\',this)">Legione</button>'
+    + '</div><input type="hidden" id="trasf-tipo-struttura" value=""></div>'
+    + '<div class="fg" style="margin-bottom:8px"><label>Specialit&#224;</label>'
+    + '<div id="trasf-spec-btns" style="display:flex;flex-wrap:wrap;gap:6px">'
+    + '<button type="button" class="tipo-rep-btn" data-val="territoriale" onclick="selSpecRep(\'trasf\',\'territoriale\',this)">Territoriale</button>'
+    + '<button type="button" class="tipo-rep-btn" data-val="forestale" onclick="selSpecRep(\'trasf\',\'forestale\',this)">Forestale</button>'
+    + '<button type="button" class="tipo-rep-btn" data-val="radiomobile" onclick="selSpecRep(\'trasf\',\'radiomobile\',this)">Radiomobile</button>'
+    + '<button type="button" class="tipo-rep-btn" data-val="norm" onclick="selSpecRep(\'trasf\',\'norm\',this)">N.O.R.M.</button>'
+    + '<button type="button" class="tipo-rep-btn" data-val="sis" onclick="selSpecRep(\'trasf\',\'sis\',this)">S.I.S.</button>'
+    + '<button type="button" class="tipo-rep-btn" data-val="ros" onclick="selSpecRep(\'trasf\',\'ros\',this)">R.O.S.</button>'
+    + '<button type="button" class="tipo-rep-btn" data-val="gis" onclick="selSpecRep(\'trasf\',\'gis\',this)">G.I.S.</button>'
+    + '<button type="button" class="tipo-rep-btn" data-val="noe" onclick="selSpecRep(\'trasf\',\'noe\',this)">N.O.E.</button>'
+    + '<button type="button" class="tipo-rep-btn" data-val="nas" onclick="selSpecRep(\'trasf\',\'nas\',this)">N.A.S.</button>'
+    + '<button type="button" class="tipo-rep-btn" data-val="nit" onclick="selSpecRep(\'trasf\',\'nit\',this)">N.I.T.</button>'
+    + '</div><input type="hidden" id="trasf-specialita" value=""></div>'
+    + '<div class="fg" style="margin-bottom:8px"><label>Sede / Citt&#224;</label><input type="text" class="fc" id="trasf-sede" placeholder="Es. Varazze" oninput="aggiornaTrasferimentoId()"></div>'
+    + '<div style="margin-bottom:10px;padding:8px 12px;background:rgba(41,121,255,.07);border-radius:10px;border:1px solid rgba(41,121,255,.15)">'
+    + '<div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Nuovo Reparto</div>'
+    + '<div id="trasf-reparto-preview" style="font-size:13px;font-weight:700;color:var(--blue);font-family:monospace">&#8212;</div></div>'
+    + '<button class="btn btn-p btn-sm" style="width:100%" onclick="comandoTrasferisciMilitare()">&#10132; Trasferisci militare</button>'
+    + '</div></div>';
+  return h;
+}
+// Militari trasferibili: membri approvati dello stesso reparto (escluso sé)
+function _trasfMilitari(){
+  var me = lsG('ct_me', null) || {};
+  var myUid = String(me.uid || me.id || '');
+  var repMe = String(me.reparto || '');
+  var out = [], seen = {};
+  (lsG('ct_users', []) || []).forEach(function(u){
+    if(!u || !u.uid) return;
+    if(u.stato && u.stato !== 'approved') return;
+    if(u.ruolo === 'superadmin') return;
+    if(String(u.uid) === myUid) return;
+    if(repMe && u.reparto && String(u.reparto) !== repMe) return;
+    var nome = ((u.nome || '') + ' ' + (u.cognome || '')).trim() || u.email || u.uid;
+    seen[String(u.uid)] = true;
+    out.push({ uid: String(u.uid), nome: nome });
+  });
+  (lsG('ct_p', []) || []).forEach(function(p){
+    if(!p || !p.uid) return;
+    if(String(p.uid) === myUid || seen[String(p.uid)]) return;
+    if(repMe && p.reparto && String(p.reparto) !== repMe) return;
+    var nome = ((p.grado ? p.grado + ' ' : '') + (p.nome || '') + ' ' + (p.cognome || '')).trim();
+    seen[String(p.uid)] = true;
+    out.push({ uid: String(p.uid), nome: nome || String(p.uid) });
+  });
+  out.sort(function(a, b){ return String(a.nome).localeCompare(String(b.nome)); });
+  return out;
+}
+function _renderTrasfMilitari(){
+  var sel = document.getElementById('trasf-militare');
+  if(!sel) return;
+  var list = _trasfMilitari();
+  sel.innerHTML = list.length
+    ? '<option value="">Seleziona un militare...</option>' + list.map(function(m){
+        return '<option value="' + ctEsc(m.uid) + '">' + ctEsc(m.nome) + '</option>';
+      }).join('')
+    : '<option value="">Nessun militare collegato</option>';
+}
+async function comandoTrasferisciMilitare(){
+  if(!_isComandanteUI()){ toast('Operazione riservata a Comandante e Super amministratore', 'err'); return; }
+  var uid = String((document.getElementById('trasf-militare') || {}).value || '');
+  var tipo = String((document.getElementById('trasf-tipo-struttura') || {}).value || '');
+  var spec = String((document.getElementById('trasf-specialita') || {}).value || '');
+  var sede = String((document.getElementById('trasf-sede') || {}).value || '').trim().toLowerCase().replace(/\s+/g, '_');
+  if(!uid || !tipo || !spec || !sede){ toast('Seleziona il militare e compila tutti i dati del nuovo reparto', 'err'); return; }
+  var nuovoReparto = [tipo, spec, sede].join('_');
+  var me = lsG('ct_me', null) || {};
+  var vecchioReparto = String(me.reparto || '');
+  if(!window.FirebaseModule || typeof window.FirebaseModule.trasferisciUtenteReparto !== 'function'){
+    toast('Firebase non è pronto: impossibile completare il trasferimento', 'err');
+    return;
+  }
+  var militare = (lsG('ct_users', []) || []).find(function(u){ return String(u.uid || u.id) === uid; }) ||
+    (lsG('ct_p', []) || []).find(function(p){ return String(p.uid) === uid; });
+  var nome = _nomeUtente(militare || uid, uid);
+  if(!await ctConfirm('Trasferire <strong>' + ctEsc(nome) + '</strong> nel reparto <strong>' + ctEsc(nuovoReparto.replace(/_/g, ' ')) + '</strong>?<br><small>Il militare sarà posto in attesa dell\'approvazione del Comando destinatario.</small>', {title:'Trasferimento militare', ico:'⚠️', ok:'Trasferisci'})) return;
+  try {
+    ctSpinner(true, 'Trasferimento del militare in corso...');
+    await window.FirebaseModule.trasferisciUtenteReparto(uid, vecchioReparto, nuovoReparto);
+    ctSpinner(false);
+    toast('Militare trasferito e inviato al Comando del reparto destinatario', 'ok');
+    renderComando();
+  } catch(e) {
+    ctSpinner(false);
+    toast('Errore trasferimento: ' + (e.message || e), 'err');
+  }
+}
+// BACHECA — avvisi del Comando per tutto il reparto (Blocco 4)
+// collezione: reparti/{rep}/bacheca — documenti con tipo:'avviso'
+// ════════════════════════════════════════════════════════════════
+function _bachecaCarica(){ try { return lsG('ct_bacheca', []) || []; } catch(e){ return []; } }
+function _bachecaSalvaCache(arr){ lsS('ct_bacheca', arr || []); }
+// Avvisi attivi: esclude scaduti e documenti non 'avviso'; urgente in testa
+function _bachecaAttivi(){
+  var oggi = _oggi();
+  return _bachecaCarica().filter(function(a){
+    if(!a || a.tipo !== 'avviso') return false;
+    if(a.scade && String(a.scade) < oggi) return false;
+    return true;
+  }).sort(function(a,b){
+    var ua = a.urgente ? 0 : 1, ub = b.urgente ? 0 : 1;
+    if(ua !== ub) return ua - ub;
+    return String(b.creataIl || '').localeCompare(String(a.creataIl || ''));
+  });
+}
+window._bachecaEditId = null;
+// Apre il modal bacheca (nuovo avviso o modifica di uno esistente)
+function apriBacheca(id){
+  window._bachecaEditId = id || null;
+  var arr = _bachecaCarica();
+  var a = id ? arr.find(function(x){ return String(x.id) === String(id); }) : null;
+  var t = document.getElementById('bc-titolo'); if(t) t.value = a ? (a.titolo || '') : '';
+  var s = document.getElementById('bc-testo');  if(s) s.value = a ? (a.testo || '') : '';
+  var u = document.getElementById('bc-urgente'); if(u) u.checked = a ? !!a.urgente : false;
+  var d = document.getElementById('bc-scade');  if(d) d.value = (a && a.scade) ? a.scade : '';
+  var e = document.getElementById('bc-err');    if(e) e.style.display = 'none';
+  var tt = document.getElementById('bc-title'); if(tt) tt.innerHTML = a ? '&#9998; Modifica avviso' : '&#128227; Nuovo avviso';
+  openM('m-bacheca');
+}
+// Salva (crea o aggiorna) l'avviso: cache locale + Firestore + notifiche
+function salvaBacheca(){
+  var t = document.getElementById('bc-titolo');
+  var titolo = t ? String(t.value || '').trim() : '';
+  if(!titolo){
+    var e = document.getElementById('bc-err');
+    if(e){ e.textContent = 'Inserisci un titolo per l’avviso.'; e.style.display = 'block'; }
+    toast('Titolo obbligatorio', 'err');
+    return;
+  }
+  var me = lsG('ct_me', null) || {};
+  var s = document.getElementById('bc-testo');
+  var u = document.getElementById('bc-urgente');
+  var d = document.getElementById('bc-scade');
+  var arr = _bachecaCarica();
+  var id = window._bachecaEditId || (Date.now().toString(36) + Math.random().toString(36).slice(2, 8));
+  var idx = -1;
+  for(var i = 0; i < arr.length; i++){ if(String(arr[i].id) === String(id)){ idx = i; break; } }
+  var old = idx >= 0 ? arr[idx] : null;
+  var avviso = {
+    id: id, tipo: 'avviso',
+    titolo: titolo,
+    testo: s ? String(s.value || '').trim() : '',
+    urgente: u ? !!u.checked : false,
+    scade: (d && d.value) ? d.value : null,
+    da: _nomeUtente(me.uid || me.id, 'Comando'),
+    daUid: me.uid || me.id,
+    creataIl: old ? (old.creataIl || Date.now()) : Date.now(),
+    aggiornatoIl: Date.now()
+  };
+  if(idx >= 0) arr[idx] = avviso; else arr.push(avviso);
+  _bachecaSalvaCache(arr);
+  _renderBachecaComando();
+  renderBachecaDash();
+  closeM('m-bacheca');
+  window._bachecaEditId = null;
+  if(!old){
+    // Nuovo avviso: notifica in-app a tutti i membri, push solo se urgente
+    var myUid = String(avviso.daUid || '');
+    var repMe = String(me.reparto || '').toLowerCase().replace(/\s+/g, '_');
+    lsG('ct_users', []).forEach(function(m){
+      if(m.stato !== 'approved' || m.ruolo === 'superadmin') return;
+      if(m.reparto && repMe && String(m.reparto).toLowerCase().replace(/\s+/g, '_') !== repMe) return;
+      var mu = m.uid || m.id;
+      if(!mu || String(mu) === myUid) return;
+      _cambioTurnoNotifica(mu, '📢 ' + avviso.titolo, avviso.testo || 'Nuovo avviso in bacheca del comando', '📢');
+      if(avviso.urgente && window.FirebaseModule && typeof window.FirebaseModule.schedulePush === 'function'){
+        try { window.FirebaseModule.schedulePush(mu, '📢 ' + avviso.titolo, avviso.testo || 'Avviso del comando').catch(function(){}); } catch(err){}
+      }
+    });
+  }
+  if(window.FirebaseModule && typeof window.FirebaseModule.saveBacheca === 'function'){
+    try { window.FirebaseModule.saveBacheca(avviso).catch(function(err){ console.warn('saveBacheca:', err.message); }); } catch(err){ console.warn('saveBacheca:', err.message); }
+  }
+  toast(old ? 'Avviso aggiornato' : 'Avviso pubblicato in bacheca', 'ok');
+}
+// Elimina un avviso dalla bacheca (con conferma)
+function delBacheca(id){
+  ctConfirm('Eliminare questo avviso dalla bacheca?', {title:'Elimina avviso', ico:'🗑️', ok:'Elimina', danger:true}).then(function(ok){
+    if(!ok) return;
+    var arr = _bachecaCarica().filter(function(x){ return String(x.id) !== String(id); });
+    _bachecaSalvaCache(arr);
+    _renderBachecaComando();
+    renderBachecaDash();
+    if(window.FirebaseModule && typeof window.FirebaseModule.deleteBacheca === 'function'){
+      try { window.FirebaseModule.deleteBacheca(id); } catch(err){ console.warn('deleteBacheca:', err.message); }
+    }
+    toast('Avviso eliminato', 'ok');
+  });
+}
+// Lista avvisi nella pagina Comando (Blocco 4)
+function _renderBachecaComando(){
+  var el = document.getElementById('pg-cmd-bacheca-lista');
+  if(!el) return;
+  var arr = _bachecaAttivi();
+  var html = arr.map(function(a){
+    var badge = a.urgente
+      ? '<span style="font-size:9px;font-weight:800;color:var(--red);background:rgba(200,16,46,.16);border-radius:6px;padding:2px 6px">&#128680; URGENTE</span>'
+      : '<span style="font-size:9px;font-weight:800;color:var(--blue);background:rgba(66,133,244,.16);border-radius:6px;padding:2px 6px">&#128227; AVVISO</span>';
+    var scad = a.scade
+      ? '<span style="font-size:9px;font-weight:800;color:var(--gold);background:rgba(212,175,55,.16);border-radius:6px;padding:2px 6px">&#128197; fino al ' + fmtD(a.scade) + '</span>'
+      : '';
+    return '<div class="m3-row" style="padding:11px 14px;align-items:flex-start">'
+      + '<div class="m3-row-ico" style="background:rgba(212,175,55,.12)">&#128227;</div>'
+      + '<div class="m3-row-body"><div class="m3-row-title">' + ctEsc(a.titolo) + '</div>'
+      + (a.testo ? '<div class="m3-row-sub">' + ctEsc(a.testo) + '</div>' : '')
+      + '<div style="margin-top:5px;display:flex;gap:5px;align-items:center;flex-wrap:wrap">' + badge + scad
+      + '<span style="font-size:9px;color:var(--txt3)">da ' + ctEsc(a.da || 'Comando') + '</span></div>'
+      + '<div style="display:flex;gap:8px;margin-top:8px">'
+      + '<button class="btn btn-sm btn-g" style="font-size:10px;padding:3px 8px" onclick="apriBacheca(\'' + a.id + '\')">&#9998; Modifica</button>'
+      + '<button class="btn btn-sm" style="font-size:10px;padding:3px 8px;background:rgba(200,16,46,.1);color:var(--red);border-color:rgba(200,16,46,.3)" onclick="delBacheca(\'' + a.id + '\')">&#128465; Elimina</button>'
+      + '</div></div></div>';
+  }).join('');
+  el.innerHTML = html || '<div style="padding:10px;color:var(--txt3);font-size:12px">Nessun avviso attivo</div>';
+}
+// Banner Bacheca sulla dashboard, visibile a tutto il reparto (Blocco 4)
+function renderBachecaDash(){
+  var el = document.getElementById('bacheca-dash');
+  if(!el) return;
+  var arr = _bachecaAttivi();
+  if(!arr.length){ el.style.display = 'none'; el.innerHTML = ''; return; }
+  el.style.display = 'block';
+  el.innerHTML = '<div style="margin-top:14px">'
+    + '<div class="m3-list-group-title" style="margin:0 0 8px">&#128227; Bacheca reparto</div>'
+    + arr.slice(0, 3).map(function(a){
+        var b = a.urgente ? '<span style="font-size:9px;font-weight:800;color:var(--red);background:rgba(200,16,46,.16);border-radius:6px;padding:2px 6px">&#128680; URGENTE</span>' : '';
+        return '<div style="background:' + (a.urgente ? 'rgba(200,16,46,.08)' : 'var(--bg2)') + ';border:1px solid ' + (a.urgente ? 'rgba(200,16,46,.3)' : 'var(--border)') + ';border-radius:14px;padding:11px 14px;margin-bottom:8px">'
+          + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="font-size:13px;font-weight:800;color:var(--txt)">' + ctEsc(a.titolo) + '</span>' + b + '</div>'
+          + (a.testo ? '<div style="font-size:12px;color:var(--txt2);margin-top:4px">' + ctEsc(a.testo) + '</div>' : '')
+          + '<div style="font-size:10px;color:var(--txt3);margin-top:5px">' + ctEsc(a.da || 'Comando') + (a.scade ? ' &middot; fino al ' + fmtD(a.scade) : '') + '</div>'
+          + '</div>';
+      }).join('')
+    + (arr.length > 3 ? '<div style="font-size:11px;color:var(--txt3);text-align:center">+ ' + (arr.length - 3) + ' altri avvisi</div>' : '')
+    + '</div>';
+}
+// ── SITUAZIONE / COPERTURA — prossimi giorni (Blocco 5) ────────
+// Ritorna n giorni da oggi con i turni di servizio assegnati
+function _coperturaGiorni(n){
+  var giorni = [];
+  var T = lsG('ct_t', []);
+  for(var i = 0; i < (n || 7); i++){
+    var d = new Date();
+    d.setDate(d.getDate() + i);
+    var ds = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+    var turni = T.filter(function(t){ return String(t.data) === ds && _cambioTurnoIsServizio(t); })
+      .map(function(t){ return { nome: t.pnome || _nomeUtente(t.uid, 'Militare'), codice: _cambioTurnoCodTipo(t) }; });
+    giorni.push({ data: ds, oggi: i === 0, turni: turni, scoperto: turni.length === 0 });
+  }
+  return giorni;
+}
+function _renderSituazioneComando(){
+  var el = document.getElementById('pg-cmd-situazione');
+  if(!el) return;
+  var giorni = _coperturaGiorni(7);
+  var scoperti = giorni.filter(function(g){ return g.scoperto; }).length;
+  var html = '<div style="font-size:12px;color:var(--txt2);margin-bottom:6px">Copertura dei prossimi 7 giorni — solo turni di servizio (M/ML/P/PL/N/S).</div>';
+  html += giorni.map(function(g){
+    var corpo = g.scoperto
+      ? '<span style="color:var(--red);font-weight:800">&#9888; SCOPERTO</span>'
+      : g.turni.map(function(t){ return '<span style="font-size:10px;font-weight:700;background:rgba(66,133,244,.14);color:var(--blue);border-radius:6px;padding:2px 6px">' + ctEsc(t.nome) + ' (' + ctEsc(t.codice) + ')</span>'; }).join(' ');
+    return '<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-top:1px solid var(--border)">'
+      + '<span style="font-size:11px;font-weight:800;color:' + (g.scoperto ? 'var(--red)' : (g.oggi ? 'var(--gold)' : 'var(--txt2)')) + ';min-width:74px">' + (g.oggi ? 'Oggi ' : '') + fmtD(g.data) + '</span>'
+      + '<span style="display:flex;gap:5px;flex-wrap:wrap;flex:1">' + corpo + '</span>'
+      + '</div>';
+  }).join('');
+  html += '<div style="font-size:12px;margin-top:8px;font-weight:700;color:' + (scoperti ? 'var(--red)' : 'var(--green)') + '">'
+    + (scoperti ? '&#9888; ' + scoperti + ' giorno/i scoperto/i nei prossimi 7 giorni' : '&#10004; Copertura completa per i prossimi 7 giorni')
+    + '</div>';
+  el.innerHTML = html;
+}
+// ════════════════════════════════════════════════════════════════
+// FLUSSO CAMBIO TURNO — macchina a stati (Blocco 2)
+// stati: attesa_collega → attesa_comando → approvata | rifiutata_*
+// ════════════════════════════════════════════════════════════════
+function _cambioTurnoFind(rid){
+  _richLoad();
+  return window._richieste.find(function(r){ return String(r.id)===String(rid); });
+}
+function _cambioTurnoCodTipo(t){
+  return (t && t.codice) ? String(t.codice) : ((t && t.tipo) || '');
+}
+function _cambioTurnoIsServizio(t){
+  var c = _cambioTurnoCodTipo(t).toUpperCase();
+  return ['M','ML','P','PL','N','S'].indexOf(c) !== -1;
+}
+function _cambioTurnoValidaRichiesta(r){
+  var esiti = { ok:true, errs:[] };
+  if(r.stato === 'scaduta'){ esiti.ok = false; esiti.errs.push('Richiesta scaduta: i turni sono cambiati nel frattempo.'); return esiti; }
+  if(!r.mioTurno || !r.versoTurno){ esiti.ok = false; esiti.errs.push('Dati turni incompleti.'); return esiti; }
+  var oggi = _oggi();
+  if(r.mioTurno.data && String(r.mioTurno.data) < oggi){ esiti.ok = false; esiti.errs.push('Non si possono scambiare turni nel passato.'); return esiti; }
+  if(r.versoTurno.data && String(r.versoTurno.data) < oggi){ esiti.ok = false; esiti.errs.push('Non si possono scambiare turni nel passato.'); return esiti; }
+  if(!_cambioTurnoIsServizio(r.mioTurno) || !_cambioTurnoIsServizio(r.versoTurno)){
+    esiti.ok = false; esiti.errs.push('Si possono scambiare solo turni di servizio (M/ML/P/PL/N/S).'); return esiti;
+  }
+  return esiti;
+}
+// Confronta i turni correnti con quelli fotografati nella richiesta (rileva "stale")
+function _cambioTurnoConCheck(r, T){
+  var tMio = T.find(function(t){ return String(t.id)===String(r.mioTurno.id); });
+  var tSuo = T.find(function(t){ return String(t.id)===String(r.versoTurno.id); });
+  if(!tMio || !tSuo){ r.stato = 'scaduta'; return false; }
+  var eq = function(a,b){
+    return a && b && String(a.pid)===String(b.pid) && String(a.data)===String(b.data) && String(a.tipo||a.codice||'')===String(b.tipo||b.codice||'');
+  };
+  if(!eq(tMio, r.mioTurno) || !eq(tSuo, r.versoTurno)){ r.stato = 'scaduta'; return false; }
+  return true;
+}
+function _cambioTurnoLog(r, da, azione, dettaglio){
+  if(!r.log) r.log = [];
+  r.log.push({ da: da, azione: azione, dettaglio: dettaglio || '', il: new Date().toISOString() });
+  if(r.log.length > 60) r.log = r.log.slice(-60);
+}
+function _cambioTurnoNotifica(uid, titolo, sub, ico, extra){
+  if(!uid) return;
+  var n = { id: Date.now()+Math.random(), tipo:'turni', titolo:titolo, sub:sub||'', ico:ico||'&#128257;', colore:'var(--blue)', ts:new Date().toISOString(), letta:false };
+  if(extra && typeof extra === 'object'){ Object.keys(extra).forEach(function(k){ n[k] = extra[k]; }); }
+  var sess = lsG('ct_session', null);
+  if(sess && sess.userId && String(sess.userId)===String(uid)){
+    var NL = lsG('ct_notifiche', []);
+    NL.unshift(n); if(NL.length>100) NL=NL.slice(0,100);
+    lsS('ct_notifiche', NL);
+    aggiornaBadgeNotif();
+  }
+  if(window.FirebaseModule && typeof window.FirebaseModule.saveNotifica === 'function'){
+    try { window.FirebaseModule.saveNotifica(uid, n).catch(function(){}); } catch(e){}
+  }
+}
+function _cambioTurnoSalva(r){
+  _richLoad();
+  var idx = -1;
+  for(var i=0;i<window._richieste.length;i++){ if(String(window._richieste[i].id)===String(r.id)){ idx=i; break; } }
+  var esisteva = idx >= 0;
+  if(esisteva) window._richieste[idx] = r; else window._richieste.push(r);
+  _richSave(window._richieste);
+  var sess = lsG('ct_session', null);
+  var rep = (sess && sess.reparto) ? String(sess.reparto).toLowerCase().replace(/\s+/g,'_') : '';
+  if(rep && window.FirebaseModule){
+    try {
+      if(!esisteva && typeof window.FirebaseModule.saveRichiesta === 'function'){
+        // Nuova richiesta: attesa collega, oppure attesa comando se il richiedente conferma il contatto verbale.
+        window.FirebaseModule.saveRichiesta(rep, r).catch(function(e){ console.warn('saveRichiesta:', e.message); });
+      } else if(typeof window.FirebaseModule.updateRichiesta === 'function'){
+        var patch = {};
+        ['stato','confermatoVoce','rispostaCollega','rispostaComando','eseguitaIl','log'].forEach(function(k){ if(r[k]!==undefined) patch[k]=r[k]; });
+        window.FirebaseModule.updateRichiesta(rep, r.id, patch).catch(function(e){ console.warn('updateRichiesta:', e.message); });
+      }
+    } catch(e){ console.warn('salva richiesta:', e.message); }
+  }
+  _aggiornaBadgeComando();
+  var pagCmd = document.getElementById('pag-comando');
+  if(pagCmd && pagCmd.classList.contains('on') && typeof renderComando === 'function') renderComando();
+}
+
+// Esegue lo swap atomico: cambia la PERSONA assegnata a ciascun turno (id invariati)
+function _cambioTurnoScambia(r){
+  var T = lsG('ct_t', []);
+  var tMio = T.find(function(t){ return String(t.id)===String(r.mioTurno.id); });
+  var tSuo = T.find(function(t){ return String(t.id)===String(r.versoTurno.id); });
+  if(!tMio || !tSuo) return { ok:false, err:'Turno non trovato.' };
+  var pMio = tMio.pid, nMio = tMio.pnome, uMio = tMio.uid;
+  tMio.pid = tSuo.pid; tMio.pnome = tSuo.pnome; tMio.uid = tSuo.uid;
+  tSuo.pid = pMio; tSuo.pnome = nMio; tSuo.uid = uMio;
+  // Marca lo scambio per il registro
+  tMio.scambiatoCon = r.versoTurno.id; tSuo.scambiatoCon = r.mioTurno.id;
+  lsS('ct_t', T);
+  if(window.FirebaseModule && typeof window.FirebaseModule.saveTurni === 'function'){
+    try { window.FirebaseModule.saveTurni(T).catch(function(){}); } catch(e){ console.warn('saveTurni swap:', e.message); }
+  }
+  return { ok:true, T:T };
+}
+
+// Funzione centrale: fsmCambioTurno(rid, azione)
+//   collega_accetta | collega_rifiuta | comando_approva | comando_rifiuta
+function fsmCambioTurno(rid, azione){
+  var r = _cambioTurnoFind(rid);
+  if(!r){ toast('Richiesta non trovata','err'); return; }
+  var me = lsG('ct_me', null);
+  if(!me){ toast('Sessione non trovata','err'); return; }
+  var myUid = me.uid || me.id;
+  var isCom = _isComandoUI();
+
+  if(azione === 'collega_accetta' || azione === 'collega_rifiuta'){
+    if(r.stato !== 'attesa_collega'){ toast('Richiesta non più in attesa del collega','err'); return; }
+    if(String(r.versoUid) !== String(myUid) && !isCom){ toast('Solo il collega coinvolto può rispondere','err'); return; }
+    if(azione === 'collega_rifiuta'){
+      r.stato = 'rifiutata_collega';
+      r.rispostaCollega = { esito:'rifiutata', da:myUid, il:new Date().toISOString() };
+      _cambioTurnoLog(r, myUid, 'collega_rifiuta', '');
+      _cambioTurnoSalva(r);
+      _cambioTurnoNotifica(r.richiedenteUid, 'Cambio turno rifiutato dal collega', 'Il collega ha rifiutato lo scambio di turno.', '&#10005;');
+      toast('Richiesta rifiutata','ok');
+      return;
+    }
+    r.stato = 'attesa_comando';
+    r.rispostaCollega = { esito:'accettata', da:myUid, il:new Date().toISOString() };
+    _cambioTurnoLog(r, myUid, 'collega_accetta', '');
+    _cambioTurnoSalva(r);
+    _cambioTurnoNotifica(r.richiedenteUid, 'Cambio turno accettato dal collega', 'In attesa di approvazione del comando.', '&#10003;');
+    var cmd = lsG('ct_users', []).find(function(u){ return (u.ruolo==='comandante'||u.ruolo==='vice') && u.stato==='approved'; });
+    if(cmd && cmd.uid){
+      _cambioTurnoNotifica(cmd.uid, 'Richiesta cambio turno da approvare',
+        _nomeUtente(r.richiedenteUid, 'Un militare') + ' e ' + _nomeUtente(r.versoUid, 'un collega') + ' chiedono lo scambio.', '&#128081;');
+    }
+    toast('Collega ha accettato: ora serve l\'approvazione del comando','ok');
+    return;
+  }
+
+  if(azione === 'comando_approva' || azione === 'comando_rifiuta'){
+    if(!isCom){ toast('Solo Comandante/Vice può decidere','err'); return; }
+    if(r.stato !== 'attesa_comando'){ toast('Richiesta non in attesa del comando','err'); return; }
+    if(azione === 'comando_rifiuta'){
+      r.stato = 'rifiutata_comando';
+      r.rispostaComando = { esito:'rifiutata', da:myUid, il:new Date().toISOString() };
+      _cambioTurnoLog(r, myUid, 'comando_rifiuta', '');
+      _cambioTurnoSalva(r);
+      _cambioTurnoNotifica(r.richiedenteUid, 'Cambio turno rifiutato dal comando', 'Il Comandante ha rifiutato lo scambio di turni.', '&#10005;');
+      _cambioTurnoNotifica(r.versoUid, 'Cambio turno rifiutato dal comando', 'Il Comandante ha rifiutato lo scambio di turni.', '&#10005;');
+      toast('Richiesta rifiutata','ok');
+      return;
+    }
+    var v = _cambioTurnoValidaRichiesta(r);
+    if(!v.ok){ r.stato = 'scaduta'; _cambioTurnoSalva(r); toast(v.errs.join(' '),'err'); return; }
+    var T = lsG('ct_t', []);
+    if(!_cambioTurnoConCheck(r, T)){
+      _cambioTurnoSalva(r);
+      toast('Richiesta scaduta: i turni sono cambiati. Invia una nuova richiesta.','err');
+      return;
+    }
+    var swap = _cambioTurnoScambia(r);
+    if(!swap.ok){ toast(swap.err,'err'); return; }
+    r.stato = 'approvata';
+    r.eseguitaIl = new Date().toISOString();
+    r.rispostaComando = { esito:'approvata', da:myUid, il:new Date().toISOString() };
+    _cambioTurnoLog(r, myUid, 'comando_approva', 'swap eseguito');
+    _cambioTurnoSalva(r);
+    _cambioTurnoNotifica(r.richiedenteUid, 'Cambio turno APPROVATO', 'Il tuo scambio di turno è stato eseguito.', '&#10003;');
+    _cambioTurnoNotifica(r.versoUid, 'Cambio turno APPROVATO', 'Il tuo scambio di turno è stato eseguito.', '&#10003;');
+    if(typeof renderTurni === 'function') renderTurni();
+    if(typeof renderOggi === 'function') renderOggi();
+    if(typeof renderCal === 'function') renderCal();
+    if(typeof stats === 'function') stats();
+    if(typeof aggiornaWidget === 'function') aggiornaWidget();
+    toast('Cambio turno eseguito','ok');
+    return;
+  }
+  toast('Azione non riconosciuta','err');
+}
+
+// ════════════════════════════════════════════════════════════════
+// COMPITI E APPUNTAMENTI ASSEGNATI (Blocco 3) — solo Comando
+// Riusa todo_condivisi / agenda_condivisa con campi assegnatario
+// ════════════════════════════════════════════════════════════════
+window._assegnaState = { td:{tutto:false,uids:[]}, ag:{tutto:false,uids:[]} };
+
+// Elenco militari collegati (uid + nome) — esclude l'utente corrente
+function _assegnaMilitari(){
+  var me = lsG('ct_me', null);
+  var myUid = String(me ? (me.uid || me.id || '') : '');
+  var out = [], seen = {};
+  function add(uid, nome){
+    if(!uid || seen[uid] || String(uid) === myUid) return;
+    seen[uid] = true;
+    out.push({ uid: String(uid), nome: nome || String(uid) });
+  }
+  (lsG('ct_users', []) || []).forEach(function(u){
+    if(!u || !u.uid) return;
+    if(u.stato && u.stato !== 'approved') return;
+    if(u.ruolo === 'superadmin') return;
+    var nome = ((u.nome || '') + ' ' + (u.cognome || '')).trim() || u.email || u.uid;
+    add(u.uid, nome);
+  });
+  (lsG('ct_p', []) || []).forEach(function(p){
+    if(!p || !p.uid) return;
+    var nome = ((p.grado ? p.grado + ' ' : '') + (p.nome || '') + ' ' + (p.cognome || '')).trim();
+    add(p.uid, nome);
+  });
+  out.sort(function(a,b){ return String(a.nome).localeCompare(String(b.nome)); });
+  return out;
+}
+
+function _renderAssegnaList(kind){
+  var el = document.getElementById(kind + '-assegna-list');
+  if(!el) return;
+  var st = window._assegnaState[kind];
+  if(!st) st = window._assegnaState[kind] = { tutto:false, uids:[] };
+  var militari = _assegnaMilitari();
+  if(!militari.length){
+    el.innerHTML = '<div style="font-size:12px;color:var(--txt3);padding:6px 2px">Nessun collega collegato al momento.</div>';
+    return;
+  }
+  var html = '<button type="button" class="tipo-rep-btn' + (st.tutto ? ' sel' : '') + '" '
+    + 'style="width:100%;text-align:left;margin-bottom:6px" onclick="assegnaTutto(\'' + kind + '\')">'
+    + '&#128101; Tutto il reparto</button>';
+  html += militari.map(function(m){
+    var on = !st.tutto && st.uids.indexOf(m.uid) !== -1;
+    return '<label style="display:flex;align-items:center;gap:9px;padding:9px 10px;background:var(--bg2);border:1px solid '
+      + (on ? 'var(--blue)' : 'var(--border)') + ';border-radius:10px;cursor:pointer;font-size:13px;font-weight:600">'
+      + '<input type="checkbox"' + (on ? ' checked' : '') + ' style="width:16px;height:16px;accent-color:var(--blue);flex-shrink:0" '
+      + 'onchange="assegnaToggle(\'' + kind + '\',\'' + m.uid + '\',this.checked)">'
+      + '<span>' + ctEsc(m.nome) + '</span></label>';
+  }).join('');
+  el.innerHTML = html;
+}
+
+function assegnaToggle(kind, uid, on){
+  var st = window._assegnaState[kind];
+  if(!st) st = window._assegnaState[kind] = { tutto:false, uids:[] };
+  uid = String(uid);
+  var i = st.uids.indexOf(uid);
+  if(on && i === -1) st.uids.push(uid);
+  if(!on && i !== -1) st.uids.splice(i, 1);
+  if(on) st.tutto = false;
+  _syncAssegnaUI(kind);
+}
+function assegnaTutto(kind){
+  var st = window._assegnaState[kind];
+  if(!st) st = window._assegnaState[kind] = { tutto:false, uids:[] };
+  st.tutto = !st.tutto;
+  if(st.tutto) st.uids = [];
+  _syncAssegnaUI(kind);
+}
+function assegnaReset(kind){
+  window._assegnaState[kind] = { tutto:false, uids:[] };
+  _syncAssegnaUI(kind);
+}
+function _syncAssegnaUI(kind){
+  _renderAssegnaList(kind);
+  var st = window._assegnaState[kind] || {tutto:false,uids:[]};
+  var b = document.getElementById(kind + '-assegna-reset');
+  if(b) b.style.display = (st.tutto || st.uids.length) ? 'inline-block' : 'none';
+  // Un elemento assegnato vive nella lista condivisa: spunta "condividi" come promemoria visivo
+  if(st.tutto || st.uids.length){
+    var chk = document.getElementById(kind === 'td' ? 'td-condividi' : 'ag-condividi');
+    if(chk) chk.checked = true;
+  }
+}
+function apriAssegna(kind){
+  var l = document.getElementById(kind + '-assegna-list');
+  if(!l) return;
+  if(l.style.display === 'none' || l.style.display === ''){
+    l.style.display = 'grid';
+    _syncAssegnaUI(kind);
+  } else {
+    l.style.display = 'none';
+  }
+}
+
+// Restituisce la selezione corrente o null
+function _assegnaGet(kind){
+  var st = window._assegnaState[kind];
+  if(!st || (!st.tutto && !st.uids.length)) return null;
+  if(st.tutto) return { tutto:true, uids:[], nomi:['Tutto il reparto'] };
+  var militari = _assegnaMilitari();
+  return {
+    tutto: false,
+    uids: st.uids.slice(),
+    nomi: st.uids.map(function(u){
+      var m = militari.find(function(x){ return String(x.uid) === String(u); });
+      return m ? m.nome : u;
+    })
+  };
+}
+
+// Campi da unire all'item salvato (todo e agenda condividono lo stesso formato)
+function _assegnaCampi(kind){
+  var a = _assegnaGet(kind);
+  if(!a) return null;
+  var me = lsG('ct_me', null);
+  var nomeMe = me ? (((me.nome || '') + ' ' + (me.cognome || '')).trim() || 'Comando') : 'Comando';
+  return {
+    assegnatoA: a.tutto ? ['tutto'] : a.uids,
+    assegnatoNomi: a.nomi,
+    assegnatoDa: nomeMe,
+    assegnatoDaUid: me ? (me.uid || me.id || '') : '',
+    stato: 'assegnato'
+  };
+}
+
+// Notifica in-app + push ai destinatari dell'assegnazione
+function _assegnaNotifica(item, kind){
+  if(!item || !item.assegnatoA || !item.assegnatoA.length) return;
+  var tit = (kind === 'ag' ? 'Appuntamento' : 'Compito') + ' assegnato: ' + (item.tit || '');
+  var sub = 'Assegnato da ' + (item.assegnatoDa || 'Comando')
+    + (item.data ? ' — per il ' + String(item.data).split('-').reverse().join('/') : '');
+  var uids = item.assegnatoA.slice();
+  if(uids.indexOf('tutto') !== -1) uids = _assegnaMilitari().map(function(m){ return m.uid; });
+  uids = uids.filter(function(u){ return u && u !== 'tutto'; });
+  uids.forEach(function(uid){
+    _cambioTurnoNotifica(uid, tit, sub, '&#128287;');
+    if(window.FirebaseModule && typeof window.FirebaseModule.schedulePush === 'function'){
+      try {
+        window.FirebaseModule.schedulePush(uid, 'C-Turni — ' + tit, sub,
+          new Date(Date.now() + 5000).toISOString()).catch(function(){});
+      } catch(e){}
+    }
+  });
+}
+
+// Reparto normalizzato dell'utente corrente (per salvataggi condivisi)
+function _repartoCorrente(){
+  var me = lsG('ct_me', null);
+  var rep = (me && me.reparto) ? String(me.reparto).toLowerCase().replace(/\s+/g, '_') : null;
+  var sess = lsG('ct_session', null);
+  if(!rep && sess && sess.reparto) rep = String(sess.reparto).toLowerCase().replace(/\s+/g, '_');
+  return rep;
+}
+
+// ════════════════════════════════════════════════════════════════
+// MODAL RICHIESTA CAMBIO TURNO — creazione (Blocco 2)
+// ════════════════════════════════════════════════════════════════
+window._cambioSel = { mioId:null, versoPid:null, versoUid:'', versoNome:'', versoTurnoId:null };
+window._cambioNota = '';
+window._cambioConfermatoVoce = false;
+
+function _turniFuturiServizio(matchFn){
+  var oggi = _oggi();
+  return lsG('ct_t', []).filter(function(t){
+    return String(t.data) >= oggi && _cambioTurnoIsServizio(t) && matchFn(t);
+  }).sort(function(a,b){ return String(a.data).localeCompare(String(b.data)); });
+}
+function _cambioMieiTurni(){
+  var me = lsG('ct_me', null);
+  var myUid = me ? String(me.uid || me.id || '') : '';
+  var myPid = me ? String(me.id != null ? me.id : '') : '';
+  return _turniFuturiServizio(function(t){
+    return (t.uid != null && String(t.uid) === myUid) || (t.pid != null && String(t.pid) === myPid);
+  });
+}
+function _cambioColleghiFuturi(){
+  var me = lsG('ct_me', null);
+  var myUid = me ? String(me.uid || me.id || '') : '';
+  var myPid = me ? String(me.id != null ? me.id : '') : '';
+  var m = {};
+  _turniFuturiServizio(function(){ return true; }).forEach(function(t){
+    var pid = String(t.pid != null ? t.pid : (t.uid != null ? t.uid : ''));
+    if(!pid) return;
+    if(pid === myPid || String(t.uid != null ? t.uid : '') === myUid) return;
+    if(!m[pid]) m[pid] = { pid: pid, uid: t.uid || '', nome: t.pnome || _nomeUtente(t.uid, 'Collega ' + pid), n: 0 };
+    if(!m[pid].uid && t.uid) m[pid].uid = t.uid;
+    m[pid].n++;
+  });
+  return Object.keys(m).map(function(k){ return m[k]; })
+    .sort(function(a,b){ return String(a.nome).localeCompare(String(b.nome)); });
+}
+function _cambioTurniCollega(pid){
+  return _turniFuturiServizio(function(t){ return String(t.pid != null ? t.pid : '') === String(pid); });
+}
+function _fmtTurnoT(t){
+  if(!t) return '?';
+  return (t.tipo || '?') + ' ' + (fmtD(t.data) || '') + (t.codice ? ' (' + t.codice + ')' : '');
+}
+
+function apriCambioTurno(){
+  window._cambioSel = { mioId:null, versoPid:null, versoUid:'', versoNome:'', versoTurnoId:null };
+  window._cambioNota = '';
+  window._cambioConfermatoVoce = false;
+  renderCambioTurnoModal();
+  openM('m-cambio-turno');
+}
+function ctCambioSelMio(id){
+  window._cambioSel.mioId = (String(window._cambioSel.mioId) === String(id)) ? null : id;
+  _ctCambioSalvaNota();
+  renderCambioTurnoModal();
+}
+function ctCambioSelCollega(pid, uid){
+  _ctCambioSalvaNota();
+  var s = window._cambioSel;
+  if(String(s.versoPid) === String(pid)){
+    s.versoPid = null; s.versoUid = ''; s.versoNome = ''; s.versoTurnoId = null;
+  } else {
+    var c = _cambioColleghiFuturi().find(function(x){ return String(x.pid) === String(pid); });
+    s.versoPid = pid;
+    s.versoUid = (c && c.uid) ? c.uid : (uid || '');
+    s.versoNome = c ? c.nome : '';
+    s.versoTurnoId = null;
+  }
+  renderCambioTurnoModal();
+}
+function ctCambioSelSuo(id){
+  _ctCambioSalvaNota();
+  window._cambioSel.versoTurnoId = (String(window._cambioSel.versoTurnoId) === String(id)) ? null : id;
+  renderCambioTurnoModal();
+}
+function _ctCambioSalvaNota(){
+  var n = document.getElementById('ct-cambio-nota');
+  if(n) window._cambioNota = n.value;
+  var v = document.getElementById('ct-cambio-voce');
+  if(v) window._cambioConfermatoVoce = !!v.checked;
+}
+
+function renderCambioTurnoModal(){
+  var body = document.getElementById('ct-cambio-body');
+  if(!body) return;
+  var s = window._cambioSel;
+  var miei = _cambioMieiTurni();
+  var colleghi = _cambioColleghiFuturi();
+  // Gli onclick usano l'entit&#224; HTML &#39; (apice) per evitare escape nei nomi
+  function chip(label, on, fnCall){
+    return '<button type="button" class="tipo-rep-btn' + (on ? ' sel' : '') + '" '
+      + 'style="flex:none;text-align:left;font-size:12px" onclick="' + fnCall + '">' + label + '</button>';
+  }
+  var html = '';
+  html += '<div class="fg" style="margin-bottom:0"><label>&#128257; 1. Il tuo turno (da scambiare)</label>'
+    + '<div style="display:flex;flex-wrap:wrap;gap:6px">'
+    + (miei.length
+        ? miei.map(function(t){
+            return chip(ctEsc(_fmtTurnoT(t)), String(s.mioId)===String(t.id),
+              'ctCambioSelMio(&#39;' + t.id + '&#39;)');
+          }).join('')
+        : '<div style="font-size:12px;color:var(--txt3)">Nessun turno di servizio futuro assegnato a te.</div>')
+    + '</div></div>';
+  html += '<div class="fg" style="margin-bottom:0"><label>&#128101; 2. Il collega</label>'
+    + '<div style="display:flex;flex-wrap:wrap;gap:6px">'
+    + (colleghi.length
+        ? colleghi.map(function(c){
+            return chip(ctEsc(c.nome) + ' <span style="opacity:.6">(' + c.n + ')</span>',
+              String(s.versoPid)===String(c.pid),
+              'ctCambioSelCollega(&#39;' + c.pid + '&#39;,&#39;' + (c.uid || '') + '&#39;)');
+          }).join('')
+        : '<div style="font-size:12px;color:var(--txt3)">Nessun collega con turni futuri.</div>')
+    + '</div></div>';
+  if(s.versoPid){
+    var suoi = _cambioTurniCollega(s.versoPid);
+    html += '<div class="fg" style="margin-bottom:0"><label>&#128257; 3. Turno del collega (con cui scambiare)</label>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:6px">'
+      + (suoi.length
+          ? suoi.map(function(t){
+              return chip(ctEsc(_fmtTurnoT(t)), String(s.versoTurnoId)===String(t.id),
+                'ctCambioSelSuo(&#39;' + t.id + '&#39;)');
+            }).join('')
+          : '<div style="font-size:12px;color:var(--txt3)">Questo collega non ha turni futuri utili.</div>')
+      + '</div></div>';
+  }
+  html += '<div class="fg" style="margin-bottom:0"><label>Nota (facoltativa)</label>'
+    + '<textarea class="fc app-fc" id="ct-cambio-nota" rows="2" style="resize:none" '
+    + 'placeholder="Motivo dello scambio...">' + ctEsc(window._cambioNota || '') + '</textarea></div>';
+  html += '<label style="display:flex;align-items:flex-start;gap:9px;padding:10px 12px;border-radius:10px;background:rgba(66,133,244,.08);border:1px solid rgba(66,133,244,.24);font-size:12px;color:var(--txt2);cursor:pointer">'
+    + '<input id="ct-cambio-voce" type="checkbox" style="width:17px;height:17px;accent-color:var(--blue);flex-shrink:0"'
+    + (window._cambioConfermatoVoce ? ' checked' : '') + ' onchange="_ctCambioSalvaNota()">'
+    + '<span><strong style="color:var(--txt)">Collega già sentito a voce</strong><br>Invia direttamente la richiesta al Comando, senza richiedere l\'accettazione dall\'app.</span></label>';
+  var pronto = s.mioId && s.versoPid && s.versoTurnoId;
+  html += '<div style="font-size:12px;color:var(--txt2);background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px">'
+    + (pronto
+        ? (window._cambioConfermatoVoce
+            ? '&#9989; Pronto: il collega è già stato sentito a voce; la richiesta andrà al comando.'
+            : '&#9989; Pronto: prima accetta il collega, poi approva il comando.')
+        : '&#128101; Seleziona il tuo turno, il collega e il suo turno per continuare.')
+    + '</div>';
+  body.innerHTML = html;
+}
+
+// Crea la richiesta: attesa collega, oppure attesa comando se il collega è già stato sentito a voce.
+function creaRichiestaCambio(){
+  var s = window._cambioSel;
+  var me = lsG('ct_me', null);
+  if(!me){ toast('Sessione non trovata','err'); return; }
+  if(!s.mioId){ toast('Scegli il tuo turno','err'); return; }
+  if(!s.versoPid){ toast('Scegli il collega','err'); return; }
+  if(!s.versoTurnoId){ toast('Scegli il turno del collega','err'); return; }
+  var T = lsG('ct_t', []);
+  var tMio = T.find(function(t){ return String(t.id) === String(s.mioId); });
+  var tSuo = T.find(function(t){ return String(t.id) === String(s.versoTurnoId); });
+  if(!tMio || !tSuo){ toast('Turni non trovati: aggiorna la pagina','err'); return; }
+  var collega = _cambioColleghiFuturi().find(function(c){ return String(c.pid) === String(s.versoPid); });
+  if(!collega){ toast('Collega non trovato','err'); return; }
+  if(!collega.uid){ toast('Collega non collegato all\'app: impossibile notificarlo','err'); return; }
+  if(!me.uid){ toast('Utente non collegato: accedi di nuovo','err'); return; }
+  var nomeMe = ((me.nome || '') + ' ' + (me.cognome || '')).trim() || 'Un militare';
+  _ctCambioSalvaNota();
+  var nota = window._cambioNota || '';
+  var confermatoVoce = !!window._cambioConfermatoVoce;
+  var now = new Date().toISOString();
+  var r = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,7),
+    tipo: 'cambio_turno',
+    stato: confermatoVoce ? 'attesa_comando' : 'attesa_collega',
+    creataIl: Date.now(),
+    creataIlISO: now,
+    richiedenteUid: me.uid,
+    richiedentePid: me.id,
+    richiedenteNome: nomeMe,
+    mioTurno: { id: tMio.id, pid: tMio.pid, data: tMio.data, tipo: tMio.tipo, codice: tMio.codice || '', orario: tMio.orario || tMio.ore || '' },
+    versoUid: collega.uid,
+    versoPid: collega.pid,
+    versoNome: collega.nome,
+    versoTurno: { id: tSuo.id, pid: tSuo.pid, data: tSuo.data, tipo: tSuo.tipo, codice: tSuo.codice || '', orario: tSuo.orario || tSuo.ore || '' },
+    nota: nota,
+    confermatoVoce: confermatoVoce,
+    rispostaCollega: confermatoVoce ? { esito:'confermato_a_voce', da:me.uid, il:now } : null,
+    rispostaComando: null,
+    log: [{ da: me.uid, azione: confermatoVoce ? 'crea_confermato_a_voce' : 'crea', dettaglio: nota, il: now }]
+  };
+  var v = _cambioTurnoValidaRichiesta(r);
+  if(!v.ok){ toast(v.errs.join(' '), 'err'); return; }
+  _cambioTurnoSalva(r);
+  // Se confermato a voce, avvisa direttamente il comando; altrimenti notifica il collega.
+  var sub = nomeMe + ' vuole scambiare il ' + _fmtTurnoT(tMio) + ' con il tuo ' + _fmtTurnoT(tSuo) + '.';
+  if(confermatoVoce){
+    var cmd = lsG('ct_users', []).find(function(u){ return (u.ruolo==='comandante'||u.ruolo==='vice'||u.ruolo==='superadmin') && u.stato==='approved'; });
+    if(cmd && cmd.uid) _cambioTurnoNotifica(cmd.uid, 'Cambio turno da approvare',
+      nomeMe + ' dichiara di avere già sentito a voce ' + collega.nome + '.', '&#128081;');
+  } else {
+    _cambioTurnoNotifica(r.versoUid, 'Richiesta cambio turno', sub, '&#128257;',
+      { azione: 'approva_richiesta', richiestaId: r.id });
+  }
+  if(window.FirebaseModule && typeof window.FirebaseModule.schedulePush === 'function'){
+    try {
+      window.FirebaseModule.schedulePush(r.versoUid, 'C-Turni — Richiesta cambio turno', sub,
+        new Date(Date.now() + 5000).toISOString()).catch(function(){});
+    } catch(e){}
+  }
+  window._cambioNota = '';
+  window._cambioConfermatoVoce = false;
+  closeM('m-cambio-turno');
+  toast(confermatoVoce ? 'Richiesta inviata: in attesa del comando' : 'Richiesta inviata: in attesa del collega','ok');
+  _aggiornaBadgeComando();
+}
+
+// Lista "le mie richieste" (lato militare) nel calendario
+function _renderMieRichieste(){
+  var wrap = document.getElementById('mie-richieste-wrap');
+  var el = document.getElementById('mie-richieste-list');
+  if(!el) return;
+  var me = lsG('ct_me', null);
+  if(!me){ if(wrap) wrap.style.display = 'none'; return; }
+  var myUid = String(me.uid || me.id || '');
+  _richLoad();
+  var mie = window._richieste.filter(function(r){
+    return String(r.richiedenteUid) === myUid || String(r.versoUid) === myUid;
+  });
+  if(!mie.length){ if(wrap) wrap.style.display = 'none'; el.innerHTML = ''; return; }
+  if(wrap) wrap.style.display = 'block';
+  var aperte = mie.filter(function(r){ return r.stato === 'attesa_collega' || r.stato === 'attesa_comando'; });
+  aperte.sort(function(a,b){ return (b.creataIl || 0) - (a.creataIl || 0); });
+  var chiuse = mie.filter(function(r){ return r.stato !== 'attesa_collega' && r.stato !== 'attesa_comando'; });
+  chiuse.sort(function(a,b){ return (b.creataIl || 0) - (a.creataIl || 0); });
+  chiuse = chiuse.slice(0, 5);
+  var statoLbl = {
+    attesa_collega: 'In attesa del collega', attesa_comando: 'In attesa del comando',
+    approvata: 'Approvata &#10003;', rifiutata_collega: 'Rifiutata dal collega',
+    rifiutata_comando: 'Rifiutata dal comando', scaduta: 'Scaduta', annullata: 'Annullata'
+  };
+  function riga(r){
+    var mio = String(r.richiedenteUid) === myUid;
+    var altra = mio ? _nomeUtente(r.versoUid, r.versoNome || 'Collega')
+                    : _nomeUtente(r.richiedenteUid, r.richiedenteNome || 'Richiedente');
+    var t1 = r.mioTurno || {}, t2 = r.versoTurno || {};
+    var h = '<div style="padding:11px 14px;border-top:1px solid var(--border)">'
+      + '<div style="font-size:13px;font-weight:700">' + ctEsc(String(altra)) + '</div>'
+      + '<div style="font-size:12px;color:var(--txt2);margin-top:3px">'
+      + ctEsc(_fmtTurnoT(t1)) + ' &#8596; ' + ctEsc(_fmtTurnoT(t2)) + '</div>'
+      + '<div style="font-size:11px;color:var(--txt3);margin-top:3px">' + (statoLbl[r.stato] || ctEsc(String(r.stato))) + '</div>';
+    if(!mio && r.stato === 'attesa_collega'){
+      h += '<div style="display:flex;gap:8px;margin-top:8px">'
+        + '<button class="btn btn-p btn-sm" style="flex:1;font-size:11px" onclick="fsmCambioTurno(&#39;' + r.id + '&#39;,&#39;collega_accetta&#39;)">&#10003; Accetta</button>'
+        + '<button class="btn btn-sm" style="flex:1;font-size:11px;background:rgba(200,16,46,.1);color:var(--red);border-color:rgba(200,16,46,.3)" onclick="fsmCambioTurno(&#39;' + r.id + '&#39;,&#39;collega_rifiuta&#39;)">&#10005; Rifiuta</button>'
+        + '</div>';
+    }
+    if(mio && r.stato === 'attesa_collega'){
+      h += '<div style="display:flex;gap:8px;margin-top:8px">'
+        + '<button class="btn btn-g btn-sm" style="flex:1;font-size:11px" onclick="annullaRichiestaCambio(&#39;' + r.id + '&#39;)">&#10006; Annulla</button>'
+        + '</div>';
+    }
+    return h + '</div>';
+  }
+  var out = '';
+  if(aperte.length){
+    out += '<div style="padding:9px 14px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--txt2)">In corso</div>'
+      + aperte.map(riga).join('');
+  }
+  if(chiuse.length){
+    out += '<div style="padding:9px 14px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--txt3)">Storico</div>'
+      + chiuse.map(riga).join('');
+  }
+  el.innerHTML = out;
+}
+
+function annullaRichiestaCambio(rid){
+  var r = _cambioTurnoFind(rid);
+  if(!r){ toast('Richiesta non trovata','err'); return; }
+  var me = lsG('ct_me', null);
+  if(!me || String(r.richiedenteUid) !== String(me.uid || me.id)){ toast('Solo il richiedente può annullare','err'); return; }
+  if(r.stato !== 'attesa_collega' && r.stato !== 'attesa_comando'){ toast('Richiesta già chiusa','err'); return; }
+  r.stato = 'annullata';
+  _cambioTurnoLog(r, me.uid || me.id, 'annulla', '');
+  _cambioTurnoSalva(r);
+  _cambioTurnoNotifica(r.versoUid, 'Richiesta cambio turno annullata', 'Il richiedente ha annullato la richiesta.', '&#10006;');
+  toast('Richiesta annullata','ok');
+  _aggiornaBadgeComando();
 }
 
 // ---- COMPRIMI IMMAGINE ----
@@ -3330,6 +4538,22 @@ function salvaTodo(){
     prio:document.getElementById("td-prio").value,data:document.getElementById("td-data").value||"",
     ora:ora,ricor:document.getElementById("td-ricor").value||"",done:false};
   var condividi = document.getElementById('td-condividi') && document.getElementById('td-condividi').checked;
+  // Assegnazione comando → militari (Blocco 3)
+  var assegnamento = null;
+  if(typeof _isComandoUI === 'function' && _isComandoUI()){
+    assegnamento = _assegnaCampi('td');
+    if(assegnamento){
+      var _repAs = _repartoCorrente();
+      if(!_repAs || _repAs.indexOf('privato_') === 0){
+        toast('Per assegnare compiti devi avere un reparto','err');
+        assegnamento = null;
+      } else {
+        Object.assign(item, assegnamento);
+        condividi = true;
+        var _chkT = document.getElementById('td-condividi'); if(_chkT) _chkT.checked = true;
+      }
+    }
+  }
   if(condividi){
     var me=lsG('ct_me',null);
     // Verifica che l'utente abbia un reparto assegnato prima di condividere
@@ -3345,15 +4569,27 @@ function salvaTodo(){
       if(window.FirebaseModule) window.FirebaseModule.saveTodoCondiviso(item).catch(function(e){ toast('Errore condivisione: '+e.message,'err'); });
     }
   }
-  var TD=lsG("ct_td",[]);TD.push(item);lsS("ct_td",TD);
-  if(window.FirebaseModule)window.FirebaseModule.saveTodo(TD);
-  schedulaNotifTodo(item);
-  if(ora&&item.data)_schedulaNotifPrecisa("\u23F0 To-Do: "+tit,item.data,ora);
+  if(!assegnamento){
+    var TD=lsG("ct_td",[]);TD.push(item);lsS("ct_td",TD);
+    if(window.FirebaseModule)window.FirebaseModule.saveTodo(TD);
+    schedulaNotifTodo(item);
+    if(ora&&item.data)_schedulaNotifPrecisa("\u23F0 To-Do: "+tit,item.data,ora);
+  }
   closeM("m-todo");renderTodo();
   if(typeof renderTodoAg === 'function') renderTodoAg(_tdFiltroAg);
   if(typeof renderWidgetTodo === 'function') renderWidgetTodo();
   var chk=document.getElementById('td-condividi');if(chk)chk.checked=false;
   ["td-tit","td-note","td-data","td-ora"].forEach(function(id){var e=document.getElementById(id);if(e)e.value="";});
+  // Reset assegnazione (Blocco 3)
+  window._assegnaState.td = {tutto:false,uids:[]};
+  var _awT = document.getElementById('td-assegna-wrap'); if(_awT) _awT.style.display='none';
+  var _abT = document.getElementById('td-assegna-reset'); if(_abT) _abT.style.display='none';
+  if(assegnamento){
+    _assegnaNotifica(item, 'td');
+    if(typeof renderComando === 'function') renderComando();
+    toast('✅ Compito assegnato a ' + item.assegnatoNomi.join(', '), 'ok');
+    return;
+  }
   var _meRep=lsG('ct_me',null); var rep=(_meRep&&_meRep.reparto)?_meRep.reparto:'?';
   toast(condividi?"\u2705 Condiviso nel reparto ["+rep+"]":"Promemoria salvato","ok");
 }
@@ -3389,6 +4625,22 @@ function salvaAgenda(){
     luogo:document.getElementById("ag-luogo").value.trim()||"",note:document.getElementById("ag-note").value.trim()||"",
     notif:parseInt(document.getElementById("ag-notif").value)||0};
   var condividi = document.getElementById('ag-condividi') && document.getElementById('ag-condividi').checked;
+  // Assegnazione comando → militari (Blocco 3)
+  var assegnamento = null;
+  if(typeof _isComandoUI === 'function' && _isComandoUI()){
+    assegnamento = _assegnaCampi('ag');
+    if(assegnamento){
+      var _repAsA = _repartoCorrente();
+      if(!_repAsA || _repAsA.indexOf('privato_') === 0){
+        toast('Per assegnare appuntamenti devi avere un reparto','err');
+        assegnamento = null;
+      } else {
+        Object.assign(item, assegnamento);
+        condividi = true;
+        var _chkA = document.getElementById('ag-condividi'); if(_chkA) _chkA.checked = true;
+      }
+    }
+  }
   if(condividi){
     var me=lsG('ct_me',null);
     // Verifica che l'utente abbia un reparto assegnato prima di condividere
@@ -3404,14 +4656,26 @@ function salvaAgenda(){
       if(window.FirebaseModule) window.FirebaseModule.saveAgendaCondivisa(item).catch(function(e){ toast('Errore condivisione: '+e.message,'err'); });
     }
   }
-  var AG=lsG("ct_ag",[]);AG.push(item);AG.sort(function(a,b){return a.data>b.data?1:-1;});lsS("ct_ag",AG);
-  if(item.notif>0)schedulaNotifAgenda(item);
-  if(window.FirebaseModule) window.FirebaseModule.saveAgenda(AG).catch(function(){});
+  if(!assegnamento){
+    var AG=lsG("ct_ag",[]);AG.push(item);AG.sort(function(a,b){return a.data>b.data?1:-1;});lsS("ct_ag",AG);
+    if(item.notif>0)schedulaNotifAgenda(item);
+    if(window.FirebaseModule) window.FirebaseModule.saveAgenda(AG).catch(function(){});
+  }
   closeM("m-agenda");renderAgenda();
   if(typeof renderAgendaPg === 'function') renderAgendaPg();
   if(typeof renderWidgetAgenda === 'function') renderWidgetAgenda();
   var chk=document.getElementById('ag-condividi');if(chk)chk.checked=false;
   ["ag-tit","ag-data","ag-ora","ag-luogo","ag-note"].forEach(function(id){var e=document.getElementById(id);if(e)e.value="";});
+  // Reset assegnazione (Blocco 3)
+  window._assegnaState.ag = {tutto:false,uids:[]};
+  var _awA = document.getElementById('ag-assegna-wrap'); if(_awA) _awA.style.display='none';
+  var _abA = document.getElementById('ag-assegna-reset'); if(_abA) _abA.style.display='none';
+  if(assegnamento){
+    _assegnaNotifica(item, 'ag');
+    if(typeof renderComando === 'function') renderComando();
+    toast('✅ Appuntamento assegnato a ' + item.assegnatoNomi.join(', '), 'ok');
+    return;
+  }
   var _meRep2=lsG('ct_me',null); var rep2=(_meRep2&&_meRep2.reparto)?_meRep2.reparto:'?';
   toast(condividi?"\u2705 Condiviso nel reparto ["+rep2+"]":"Appuntamento salvato","ok");
 }
@@ -3762,6 +5026,15 @@ function renderTodoCondivisi(){
   var el=document.getElementById('todo-condivisi-list');
   if(!el)return;
   var TD=lsG('ct_td_condivisi',[]);
+  // Compiti assegnati: visibili a comando e destinatari (non agli altri militari)
+  var _meT=lsG('ct_me',null);
+  var _myUidT=String(_meT?(_meT.uid||_meT.id||''):'');
+  var _isComT=(typeof _isComandoUI==='function') && _isComandoUI();
+  TD=TD.filter(function(t){
+    if(_isComT || !t.assegnatoA || !t.assegnatoA.length) return true;
+    if(t.assegnatoA.indexOf('tutto')!==-1) return true;
+    return t.assegnatoA.indexOf(_myUidT)!==-1;
+  });
   if(!TD.length){if(wrap)wrap.style.display='none';return;}
   if(wrap)wrap.style.display='block';
   el.innerHTML=TD.map(function(t){
@@ -3769,11 +5042,18 @@ function renderTodoCondivisi(){
     var autore=t.autore?'<span style="font-size:10px;color:var(--txt2)"> — '+t.autore+'</span>':"";
     var prioCol={alta:'var(--red)',media:'var(--gold)',bassa:'var(--green)'}[t.prio]||'var(--txt2)';
     var prio=t.prio?'<span style="font-size:9px;font-weight:700;color:'+prioCol+';text-transform:uppercase;margin-left:6px">'+t.prio+'</span>':"";
+    var assegn=(t.assegnatoA && t.assegnatoA.length)
+      ? '<span style="font-size:9px;font-weight:800;color:var(--blue);background:rgba(66,133,244,.14);border-radius:6px;padding:2px 6px;margin-left:6px">&#128287; '+(t.assegnatoNomi?ctEsc(t.assegnatoNomi.join(', ')):'assegnato')+'</span>' : "";
+    var statoT=(t.assegnatoA && t.assegnatoA.length)
+      ? (t.stato==='fatto'
+          ? '<span style="font-size:9px;font-weight:800;color:var(--green);background:rgba(6,214,160,.14);border-radius:6px;padding:2px 6px">&#10003; Fatto'+(t.fattoDa?' da '+ctEsc(t.fattoDa):'')+'</span>'
+          : '<span style="font-size:9px;font-weight:800;color:var(--gold);background:rgba(212,175,55,.14);border-radius:6px;padding:2px 6px">&#128229; Da fare</span>')
+      : "";
     return '<div class="todo-item" style="opacity:'+(t.done?.5:1)+';flex-direction:column;align-items:stretch;gap:6px">'
       +'<div style="display:flex;align-items:flex-start;gap:8px">'
       +'<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13px">&#128101; '+ctEsc(t.tit)+autore+'</div>'
       +(t.note?'<div style="font-size:11px;color:var(--txt2);margin-top:2px">'+ctEsc(t.note)+'</div>':"")
-      +'<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-top:4px">'+scad+prio+'</div>'
+      +'<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-top:4px">'+scad+prio+assegn+statoT+'</div>'
       +'</div>'
       +'<button onclick="delTodoCondiviso('+t.id+')" title="Completato/Elimina" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:14px;appearance:none;-webkit-appearance:none;flex-shrink:0;padding:4px">&#128465;</button>'
       +'</div>'
@@ -3788,7 +5068,15 @@ function renderAgendaCondivisa(){
   var wrap=document.getElementById('agenda-condivisa-wrap');
   var el=document.getElementById('agenda-condivisa-list');
   if(!el)return;
-  var AG=lsG('ct_ag_condivisa',[]).filter(function(x){return x.data>=new Date().toISOString().slice(0,10);});
+  var _meA2=lsG('ct_me',null);
+  var _myUidA2=String(_meA2?(_meA2.uid||_meA2.id||''):'');
+  var _isComA2=(typeof _isComandoUI==='function') && _isComandoUI();
+  var AG=lsG('ct_ag_condivisa',[]).filter(function(x){
+    if(x.data<new Date().toISOString().slice(0,10)) return false;
+    if(_isComA2 || !x.assegnatoA || !x.assegnatoA.length) return true;
+    if(x.assegnatoA.indexOf('tutto')!==-1) return true;
+    return x.assegnatoA.indexOf(_myUidA2)!==-1;
+  });
   if(!AG.length){if(wrap)wrap.style.display='none';return;}
   if(wrap)wrap.style.display='block';
   var mN=["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
@@ -3796,9 +5084,11 @@ function renderAgendaCondivisa(){
     var d=new Date(a.data+"T00:00:00"),ds=d.getDate()+" "+mN[d.getMonth()]+" "+d.getFullYear();
     var ora=a.ora?'<span style="margin-left:6px;color:var(--blue)">&#128336; '+a.ora+'</span>':"";
     var autore=a.autore?'<span style="font-size:10px;color:var(--txt2)"> — '+a.autore+'</span>':"";
+    var assegnA=(a.assegnatoA && a.assegnatoA.length)
+      ? '<span style="font-size:9px;font-weight:800;color:var(--blue);background:rgba(66,133,244,.14);border-radius:6px;padding:2px 6px;margin-left:6px">&#128287; '+(a.assegnatoNomi?ctEsc(a.assegnatoNomi.join(', ')):'assegnato')+'</span>' : "";
     return '<div class="ag-item" style="flex-direction:column;align-items:stretch;gap:6px">'
       +'<div style="display:flex;justify-content:space-between;align-items:flex-start">'
-      +'<div><div style="font-weight:700;font-size:13px">&#128101; '+ctEsc(a.tit)+autore+'</div>'
+      +'<div><div style="font-weight:700;font-size:13px">&#128101; '+ctEsc(a.tit)+autore+assegnA+'</div>'
       +'<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128197; '+ds+ora+'</div>'
       +(a.luogo?'<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128205; '+ctEsc(a.luogo)+'</div>':"")
       +(a.note?'<div style="font-size:11px;color:var(--txt2);margin-top:2px">'+a.note+'</div>':"")
@@ -3821,8 +5111,29 @@ function toggleTodoCondiviso(id){
   var t = TD.find(function(x){ return x.id === id; });
   if(!t) return;
   t.done = !t.done;
+  // Compito assegnato: aggiorna stato e avvisa chi lo ha assegnato
+  if(t.assegnatoA && t.assegnatoA.length){
+    var _meF = lsG('ct_me', null);
+    var _nomeF = _meF ? (((_meF.nome||'')+' '+(_meF.cognome||'')).trim()) : '';
+    if(t.done){
+      t.stato = 'fatto';
+      t.fattoIl = new Date().toISOString();
+      t.fattoDa = _nomeF;
+      t.fattoDaUid = _meF ? (_meF.uid || _meF.id) : '';
+      if(t.assegnatoDaUid && String(t.assegnatoDaUid) !== String(_meF ? (_meF.uid || _meF.id) : '')){
+        _cambioTurnoNotifica(t.assegnatoDaUid, 'Compito completato: ' + (t.tit||''),
+          'Completato da ' + (_nomeF || 'un militare') + '.', '&#9989;');
+      }
+    } else {
+      t.stato = 'assegnato';
+      t.fattoIl = null;
+      t.fattoDa = '';
+      t.fattoDaUid = '';
+    }
+  }
   lsS('ct_td_condivisi', TD);
   renderTodoCondivisi();
+  if(typeof _renderCompitiComando === 'function') _renderCompitiComando();
   if(window.FirebaseModule) window.FirebaseModule.saveTodoCondiviso(t).catch(function(){});
 }
 function rinviaTodoCondiviso(id){
@@ -5337,6 +6648,10 @@ function scegliDate(dStr) {
   var lbl = document.getElementById(lblId);
   if(lbl) { lbl.textContent = dStr.split('-').reverse().join('/'); lbl.style.color = 'var(--txt)'; }
   closeM('m-datepicker');
+  // Aggiorna l'anteprima turni multipli (periodo Dal / Al)
+  if(typeof _turniMultiPreview === 'function') _turniMultiPreview();
+  // Scelta della data per il giorno "Recupero ore" del salvadanaio straordinari
+  if(window._dateTarget === 'rec-data' && typeof confermaGiornoRecupero === 'function') confermaGiornoRecupero(dStr);
 }
 // -----------------------------------
 
@@ -5420,7 +6735,25 @@ function tpConferma() {
   if(navigator.vibrate) navigator.vibrate(15);
 }
 
-function selezionaPersona(id, nome) {
+function selezionaPersona(id, nome, el) {
+  // Multi-selezione (turni per più colleghi): toggla senza chiudere il picker
+  if(window._persMulti && window._persTarget === 'mt-pers'){
+    if(!window._persPickSel) window._persPickSel = [];
+    var idx = -1;
+    for(var i=0;i<window._persPickSel.length;i++){
+      if(String(window._persPickSel[i].id) === String(id)){ idx = i; break; }
+    }
+    if(idx >= 0) window._persPickSel.splice(idx,1);
+    else window._persPickSel.push({ id: id, nome: nome });
+    if(el && el.classList){
+      el.classList.toggle('pers-sel', idx < 0);
+      var chk = el.querySelector('.pers-chk');
+      if(chk) chk.style.display = 'flex';
+    }
+    if(typeof _persPickSyncUI === 'function') _persPickSyncUI();
+    if(typeof haptic === 'function') haptic('light');
+    return;
+  }
   var target = document.getElementById(window._persTarget);
   if(target) {
     target.value = id;
@@ -5435,15 +6768,33 @@ function selezionaPersona(id, nome) {
     // Aggiorna anche mt-pers-sel per compatibilità con salvaTurno
     var sel = document.getElementById('mt-pers-sel');
     if(sel) sel.value = id;
+    // Selezione singola nel form turno: sincronizza stato e chips
+    if(window._persTarget === 'mt-pers'){
+      window._turnoPersMulti = [{ id: id, nome: nome }];
+      if(typeof _renderPersSelezionate === 'function') _renderPersSelezionate();
+      if(typeof _turniMultiPreview === 'function') _turniMultiPreview();
+    }
   }
   closeM('m-pers-picker');
 }
 
 // Aggiorna il label del bottone persona nel form turno
 function _aggiornaPersBtnLabel() {
-  var persId = (document.getElementById('mt-pers')||{}).value;
   var btnLbl = document.getElementById('mt-pers-btn-lbl');
   if(!btnLbl) return;
+  var multi = window._turnoPersMulti || [];
+  if(multi.length > 1){
+    var nomi = multi.map(function(x){ return x.nome; });
+    btnLbl.textContent = nomi.slice(0,2).join(', ') + (nomi.length > 2 ? ' +' + (nomi.length - 2) : '');
+    btnLbl.style.color = 'var(--txt)';
+    return;
+  }
+  if(multi.length === 1){
+    btnLbl.textContent = multi[0].nome;
+    btnLbl.style.color = 'var(--txt)';
+    return;
+  }
+  var persId = (document.getElementById('mt-pers')||{}).value;
   if(persId) {
     var P = lsG('ct_p', []);
     var p = P.find(function(x){ return String(x.id) === String(persId); });
@@ -5628,6 +6979,13 @@ function gestisciNotifAzione(nid, azione){
   var NL=lsG("ct_notifiche",[]);
   var n=NL.find(function(x){return String(x.id)===String(nid);});
   if(!n)return;
+  // Richiesta cambio turno: il collega accetta/rifiuta direttamente dalla notifica
+  if(n.azione === "approva_richiesta" && n.richiestaId){
+    fsmCambioTurno(n.richiestaId, azione === "approva" ? "collega_accetta" : "collega_rifiuta");
+    segnaLetta(nid, document.querySelector('[data-nid="'+nid+'"]'));
+    renderNotifCenter();
+    return;
+  }
   if(azione==="approva" && n.targetUid) nucleoApprova(n.targetUid);
   if(azione==="rifiuta" && n.targetUid) nucleoNega(n.targetUid);
   segnaLetta(nid, document.querySelector('[data-nid="'+nid+'"]'));
@@ -5896,11 +7254,15 @@ function aggUI(){
     if(impAva){if(u.ava){impAva.style.backgroundImage='url('+u.ava+')';impAva.style.backgroundSize='cover';impAva.style.backgroundPosition='center';impAva.textContent='';}else{impAva.style.backgroundImage='';impAva.textContent='\u{1F464}';}}
     // Mostra sezione Gestione Membri per Comandante (incluso admin)
     var gms = document.getElementById('gestione-membri-section');
-    var isCom = (u.ruolo === 'comandante' || u.ruolo === 'vice') || (u.id === 1);
+    var isCom = (u.ruolo === 'comandante' || u.ruolo === 'vice' || u.ruolo === 'superadmin') || (u.id === 1);
     if(gms) gms.style.display = 'none'; // gestione spostata in pag-membri
-    // Mostra bottone Approvazione Militari solo per comandante
-    var btnNucleo = document.getElementById('btn-gestione-nucleo');
-    if(btnNucleo) btnNucleo.style.display = isCom ? 'flex' : 'none';
+    // Approvazione Militari: voce rimossa da Impostazioni (disponibile nel Menu Comando)
+
+
+    // Isola "Gestione Comando" in Impostazioni: solo comandante/vice
+    var isolaComando = document.getElementById('isola-gestione-comando');
+    if(isolaComando) isolaComando.style.display = isCom ? 'block' : 'none';
+    if(typeof _aggiornaBadgeComando === 'function') _aggiornaBadgeComando();
     // Nascondi intera sezione Gestione Reparto per gli addetti
     var secGestRep = document.getElementById('sec-gestione-reparto');
     if(secGestRep) secGestRep.style.display = isCom ? 'block' : 'none';
@@ -5945,6 +7307,8 @@ function aggUI(){
   }
   // Aggiorna UI impostazioni biometria
   if (typeof _updateBioSettingsUI === 'function') _updateBioSettingsUI();
+  // Salvadanaio straordinari: a fine mese chiede come destinare le ore
+  if (typeof _salvadanaioPromptAutomatico === 'function') _salvadanaioPromptAutomatico();
 }
 
 // ---- NOVITÀ VERSIONE ----
@@ -6235,26 +7599,53 @@ function salvaPersona(){
 function salvaTurno(){
   // Controllo ruolo: solo comandante, vice o l'utente stesso può salvare turni
   var _me = lsG('ct_me', null);
-  var _isCom = _me && (_me.ruolo === 'comandante' || _me.ruolo === 'vice' || _me.id === 1);
-  // Leggi persona: prima da mt-pers (hidden), poi da mt-pers-sel (select legacy)
+  var _isCom = _me && (_me.ruolo === 'comandante' || _me.ruolo === 'vice' || _me.ruolo === 'superadmin' || _me.id === 1);
+  var _myPidCheck = parseInt(localStorage.getItem('ct_my_pid')||'0');
+  function _turnoIsMio(pp){
+    return (_myPidCheck && parseInt(pp) === _myPidCheck)
+        || (_me && parseInt(pp) === parseInt(_me.id))
+        || (_me && _me.uid && String(pp) === String(_me.uid));
+  }
+  // Persone: multi-selezione (più colleghi) o campo singolo legacy
   var _pSel=document.getElementById("mt-pers-sel");
   if(_pSel&&_pSel.value)document.getElementById("mt-pers").value=_pSel.value;
-  var pid=parseInt(document.getElementById("mt-pers").value);
-  if(!_isCom && pid) {
-    var _myPidCheck = parseInt(localStorage.getItem('ct_my_pid')||'0');
-    var _isMe = (_myPidCheck && pid === _myPidCheck)
-             || (_me && pid === _me.id)
-             || (_me && _me.uid && String(pid) === String(_me.uid));
-    if(!_isMe) {
-      toast("Puoi modificare solo i tuoi turni personali","err");
-      return;
-    }
+  var _pids=[];
+  if(window._turnoPersMulti && window._turnoPersMulti.length){
+    window._turnoPersMulti.forEach(function(x){
+      var _v=String(x.id==null?'':x.id);
+      if(_v && _pids.indexOf(_v) === -1) _pids.push(_v);
+    });
+  } else {
+    var _pidSingle=String((document.getElementById("mt-pers")||{}).value||'');
+    if(_pidSingle) _pids.push(_pidSingle);
   }
   var dt=document.getElementById("mt-data").value;
   var tp=document.getElementById("mt-tipo").value;
-  if(!pid){toast("Seleziona una persona","err");return;}
+  if(!_pids.length){toast("Seleziona una persona","err");return;}
   if(!dt){toast("Seleziona la data","err");return;}
   if(!tp){toast("Seleziona il tipo di turno","err");return;}
+  // Permessi: senza ruolo di comando si possono gestire solo i propri turni
+  if(!_isCom){
+    var _pidsNegati=_pids.filter(function(pp){ return !_turnoIsMio(pp); });
+    if(_pidsNegati.length){ toast("Puoi modificare solo i tuoi turni personali","err"); return; }
+  }
+  // Giorni: singolo oppure periodo Dal/Al con filtro sui giorni della settimana
+  var _eid=document.getElementById("mt-edit-id");
+  var _eidV=(_eid&&_eid.value)?parseInt(_eid.value):0;
+  var _date=[];
+  if(window._multiGiorni && !_eidV){
+    var _al=(document.getElementById("mt-data-fine")||{}).value||'';
+    if(!_al){ toast("Seleziona la data di fine periodo","err"); return; }
+    _date=_rangeDate(dt,_al,(document.getElementById("mt-step")||{}).value);
+    if(!_date.length){ toast("Periodo non valido o nessun giorno selezionato","err"); return; }
+  } else {
+    _date=[dt];
+  }
+  var _totRichiesto = _pids.length * _date.length;
+  if(!_eidV && _totRichiesto > _TURNI_MULTI_MAX){
+    toast('Puoi inserire al massimo '+_TURNI_MULTI_MAX+' turni per volta. Riduci colleghi o giorni.', 'err');
+    return;
+  }
   var _customCodice = null;
   if(tp && tp.indexOf('custom_') === 0) {
     _customCodice = tp.replace('custom_','');
@@ -6262,7 +7653,7 @@ function salvaTurno(){
     var _tcItem = _tcList.find(function(x){ return x.codice === _customCodice; });
     tp = _tcItem ? 'custom' : tp;
   }
-  var P=lsG("ct_p",[]);var p=P.find(function(x){return x.id===pid;});
+  var P=lsG("ct_p",[]);
   var OR={mattina:"06:00-14:00",pomeriggio:"14:00-22:00",notte:"22:00-06:00",
     riposo:"Riposo",ferie:"Ferie",licenza:"Licenza",studio:"Permesso studio",recupero:"Recupero",permesso:"Permesso",corso:"Corso"};
   var _oraIn=document.getElementById("mt-ora-in"),_oraFi=document.getElementById("mt-ora-fi");
@@ -6271,47 +7662,83 @@ function salvaTurno(){
   var _codEl=document.getElementById("mt-turno-codice");
   var _cod=_codEl&&_codEl.value?_codEl.value:null;
   var _catEv = _TIPI_PERSONALE.indexOf(tp) !== -1 ? 'personale' : 'servizio';
-  var _nt = {id:Date.now(),pid:pid,pnome:p.nome,data:dt,tipo:tp,
-    orario:_orario,note:document.getElementById("mt-note").value,codice:_customCodice||_cod,categoria_evento:_catEv};
-  if(_me && _me.uid && _studioIsMyPid(pid,_me)) _nt.ownerUid = _me.uid;
-  // push gestito dopo
-  var _me=lsG("ct_me",null);
-  var _eid=document.getElementById("mt-edit-id");
+  var _note=(document.getElementById("mt-note")||{}).value||"";
   var _turnoSostituito=null;
-  if(_eid&&_eid.value){
-    var _eidV=parseInt(_eid.value);
+  if(_eidV){
     _turnoSostituito=T.find(function(x){return x.id===_eidV;})||null;
     T=T.filter(function(x){return x.id!==_eidV;});
+    if(_turnoSostituito) restituisciMovimentiTurno(_turnoSostituito);
   }
-  if(tp==='studio' && _studioIsMyPid(pid,_me)){
-    var _studioAnno=parseInt(dt.slice(0,4),10), _studioCheck=getPermessoStudioSummary(_studioAnno,T.concat([_nt]));
-    if(!_studioCheck.monte){ toast('Prima attiva le 150 ore di permesso studio nelle Impostazioni','err'); return; }
-    if(_studioCheck.eccedenza>0){ toast('Ore permesso studio insufficienti: restano '+getPermessoStudioSummary(_studioAnno,T).rimanenti+' h','err'); return; }
-  }
-  if(_turnoSostituito) restituisciMovimentiTurno(_turnoSostituito);
-  if(!applicaMovimentiTurno(_nt)){
-    if(_turnoSostituito) applicaMovimentiTurno(_turnoSostituito);
+  var _persone={};
+  _pids.forEach(function(pp){
+    var _p=P.find(function(x){ return String(x.id) === String(pp); });
+    if(_p) _persone[pp]=_p;
+  });
+  // Prodotto colleghi x giorni: un turno per ogni combinazione
+  var _base=Date.now(), _seq=0, _creati=[], _dupl=0, _bloccati=0, _studioErrore='';
+  _pids.forEach(function(pp){
+    var _p=_persone[pp];
+    if(!_p) return;
+    // Il pid resta numerico quando possibile (come nel turno singolo)
+    var _pn=parseInt(pp,10);
+    if(isNaN(_pn)) _pn=_p.id;
+    _date.forEach(function(ds){
+      // Salta i turni già presenti (stessa persona, data e tipo)
+      var _esiste = !_eidV && (T.some(function(x){ return String(x.pid)===String(pp) && x.data===ds && x.tipo===tp; })
+                   || _creati.some(function(x){ return String(x.pid)===String(pp) && x.data===ds && x.tipo===tp; }));
+      if(_esiste){ _dupl++; return; }
+      var _nt={id:_base+(_seq++),pid:_pn,pnome:_p.nome,data:ds,tipo:tp,
+        orario:_orario,note:_note,codice:_customCodice||_cod,categoria_evento:_catEv};
+      if(_me && _me.uid && _studioIsMyPid(pp,_me)) _nt.ownerUid = _me.uid;
+      if(tp==='studio' && _studioIsMyPid(pp,_me)){
+        var _studioAnno=parseInt(ds.slice(0,4),10), _studioCheck=getPermessoStudioSummary(_studioAnno,T.concat(_creati).concat([_nt]));
+        if(!_studioCheck.monte){ _studioErrore='Prima attiva le 150 ore di permesso studio nelle Impostazioni'; return; }
+        if(_studioCheck.eccedenza>0){ _studioErrore='Ore permesso studio insufficienti: restano '+getPermessoStudioSummary(_studioAnno,T.concat(_creati)).rimanenti+' h'; return; }
+      }
+      if(!applicaMovimentiTurno(_nt)){ _bloccati++; return; }
+      _creati.push(_nt);
+    });
+  });
+  if(!_creati.length){
+    // Ripristina l'eventuale turno che era in modifica
+    if(_turnoSostituito){
+      T.push(_turnoSostituito);
+      applicaMovimentiTurno(_turnoSostituito);
+      lsS("ct_t",T);
+      if(window.FirebaseModule)window.FirebaseModule.saveTurni(T);
+    }
+    if(_studioErrore) toast(_studioErrore,"err");
+    else if(_dupl) toast("Turno già presente: nessuna modifica","err");
+    else if(_bloccati) toast("Ferie/recupero/937 non disponibili: nessun turno salvato","err");
+    else toast("Nessun turno creato","err");
     return;
   }
-  T.push(_nt);
+  _creati.forEach(function(_nt){ T.push(_nt); });
   if(_eid)_eid.value="";
   lsS("ct_t",T);
   if(window.FirebaseModule)window.FirebaseModule.saveTurni(T);
   renderTurni();renderOggi();stats();aggiornaWidget();renderPermessiStudio();
+  if(typeof renderCal === 'function') renderCal();
   closeM("m-turno");
   closeM("m-giorno");
-  // Riapri la vista del giorno SOLO se il turno è stato aggiunto dal calendario
-  if(_nt.data && window._turnoFromCalendar) {
+  // Riapri la vista del giorno SOLO per un singolo turno aggiunto dal calendario
+  if(_creati.length === 1 && window._turnoFromCalendar) {
     window._turnoFromCalendar = false;
     if(typeof apriSheetGiorno === 'function') {
       var sgData = document.getElementById('sg-data');
-      if(sgData) sgData.value = _nt.data;
-      mostraGiorno(_nt.data);
+      if(sgData) sgData.value = _creati[0].data;
+      mostraGiorno(_creati[0].data);
     }
   }
   window._turnoFromCalendar = false;
-  checkFestivoTurno(_nt);
-  notificaTurno(_nt.pnome,_nt.tipo,_nt.data);
+  _creati.forEach(function(_nt){ checkFestivoTurno(_nt); });
+  if(_creati.length === 1){
+    notificaTurno(_creati[0].pnome,_creati[0].tipo,_creati[0].data);
+  } else {
+    var _setP={},_setD={};
+    _creati.forEach(function(_nt){ _setP[_nt.pid]=1; _setD[_nt.data]=1; });
+    aggiungiNotifica("turni","Turni assegnati",_creati.length+" turni ("+Object.keys(_setP).length+" colleghi, "+Object.keys(_setD).length+" giorni)","&#128197;","var(--blue)");
+  }
   // Reschedula notifiche pre-turno con il nuovo turno aggiunto
   setTimeout(function(){
     if(typeof schedulaPreTurniFirebase === 'function') schedulaPreTurniFirebase();
@@ -6327,8 +7754,12 @@ function salvaTurno(){
   var lblPers=document.getElementById("mt-pers-btn-lbl"); if(lblPers){lblPers.textContent="Scegli collega...";lblPers.style.color="var(--txt2)";}
   var lblData=document.getElementById("mt-data-btn-lbl"); if(lblData){lblData.textContent="Seleziona data...";lblData.style.color="var(--txt2)";}
   var persH=document.getElementById("mt-pers"); if(persH)persH.value="";
+  if(typeof _resetTurniMulti === "function") _resetTurniMulti();
   _playUiSound('save'); haptic('success');
-  toast("Turno salvato","ok");
+  var _msgOut = _creati.length === 1 ? "Turno salvato" : (_creati.length + " turni salvati");
+  if(_dupl) _msgOut += " \u00b7 " + _dupl + " gi\u00e0 presenti";
+  if(_bloccati) _msgOut += " \u00b7 " + _bloccati + " non salvati";
+  toast(_msgOut,"ok");
 }
 function delP(id){
   ctConfirm('Eliminare questa persona e tutti i suoi turni?', {title:'Elimina Persona', ico:'⚠️', ok:'Elimina', danger:true}).then(function(ok){
@@ -6427,11 +7858,13 @@ function aggSel(){
     var gn=GR[p.grado]?GR[p.grado].nome:p.grado;
     var gradoSrc = _getGradeImgSrc(p.grado);
     var isMeLabel = p._isMe ? ' <span style="font-size:10px;background:rgba(91,159,255,.2);color:var(--blue);border-radius:8px;padding:1px 6px">Tu</span>' : '';
-    return '<div class="pers-card" onclick="selezionaPersona(\''+p.id+'\',\''+p.nome.replace(/'/g,"\\'")+'\')" style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:center;cursor:pointer;transition:background .2s" onmouseover="this.style.background=\'var(--card2)\'" onmouseout="this.style.background=\'transparent\'">'+
+    return '<div class="pers-card" data-pid="'+p.id+'" onclick="selezionaPersona(\''+p.id+'\',\''+p.nome.replace(/'/g,"\\'")+'\',this)" style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:center;cursor:pointer;transition:background .2s">'+
       (gradoSrc?'<img src="'+gradoSrc+'" alt="'+(p.grado||'')+'" style="height:32px;width:50px;object-fit:contain;flex-shrink:0;border-radius:3px">':'<div style="width:50px;height:32px;display:flex;align-items:center;justify-content:center;font-size:22px">&#128100;</div>')+
       '<div style="flex:1;min-width:0"><div style="font-weight:700;color:var(--txt);font-size:14px">'+ctEsc(p.nome)+isMeLabel+_badgeP(p)+'</div><div style="font-size:12px;color:var(--txt2)">'+ctEsc(gn)+'</div></div>'+
+      '<span class="pers-chk" style="display:none">&#10003;</span>'+
     '</div>';
   }).join("");
+  if(typeof _persPickSyncUI === 'function') _persPickSyncUI();
 }
 
 // ---- CALENDARIO ----
@@ -6452,14 +7885,14 @@ function renderCal(){
     mattina:"#ffb300",pomeriggio:"#ff6d00",notte:"#7c4dff",
     riposo:"#c8102e",ferie:"#00c853",licenza:"#00c853",studio:"#00bcd4",
     recupero:"#00c853",permesso:"#00c853",corso:"#2979ff",
-    ml:"#ffb300",pl:"#ff6d00"
+    ml:"#ffb300",pl:"#ff6d00",recuperoOre:"#00897b"
   };
   var labels={
     mattina:"M",pomeriggio:"P",notte:"N",riposo:"R",
     ferie:"F",licenza:"L",studio:"PS",recupero:"Rec",permesso:"Per",corso:"C",
-    ml:"ML",pl:"PL"
+    ml:"ML",pl:"PL",recuperoOre:_RECUPERO_ORE_SHORT
   };
-  var ord=['mattina','ml','pomeriggio','pl','notte','riposo','ferie','licenza','studio','recupero','permesso','corso'];
+  var ord=['mattina','ml','pomeriggio','pl','notte','riposo','ferie','licenza','studio','recupero','recuperoOre','permesso','corso'];
 
   var h="";
   h+="<div style=\"background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:12px\">";
@@ -6517,8 +7950,9 @@ function renderCal(){
     if(tg.length>0){
       // 1. Badge del turno dell'utente — sempre in primo piano, evidenziato
       if(mioTurno){
-        var c=cols[mioTurno.tipo]||'#8faac8';
-        var lbl=labels[mioTurno.tipo]||mioTurno.tipo.slice(0,2).toUpperCase();
+        var _isRO = _isRecuperoOreTurno(mioTurno);
+        var c=_isRO ? cols.recuperoOre : (cols[mioTurno.tipo]||'#8faac8');
+        var lbl=_isRO ? _RECUPERO_ORE_SHORT : (labels[mioTurno.tipo]||mioTurno.tipo.slice(0,2).toUpperCase());
         h+="<div class=\"cal-badge\" style=\"background:"+c+"33;color:"+c+";border:1px solid "+c+"88;font-weight:900\">"
           +"<span class=\"cal-badge-dot\" style=\"background:"+c+"\"></span>"
           +"<span>"+lbl+"</span>"
@@ -6533,7 +7967,7 @@ function renderCal(){
       if(altriTurni.length>0){
         var gruppi={};
         altriTurni.forEach(function(t){
-          var tipo=t.tipo||'altro';
+          var tipo=_isRecuperoOreTurno(t)?'recuperoOre':(t.tipo||'altro');
           if(!gruppi[tipo]) gruppi[tipo]=0;
           gruppi[tipo]++;
         });
@@ -6561,6 +7995,8 @@ function renderCal(){
   }
   h+="</div></div>";
   document.getElementById("cal-wrap").innerHTML=h;
+  // Richieste cambio turno (Blocco 2)
+  if(typeof _renderMieRichieste === 'function') _renderMieRichieste();
 }
 function prevMese(){cMO--;if(cMO<0){cMO=11;cYR--;}renderCal();}
 function nextMese(){cMO++;if(cMO>11){cMO=0;cYR++;}renderCal();}
@@ -6605,14 +8041,14 @@ function mostraGiorno(ds){
       notte:'#7c4dff',sera:'#5c35cc',
       riposo:'#00c853',ferie:'#00bcd4',recupero:'#d4af37',permesso:'#e91e63',
       corso:'#2979ff',licenza:'#00bcd4','937':'#00bcd4','104':'#9c27b0',
-      ls:'#607d8b',fest:'#ff9800',esame:'#795548',custom:'#546e7a'
+      ls:'#607d8b',fest:'#ff9800',esame:'#795548',custom:'#546e7a',recuperoOre:'#00897b'
     };
     var tipoLabel={
       mattina:'Mattina',ml:'Mattina Lunga',pomeriggio:'Pomeriggio',pl:'Pomeriggio Lungo',
       notte:'Notte',sera:'Sera',
       riposo:'Riposo',ferie:'Ferie',recupero:'Recupero',permesso:'Permesso',
       corso:'Corso',licenza:'Lic. Studio',studio:'Permesso studio','937':'Lic. 937','104':'Art. 104',
-      ls:'Donaz./Malattia',fest:'Festivo',esame:'Esame',custom:'Custom'
+      ls:'Donaz./Malattia',fest:'Festivo',esame:'Esame',custom:'Custom',recuperoOre:'Recupero ore'
     };
 
     // Raggruppa per tipo — normalizza usando codice con mapping ESATTO (===)
@@ -6620,7 +8056,7 @@ function mostraGiorno(ds){
       'M':'mattina', 'ML':'ml', 'P':'pomeriggio', 'PL':'pl',
       'N':'notte', 'S':'sera', 'R':'riposo', 'RR':'recupero',
       'L':'ferie', 'LICSTU':'licenza', 'PSTUDIO':'studio', 'ESAME':'esame', 'CORSO':'corso',
-      'FEST':'fest', '104':'104', 'LS':'ls', '937':'937'
+      'FEST':'fest', '104':'104', 'LS':'ls', '937':'937', 'RECUPERO ORE':'recuperoOre'
     };
     var gruppi = {};
     T.forEach(function(t){
@@ -6965,6 +8401,9 @@ function renderRepData(){
 
 // ---- STRAORDINARI PERSONALI ----
 // Storage: ct_straord = [ { id, data, ore, min, tipo, note } ]
+// Voci speciali del salvadanaio (stesso array, riconoscibili dal campo kind):
+//   { id, kind:'chiusura', mese:'YYYY-MM', minPagate, minRecupero, chiusoIl }
+//   { id, kind:'consumo',  mese:'YYYY-MM', min, data, turnoId, creatoIl }
 // Dati personali — salvati su Firebase in /utenti/{uid}/straordinari
 
 var _straordMese = null; // { y, m } — null = mese corrente
@@ -6976,6 +8415,172 @@ function _straordGetMese() {
   }
   return _straordMese;
 }
+
+/* ── SALVADANAIO ORE STRAORDINARIO ─────────────────────────────────────────
+   Tutto vive in ct_straord (già sincronizzato su Firestore), così il
+   salvadanaio è sempre ricalcolabile dai dati grezzi:
+     voce normale       { id, data, ore, min, tipo, note }                     → ore lavorate
+     { id, kind:'chiusura', mese:'YYYY-MM', minPagate, minRecupero, chiusoIl } → decisione di fine mese
+     { id, kind:'consumo',  mese:'YYYY-MM', min, data, turnoId, creatoIl }     → ore spese per un giorno "Recupero ore"
+   Internamente le ore sono sempre gestite in MINUTI.                                */
+var _SALV_ORE_GIORNO_DEFAULT = 6;
+// Giorno di licenza generato dal salvadanaio (etichette condivise)
+var _RECUPERO_ORE_COD = 'RECUPERO ORE';
+var _RECUPERO_ORE_LABEL = '\uD83D\uDD04 Recupero ore';  // 🔄 Recupero ore
+var _RECUPERO_ORE_SHORT = 'RO';
+var _TURNI_MULTI_MAX = 180; // protezione UI/sync: massimo 180 assegnazioni in una sola operazione
+
+function oreGiornoLicenza() {
+  var v = parseFloat(lsG('ct_straord_ore_giorno', null));
+  if (!v || v <= 0) v = _SALV_ORE_GIORNO_DEFAULT;
+  return v;
+}
+
+function _minLabel(min) {
+  min = Math.max(0, Math.round(Number(min) || 0));
+  return Math.floor(min / 60) + 'h ' + ('0' + (min % 60)).slice(-2) + 'm';
+}
+function _minDaOre(v) { return Math.max(0, Math.round(parseFloat(v || 0) * 60)); }
+function _salvMeseCorrente() {
+  var n = new Date();
+  return n.getFullYear() + '-' + ('0' + (n.getMonth() + 1)).slice(-2);
+}
+function _salvMeseLabel(mesePfx) {
+  var p = String(mesePfx || '').split('-');
+  if (p.length < 2) return mesePfx || '';
+  var mN = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno',
+            'Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+  return (mN[parseInt(p[1], 10) - 1] || p[1]) + ' ' + p[0];
+}
+function _salvVociLavoro(tutti) { return (tutti || []).filter(function(v){ return v && !v.kind && v.data; }); }
+function _salvChiusure(tutti)    { return (tutti || []).filter(function(v){ return v && v.kind === 'chiusura' && v.mese; }); }
+function _salvConsumi(tutti)     { return (tutti || []).filter(function(v){ return v && v.kind === 'consumo'; }); }
+
+// Calcolo completo del salvadanaio (funzione pura, usata anche dai test)
+function _salvCalcola(tutti, meseCorrente) {
+  tutti = tutti || [];
+  meseCorrente = meseCorrente || _salvMeseCorrente();
+  var perMese = {};
+  function bucket(mese) {
+    if (!perMese[mese]) perMese[mese] = { mese: mese, minLavorate: 0, minPagate: 0, minRecupero: 0, chiuso: false, chiusoIl: '' };
+    return perMese[mese];
+  }
+  _salvVociLavoro(tutti).forEach(function(v) {
+    var b = bucket(String(v.data).slice(0, 7));
+    b.minLavorate += (Number(v.ore) || 0) * 60 + (Number(v.min) || 0);
+  });
+  _salvChiusure(tutti).forEach(function(c) {
+    var b = bucket(c.mese);
+    b.minPagate   += (Number(c.minPagate)   || 0);
+    b.minRecupero += (Number(c.minRecupero) || 0);
+    b.chiuso = true;
+    if (c.chiusoIl) b.chiusoIl = c.chiusoIl;
+  });
+  var mesi = Object.keys(perMese).map(function(k){ return perMese[k]; })
+    .sort(function(a, b){ return a.mese.localeCompare(b.mese); });
+  var minRecuperoTot = 0, minPagateTot = 0;
+  mesi.forEach(function(b) {
+    b.minDaDestinare = Math.max(0, b.minLavorate - b.minPagate - b.minRecupero);
+    b.daChiedere = b.minDaDestinare > 0 && !b.chiuso;   // mese mai gestito: l'app deve chiedere
+    minRecuperoTot += b.minRecupero;
+    minPagateTot   += b.minPagate;
+  });
+  var minConsumati = _salvConsumi(tutti).reduce(function(a, c){ return a + (Number(c.min) || 0); }, 0);
+  var minDisponibili = Math.max(0, minRecuperoTot - minConsumati);
+  var oreG = oreGiornoLicenza();
+  return {
+    meseCorrente: meseCorrente,
+    mesi: mesi,
+    corrente: perMese[meseCorrente] || null,
+    precedenti: mesi.filter(function(b){ return b.mese < meseCorrente; }),
+    minRecuperoTot: minRecuperoTot,
+    minConsumati: minConsumati,
+    minDisponibili: minDisponibili,
+    minPagateTot: minPagateTot,
+    oreGiorno: oreG,
+    giorniDisponibili: Math.floor(minDisponibili / (oreG * 60))
+  };
+}
+function salvadanaioOre(tutti) { return _salvCalcola(tutti || lsG('ct_straord', []), _salvMeseCorrente()); }
+
+function _salvSalva(tutti) { lsS('ct_straord', tutti); _straordSyncFirebase(); }
+
+// Registra il consumo di ore per un giorno "Recupero ore" (reversibile)
+function _salvConsumoAdd(min, data, turnoId) {
+  var tutti = lsG('ct_straord', []);
+  var mov = {
+    id: 'c' + Date.now() + Math.floor(Math.random() * 1000),
+    kind: 'consumo', min: Math.max(0, Math.round(min)),
+    mese: String(data || _oggi()).slice(0, 7), data: data || _oggi(),
+    turnoId: turnoId || null, creatoIl: new Date().toISOString()
+  };
+  tutti.push(mov); _salvSalva(tutti);
+  return mov;
+}
+function _salvConsumoRemove(movId, turnoId) {
+  var out = lsG('ct_straord', []).filter(function(v) {
+    if (v && v.kind === 'consumo') {
+      if (movId && String(v.id) === String(movId)) return false;
+      if (!movId && turnoId && String(v.turnoId) === String(turnoId)) return false;
+    }
+    return true;
+  });
+  _salvSalva(out);
+}
+
+// Chiude (o modifica la chiusura di) un mese: ore a pagamento + ore a recupero
+function salvadanaioChiudi(mesePfx, minPagate, minRecupero) {
+  var s = _salvCalcola(lsG('ct_straord', []), _salvMeseCorrente());
+  var b = null;
+  s.mesi.forEach(function(x){ if (x.mese === mesePfx) b = x; });
+  var daDestinare = b ? b.minDaDestinare : 0;
+  var pag = Math.max(0, Math.round(Number(minPagate) || 0));
+  var rec = Math.max(0, Math.round(Number(minRecupero) || 0));
+  if (pag + rec <= 0)          return { ok: false, err: 'Inserisci almeno un\'ora da pagare o da mettere a recupero.' };
+  if (pag + rec > daDestinare) return { ok: false, err: 'Troppe ore: ne restano ' + _minLabel(daDestinare) + ' da destinare.' };
+  var tutti = lsG('ct_straord', []).filter(function(v){ return !(v && v.kind === 'chiusura' && v.mese === mesePfx); });
+  tutti.push({
+    id: 'k' + Date.now(), kind: 'chiusura', mese: mesePfx,
+    minPagate: pag, minRecupero: rec, chiusoIl: new Date().toISOString()
+  });
+  _salvSalva(tutti);
+  return { ok: true, minPagate: pag, minRecupero: rec, minResiduo: daDestinare - (pag + rec) };
+}
+
+// Riapre un mese chiuso: le ore tornano "da destinare"
+function salvadanaioRiapriMese(mesePfx) {
+  var tutti = lsG('ct_straord', []);
+  var s = _salvCalcola(tutti, _salvMeseCorrente());
+  var b = null;
+  s.mesi.forEach(function(x){ if (x.mese === mesePfx) b = x; });
+  if (b && b.minRecupero > 0 && s.minConsumati > 0) {
+    return { ok: false, err: 'Ci sono giorni "Recupero ore" già generati con quelle ore: elimina prima quei giorni dal calendario.' };
+  }
+  _salvSalva(tutti.filter(function(v){ return !(v && v.kind === 'chiusura' && v.mese === mesePfx); }));
+  return { ok: true };
+}
+
+function _salvMioPid() {
+  var pid = parseInt(localStorage.getItem('ct_my_pid') || '0', 10);
+  if (pid) return pid;
+  var me = lsG('ct_me', null);
+  if (!me) return 0;
+  var p = lsG('ct_p', []).find(function(x) {
+    return String(x.id) === String(me.id) || (me.uid && String(x.uid) === String(me.uid));
+  });
+  return p ? p.id : (me.id || 0);
+}
+
+// Un mese con chiusura registrata non permette di modificare/eliminare le ore
+function _salvMeseChiuso(mesePfx) {
+  var s = _salvCalcola(lsG('ct_straord', []), _salvMeseCorrente());
+  var b = null;
+  s.mesi.forEach(function(x){ if (x.mese === mesePfx) b = x; });
+  return !!(b && b.chiuso);
+}
+
+
+
 
 function straordCambiaMese(delta) {
   var ms = _straordGetMese();
@@ -7013,7 +8618,7 @@ function renderStraord() {
 
   var tutti = lsG('ct_straord', []);
   var mesePfx = ms.y + '-' + ('0'+(ms.m+1)).slice(-2);
-  var voci = tutti.filter(function(v){ return v.data && v.data.startsWith(mesePfx); });
+  var voci = _salvVociLavoro(tutti).filter(function(v){ return v.data && v.data.startsWith(mesePfx); });
   voci.sort(function(a,b){ return a.data > b.data ? 1 : -1; });
 
   // Totale minuti
@@ -7022,6 +8627,20 @@ function renderStraord() {
 
   var totEl = document.getElementById('straord-totale-hdr');
   if (totEl) totEl.textContent = totH + 'h ' + ('0'+totM).slice(-2) + 'm';
+
+  // Stato chiusura del mese visualizzato (salvadanaio)
+  var nettoEl = document.getElementById('straord-netto-hdr');
+  if (nettoEl) {
+    var _bM = null;
+    _salvCalcola(tutti, _salvMeseCorrente()).mesi.forEach(function(x){ if (x.mese === mesePfx) _bM = x; });
+    if (_bM && (_bM.minPagate || _bM.minRecupero)) {
+      nettoEl.innerHTML = '&#128176; ' + _minLabel(_bM.minPagate) + ' a pagamento &middot; '
+        + '&#128260; ' + _minLabel(_bM.minRecupero) + ' a recupero'
+        + (_bM.minDaDestinare > 0 ? ' &middot; da destinare ' + _minLabel(_bM.minDaDestinare) : '');
+    } else {
+      nettoEl.textContent = '';
+    }
+  }
 
   // Cards per tipo
   var contatori = {};
@@ -7080,7 +8699,153 @@ function renderStraord() {
   // Aggiorna anche il widget dashboard
   var me = lsG('ct_me', null);
   if (me && typeof renderWidgetProssimo === 'function') renderWidgetProssimo(me);
+  // Salvadanaio ore (mese in corso, arretrati, disponibili, pagamenti)
+  if (typeof renderSalvadanaio === 'function') renderSalvadanaio();
 }
+
+/* ── UI: sezione Salvadanaio (tab Straordinari) ───────────────── */
+
+// Riga di un mese del salvadanaio
+function _salvMeseHtml(b, isCorrente) {
+  var out = '<div class="salv-card">';
+  out += '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px">'
+      +  '<strong style="font-size:13px;color:var(--txt)">' + (isCorrente ? 'Mese in corso · ' : '') + _salvMeseLabel(b.mese) + '</strong>'
+      +  (b.chiuso ? '<span class="salv-badge ok">chiuso</span>' : (isCorrente ? '' : '<span class="salv-badge warn">da chiudere</span>'))
+      +  '</div>';
+  out += '<div style="font-size:12px;color:var(--txt2);margin-top:5px;line-height:1.6">'
+      +  'Lavorate <strong style="color:var(--txt)">' + _minLabel(b.minLavorate) + '</strong> · '
+      +  'Da destinare <strong style="color:var(--gold)">' + _minLabel(b.minDaDestinare) + '</strong> · '
+      +  'A recupero <strong style="color:var(--teal)">' + _minLabel(b.minRecupero) + '</strong> · '
+      +  'Pagate <strong style="color:var(--blue)">' + _minLabel(b.minPagate) + '</strong></div>';
+  var btns = '';
+  if (b.minDaDestinare > 0) {
+    btns += '<button class="btn btn-p btn-xs" style="width:auto" onclick="apriChiusuraMese(\'' + b.mese + '\')">'
+          + (b.chiuso ? 'Destina il resto' : 'Chiudi mese') + '</button>';
+  }
+  if (b.chiuso) btns += '<button class="btn btn-g btn-xs" style="width:auto" onclick="riapriMeseSalvadanaio(\'' + b.mese + '\')">Riapri</button>';
+  if (btns) out += '<div style="display:flex;gap:8px;margin-top:9px;flex-wrap:wrap">' + btns + '</div>';
+  return out + '</div>';
+}
+
+// Anteprima e righe del salvadanaio: chiamata da renderStraord()
+function renderSalvadanaio() {
+  var s = salvadanaioOre();
+  var hd = document.getElementById('salv-hd-tot');
+  if (hd) hd.textContent = 'disponibili ' + _minLabel(s.minDisponibili);
+  var w = document.getElementById('wstr-salv-val');
+  if (w) w.textContent = _minLabel(s.minDisponibili);
+
+  // 1. Ore disponibili + creazione giorno "Recupero ore"
+  var el1 = document.getElementById('salv-disponibili');
+  if (el1) {
+    el1.innerHTML =
+      '<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--txt2)">Disponibili per recupero</div>'
+    + '<div style="font-size:26px;font-weight:900;color:var(--teal);line-height:1.15">' + _minLabel(s.minDisponibili) + '</div>'
+    + '<div style="font-size:11px;color:var(--txt2);margin-bottom:10px">= ' + s.giorniDisponibili + ' '
+    +   (s.giorniDisponibili === 1 ? 'giorno' : 'giorni') + ' di licenza &middot; 1 giorno = ' + s.oreGiorno + 'h</div>'
+    + '<button class="btn btn-p btn-sm" style="width:100%" onclick="apriCreaGiornoRecupero()">&#128260; Crea giorno "Recupero ore"</button>'
+    + '<div style="display:flex;align-items:center;gap:8px;margin-top:10px">'
+    +   '<span style="font-size:11px;color:var(--txt2)">Ore per 1 giorno</span>'
+    +   '<input type="number" class="fc" id="salv-ore-giorno" min="1" max="12" step="1" value="' + s.oreGiorno + '" onchange="salvaOreGiorno()" style="width:72px;text-align:center">'
+    + '</div>';
+  }
+
+  // 2. Mese in corso
+  var el2 = document.getElementById('salv-mese-corrente');
+  if (el2) {
+    el2.innerHTML = '<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--txt2);margin-bottom:8px">Mese in corso</div>'
+      + (s.corrente ? _salvMeseHtml(s.corrente, true)
+                    : '<div style="font-size:12px;color:var(--txt2)">Nessuna ora registrata in ' + _salvMeseLabel(s.meseCorrente) + '</div>');
+  }
+
+  // 3. Mesi precedenti (arretrato)
+  var el3 = document.getElementById('salv-mesi-passati');
+  if (el3) {
+    el3.innerHTML = '<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--txt2);margin-bottom:8px">Mesi precedenti</div>'
+      + (s.precedenti.length ? s.precedenti.map(function(b){ return _salvMeseHtml(b, false); }).join('')
+                             : '<div style="font-size:12px;color:var(--txt2)">Nessun mese precedente</div>');
+  }
+
+  // 4. Storico pagamenti (le ore pagate escono dal salvadanaio)
+  var el4 = document.getElementById('salv-pagati');
+  if (el4) {
+    var pagati = s.mesi.filter(function(b){ return b.minPagate > 0; });
+    el4.innerHTML = '<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--txt2);margin-bottom:8px">Pagamenti</div>'
+      + (pagati.length
+          ? pagati.map(function(b){
+              return '<div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--txt2);padding:4px 0">'
+                + '<span>' + _salvMeseLabel(b.mese) + '</span>'
+                + '<strong style="color:var(--blue)">&#128176; ' + _minLabel(b.minPagate) + '</strong></div>';
+            }).join('')
+          : '<div style="font-size:12px;color:var(--txt2)">Nessuna ora messa a pagamento</div>');
+  }
+}
+
+
+// Impostazione: ore necessarie per generare 1 giorno di licenza
+function salvaOreGiorno() {
+  var el = document.getElementById('salv-ore-giorno');
+  var v = parseFloat((el || {}).value || '6');
+  if (!v || v <= 0) v = _SALV_ORE_GIORNO_DEFAULT;
+  lsS('ct_straord_ore_giorno', v);
+  toast('1 giorno "Recupero ore" = ' + v + 'h', 'ok');
+  renderSalvadanaio();
+}
+
+// Crea un giorno di licenza "Recupero ore" spendendo le ore del salvadanaio
+function apriCreaGiornoRecupero() {
+  var s = salvadanaioOre();
+  var ore = oreGiornoLicenza();
+  if (!_salvMioPid()) { toast('Profilo non disponibile', 'err'); return; }
+  if (s.minDisponibili < ore * 60) {
+    toast('Servono ' + _minLabel(ore * 60) + ' nel salvadanaio: disponibili ' + _minLabel(s.minDisponibili), 'err');
+    return;
+  }
+  var d = document.getElementById('rec-data');
+  if (d) d.value = '';
+  apriDatePicker('rec-data', 'rec-data-lbl');
+}
+
+function confermaGiornoRecupero(ds) {
+  ds = ds || ((document.getElementById('rec-data') || {}).value || '');
+  if (!ds) return;
+  var ore = oreGiornoLicenza();
+  var pid = _salvMioPid();
+  if (!pid) { toast('Profilo non disponibile', 'err'); return; }
+  var me = lsG('ct_me', null);
+  var p = lsG('ct_p', []).find(function(x){ return String(x.id) === String(pid); });
+  var nome = (p && p.nome) || (me ? ((me.cognome || '') + ' ' + (me.nome || '')).trim() : '');
+  var t = {
+    id: Date.now(), pid: pid, pnome: nome, data: ds, tipo: 'licenza',
+    orario: 'Recupero ore', note: 'Giorno generato dal salvadanaio straordinari',
+    codice: 'RECUPERO ORE', categoria_evento: 'personale',
+    recuperoOre: true, oreRecupero: ore
+  };
+  if (!applicaMovimentiTurno(t)) return;   // verifica e scala le ore del salvadanaio
+  var T = lsG('ct_t', []);
+  T.push(t);
+  lsS('ct_t', T);
+  if (window.FirebaseModule) window.FirebaseModule.saveTurni(T);
+  renderTurni(); renderOggi(); stats(); aggiornaWidget(); renderPermessiStudio();
+  if (typeof renderCal === 'function') renderCal();
+  renderStraord();
+  toast('Giorno "Recupero ore" creato: ' + fmtD(ds) + ' (' + ore + 'h)', 'ok');
+  haptic('success');
+}
+
+// Riapre un mese chiuso (le ore tornano da destinare)
+function riapriMeseSalvadanaio(mesePfx) {
+  ctConfirm('Riaprire <strong>' + _salvMeseLabel(mesePfx) + '</strong>?<br>Le ore del mese tornano "da destinare".',
+    { title: 'Riapri mese', ico: '🐷', ok: 'Riapri' }).then(function(ok) {
+    if (!ok) return;
+    var r = salvadanaioRiapriMese(mesePfx);
+    if (!r.ok) { toast(r.err, 'err'); return; }
+    renderStraord();
+    toast('Mese riaperto', 'ok');
+  });
+}
+
+
 
 function apriModalStraord(data) {
   var titEl = document.getElementById('m-straord-titolo');
@@ -7118,6 +8883,82 @@ function apriModalStraord(data) {
   var errEl = document.getElementById('straord-err');
   if (errEl) errEl.style.display = 'none';
   openM('m-straord');
+}
+/* ── Wizard di chiusura mese ──────────────────────────────────── */
+var _salvMeseInChiusura = '';
+
+function _salvDaDestinare(mesePfx) {
+  var s = _salvCalcola(lsG('ct_straord', []), _salvMeseCorrente());
+  var b = null;
+  s.mesi.forEach(function(x){ if (x.mese === mesePfx) b = x; });
+  return b || { mese: mesePfx, minLavorate: 0, minPagate: 0, minRecupero: 0, minDaDestinare: 0, chiuso: false };
+}
+
+function apriChiusuraMese(mesePfx) {
+  mesePfx = mesePfx || _salvMeseCorrente();
+  _salvMeseInChiusura = mesePfx;
+  var b = _salvDaDestinare(mesePfx);
+  var tit = document.getElementById('chiusura-titolo');
+  if (tit) tit.textContent = 'Chiusura ' + _salvMeseLabel(mesePfx);
+  var ric = document.getElementById('chiusura-riepilogo');
+  if (ric) {
+    ric.innerHTML = 'Ore lavorate nel mese: <strong style="color:var(--txt)">' + _minLabel(b.minLavorate) + '</strong><br>'
+      + (b.minPagate   ? 'Gi&#224; a pagamento: <strong style="color:var(--blue)">' + _minLabel(b.minPagate) + '</strong><br>' : '')
+      + (b.minRecupero ? 'Gi&#224; a recupero: <strong style="color:var(--teal)">' + _minLabel(b.minRecupero) + '</strong><br>' : '')
+      + 'Da destinare: <strong style="color:var(--gold)">' + _minLabel(b.minDaDestinare) + '</strong>';
+  }
+  var pEl = document.getElementById('chiusura-pagate');   if (pEl) pEl.value = '0';
+  var rEl = document.getElementById('chiusura-recupero'); if (rEl) rEl.value = '0';
+  var err = document.getElementById('chiusura-err'); if (err) { err.style.display = 'none'; err.textContent = ''; }
+  _chiusuraAnteprima();
+  openM('m-chiusura-straord');
+}
+
+function _chiusuraAnteprima() {
+  var el = document.getElementById('chiusura-anteprima');
+  if (!el) return;
+  var b = _salvDaDestinare(_salvMeseInChiusura);
+  var pag = _minDaOre((document.getElementById('chiusura-pagate') || {}).value);
+  var rec = _minDaOre((document.getElementById('chiusura-recupero') || {}).value);
+  var resta = b.minDaDestinare - pag - rec;
+  var oreG = oreGiornoLicenza();
+  var err = (pag + rec) > b.minDaDestinare;
+  el.style.color = err ? 'var(--red)' : 'var(--txt2)';
+  el.innerHTML = (err ? '&#9888; Superi le ore disponibili. ' : '')
+    + 'A pagamento: <strong style="color:var(--blue)">' + _minLabel(pag) + '</strong> (escono dall\'app) &middot; '
+    + 'A recupero: <strong style="color:var(--teal)">' + _minLabel(rec) + '</strong>'
+    + ' = ' + Math.floor(rec / (oreG * 60)) + ' giorni<br>'
+    + 'Resta in memoria (arretrato): <strong style="color:var(--gold)">' + _minLabel(Math.max(0, resta)) + '</strong>';
+}
+
+function salvaChiusuraMese() {
+  var err = document.getElementById('chiusura-err');
+  var pag = _minDaOre((document.getElementById('chiusura-pagate') || {}).value);
+  var rec = _minDaOre((document.getElementById('chiusura-recupero') || {}).value);
+  var r = salvadanaioChiudi(_salvMeseInChiusura, pag, rec);
+  if (!r.ok) {
+    if (err) { err.textContent = r.err; err.style.display = ''; }
+    return;
+  }
+  closeM('m-chiusura-straord');
+  renderStraord();
+  haptic('success');
+  toast(_minLabel(r.minPagate) + ' a pagamento &middot; ' + _minLabel(r.minRecupero) + ' a recupero', 'ok');
+}
+
+// A fine mese l'app chiede come destinare le ore (una volta al giorno)
+function _salvadanaioPromptAutomatico() {
+  try {
+    var oggi = _oggi();
+    if (lsG('ct_salv_prompt_ts', null) === oggi) return;
+    var s = _salvCalcola(lsG('ct_straord', []), _salvMeseCorrente());
+    var candidati = s.precedenti.filter(function(b){ return b.daChiedere; });
+    if (!candidati.length) return;
+    lsS('ct_salv_prompt_ts', oggi);
+    var tot = candidati.reduce(function(a, b){ return a + b.minDaDestinare; }, 0);
+    aggiungiNotifica('straord', 'Chiudi il mese di straordinari', _minLabel(tot) + ' da destinare: pagamento o recupero', '&#128022;', 'var(--teal)');
+    setTimeout(function(){ apriChiusuraMese(candidati[0].mese); }, 900);
+  } catch (e) { console.warn('salvadanaio prompt', e); }
 }
 
 function modificaStraord(id) {
@@ -7233,6 +9074,15 @@ function salvaStraord() {
   var tutti = lsG('ct_straord', []);
 
   if (editId) {
+    var _vEdit = tutti.find(function(x){ return x.id === editId; });
+    if (_vEdit && _salvMeseChiuso(String(_vEdit.data || '').slice(0, 7))) {
+      if (errEl) { errEl.textContent = 'Mese già chiuso: riaprilo dal salvadanaio per modificare le ore'; errEl.style.display = ''; }
+      toast('Mese chiuso: riaprilo dal salvadanaio per modificare le ore', 'err');
+      return;
+    }
+  }
+
+  if (editId) {
     var idx = tutti.findIndex(function(x){ return x.id === editId; });
     if (idx >= 0) tutti[idx] = { id: editId, data: data, ore: ore, min: min, tipo: tipo, note: note };
     toast('Straordinario aggiornato ✓', 'ok');
@@ -7252,6 +9102,11 @@ function eliminaStraord(id) {
   ctConfirm('Eliminare questa voce?', { title:'Elimina', ico:'🗑️', ok:'Elimina', danger:true }).then(function(ok) {
     if (!ok) return;
     var tutti = lsG('ct_straord', []);
+    var _vDel = tutti.find(function(x){ return x.id === id; });
+    if (_vDel && _salvMeseChiuso(String(_vDel.data || '').slice(0, 7))) {
+      toast('Mese chiuso: riaprilo dal salvadanaio prima di eliminare le ore', 'err');
+      return;
+    }
     lsS('ct_straord', tutti.filter(function(v){ return v.id !== id; }));
     _straordSyncFirebase();
     renderStraord();
@@ -7272,13 +9127,27 @@ function _straordSyncFirebase() {
   }
 }
 
+// Unisce gli straordinari di Firestore con quelli locali (idempotente, per id)
 function _straordLoadFirebase(prof) {
-  if (prof && prof.straordinari && Array.isArray(prof.straordinari)) {
-    var locali = lsG('ct_straord', []);
-    var fbIds = prof.straordinari.map(function(v){ return v.id; });
-    var soloLocali = locali.filter(function(v){ return fbIds.indexOf(v.id) === -1; });
-    lsS('ct_straord', prof.straordinari.concat(soloLocali));
+  if (!prof || !Array.isArray(prof.straordinari)) return;
+  var fb = prof.straordinari.filter(function(v){ return v && v.id != null; });
+  var fbKey = fb.map(function(v){ return String(v.id); }).sort().join('|');
+  if (window._straordFbKey === fbKey) return;       // stesso contenuto cloud: niente da fare
+  window._straordFbKey = fbKey;
+  var locali = lsG('ct_straord', []);
+  var fbIds = {}, locIds = {};
+  fb.forEach(function(v){ fbIds[String(v.id)] = true; });
+  locali.forEach(function(v){ if (v && v.id != null) locIds[String(v.id)] = true; });
+  var soloLocali  = locali.filter(function(v){ return v && v.id != null && !fbIds[String(v.id)]; });
+  var daCloud     = fb.filter(function(v){ return !locIds[String(v.id)]; });
+  if (!soloLocali.length && !daCloud.length) return;            // già allineati
+  lsS('ct_straord', fb.concat(soloLocali));
+  // Riporta in cloud le voci presenti solo in locale (una volta per insieme di id)
+  if (soloLocali.length) {
+    var pushKey = soloLocali.map(function(v){ return String(v.id); }).sort().join('|');
+    if (window._straordPushKey !== pushKey) { window._straordPushKey = pushKey; _straordSyncFirebase(); }
   }
+  if (typeof renderStraord === 'function') renderStraord();
 }
 
 function condividiStraordWA() {
@@ -7287,7 +9156,7 @@ function condividiStraordWA() {
               'Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
   var mesePfx = ms.y + '-' + ('0'+(ms.m+1)).slice(-2);
   var tutti = lsG('ct_straord', []);
-  var voci = tutti.filter(function(v){ return v.data && v.data.startsWith(mesePfx); });
+  var voci = _salvVociLavoro(tutti).filter(function(v){ return v.data && v.data.startsWith(mesePfx); });
   voci.sort(function(a,b){ return a.data > b.data ? 1 : -1; });
 
   var me = lsG('ct_me', null);
@@ -7344,14 +9213,14 @@ function _condividiGiornoWA(ds){
   } else {
     var gruppi = {};
     T.forEach(function(t){
-      var tipo = t.tipo || 'altro';
+      var tipo = (t.codice === _RECUPERO_ORE_COD || t.recuperoOre) ? 'recuperoOre' : (t.tipo || 'altro');
       if(!gruppi[tipo]) gruppi[tipo] = [];
       var p = P.find(function(x){ return x.id === t.pid; });
       var nome = t.pnome || (p ? p.nome : '') || '?';
       gruppi[tipo].push(nome + (t.orario ? ' (' + t.orario + ')' : ''));
     });
     Object.keys(gruppi).forEach(function(tipo){
-      righe.push('*' + (tipoLabel[tipo] || tipo) + '*: ' + gruppi[tipo].join(', '));
+      righe.push('*' + (tipoLabel[tipo] || (tipo === 'recuperoOre' ? _RECUPERO_ORE_LABEL : tipo)) + '*: ' + gruppi[tipo].join(', '));
     });
   }
   righe.push('─────────────────');
@@ -8303,7 +10172,7 @@ function salvaCambioGradoMembro(uid, nuovoGrado) {
 
 
 // Ordine pagine per determinare direzione animazione
-var _pgOrder = ['dash','pers','cal','rep','straord','imp','membri'];
+var _pgOrder = ['dash','pers','cal','rep','straord','imp','membri','comando'];
 var _pgCurrent = 'dash';
 
 function vai(pg, btn) {
@@ -8510,6 +10379,7 @@ function vaiBN(pg, idx) {
   if(pg==='dash'){
     renderDash();
     if(typeof aggiornaFocus === 'function') aggiornaFocus();
+    if(typeof renderBachecaDash === 'function') renderBachecaDash();
   }  if(pg==='imp'){
     aggUI();
     caricaSaldoFerie();
@@ -8522,6 +10392,7 @@ function vaiBN(pg, idx) {
   if(pg==="cal") { renderCal(); renderTodoAg(_tdFiltroAg); renderAgendaPg(); }
   if(pg==="ag")  { renderAgendaPg(); }
   if(pg==="rep") { renderRep(); renderStraord(); }
+  if(pg==="comando") { if(typeof renderComando==='function') renderComando(); }
   if(pg==="todo"){ renderTodoAg(_tdFiltroAg); }
   if(pg==="agenda") { renderAgendaPg(); }
   closeFab();
@@ -8543,6 +10414,7 @@ function filtra(id,q){
 }
 function tbdg(tipo,cod){
   var t=tipo||"altro";
+  if(String(cod||'').trim().toUpperCase()===_RECUPERO_ORE_COD) return "<span class=\"tb "+t+"\">&#128260; Recupero ore</span>";
   return "<span class=\"tb "+t+"\">"+( cod||cap(tipo||""))+"</span>";
 }
 function fmtD(ds){try{return _parseDate(ds).toLocaleDateString("it-IT");}catch(e){return ds;}}
@@ -9404,7 +11276,7 @@ function renderWidgetProssimo(me) {
   if (!el) return;
 
   var oggi = _oggi();
-  var tutti = lsG('ct_straord', []);
+  var tutti = _salvVociLavoro(lsG('ct_straord', []));
 
   // Ore oggi
   var oggiVoci = tutti.filter(function(v){ return v.data === oggi; });
@@ -9431,6 +11303,10 @@ function renderWidgetProssimo(me) {
   if (meseEl) meseEl.textContent = meseH + 'h';
   if (barEl)  { barEl.style.width = pct + '%'; barEl.style.background = pct >= 100 ? 'var(--green)' : 'var(--blue)'; }
   if (barLbl) barLbl.textContent = meseH + 'h / ' + Math.floor(soglia/60) + 'h mensili';
+
+  // Salvadanaio ore disponibili per il recupero
+  var salvEl = document.getElementById('wstr-salv-val');
+  if (salvEl && typeof salvadanaioOre === 'function') salvEl.textContent = _minLabel(salvadanaioOre().minDisponibili);
 
   // Turno di oggi
   if (turnoLbl && me) {
@@ -10446,6 +12322,10 @@ function openM(id) {
           _dtInp.value = oggi;
           if(_dtLbl){ _dtLbl.textContent = oggi.split('-').reverse().join('/'); _dtLbl.style.color='var(--txt)'; }
         }
+        // Stato turni multipli (colleghi / giorni)
+        if(typeof _renderGiorniSett === 'function')   _renderGiorniSett();
+        if(typeof _renderPersSelezionate === 'function') _renderPersSelezionate();
+        if(typeof _turniMultiPreview === 'function')  _turniMultiPreview();
     }
     if (id === 'm-mod-turno') {
         // Aggiungi bottoni turni custom al modal modifica
@@ -10507,6 +12387,11 @@ function openM(id) {
         var pb=document.getElementById('td-prio-bassa'); if(pb) pb.classList.add('sel');
         var pi=document.getElementById('td-prio'); if(pi) pi.value='bassa';
         var err=document.getElementById('todo-err'); if(err) err.classList.remove('on');
+        // Assegnazione (Blocco 3) — visibile solo al comando
+        window._assegnaState.td = {tutto:false,uids:[]};
+        var _awT0=document.getElementById('td-assegna-wrap'); if(_awT0) _awT0.style.display = _isComandoUI() ? 'block' : 'none';
+        var _alT0=document.getElementById('td-assegna-list'); if(_alT0) _alT0.style.display='none';
+        var _abT0=document.getElementById('td-assegna-reset'); if(_abT0) _abT0.style.display='none';
     }
     if (id === 'm-agenda') {
         // Reset campi
@@ -10523,6 +12408,11 @@ function openM(id) {
         var an0=document.getElementById('ag-notif-0'); if(an0) an0.classList.add('sel');
         var ani=document.getElementById('ag-notif'); if(ani) ani.value='0';
         var aerr=document.getElementById('agenda-err'); if(aerr) aerr.classList.remove('on');
+        // Assegnazione (Blocco 3) — visibile solo al comando
+        window._assegnaState.ag = {tutto:false,uids:[]};
+        var _awA0=document.getElementById('ag-assegna-wrap'); if(_awA0) _awA0.style.display = _isComandoUI() ? 'block' : 'none';
+        var _alA0=document.getElementById('ag-assegna-list'); if(_alA0) _alA0.style.display='none';
+        var _abA0=document.getElementById('ag-assegna-reset'); if(_abA0) _abA0.style.display='none';
     }
     // Fix tastiera mobile: scroll input in vista al focus
     setTimeout(function(){
@@ -10553,6 +12443,7 @@ function closeM(id) {
         var _tit = document.querySelector('#m-turno .mtit');
         if (_tit) _tit.textContent = '? Nuovo Turno';
         var _eid = document.getElementById('mt-edit-id'); if (_eid) _eid.value = '';
+        if (typeof _resetTurniMulti === 'function') _resetTurniMulti();
     }
 }
 
@@ -10571,7 +12462,7 @@ function chiudiMenuRapido() {
 window.addEventListener('DOMContentLoaded', function() {
 
     // 1. Forza i picker e le notifiche in primo piano
-    var ids = ['m-datepicker', 'm-pers-picker', 'm-grado-picker', 'm-tema', 'm-fogli', 'm-avatar-editor', 'm-giorno', 'm-turno', 'm-todo', 'm-agenda', 'm-turni-custom', 'notif-drawer', 'notif-overlay'];
+    var ids = ['m-datepicker', 'm-pers-picker', 'm-grado-picker', 'm-tema', 'm-fogli', 'm-avatar-editor', 'm-giorno', 'm-turno', 'm-todo', 'm-agenda', 'm-turni-custom', 'm-chiusura-straord', 'notif-drawer', 'notif-overlay'];
     ids.forEach(function(id) {
         var el = document.getElementById(id);
         if (el) {
@@ -10660,6 +12551,230 @@ function salvaTurnoRapido() {
     haptic('success');
 }
 
+/* ---------- TURNI PER PIU' COLLEGHI E PIU' GIORNI ----------
+   Lo stato (_persMulti, _persPickSel, _turnoPersMulti, _multiGiorni,
+   _giorniSett, _GIORNI_LBL) è inizializzato in cima al file. */
+
+// Apre il picker persone in modalità multi-selezione
+function apriPersPickerMulti(targetId, lblId) {
+  window._persMulti = true;
+  if(!window._persPickSel.length && window._turnoPersMulti.length){
+    window._persPickSel = window._turnoPersMulti.map(function(x){ return { id: x.id, nome: x.nome }; });
+  }
+  apriPersPicker(targetId, lblId);
+  // aggSel() rende la lista e richiama il sync: lo forziamo per sicurezza
+  if(typeof _persPickSyncUI === 'function') _persPickSyncUI();
+}
+
+// Attiva / disattiva la multi-selezione nel picker persone
+function _persPickerToggleMulti() {
+  if(window._persTarget !== 'mt-pers'){
+    toast('La multi-selezione è disponibile nel form Nuovo Turno','err');
+    return;
+  }
+  window._persMulti = !window._persMulti;
+  if(!window._persMulti) window._persPickSel = [];
+  aggSel();
+  if(typeof haptic === 'function') haptic('light');
+}
+
+// Sincronizza l'aspetto del picker con lo stato di selezione
+function _persPickSyncUI() {
+  var multi = !!window._persMulti;
+  if(!window._persPickSel) window._persPickSel = [];
+  var listEl = document.getElementById('pers-picker-list');
+  if(listEl){
+    listEl.querySelectorAll('.pers-card').forEach(function(card){
+      var pid = card.getAttribute('data-pid');
+      var sel = window._persPickSel.some(function(x){ return String(x.id) === String(pid); });
+      card.classList.toggle('pers-sel', multi && sel);
+      var chk = card.querySelector('.pers-chk');
+      if(chk) chk.style.display = multi ? 'flex' : 'none';
+    });
+  }
+  var okBtn = document.getElementById('pers-picker-ok');
+  if(okBtn) okBtn.style.display = multi ? 'inline-flex' : 'none';
+  var cnt = document.getElementById('pers-picker-count');
+  if(cnt) cnt.textContent = window._persPickSel.length;
+  var hint = document.getElementById('pers-picker-hint');
+  if(hint) hint.style.display = multi ? 'block' : 'none';
+  var mBtn = document.getElementById('pers-picker-multi');
+  if(mBtn){ mBtn.classList.toggle('sel', multi); mBtn.innerHTML = multi ? '&#9783; Multi ON' : '&#9783; Multi'; }
+  var tit = document.getElementById('pers-picker-tit');
+  if(tit) tit.textContent = multi ? '&#128101; Seleziona Colleghi' : '&#128100; Seleziona Persona';
+}
+
+// Conferma la selezione multipla e la trasferisce nel form turno
+function confermaPersMulti() {
+  window._turnoPersMulti = window._persPickSel.map(function(x){ return { id: x.id, nome: x.nome }; });
+  var hidden = document.getElementById('mt-pers');
+  if(hidden) hidden.value = (window._turnoPersMulti.length === 1) ? window._turnoPersMulti[0].id : '';
+  window._persMulti = false;
+  _renderPersSelezionate();
+  _aggiornaPersBtnLabel();
+  _turniMultiPreview();
+  closeM('m-pers-picker');
+  if(typeof haptic === 'function') haptic('success');
+}
+
+// Chips dei colleghi selezionati nel form turno
+function _renderPersSelezionate() {
+  var box = document.getElementById('mt-pers-list');
+  if(!box) return;
+  var list = window._turnoPersMulti || [];
+  if(!list.length){ box.innerHTML = ''; box.style.display = 'none'; return; }
+  box.style.display = 'flex';
+  box.innerHTML = list.map(function(x){
+    return '<span class="pers-tag">'+ctEsc(x.nome)+
+      '<button type="button" onclick="rimuoviPersSelezionata(\''+x.id+'\')" title="Rimuovi">&#10005;</button></span>';
+  }).join('');
+}
+
+// Rimuove un collega dalla selezione multipla
+function rimuoviPersSelezionata(id) {
+  window._turnoPersMulti = (window._turnoPersMulti || []).filter(function(x){ return String(x.id) !== String(id); });
+  window._persPickSel    = (window._persPickSel || []).filter(function(x){ return String(x.id) !== String(id); });
+  var hidden = document.getElementById('mt-pers');
+  if(hidden) hidden.value = (window._turnoPersMulti.length === 1) ? window._turnoPersMulti[0].id : '';
+  _renderPersSelezionate();
+  _aggiornaPersBtnLabel();
+  _turniMultiPreview();
+}
+
+// --- Periodo: giorni della settimana e intervallo date ---
+function _renderGiorniSett() {
+  var box = document.getElementById('mt-giorni-sett');
+  if(!box) return;
+  box.innerHTML = _GIORNI_LBL.map(function(l, i){
+    return '<button type="button" class="day-chip'+(window._giorniSett[i] ? ' sel' : '')+'" onclick="toggleGiornoSett('+i+')">'+l+'</button>';
+  }).join('');
+}
+
+function toggleGiornoSett(i) {
+  window._giorniSett[i] = !window._giorniSett[i];
+  _renderGiorniSett();
+  _turniMultiPreview();
+  if(typeof haptic === 'function') haptic('light');
+}
+
+// Attiva / disattiva il periodo su più giorni
+function setMultiGiorni(on) {
+  window._multiGiorni = !!on;
+  var box = document.getElementById('mt-range-box');
+  if(box) box.style.display = on ? 'grid' : 'none';
+  var lbl = document.getElementById('mt-range-toggle-lbl');
+  if(lbl) lbl.textContent = on ? 'Pi\u00f9 giorni (periodo): attivo' : 'Pi\u00f9 giorni (periodo)';
+  var tog = document.getElementById('mt-range-toggle');
+  if(tog) tog.classList.toggle('sel', on);
+  var dl = document.getElementById('mt-data-lbl');
+  if(dl) dl.textContent = on ? 'Dal giorno' : 'Data';
+  if(on){
+    var dal = (document.getElementById('mt-data')||{}).value || '';
+    var fine = document.getElementById('mt-data-fine');
+    if(fine && !fine.value && dal){
+      fine.value = dal;
+      var fl = document.getElementById('mt-data-fine-btn-lbl');
+      if(fl){ fl.textContent = dal.split('-').reverse().join('/'); fl.style.color = 'var(--txt)'; }
+    }
+    _renderGiorniSett();
+  }
+  _turniMultiPreview();
+}
+function toggleMultiGiorni(){ setMultiGiorni(!window._multiGiorni); }
+
+// Elenco date del periodo, filtrato per giorni della settimana e passo
+function _rangeDate(dal, al, step) {
+  var out = [];
+  if(!dal) return out;
+  var d1 = _parseDate(dal);
+  var d2 = _parseDate(al || dal);
+  if(isNaN(d1.getTime()) || isNaN(d2.getTime()) || d2.getTime() < d1.getTime()) return out;
+  var passo = parseInt(step || 1, 10);
+  if(!passo || passo < 1) passo = 1;
+  var d = new Date(d1.getFullYear(), d1.getMonth(), d1.getDate());
+  var end = new Date(d2.getFullYear(), d2.getMonth(), d2.getDate());
+  var inclusi = 0, guard = 0;
+  while(d.getTime() <= end.getTime() && guard < 731){
+    guard++;
+    var dow = d.getDay();
+    var idx = (dow === 0) ? 6 : dow - 1; // Lun=0 ... Dom=6
+    if(window._giorniSett[idx]){
+      if(inclusi % passo === 0) out.push(d.toLocaleDateString('en-CA'));
+      inclusi++;
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  return out;
+}
+
+// Anteprima "colleghi x giorni = turni"
+function _turniMultiPreview() {
+  var el = document.getElementById('mt-preview');
+  if(!el) return;
+  var btn = document.getElementById('mt-save-btn');
+  var pers = (window._turnoPersMulti && window._turnoPersMulti.length)
+    ? window._turnoPersMulti.length
+    : (((document.getElementById('mt-pers')||{}).value) ? 1 : 0);
+  // Senza colleghi e senza periodo non c'è nulla da riepilogare
+  if(!pers && !window._multiGiorni){
+    el.style.display = 'none';
+    el.innerHTML = '';
+    if(btn) btn.innerHTML = '&#128190; Salva';
+    return;
+  }
+  var ds = (document.getElementById('mt-data')||{}).value || '';
+  var giorni = 1, errore = '';
+  if(window._multiGiorni){
+    var al = (document.getElementById('mt-data-fine')||{}).value || '';
+    if(!ds || !al){ errore = 'Seleziona la data di inizio e di fine periodo.'; giorni = 0; }
+    else {
+      giorni = _rangeDate(ds, al, (document.getElementById('mt-step')||{}).value).length;
+      if(!giorni) errore = 'Nessun giorno corrisponde al filtro impostato.';
+    }
+  }
+  if(!pers) errore = errore || 'Seleziona almeno un collega.';
+  el.style.display = 'block';
+  if(errore){
+    el.style.color = 'var(--red)';
+    el.innerHTML = '&#9888; ' + errore;
+    if(btn) btn.innerHTML = '&#128190; Salva';
+    return;
+  }
+  var tot = pers * giorni;
+  if(tot > _TURNI_MULTI_MAX){
+    el.style.color = 'var(--red)';
+    el.innerHTML = '&#9888; Hai selezionato <strong>'+tot+'</strong> turni. Il limite per un inserimento è '+_TURNI_MULTI_MAX+'.';
+    if(btn) btn.innerHTML = '&#128190; Salva';
+    return;
+  }
+  el.style.color = 'var(--txt2)';
+  el.innerHTML = '<strong style="color:var(--txt)">'+pers+'</strong> '+(pers===1?'collega':'colleghi')+
+    ' &#215; <strong style="color:var(--txt)">'+giorni+'</strong> '+(giorni===1?'giorno':'giorni')+
+    ' = <strong style="color:var(--blue)">'+tot+'</strong> '+(tot===1?'turno':'turni');
+  if(btn) btn.innerHTML = '&#128190; Salva' + (tot > 1 ? ' ('+tot+')' : '');
+}
+
+// Riporta il form turno in modalità singola
+function _resetTurniMulti() {
+  window._persMulti      = false;
+  window._persPickSel    = [];
+  window._turnoPersMulti = [];
+  window._multiGiorni    = false;
+  window._giorniSett     = [true,true,true,true,true,true,true];
+  var fine = document.getElementById('mt-data-fine'); if(fine) fine.value = '';
+  var fl = document.getElementById('mt-data-fine-btn-lbl'); if(fl){ fl.textContent = 'Seleziona...'; fl.style.color = 'var(--txt2)'; }
+  var st = document.getElementById('mt-step'); if(st) st.value = '1';
+  var box = document.getElementById('mt-range-box'); if(box) box.style.display = 'none';
+  var lbl = document.getElementById('mt-range-toggle-lbl'); if(lbl) lbl.textContent = 'Pi\u00f9 giorni (periodo)';
+  var tog = document.getElementById('mt-range-toggle'); if(tog) tog.classList.remove('sel');
+  var dl = document.getElementById('mt-data-lbl'); if(dl) dl.textContent = 'Data';
+  var pv = document.getElementById('mt-preview'); if(pv){ pv.style.display = 'none'; pv.innerHTML = ''; }
+  var btn = document.getElementById('mt-save-btn'); if(btn) btn.innerHTML = '&#128190; Salva';
+  _renderPersSelezionate();
+  _renderGiorniSett();
+  _aggiornaPersBtnLabel();
+}
+
 // TASK A: PONTE CALENDARIO - TURNO NATIVO
 function apriNuovoTurno(ds) {
     closeM('m-giorno');
@@ -10679,6 +12794,7 @@ function apriNuovoTurno(ds) {
       var l = document.getElementById(id+'-btn-lbl'); if(l){l.textContent=id==='mt-ora-in'?'Inizio':'Fine';l.style.color='var(--txt2)';}
     });
     // Popola persona
+    if(typeof _resetTurniMulti === 'function') _resetTurniMulti();
     _aggiornaPersBtnLabel();
     openM('m-turno');
 }

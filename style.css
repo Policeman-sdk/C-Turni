@@ -1160,6 +1160,28 @@ html[data-font="xxl"] #pg-app { zoom: 1.35; }
 .btn-turno-r:active, .btn-turno-r.sel { background:var(--blue); color:#fff; border-color:var(--blue); transform:scale(0.96); }
 .btn-turno-r-red.sel { background:#ff5252 !important; border-color:#ff5252 !important; }
 
+/* --- Turni multipli: selezione più colleghi e più giorni --- */
+.pers-card:hover { background:var(--card2); }
+.pers-card.pers-sel { background:rgba(91,159,255,.16); }
+.pers-chk { width:24px; height:24px; border-radius:50%; border:2px solid var(--border); display:none; align-items:center; justify-content:center; font-size:13px; font-weight:900; color:#fff; flex-shrink:0; }
+.pers-card.pers-sel .pers-chk { background:var(--blue); border-color:var(--blue); }
+.pers-tag { display:inline-flex; align-items:center; gap:6px; padding:4px 9px; border-radius:999px; background:rgba(91,159,255,.15); border:1px solid rgba(91,159,255,.35); font-size:11px; font-weight:700; color:var(--txt); }
+.pers-tag button { background:none; border:none; color:var(--txt2); font-size:12px; line-height:1; cursor:pointer; padding:0; appearance:none; -webkit-appearance:none; }
+.pers-tag button:hover { color:var(--red); }
+#pers-picker-multi.sel { background:var(--blue); color:#fff; }
+.day-chip { border:1px solid var(--border); background:var(--bg2); padding:10px 4px; border-radius:12px; font-weight:700; font-size:12px; cursor:pointer; transition:all .15s; color:var(--txt); appearance:none; -webkit-appearance:none; }
+.day-chip:active, .day-chip.sel { background:var(--blue); color:#fff; border-color:var(--blue); }
+.day-chip.sel span { color:#fff; }
+#mt-giorni-sett .day-chip { padding:8px 2px; font-size:11px; }
+
+/* --- Salvadanaio ore straordinario (recupero / pagamento) --- */
+.salv-card { background:var(--bg2); border:1px solid var(--border); border-radius:14px; padding:12px 14px; margin-bottom:10px; }
+.salv-card:last-child { margin-bottom:0; }
+.salv-badge { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:999px; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.4px; }
+.salv-badge.ok   { background:rgba(0,200,83,.15);  color:var(--green); }
+.salv-badge.warn { background:rgba(255,159,67,.15); color:var(--gold); }
+#wstr-salv-row:hover { opacity:.85; }
+
 /* Bottoni tipo reparto (trasferimento/unisciti) */
 .tipo-rep-btn { border:1.5px solid var(--border); background:var(--bg2); padding:7px 12px; border-radius:20px; font-weight:600; font-size:12px; cursor:pointer; transition:all .15s; color:var(--txt2); appearance:none;-webkit-appearance:none; }
 .tipo-rep-btn.sel { background:var(--blue); color:#fff; border-color:var(--blue); }

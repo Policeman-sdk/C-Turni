@@ -229,6 +229,10 @@ function _startListeners(reparto) {
           }
         }
         localStorage.setItem('ct_me', JSON.stringify(prof));
+        // Straordinari dal cloud → salvadanaio disponibile anche sui nuovi dispositivi
+        if (typeof window._straordLoadFirebase === 'function') {
+          try { window._straordLoadFirebase(prof); } catch(e) { console.warn('straord load:', e.message); }
+        }
         // Se Firestore non ha licenzePool ma ne avevamo localmente, ripristinale
         if ((!prof.licenzePool || !prof.licenzePool.length) && _licenzeOld) {
           prof.licenzePool = _licenzeOld;
@@ -414,6 +418,7 @@ function _startListeners(reparto) {
     var arr = []; snap.forEach(function(d){ arr.push(d.data()); });
     if(window.CDB) { CDB.set('ct_td_condivisi', arr); } else { localStorage.setItem('ct_td_condivisi', JSON.stringify(arr)); }
     if(typeof window.renderTodoCondivisi === 'function') window.renderTodoCondivisi();
+    if(typeof window._renderCompitiComando === 'function') window._renderCompitiComando();
   }, function(e){ console.warn('onSnapshot todo_condivisi:', e.message); }));
 
   // Agenda condivisa del reparto
@@ -423,7 +428,39 @@ function _startListeners(reparto) {
     arr.sort(function(a,b){ return a.data>b.data?1:-1; });
     if(window.CDB) { CDB.set('ct_ag_condivisa', arr); } else { localStorage.setItem('ct_ag_condivisa', JSON.stringify(arr)); }
     if(typeof window.renderAgendaCondivisa === 'function') window.renderAgendaCondivisa();
+    if(typeof window._renderCompitiComando === 'function') window._renderCompitiComando();
   }, function(e){ console.warn('onSnapshot agenda_condivisa:', e.message); }));
+
+  // Bacheca del reparto (avvisi del Comando) — Menu Comando
+  try {
+    var bacheRef = collection(db, 'reparti', reparto, 'bacheca');
+    _unsubscribers.push(onSnapshot(bacheRef, function(snap) {
+      var arr = []; snap.forEach(function(d){ arr.push(Object.assign({id:d.id}, d.data())); });
+      arr.sort(function(a,b){
+        var ua = a.urgente ? 0 : 1, ub = b.urgente ? 0 : 1;
+        if(ua !== ub) return ua - ub;
+        return String(b.creataIl||'').localeCompare(String(a.creataIl||''));
+      });
+      if(window.CDB) { CDB.set('ct_bacheca', arr); } else { localStorage.setItem('ct_bacheca', JSON.stringify(arr)); }
+      if(typeof window._renderBachecaComando === 'function') window._renderBachecaComando();
+      if(typeof window.renderBachecaDash === 'function') window.renderBachecaDash();
+    }, function(e){ console.warn('onSnapshot bacheca:', e.message); }));
+  } catch(e3) { console.warn('avvio listener bacheca:', e3.message); }
+
+  // Richieste del reparto (cambio turno, ferie/permessi futuri) — Menu Comando
+  try {
+    var richRef = collection(db, 'reparti', reparto, 'richieste');
+    _unsubscribers.push(onSnapshot(richRef, function(snap) {
+      var arr = []; snap.forEach(function(d){ arr.push(Object.assign({id:d.id}, d.data())); });
+      arr.sort(function(a,b){ return new Date(b.creataIl||0)-new Date(a.creataIl||0); });
+      if(window.CDB) { CDB.set('ct_rich', arr); } else { localStorage.setItem('ct_rich', JSON.stringify(arr)); }
+      window._richieste = arr;
+      // Aggiorna badge + pagina Comando se visibile
+      if(typeof window._aggiornaBadgeComando === 'function') window._aggiornaBadgeComando();
+      var pagCmd = document.getElementById('pag-comando');
+      if(pagCmd && pagCmd.classList.contains('on') && typeof window.renderComando === 'function') window.renderComando();
+    }, function(e){ console.warn('onSnapshot richieste:', e.message); }));
+  } catch(e2) { console.warn('avvio listener richieste:', e2.message); }
 
   // Orari preset del reparto (sync per tutti i membri)
   var orariRef = doc(db, 'reparti', reparto, 'config', 'orari');
@@ -738,7 +775,7 @@ window.FirebaseModule = {
     try {
       var arr = typeof turniArr === 'string' ? JSON.parse(turniArr) : turniArr;
       var session = JSON.parse(localStorage.getItem('ct_session') || 'null');
-      var canManageAll = session && (session.ruolo === 'comandante' || session.ruolo === 'vice');
+      var canManageAll = session && (session.ruolo === 'comandante' || session.ruolo === 'vice' || session.ruolo === 'superadmin');
       var currentUid = session && session.userId;
       if(!canManageAll) arr = arr.filter(function(t){ return currentUid && (t.ownerUid === currentUid || t.uid === currentUid || t.userId === currentUid); });
       if(!arr.length) return;
@@ -928,6 +965,26 @@ window.FirebaseModule = {
   },
 
   // ── Orari preset reparto ─────────────────────────────────────
+  // ── Bacheca avvisi del Comando (Blocco 4) ─────────────────────
+  saveBacheca: async function(item) {
+    var rep = _reparto();
+    if(!rep || rep.startsWith('privato_')) {
+      _toast('Devi essere in un reparto per pubblicare', 'err');
+      return;
+    }
+    if(!item || !item.id) return;
+    try {
+      await setDoc(doc(db, 'reparti', rep, 'bacheca', String(item.id)), item);
+    } catch(e) {
+      console.warn('saveBacheca:', e.message);
+      _toast('Errore salvataggio avviso: ' + e.message, 'err');
+    }
+  },
+  deleteBacheca: async function(id) {
+    var rep = _reparto();
+    if(!rep) return;
+    try { await deleteDoc(doc(db, 'reparti', rep, 'bacheca', String(id))); } catch(e) { console.warn('deleteBacheca:', e.message); }
+  },
   saveOrariPreset: async function(orari) {
     var rep = _reparto();
     if(!rep || !orari) return;
@@ -1257,6 +1314,32 @@ window.FirebaseModule = {
     } catch(e) { console.warn('saveUserProfile:', e.message); }
   },
 
+  // ── Trasferimento disposto dal Comando ──────────────────────────
+  trasferisciUtenteReparto: async function(uid, vecchioReparto, nuovoReparto) {
+    if(!uid || !nuovoReparto) throw new Error('Dati trasferimento non validi');
+    var oldRep = String(vecchioReparto || '').toLowerCase().replace(/\s+/g, '_');
+    var newRep = String(nuovoReparto).toLowerCase().replace(/\s+/g, '_');
+    if(oldRep === newRep) throw new Error('Il militare è già assegnato a questo reparto');
+    var snap = await getDoc(doc(db, 'utenti', uid));
+    if(!snap.exists()) throw new Error('Profilo del militare non trovato');
+    var profile = Object.assign({}, snap.data());
+    profile.uid = profile.uid || uid;
+    profile.reparto = newRep;
+    if(profile.ruolo !== 'superadmin') profile.ruolo = 'addetto';
+    profile.stato = profile.ruolo === 'superadmin' ? 'approved' : 'pending';
+    var profileReparto = {
+      uid: profile.uid, email: profile.email || '', nome: profile.nome || '', cognome: profile.cognome || '',
+      grado: profile.grado || '', ruolo: profile.ruolo, stato: profile.stato, reparto: newRep,
+      tipo: profile.tipo || '', registratoIl: profile.registratoIl || '', privacy: profile.privacy || null
+    };
+    if(profile.ava && profile.ava.startsWith('https')) profileReparto.ava = profile.ava;
+    var batch = writeBatch(db);
+    batch.set(doc(db, 'utenti', uid), profile, { merge: true });
+    batch.set(doc(db, 'reparti', newRep, 'utenti', uid), profileReparto);
+    if(oldRep && !oldRep.startsWith('privato_')) batch.delete(doc(db, 'reparti', oldRep, 'utenti', uid));
+    await batch.commit();
+  },
+
   // ── Upload foto profilo su Firebase Storage + salva URL su Firestore ────────
   uploadFotoProfilo: async function(uid, dataUrl) {
     try {
@@ -1468,11 +1551,26 @@ window.FirebaseModule = {
       // ID deterministico: evita duplicati per stesso utente+titolo+giorno
       var dayKey = (scheduleISO || new Date().toISOString()).slice(0, 10);
       var docId = uid + '_' + btoa(encodeURIComponent(title)).replace(/[^a-zA-Z0-9]/g,'').slice(0,20) + '_' + dayKey;
-      await setDoc(doc(db, 'notifiche_push', docId), {
+      var data = {
         uid: uid, title: title, body: body,
         scheduleAt: scheduleISO || new Date().toISOString(),
         inviata: false, creatoIl: new Date().toISOString()
-      });
+      };
+      // Push verso un altro utente: serve il campo `reparto` (rules: solo il Comando del reparto)
+      var myUid = null, myRep = null;
+      try {
+        var sess = JSON.parse(localStorage.getItem('ct_session') || 'null');
+        var meObj = JSON.parse(localStorage.getItem('ct_me') || 'null');
+        myUid = sess && sess.userId;
+        myRep = (sess && sess.reparto) || (meObj && meObj.reparto) || '';
+        myRep = String(myRep).toLowerCase().replace(/\s+/g, '_');
+      } catch(e){}
+      if(myUid && String(uid) !== String(myUid) && myRep){
+        data.reparto = myRep;
+        // Suffisso unico: due push diverse nello stesso giorno non si sovrappongono
+        docId += '_' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+      }
+      await setDoc(doc(db, 'notifiche_push', docId), data);
     } catch(e) { console.warn('schedulePush:', e.message); }
   },
 
@@ -1482,6 +1580,25 @@ window.FirebaseModule = {
     try {
       await setDoc(doc(db, 'utenti', uid, 'notifiche', String(notif.id)), notif);
     } catch(e) { console.warn('saveNotifica:', e.message); }
+  },
+
+  // ── Salva una richiesta nella collezione del reparto ──────────
+  saveRichiesta: async function(reparto, richiesta) {
+    if(!reparto || !richiesta) return;
+    try {
+      var rid = richiesta.id || (Date.now().toString(36) + Math.random().toString(36).slice(2,8));
+      richiesta.id = rid;
+      await setDoc(doc(db, 'reparti', reparto, 'richieste', rid), richiesta);
+      return rid;
+    } catch(e) { console.warn('saveRichiesta:', e.message); throw e; }
+  },
+
+  // ── Aggiorna i soli campi consentiti di una richiesta ─────────
+  updateRichiesta: async function(reparto, rid, patch) {
+    if(!reparto || !rid || !patch) return;
+    try {
+      await updateDoc(doc(db, 'reparti', reparto, 'richieste', rid), patch);
+    } catch(e) { console.warn('updateRichiesta:', e.message); throw e; }
   },
 
   // ── Elimina notifica da Firestore ────────────────────────────

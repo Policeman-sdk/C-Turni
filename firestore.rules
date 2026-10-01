@@ -30,17 +30,27 @@ service cloud.firestore {
       allow update: if isSuperAdmin() ||
         (signedIn() && request.auth.uid == uid &&
           !request.resource.data.diff(resource.data).affectedKeys().hasAny(['uid','email','ruolo','stato','reparto'])) ||
-        (isCommand(resource.data.reparto) && request.resource.data.reparto == resource.data.reparto &&
-          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['uid','email','reparto']));
+        (isCommand(resource.data.reparto) &&
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['uid','email']));
       allow delete: if isSuperAdmin();
 
       match /todo/{id} { allow read, write: if isSuperAdmin() || (signedIn() && request.auth.uid == uid); }
       match /agenda/{id} { allow read, write: if isSuperAdmin() || (signedIn() && request.auth.uid == uid); }
-      match /notifiche/{id} { allow read, write: if isSuperAdmin() || (signedIn() && request.auth.uid == uid); }
+      match /notifiche/{id} {
+        allow read, write: if isSuperAdmin() || (signedIn() && request.auth.uid == uid);
+        // Membri approvati del reparto possono creare notifiche in-app ad altri membri
+        allow create: if signedIn() && request.auth.uid != uid &&
+          ('reparto' in globalUser(request.auth.uid).data) &&
+          isApproved(globalUser(request.auth.uid).data.reparto) &&
+          exists(/databases/$(database)/documents/reparti/$(globalUser(request.auth.uid).data.reparto)/utenti/$(uid));
+      }
     }
 
     match /notifiche_push/{id} {
-      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow create: if signedIn() && (
+        request.resource.data.uid == request.auth.uid ||
+        (request.resource.data.reparto is string && isApproved(request.resource.data.reparto) &&
+         exists(/databases/$(database)/documents/reparti/$(request.resource.data.reparto)/utenti/$(request.resource.data.uid))));
       allow read, update, delete: if isSuperAdmin();
     }
 
@@ -49,7 +59,7 @@ service cloud.firestore {
 
       match /utenti/{uid} {
         allow read: if isSuperAdmin() || isApproved(reparto) || (signedIn() && request.auth.uid == uid);
-        allow create: if isSuperAdmin() || (signedIn() && request.auth.uid == uid &&
+        allow create: if isSuperAdmin() || isCommand(globalUser(request.auth.uid).data.reparto) || (signedIn() && request.auth.uid == uid &&
           request.resource.data.uid == uid && request.resource.data.ruolo == 'addetto' &&
           ((reparto == 'privato_' + uid && request.resource.data.stato == 'approved') ||
            (reparto != 'privato_' + uid && request.resource.data.stato == 'pending')));
@@ -67,11 +77,32 @@ service cloud.firestore {
         allow delete: if isSuperAdmin() || isCommand(reparto) || (isApproved(reparto) && ownsTurn(resource.data));
       }
 
+      match /richieste/{id} {
+        allow read: if isSuperAdmin() || isApproved(reparto);
+        allow create: if isSuperAdmin() || (isApproved(reparto) &&
+          request.resource.data.richiedenteUid == request.auth.uid &&
+          (request.resource.data.stato == 'attesa_collega' ||
+           (request.resource.data.stato == 'attesa_comando' && request.resource.data.confermatoVoce == true)));
+        allow update: if isSuperAdmin() || isCommand(reparto) ||
+          (isApproved(reparto) &&
+            (request.auth.uid == resource.data.richiedenteUid ||
+             request.auth.uid == resource.data.versoUid) &&
+            request.resource.data.richiedenteUid == resource.data.richiedenteUid &&
+            request.resource.data.versoUid == resource.data.versoUid);
+        allow delete: if isSuperAdmin() || isCommand(reparto) ||
+          (isApproved(reparto) && request.auth.uid == resource.data.richiedenteUid);
+      }
+
       match /personale/{id} { allow read: if isSuperAdmin() || isApproved(reparto); allow write: if isSuperAdmin() || isCommand(reparto); }
       match /persone/{id} { allow read: if isSuperAdmin() || isApproved(reparto); allow write: if isSuperAdmin() || isCommand(reparto); }
       match /config/{id} { allow read: if isSuperAdmin() || isApproved(reparto); allow write: if isSuperAdmin() || isCommand(reparto); }
       match /todo_condivisi/{id} { allow read, write: if isSuperAdmin() || isApproved(reparto); }
       match /agenda_condivisa/{id} { allow read, write: if isSuperAdmin() || isApproved(reparto); }
+      // Bacheca: tutti i membri leggono, solo il Comando pubblica/modifica (Blocco 4)
+      match /bacheca/{id} {
+        allow read: if isSuperAdmin() || isApproved(reparto);
+        allow create, update, delete: if isSuperAdmin() || isCommand(reparto);
+      }
       match /link_utenti/{uid} {
         allow read: if isSuperAdmin() || isApproved(reparto);
         allow write: if isSuperAdmin() || isCommand(reparto) || (isApproved(reparto) && request.auth.uid == uid);

@@ -1,4 +1,4 @@
-﻿ <!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="it">
 <head>
 <meta charset="UTF-8">
@@ -640,6 +640,8 @@
       <!-- END TESSERINO NUOVO -->
 
 <h1 class="ptit">Dashboard</h1><p class="psub">Panoramica generale</p>
+      <!-- BACHECA — avvisi del Comando (Blocco 4) -->
+      <div id="bacheca-dash" style="display:none"></div>
 
       <!-- ═══ MODALITÀ FOCUS — RIMOSSA (Task 1) ═══ -->
 
@@ -728,6 +730,11 @@
             <div style="display:flex;justify-content:space-between;margin-top:4px">
               <span style="font-size:10px;color:var(--txt2)" id="wstr-bar-lbl">0 / 20h mensili</span>
               <span style="font-size:10px;color:var(--txt2)" id="wstr-turno-lbl"></span>
+            </div>
+            <!-- Salvadanaio ore straordinario -->
+            <div id="wstr-salv-row" onclick="vaiBN('rep',99);switchRepTab('straord')" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer">
+              <span style="font-size:11px;color:var(--txt2)">&#128022; Salvadanaio</span>
+              <span id="wstr-salv-val" style="font-size:11px;font-weight:800;color:var(--teal)">0h</span>
             </div>
           </div>
         </div>
@@ -876,6 +883,12 @@
       <!-- CALENDARIO -->
       <div id="pag-cal" class="pag">
         <h1 class="ptit">Calendario</h1><p class="psub">Tocca un giorno per vedere i turni</p>
+        <!-- RICHIESTE CAMBIO TURNO (Blocco 2) -->
+        <button onclick="apriCambioTurno()" class="btn btn-p" style="width:100%;margin-bottom:12px;font-size:13px">&#128260; Chiedi cambio turno</button>
+        <div id="mie-richieste-wrap" style="display:none;margin-bottom:14px">
+          <div class="m3-list-group-title">&#128260; Le mie richieste cambio turno</div>
+          <div class="m3-list-group" id="mie-richieste-list"></div>
+        </div>
         <div id="cal-wrap"></div>
 
         <!-- Condividi turni su WhatsApp -->
@@ -1025,6 +1038,21 @@
             <div id="straord-cards" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:14px"></div>
           </div>
 
+          <!-- SALVADANAIO ORE STRAORDINARIO -->
+          <div class="m3-list-group" style="margin-top:14px">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border)">
+              <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--txt2)">&#128022; Salvadanaio ore</span>
+              <span id="salv-hd-tot" style="font-size:11px;font-weight:800;color:var(--teal)">0h</span>
+            </div>
+            <div id="salv-disponibili" style="padding:14px 16px;border-bottom:1px solid var(--border)"></div>
+            <div id="salv-mese-corrente" style="padding:14px 16px;border-bottom:1px solid var(--border)"></div>
+            <div id="salv-mesi-passati" style="padding:14px 16px;border-bottom:1px solid var(--border)"></div>
+            <div id="salv-pagati" style="padding:14px 16px"></div>
+            <!-- Input nascosti usati dal datepicker in-app -->
+            <input type="hidden" id="rec-data" value="">
+            <span id="rec-data-lbl" style="display:none"></span>
+          </div>
+
           <!-- Lista dettaglio con modifica/elimina -->
           <div class="m3-list-group" style="margin-top:14px">
             <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border)">
@@ -1057,6 +1085,14 @@
           </div>
         </div>
         <div id="pg-membri-wrap" style="max-width:600px;margin:0 auto"></div>
+      </div>
+
+      <!-- PAGINA COMANDO (solo Comandante/Vice) -->
+      <div id="pag-comando" class="pag">
+        <button onclick="vaiBN('imp',4)" style="display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--blue);font-size:14px;font-weight:600;cursor:pointer;padding:0 0 10px;appearance:none;-webkit-appearance:none">&#8592; Indietro</button>
+        <h1 class="ptit">&#128081; Menu Comando</h1>
+        <p class="psub">Gestione del personale e dell'ufficio</p>
+        <div id="pg-comando-wrap" style="max-width:600px;margin:0 auto"></div>
       </div>
       <!-- STRAORDINARI & INDENNIT (nascosta) -->
 
@@ -1168,134 +1204,6 @@
               </div>
             </div>
           </div>
-          <div class="m3-row tap" onclick="vaiBN('pers',0)">
-            <div class="m3-row-ico" style="background:rgba(0,200,83,.12)">&#128101;</div>
-            <div class="m3-row-body"><div class="m3-row-title">Personale</div><div class="m3-row-sub">Visualizza e gestisci il personale</div></div>
-            <div class="m3-row-right">&#8250;</div>
-          </div>
-          <div class="m3-row tap" id="btn-gestione-nucleo" onclick="vaiBN('membri',0)" style="display:none">
-            <div class="m3-row-ico" style="background:rgba(200,16,46,.12)">&#128081;</div>
-            <div class="m3-row-body"><div class="m3-row-title">Approvazione Militari</div><div class="m3-row-sub">Approva o rifiuta le richieste di accesso</div></div>
-            <div class="m3-row-right">&#8250;</div>
-          </div>
-
-          <!-- Stato Reparto -->
-          <div id="sec-stato-reparto" style="padding:14px;border-top:1px solid var(--border)">
-            <div id="stato-reparto-info" style="font-size:13px;color:var(--txt2);margin-bottom:10px;line-height:1.6">Caricamento...</div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <button id="btn-unisciti-reparto" class="btn btn-p btn-sm" style="width:auto;display:none" onclick="apriUnitiReparto()">&#127968; Unisciti a un Reparto</button>
-              <button id="btn-scollegati-reparto" class="btn btn-sm" style="width:auto;display:none;background:rgba(200,16,46,.1);color:var(--red);border-color:rgba(200,16,46,.3)" onclick="scollegaReparto()">&#128683; Scollegati</button>
-            </div>
-
-            <!-- Form unisciti reparto — visibile direttamente, non dentro Opzioni Avanzate -->
-            <div id="uniti-reparto-form" style="display:none;margin-top:14px;padding:14px;background:var(--bg2);border-radius:14px;border:1px solid var(--border)">
-              <div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:12px">&#127968; Unisciti a un Reparto</div>
-              <div class="fg" style="margin-bottom:8px">
-                <label>Tipo Struttura</label>
-                <div style="display:flex;flex-wrap:wrap;gap:6px">
-                  <button type="button" class="tipo-rep-btn" data-val="stazione" onclick="selTipoRep('uniti','stazione',this)">Stazione</button>
-                  <button type="button" class="tipo-rep-btn" data-val="nucleo" onclick="selTipoRep('uniti','nucleo',this)">Nucleo</button>
-                  <button type="button" class="tipo-rep-btn" data-val="compagnia" onclick="selTipoRep('uniti','compagnia',this)">Compagnia</button>
-                  <button type="button" class="tipo-rep-btn" data-val="distaccamento" onclick="selTipoRep('uniti','distaccamento',this)">Distaccamento</button>
-                  <button type="button" class="tipo-rep-btn" data-val="tenenza" onclick="selTipoRep('uniti','tenenza',this)">Tenenza</button>
-                  <button type="button" class="tipo-rep-btn" data-val="gruppo" onclick="selTipoRep('uniti','gruppo',this)">Gruppo</button>
-                  <button type="button" class="tipo-rep-btn" data-val="legione" onclick="selTipoRep('uniti','legione',this)">Legione</button>
-                </div>
-                <input type="hidden" id="uniti-tipo" value="">
-              </div>
-              <div class="fg" style="margin-bottom:8px">
-                <label>Specialità</label>
-                <div style="display:flex;flex-wrap:wrap;gap:6px">
-                  <button type="button" class="tipo-rep-btn" data-val="territoriale" onclick="selSpecRep('uniti','territoriale',this)">Territoriale</button>
-                  <button type="button" class="tipo-rep-btn" data-val="forestale" onclick="selSpecRep('uniti','forestale',this)">Forestale</button>
-                  <button type="button" class="tipo-rep-btn" data-val="radiomobile" onclick="selSpecRep('uniti','radiomobile',this)">Radiomobile</button>
-                  <button type="button" class="tipo-rep-btn" data-val="norm" onclick="selSpecRep('uniti','norm',this)">N.O.R.M.</button>
-                  <button type="button" class="tipo-rep-btn" data-val="sis" onclick="selSpecRep('uniti','sis',this)">S.I.S.</button>
-                  <button type="button" class="tipo-rep-btn" data-val="ros" onclick="selSpecRep('uniti','ros',this)">R.O.S.</button>
-                  <button type="button" class="tipo-rep-btn" data-val="gis" onclick="selSpecRep('uniti','gis',this)">G.I.S.</button>
-                  <button type="button" class="tipo-rep-btn" data-val="noe" onclick="selSpecRep('uniti','noe',this)">N.O.E.</button>
-                  <button type="button" class="tipo-rep-btn" data-val="nas" onclick="selSpecRep('uniti','nas',this)">N.A.S.</button>
-                  <button type="button" class="tipo-rep-btn" data-val="nit" onclick="selSpecRep('uniti','nit',this)">N.I.T.</button>
-                </div>
-                <input type="hidden" id="uniti-spec" value="">
-              </div>
-              <div class="fg" style="margin-bottom:8px"><label>Sede / Città</label><input type="text" class="fc" id="uniti-sede" placeholder="Es. Varazze" oninput="aggiornaUnitiId()"></div>
-              <div style="margin-bottom:12px;padding:8px 12px;background:rgba(41,121,255,.07);border-radius:10px;border:1px solid rgba(41,121,255,.15)">
-                <div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">ID Reparto generato</div>
-                <div id="uniti-reparto-preview" style="font-size:13px;font-weight:700;color:var(--blue);font-family:monospace">—</div>
-              </div>
-              <div id="uniti-reparto-hint" style="display:none;margin-bottom:10px;padding:9px 12px;border-radius:10px;border:1px solid;font-size:12px;line-height:1.5"></div>
-              <div style="display:flex;gap:8px">
-                <button class="btn btn-p btn-sm" style="width:auto" onclick="confermaUnitiReparto()">&#10004; Conferma</button>
-                <button class="btn btn-sm" style="width:auto" onclick="chiudiUnitiReparto()">Annulla</button>
-              </div>
-            </div>
-
-            <!-- Reset turni -->
-            <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
-              <button class="btn btn-sm" style="width:100%;background:rgba(200,16,46,.08);color:var(--red);border:1px solid rgba(200,16,46,.25);font-size:12px" onclick="resetTurniUtente()">&#128465; Elimina tutti i miei turni (Reset)</button>
-              <div style="font-size:10px;color:var(--txt3);margin-top:5px;text-align:center">Rimuove tutti i tuoi turni dal reparto. Utile prima di un trasferimento.</div>
-            </div>
-
-            <!-- OPZIONI AVANZATE -->
-            <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
-              <div class="m3-row tap" onclick="toggleImpSec('sec-opz-avanzate','arr-opz-avanzate')" style="padding:0;border:none;margin-bottom:0">
-                <div class="m3-row-ico" style="background:rgba(255,159,67,.12)">&#9881;</div>
-                <div class="m3-row-body"><div class="m3-row-title">Opzioni Avanzate</div><div class="m3-row-sub">Trasferimento reparto e reset dati</div></div>
-                <div class="m3-row-right" id="arr-opz-avanzate">&#8250;</div>
-              </div>
-              <div id="sec-opz-avanzate" class="imp-sub" style="margin-top:8px">
-                <div style="display:flex;flex-direction:column;gap:10px;padding-top:8px">
-
-                  <!-- Form trasferimento inline -->
-                  <div style="padding:12px;background:var(--bg2);border-radius:12px;border:1px solid var(--border)">
-                    <div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:10px">&#128260; Trasferimento Reparto</div>
-                    <div class="fg" style="margin-bottom:8px">
-                      <label>Tipo Struttura</label>
-                      <div id="trasf-tipo-btns" style="display:flex;flex-wrap:wrap;gap:6px">
-                        <button type="button" class="tipo-rep-btn" data-val="stazione" onclick="selTipoRep('trasf','stazione',this)">Stazione</button>
-                        <button type="button" class="tipo-rep-btn" data-val="nucleo" onclick="selTipoRep('trasf','nucleo',this)">Nucleo</button>
-                        <button type="button" class="tipo-rep-btn" data-val="compagnia" onclick="selTipoRep('trasf','compagnia',this)">Compagnia</button>
-                        <button type="button" class="tipo-rep-btn" data-val="distaccamento" onclick="selTipoRep('trasf','distaccamento',this)">Distaccamento</button>
-                        <button type="button" class="tipo-rep-btn" data-val="tenenza" onclick="selTipoRep('trasf','tenenza',this)">Tenenza</button>
-                        <button type="button" class="tipo-rep-btn" data-val="gruppo" onclick="selTipoRep('trasf','gruppo',this)">Gruppo</button>
-                        <button type="button" class="tipo-rep-btn" data-val="legione" onclick="selTipoRep('trasf','legione',this)">Legione</button>
-                      </div>
-                      <input type="hidden" id="trasf-tipo-struttura" value="">
-                    </div>
-                    <div class="fg" style="margin-bottom:8px">
-                      <label>Specialità</label>
-                      <div id="trasf-spec-btns" style="display:flex;flex-wrap:wrap;gap:6px">
-                        <button type="button" class="tipo-rep-btn" data-val="territoriale" onclick="selSpecRep('trasf','territoriale',this)">Territoriale</button>
-                        <button type="button" class="tipo-rep-btn" data-val="forestale" onclick="selSpecRep('trasf','forestale',this)">Forestale</button>
-                        <button type="button" class="tipo-rep-btn" data-val="radiomobile" onclick="selSpecRep('trasf','radiomobile',this)">Radiomobile</button>
-                        <button type="button" class="tipo-rep-btn" data-val="norm" onclick="selSpecRep('trasf','norm',this)">N.O.R.M.</button>
-                        <button type="button" class="tipo-rep-btn" data-val="sis" onclick="selSpecRep('trasf','sis',this)">S.I.S.</button>
-                        <button type="button" class="tipo-rep-btn" data-val="ros" onclick="selSpecRep('trasf','ros',this)">R.O.S.</button>
-                        <button type="button" class="tipo-rep-btn" data-val="gis" onclick="selSpecRep('trasf','gis',this)">G.I.S.</button>
-                        <button type="button" class="tipo-rep-btn" data-val="noe" onclick="selSpecRep('trasf','noe',this)">N.O.E.</button>
-                        <button type="button" class="tipo-rep-btn" data-val="nas" onclick="selSpecRep('trasf','nas',this)">N.A.S.</button>
-                        <button type="button" class="tipo-rep-btn" data-val="nit" onclick="selSpecRep('trasf','nit',this)">N.I.T.</button>
-                      </div>
-                      <input type="hidden" id="trasf-specialita" value="">
-                    </div>
-                    <div class="fg" style="margin-bottom:8px"><label>Sede / Città</label><input type="text" class="fc" id="trasf-sede" placeholder="Es. Varazze" oninput="aggiornaTrasferimentoId()"></div>
-                    <div style="margin-bottom:10px;padding:8px 12px;background:rgba(41,121,255,.07);border-radius:10px;border:1px solid rgba(41,121,255,.15)">
-                      <div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Nuovo Reparto</div>
-                      <div id="trasf-reparto-preview" style="font-size:13px;font-weight:700;color:var(--blue);font-family:monospace">—</div>
-                    </div>
-                    <button class="btn btn-p btn-sm" style="width:100%" onclick="richiestaTrasfRep()">&#10004; Conferma Trasferimento</button>
-                  </div>
-
-                  <!-- Reset totale -->
-                  <button class="btn btn-sm" style="width:100%;background:rgba(200,16,46,.08);color:var(--red);border:1px solid rgba(200,16,46,.25);font-size:12px" onclick="resetTotaleFirestore()">&#128465; Reset Totale Dati</button>
-                  <div style="font-size:10px;color:var(--txt3);text-align:center">Reset Totale elimina tutti i turni del reparto da Firestore.</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Form unisciti reparto spostato sopra, prima di Opzioni Avanzate -->
-          </div>
 
         </div><!-- /isola profilo -->
 
@@ -1376,47 +1284,50 @@
             <div style="padding:12px 0 4px">
               <button class="btn btn-p" id="btn-salva-tema-inline" onclick="salvaTemaInline()" style="width:100%;border-radius:16px">&#10003; Applica tema</button>
             </div>
+
+            <!-- Comportamento tema (spostato dentro il menu Tema interfaccia) -->
+            <div style="border-top:1px solid var(--border);padding:14px 0 4px;margin-top:12px">
+              <div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:10px">&#9881; Comportamento tema</div>
+              <div style="display:flex;flex-direction:column;gap:8px" id="tema-comp-btns">
+                <button id="tcb-manuale" class="tema-comp-btn on" onclick="setTemaComportamento('manuale')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;border:2px solid var(--blue);background:rgba(41,121,255,.1);cursor:pointer;appearance:none;-webkit-appearance:none;text-align:left;transition:all .2s">
+                  <span style="font-size:18px">&#9998;</span>
+                  <div><div style="font-size:13px;font-weight:700;color:var(--txt)">Manuale</div><div style="font-size:11px;color:var(--txt2)">Scelgo io il tema</div></div>
+                </button>
+                <button id="tcb-sistema" class="tema-comp-btn" onclick="setTemaComportamento('sistema')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;border:2px solid var(--border);background:var(--bg2);cursor:pointer;appearance:none;-webkit-appearance:none;text-align:left;transition:all .2s">
+                  <span style="font-size:18px">&#128241;</span>
+                  <div><div style="font-size:13px;font-weight:700;color:var(--txt)">Segui sistema</div><div style="font-size:11px;color:var(--txt2)">Chiaro/scuro automatico</div></div>
+                </button>
+                <button id="tcb-orario" class="tema-comp-btn" onclick="setTemaComportamento('orario')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;border:2px solid var(--border);background:var(--bg2);cursor:pointer;appearance:none;-webkit-appearance:none;text-align:left;transition:all .2s">
+                  <span style="font-size:18px">&#127769;</span>
+                  <div><div style="font-size:13px;font-weight:700;color:var(--txt)">Segui orario</div><div style="font-size:11px;color:var(--txt2)">Scuro 19:00–07:00</div></div>
+                </button>
+              </div>
+              <input type="hidden" id="sel-tema-comportamento" value="manuale">
+              <div id="tema-comp-desc" style="font-size:11px;color:var(--txt2);margin-top:8px"></div>
+            </div>
+
+            <!-- Dimensione interfaccia (spostata dentro il menu Tema interfaccia) -->
+            <div style="border-top:1px solid var(--border);padding:12px 0 0;margin-top:12px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                <div style="font-size:12px;font-weight:700;color:var(--txt)">Dimensione interfaccia</div>
+                <div style="font-size:12px;font-weight:700;color:var(--blue)" id="font-size-lbl-live">Normale</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <span style="font-size:11px;color:var(--txt2);flex-shrink:0">A</span>
+                <input type="range" id="font-slider" min="12" max="20" step="2" value="14"
+                  oninput="prevFontSize(parseInt(this.value),null)"
+                  style="flex:1;accent-color:var(--blue);cursor:pointer;-webkit-appearance:auto;appearance:auto">
+                <span style="font-size:18px;color:var(--txt2);flex-shrink:0">A</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--txt3);margin-top:4px">
+                <span>Piccolo</span><span>Normale</span><span>Grande</span><span>XL</span><span>XXL</span>
+              </div>
+              <div id="font-size-lbl" style="display:none"></div>
+            </div>
           </div>
 
-          <!-- Comportamento tema -->
-          <div style="border-top:1px solid var(--border);padding:14px 18px">
-            <div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:10px">&#9881; Comportamento tema</div>
-            <div style="display:flex;flex-direction:column;gap:8px" id="tema-comp-btns">
-              <button id="tcb-manuale" class="tema-comp-btn on" onclick="setTemaComportamento('manuale')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;border:2px solid var(--blue);background:rgba(41,121,255,.1);cursor:pointer;appearance:none;-webkit-appearance:none;text-align:left;transition:all .2s">
-                <span style="font-size:18px">&#9998;</span>
-                <div><div style="font-size:13px;font-weight:700;color:var(--txt)">Manuale</div><div style="font-size:11px;color:var(--txt2)">Scelgo io il tema</div></div>
-              </button>
-              <button id="tcb-sistema" class="tema-comp-btn" onclick="setTemaComportamento('sistema')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;border:2px solid var(--border);background:var(--bg2);cursor:pointer;appearance:none;-webkit-appearance:none;text-align:left;transition:all .2s">
-                <span style="font-size:18px">&#128241;</span>
-                <div><div style="font-size:13px;font-weight:700;color:var(--txt)">Segui sistema</div><div style="font-size:11px;color:var(--txt2)">Chiaro/scuro automatico</div></div>
-              </button>
-              <button id="tcb-orario" class="tema-comp-btn" onclick="setTemaComportamento('orario')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;border:2px solid var(--border);background:var(--bg2);cursor:pointer;appearance:none;-webkit-appearance:none;text-align:left;transition:all .2s">
-                <span style="font-size:18px">&#127769;</span>
-                <div><div style="font-size:13px;font-weight:700;color:var(--txt)">Segui orario</div><div style="font-size:11px;color:var(--txt2)">Scuro 19:00–07:00</div></div>
-              </button>
-            </div>
-            <input type="hidden" id="sel-tema-comportamento" value="manuale">
-            <div id="tema-comp-desc" style="font-size:11px;color:var(--txt2);margin-top:8px"></div>
-          </div>
-
-          <!-- Slider dimensione testo -->
-          <div style="border-top:1px solid var(--border);padding:14px 18px">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-              <div style="font-size:12px;font-weight:700;color:var(--txt)">Dimensione interfaccia</div>
-              <div style="font-size:12px;font-weight:700;color:var(--blue)" id="font-size-lbl-live">Normale</div>
-            </div>
-            <div style="display:flex;align-items:center;gap:10px">
-              <span style="font-size:11px;color:var(--txt2);flex-shrink:0">A</span>
-              <input type="range" id="font-slider" min="12" max="20" step="2" value="14"
-                oninput="prevFontSize(parseInt(this.value),null)"
-                style="flex:1;accent-color:var(--blue);cursor:pointer;-webkit-appearance:auto;appearance:auto">
-              <span style="font-size:18px;color:var(--txt2);flex-shrink:0">A</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--txt3);margin-top:4px">
-              <span>Piccolo</span><span>Normale</span><span>Grande</span><span>XL</span><span>XXL</span>
-            </div>
-            <div id="font-size-lbl" style="display:none"></div>
-          </div>
+          <!-- Comportamento tema spostato dentro il menu "Tema interfaccia" -->
+          <!-- Dimensione interfaccia spostata dentro il menu "Tema interfaccia" -->
 
         </div><!-- /isola aspetto -->
 
@@ -1610,32 +1521,7 @@
             </div>
           </div>
 
-          <!-- Orari preset turni -->
-          <div class="m3-row tap" onclick="toggleImpSec('orari-body','arr-orari');renderOrariPreset();">
-            <div class="m3-row-ico" style="background:rgba(0,188,212,.12)">&#9200;</div>
-            <div class="m3-row-body"><div class="m3-row-title">Orari preset turni</div><div class="m3-row-sub">Personalizza gli orari di ogni tipo di turno</div></div>
-            <div class="m3-row-right" id="arr-orari">&#8250;</div>
-          </div>
-          <div id="orari-body" class="imp-sub">
-            <div style="padding:14px;border-top:1px solid var(--border)">
-              <div style="font-size:11px;color:var(--txt2);margin-bottom:10px">&#9200; Modifica gli orari preset per ogni tipo di turno e premi Salva.</div>
-              <div id="orari-preset-list"></div>
-              <div id="orari-ok" class="smsg" style="margin-top:8px">&#10003; Salvato!</div>
-              <button onclick="resetOrariPreset()" style="width:100%;padding:10px;border-radius:10px;background:rgba(200,16,46,.08);color:var(--red);border:1px solid rgba(200,16,46,.25);font-size:12px;font-weight:700;cursor:pointer;appearance:none;-webkit-appearance:none;margin-top:8px">&#8635; Ripristina default</button>
-            </div>
-          </div>
-          <div class="m3-row tap" onclick="apriTurniCustom()">
-            <div class="m3-row-ico" style="background:rgba(255,159,67,.12)">&#128197;</div>
-            <div class="m3-row-body"><div class="m3-row-title">Turni Personalizzati</div><div class="m3-row-sub">Crea e gestisci tipi di turno custom</div></div>
-            <div class="m3-row-right">&#8250;</div>
-          </div>
-
-          <!-- Importa / Esporta Excel -->
-          <div class="m3-row tap" onclick="document.getElementById('xi').click()">
-            <div class="m3-row-ico" style="background:rgba(0,200,83,.12)">&#128202;</div>
-            <div class="m3-row-body"><div class="m3-row-title">Importa Excel</div><div class="m3-row-sub">Carica un file .xlsx con i turni</div></div>
-            <div class="m3-row-right">&#8250;</div>
-          </div>
+          <!-- Esporta PDF -->
           <div class="m3-row tap" onclick="esportaPDF()">
             <div class="m3-row-ico" style="background:rgba(242,69,61,.12)">&#128196;</div>
             <div class="m3-row-body"><div class="m3-row-title">Esporta PDF</div><div class="m3-row-sub">Stampa o salva il registro turni</div></div>
@@ -1659,9 +1545,17 @@
         </div><!-- /isola dati orari -->
 
         <!-- ═══ ISOLA 5: STATO COMANDO (solo Comandante/Vice) ═══ -->
-        <div>
+        <div id="isola-gestione-comando" style="display:none">
           <div class="m3-list-group-title">&#128081; Gestione Comando</div>
           <div class="m3-list-group">
+            <div class="m3-row tap" onclick="vaiBN('comando',0)">
+              <div class="m3-row-ico" style="background:rgba(200,169,110,.12)">&#128737;</div>
+              <div class="m3-row-body"><div class="m3-row-title">Menu Comando</div><div class="m3-row-sub">Richieste cambio turno, compiti, bacheca e situazione reparto</div></div>
+              <div class="m3-row-right">
+                <span id="badge-comando-aperte" style="display:none;background:var(--red);color:#fff;border-radius:10px;min-width:20px;height:20px;font-size:11px;font-weight:800;line-height:20px;text-align:center;padding:0 5px">0</span>
+                <span style="margin-left:6px">&#8250;</span>
+              </div>
+            </div>
             <div class="m3-row tap" onclick="vaiBN('pers',4)">
               <div class="m3-row-ico" style="background:rgba(200,169,110,.12)">&#128081;</div>
               <div class="m3-row-body"><div class="m3-row-title">Ruoli e passaggio del comando</div><div class="m3-row-sub">Apri Personale per gestire Comandante, Vice e membri</div></div>
@@ -1669,7 +1563,6 @@
             </div>
           </div>
         </div>
-
         <!-- ═══ ISOLA 6: GESTIONE REPARTO ═══ -->
         <div class="m3-list-group-title">&#8505; Info</div>
         <div class="m3-list-group">
@@ -1864,6 +1757,17 @@
       <input type="checkbox" id="td-condividi" style="width:18px;height:18px;accent-color:var(--blue);cursor:pointer">
       &#128101; Condividi con il reparto
     </label>
+    <!-- ASSEGNA A MILITARI (Blocco 3, solo Comando) -->
+    <div id="td-assegna-wrap" style="display:none">
+      <button type="button" class="btn btn-sm btn-g" onclick="apriAssegna('td')" style="width:100%;font-size:12px;font-weight:700">
+        &#128287; Assegna a militari del reparto
+      </button>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
+        <label style="margin:0;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--txt2)">Destinatari</label>
+        <button type="button" class="btn btn-sm btn-g" id="td-assegna-reset" onclick="assegnaReset('td')" style="display:none;font-size:11px;padding:3px 8px">Azzera</button>
+      </div>
+      <div id="td-assegna-list" style="display:none;gap:6px;margin-top:6px"></div>
+    </div>
   </div></div>
   <div class="mfoo">
     <button class="btn btn-g btn-sm" onclick="closeM('m-todo')">Annulla</button>
@@ -1917,10 +1821,52 @@
       <input type="checkbox" id="ag-condividi" style="width:18px;height:18px;accent-color:var(--blue);cursor:pointer">
       &#128101; Condividi con il reparto
     </label>
+    <!-- ASSEGNA A MILITARI (Blocco 3, solo Comando) -->
+    <div id="ag-assegna-wrap" style="display:none">
+      <button type="button" class="btn btn-sm btn-g" onclick="apriAssegna('ag')" style="width:100%;font-size:12px;font-weight:700">
+        &#128209; Assegna a militari del reparto
+      </button>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
+        <label style="margin:0;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--txt2)">Destinatari</label>
+        <button type="button" class="btn btn-sm btn-g" id="ag-assegna-reset" onclick="assegnaReset('ag')" style="display:none;font-size:11px;padding:3px 8px">Azzera</button>
+      </div>
+      <div id="ag-assegna-list" style="display:none;gap:6px;margin-top:6px"></div>
+    </div>
   </div></div>
   <div class="mfoo">
     <button class="btn btn-g btn-sm" onclick="closeM('m-agenda')">Annulla</button>
     <button class="btn btn-p btn-sm" onclick="salvaAgenda()" style="width:auto">&#128190; Salva</button>
+  </div>
+</div></div>
+<!-- MODAL CAMBIO TURNO (Blocco 2) -->
+<div id="m-cambio-turno" class="modal"><div class="mbox">
+  <div class="mhan"></div>
+  <div class="mhd"><div class="mtit">&#128260; Chiedi cambio turno</div><button class="mcl" onclick="closeM('m-cambio-turno')">&#10005;</button></div>
+  <div class="mbod"><div id="ct-cambio-body" style="display:grid;gap:14px"></div></div>
+  <div class="mfoo">
+    <button class="btn btn-g btn-sm" onclick="closeM('m-cambio-turno')">Annulla</button>
+    <button class="btn btn-p btn-sm" onclick="creaRichiestaCambio()" style="width:auto">&#128257; Invia richiesta</button>
+  </div>
+</div></div>
+<!-- MODAL BACHECA (Blocco 4) -->
+<div id="m-bacheca" class="modal"><div class="mbox">
+  <div class="mhan"></div>
+  <div class="mhd"><div class="mtit" id="bc-title">&#128227; Nuovo avviso</div><button class="mcl" onclick="closeM('m-bacheca')">&#10005;</button></div>
+  <div class="mbod">
+    <div id="bc-err" class="emsg">Compila i campi obbligatori</div>
+    <div class="fg"><label>Titolo *</label><input type="text" class="fc app-fc" id="bc-titolo" placeholder="Es. Controllo armi domani..."></div>
+    <div class="fg"><label>Testo</label><textarea class="fc app-fc" id="bc-testo" rows="3" style="resize:none" placeholder="Dettagli dell'avviso..."></textarea></div>
+    <div class="fg" style="margin-bottom:0">
+      <label>Scadenza (opzionale)</label>
+      <input type="date" class="fc app-fc" id="bc-scade">
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--txt2);margin-top:10px;cursor:pointer">
+      <input type="checkbox" id="bc-urgente"> &#128680; Urgente (notifica push a tutti i membri)
+    </label>
+  </div>
+  <div class="mfoo">
+    <button class="btn btn-g btn-sm" onclick="closeM('m-bacheca')">Annulla</button>
+    <button class="btn btn-p btn-sm" onclick="salvaBacheca()" style="width:auto">&#128227; Pubblica</button>
   </div>
 </div></div>
 <!-- MODAL SCADENZA -->
@@ -2271,13 +2217,18 @@
   <div class="mbox" style="max-width:400px">
     <div class="mhan"></div>
     <div class="mhd">
-      <div class="mtit">&#128100; Seleziona Persona</div>
-      <button class="mcl" onclick="closeM('m-pers-picker')">&#10005;</button>
+      <div class="mtit" id="pers-picker-tit">&#128100; Seleziona Persona</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button class="btn btn-g btn-xs" id="pers-picker-multi" onclick="_persPickerToggleMulti()" style="width:auto">&#9783; Multi</button>
+        <button class="mcl" onclick="closeM('m-pers-picker')">&#10005;</button>
+      </div>
     </div>
+    <div id="pers-picker-hint" style="display:none;padding:8px 16px;font-size:11px;color:var(--txt2);background:var(--bg2);border-bottom:1px solid var(--border)">Tocca i colleghi per selezionarli, poi premi Conferma.</div>
     <div class="mbod" style="padding:0; max-height:65vh; overflow-y:auto; -webkit-overflow-scrolling:touch" id="pers-picker-list">
     </div>
     <div class="mfoo">
       <button class="btn btn-g btn-sm" onclick="closeM('m-pers-picker')">Annulla</button>
+      <button class="btn btn-p btn-sm" id="pers-picker-ok" style="display:none;width:auto" onclick="confermaPersMulti()">&#10004; Conferma (<span id="pers-picker-count">0</span>)</button>
     </div>
   </div>
 </div>
@@ -2288,9 +2239,12 @@
   <div class="mhd"><div class="mtit">&#10133; Nuovo Turno</div><button class="mcl" onclick="closeM('m-turno')">&#10005;</button></div>
   <div class="mbod"><div style="display:grid;gap:14px">
 
-    <!-- Persona — picker in-app -->
+    <!-- Persona — picker in-app (selezione singola o multipla) -->
     <div class="fg" style="margin-bottom:0">
-      <label>Persona</label>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px">
+        <label style="margin-bottom:0">Persona</label>
+        <button type="button" class="btn btn-g btn-xs" style="width:auto" onclick="apriPersPickerMulti('mt-pers','mt-pers-btn-lbl')">&#43; Pi&#249; colleghi</button>
+      </div>
       <button class="fc" id="mt-pers-btn" style="text-align:left;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="apriPersPicker('mt-pers','mt-pers-btn-lbl')">
         <span id="mt-pers-btn-lbl" style="font-weight:600;color:var(--txt2)">Scegli collega...</span>
         <span style="font-size:14px">&#8250;</span>
@@ -2298,16 +2252,43 @@
       <input type="hidden" id="mt-pers" value="">
       <input type="hidden" id="mt-turno-codice" value="">
       <input type="hidden" id="mt-edit-id" value="">
+      <div id="mt-pers-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
     </div>
 
-    <!-- Data — picker in-app -->
+    <!-- Data / Periodo — picker in-app -->
     <div class="fg" style="margin-bottom:0">
-      <label>Data</label>
+      <label id="mt-data-lbl">Data</label>
       <button class="fc" id="mt-data-btn" style="text-align:left;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="apriDatePicker('mt-data','mt-data-btn-lbl')">
         <span id="mt-data-btn-lbl" style="font-weight:600;color:var(--txt2)">Seleziona data...</span>
         <span style="font-size:14px">&#128197;</span>
       </button>
       <input type="hidden" id="mt-data" value="">
+
+      <!-- Turni su più giorni: attiva il periodo Dal / Al -->
+      <button type="button" class="day-chip" id="mt-range-toggle" onclick="toggleMultiGiorni()" style="width:100%;margin-top:10px;display:flex;justify-content:space-between;align-items:center;text-align:left">
+        <span id="mt-range-toggle-lbl">Pi&#249; giorni (periodo)</span>
+        <span id="mt-range-toggle-ico">&#128197;</span>
+      </button>
+      <div id="mt-range-box" style="display:none;grid-template-columns:1fr;gap:12px;margin-top:12px">
+        <div class="g2">
+          <div class="fg" style="margin-bottom:0">
+            <label>Al giorno</label>
+            <button class="fc" id="mt-data-fine-btn" style="text-align:left;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="apriDatePicker('mt-data-fine','mt-data-fine-btn-lbl')">
+              <span id="mt-data-fine-btn-lbl" style="font-weight:600;color:var(--txt2)">Seleziona...</span>
+              <span style="font-size:14px">&#128197;</span>
+            </button>
+            <input type="hidden" id="mt-data-fine" value="">
+          </div>
+          <div class="fg" style="margin-bottom:0">
+            <label>Ogni (giorni)</label>
+            <input type="number" class="fc" id="mt-step" min="1" max="30" step="1" value="1" oninput="_turniMultiPreview()">
+          </div>
+        </div>
+        <div class="fg" style="margin-bottom:0">
+          <label>Giorni inclusi</label>
+          <div id="mt-giorni-sett" style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px"></div>
+        </div>
+      </div>
     </div>
 
     <!-- Tipo Turno — bottoni rapidi (già in-app, ottimo) -->
@@ -2360,10 +2341,13 @@
 
     <div class="fg" style="margin-bottom:0"><label>Note</label>
       <input type="text" class="fc" id="mt-note" placeholder="Eventuali note..."></div>
+
+    <!-- Anteprima turni multipli -->
+    <div id="mt-preview" style="display:none;padding:10px 12px;border-radius:12px;background:var(--bg2);border:1px solid var(--border);font-size:12px;color:var(--txt2);line-height:1.5"></div>
   </div></div>
   <div class="mfoo">
     <button class="btn btn-g btn-sm" onclick="closeM('m-turno')">Annulla</button>
-    <button class="btn btn-p btn-sm" onclick="salvaTurno()" style="width:auto">&#128190; Salva</button>
+    <button class="btn btn-p btn-sm" id="mt-save-btn" onclick="salvaTurno()" style="width:auto">&#128190; Salva</button>
   </div>
 </div></div>
 
@@ -2582,6 +2566,36 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
     <div class="mfoo">
       <button class="btn btn-g btn-sm" onclick="closeM('m-straord')">Annulla</button>
       <button class="btn btn-p btn-sm" onclick="salvaStraord()" style="width:auto">&#10003; Salva</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CHIUSURA MESE STRAORDINARI (salvadanaio) -->
+<div id="m-chiusura-straord" class="modal">
+  <div class="mbox">
+    <div class="mhan"></div>
+    <div class="mhd">
+      <div class="mtit" id="chiusura-titolo">&#128022; Chiusura mese</div>
+      <button class="mcl" onclick="closeM('m-chiusura-straord')">&#10005;</button>
+    </div>
+    <div class="mbod">
+      <div id="chiusura-riepilogo" style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:16px;font-size:13px;color:var(--txt2);line-height:1.6"></div>
+      <div class="g2">
+        <div class="fg" style="margin-bottom:0">
+          <label>Ore a pagamento</label>
+          <input type="number" class="fc" id="chiusura-pagate" min="0" step="0.5" value="0" oninput="_chiusuraAnteprima()">
+        </div>
+        <div class="fg" style="margin-bottom:0">
+          <label>Ore a recupero</label>
+          <input type="number" class="fc" id="chiusura-recupero" min="0" step="0.5" value="0" oninput="_chiusuraAnteprima()">
+        </div>
+      </div>
+      <div id="chiusura-anteprima" style="font-size:12px;color:var(--txt2);margin-top:12px;line-height:1.6"></div>
+      <div id="chiusura-err" class="emsg" style="display:none"></div>
+    </div>
+    <div class="mfoo">
+      <button class="btn btn-g btn-sm" onclick="closeM('m-chiusura-straord')">Pi&#249; tardi</button>
+      <button class="btn btn-p btn-sm" onclick="salvaChiusuraMese()" style="width:auto">&#10003; Conferma</button>
     </div>
   </div>
 </div>
