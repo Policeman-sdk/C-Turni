@@ -192,7 +192,23 @@ function ctEsc(value){
 function getPermessoStudioSummary(anno, turniOverride) {
   anno = parseInt(anno,10) || new Date().getFullYear();
   var me = lsG('ct_me', null);
-  var monteMap = me && me.permessiStudioMonte ? me.permessiStudioMonte : {};
+  // Monte studio: cerca in ct_me, poi in ct_p / ct_u / ct_users
+  // (difesa contro sincronizzazioni parziali che azzerano ct_me).
+  var monteMap = me && me.permessiStudioMonte ? me.permessiStudioMonte : null;
+  if(!monteMap || !Number(monteMap[String(anno)])){
+    var _cand = [lsG('ct_p',[]), lsG('ct_u',[]), lsG('ct_users',[])];
+    for(var _ci=0;_ci<_cand.length && (!monteMap || !Number(monteMap[String(anno)]));_ci++){
+      var _arr=_cand[_ci]||[];
+      for(var _pj=0;_pj<_arr.length;_pj++){
+        var _pp=_arr[_pj];
+        if(!_pp || !_pp.permessiStudioMonte) continue;
+        var _match = me && (String(_pp.id)===String(me.id) || (_pp.uid && _pp.uid===me.uid) || _studioIsMyPid(_pp.id, me));
+        if(!_match) continue;
+        if(Number(_pp.permessiStudioMonte[String(anno)])){ monteMap=_pp.permessiStudioMonte; break; }
+      }
+    }
+  }
+  if(!monteMap) monteMap = {};
   var monte = Math.max(0, Number(monteMap[String(anno)]) || 0);
   var T = turniOverride || lsG('ct_t', []);
   var usati = T.filter(function(t){
