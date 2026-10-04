@@ -802,12 +802,13 @@ html[data-font="lg"]  #pg-app { zoom: 1.10; }
 html[data-font="xl"]  #pg-app { zoom: 1.20; }
 html[data-font="xxl"] #pg-app { zoom: 1.35; }
 
-/* Fallback per browser che non supportano zoom (Firefox) */
+/* Fallback browser senza supporto a zoom.
+   NB: NON applichiamo `transform: scale()` a #pg-app: creerebbe un
+   containing block per i discendenti `position: fixed` e farebbe
+   "scorrere" la bottom navigation con la pagina. La scala tipografica
+   resta garantita dai token `html[data-font]`. */
 @supports not (zoom: 1) {
-  html[data-font="sm"]  #pg-app { transform: scale(0.85); transform-origin: top left; width: 117.6%; }
-  html[data-font="lg"]  #pg-app { transform: scale(1.10); transform-origin: top left; width: 90.9%; }
-  html[data-font="xl"]  #pg-app { transform: scale(1.20); transform-origin: top left; width: 83.3%; }
-  html[data-font="xxl"] #pg-app { transform: scale(1.35); transform-origin: top left; width: 74.1%; }
+  html[data-font="sm"]  #pg-app { width: 100%; }
 }
 
 
@@ -1260,7 +1261,7 @@ html[data-font="xxl"] #pg-app { zoom: 1.35; }
 #btn-dash-organizza,#btn-dash-lock{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;
   border-radius:var(--radius-pill);background:var(--card);border:1px solid var(--border);
   color:var(--txt2);font-size:12px;font-weight:700;cursor:pointer;
-  appearance:none;-webkit-appearance:none;appearance:none;
+  appearance:none;-webkit-appearance:none;
   transition:background .16s,color .16s,transform .16s var(--motion-spring),box-shadow .16s}
 #btn-dash-organizza:hover,#btn-dash-lock:hover{background:var(--card2);color:var(--txt);box-shadow:var(--elevation-1)}
 #btn-dash-lock:active{transform:scale(.95)}
@@ -5173,3 +5174,75 @@ body[data-atmosfera="oasi"]       .hero-ring-fill { stroke: #00C853; }
 /* Card conteggi Report: elevazione al passaggio (solo transform/box-shadow) */
 .rep-count-card{transition:transform .18s var(--motion-spring),box-shadow .18s}
 .rep-count-card:hover{transform:translateY(-1px);box-shadow:var(--elevation-1)}
+
+/* ═══════════════════════════════════════════════════════════════
+   FIX — BOTTOM NAVIGATION DOCKED (stile app nativa)
+   La barra inferiore è rigorosamente fissa in basso (bottom: 0),
+   a tutta larghezza, senza effetto "pillola flottante".
+   Sovrascrive in modo definitivo tutti i blocchi precedenti.
+   ═══════════════════════════════════════════════════════════════ */
+#bottom-nav,
+nav.bottom-bar#bottom-nav,
+.bottom-bar {
+  position: fixed !important;
+  bottom: 0 !important;
+  top: auto !important;
+  left: 0 !important;
+  right: 0 !important;
+  transform: none !important;
+  width: 100% !important;
+  max-width: none !important;
+  height: auto !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  padding: 6px 10px calc(6px + env(safe-area-inset-bottom, 0px)) !important;
+  background: var(--card) !important;
+  border: none !important;
+  border-top: 1px solid var(--border) !important;
+  box-shadow: 0 -6px 24px rgba(0,0,0,.32) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  z-index: 700 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-evenly !important;
+  overflow: visible !important;
+  pointer-events: auto !important;
+}
+/* Temi chiari: barra solida chiara */
+[data-theme=light] .bottom-bar,
+[data-theme=rosa-light] .bottom-bar,
+[data-theme=forestale-light] .bottom-bar,
+[data-theme=carabinieri-light] .bottom-bar {
+  background: var(--card) !important;
+  border-top-color: var(--border) !important;
+  box-shadow: 0 -6px 20px rgba(0,0,0,.10) !important;
+}
+/* Il contenuto lascia sempre spazio alla barra fissa in basso */
+.cont {
+  padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)) !important;
+}
+@media (min-width: 701px) {
+  .cont { padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)) !important; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   AVVISI DEL COMANDANTE — card nella pagina Agenda
+   (bordo sinistro colorato: rosso = urgente, oro = disposizione)
+   ═══════════════════════════════════════════════════════════════ */
+.ag-avviso-card {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--gold);
+  border-radius: 16px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 6px rgba(0,0,0,.12);
+}
+.ag-avviso-card.urg {
+  border-left-color: var(--red);
+  background: rgba(200,16,46,.07);
+}

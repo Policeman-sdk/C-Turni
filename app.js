@@ -1516,6 +1516,54 @@ function renderBachecaDash(){
     + (arr.length > 3 ? '<div style="font-size:11px;color:var(--txt3);text-align:center">+ ' + (arr.length - 3) + ' altri avvisi</div>' : '')
     + '</div>';
 }
+// ── AVVISI DEL COMANDANTE nella pagina Agenda ─────────────────
+// Visibili a tutti i militari del reparto (fonte: bacheca del comando).
+// Il comando dispone anche dei pulsanti Modifica/Elimina.
+function renderAvvisiAgenda(){
+  var el = document.getElementById('agenda-avvisi-list');
+  if(!el) return;
+  var arr = _bachecaAttivi();
+  var cmd = (typeof _isComandanteUI === 'function') && _isComandanteUI();
+  var btnNuovo = document.getElementById('ag-avvisi-nuovo');
+  if(btnNuovo) btnNuovo.style.display = cmd ? 'inline-flex' : 'none';
+  var cnt = document.getElementById('ag-avvisi-count');
+  if(cnt) cnt.textContent = arr.length ? ('(' + arr.length + ')') : '';
+  if(!arr.length){
+    el.innerHTML = '<div class="ag-empty-state">'
+      + '<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">'
+      + '<path d="M14 42V26a18 18 0 0136 0v16l6 7H8l6-7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>'
+      + '<path d="M26 52a6 6 0 0012 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'
+      + '</svg>'
+      + '<div class="ag-empty-title">Nessun avviso del Comando</div>'
+      + '<div class="ag-empty-sub">Le disposizioni di servizio appariranno qui</div>'
+      + '</div>';
+    return;
+  }
+  el.innerHTML = arr.map(function(a){
+    var urgente = !!a.urgente;
+    var badge = urgente
+      ? '<span style="font-size:9px;font-weight:800;color:var(--red);background:rgba(200,16,46,.16);border-radius:6px;padding:2px 6px">&#128680; URGENTE</span>'
+      : '<span style="font-size:9px;font-weight:800;color:var(--gold);background:rgba(212,175,55,.16);border-radius:6px;padding:2px 6px">&#128227; DISPOSIZIONE</span>';
+    var scad = a.scade
+      ? '<span style="font-size:9px;font-weight:800;color:var(--txt2);background:var(--surface-tint);border-radius:6px;padding:2px 6px">&#128197; fino al ' + fmtD(a.scade) + '</span>'
+      : '';
+    var azioni = cmd
+      ? '<div style="display:flex;gap:8px;margin-top:8px">'
+        + '<button class="btn btn-sm btn-g" style="font-size:10px;padding:3px 8px" onclick="apriBacheca(\'' + a.id + '\')">&#9998; Modifica</button>'
+        + '<button class="btn btn-sm" style="font-size:10px;padding:3px 8px;background:rgba(200,16,46,.1);color:var(--red);border-color:rgba(200,16,46,.3)" onclick="delBacheca(\'' + a.id + '\')">&#128465; Elimina</button>'
+        + '</div>'
+      : '';
+    return '<div class="ag-avviso-card' + (urgente ? ' urg' : '') + '">'
+      + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">'
+      + '<span style="font-size:14px;font-weight:800;color:var(--txt)">' + ctEsc(a.titolo) + '</span>' + badge + '</div>'
+      + (a.testo ? '<div style="font-size:12px;color:var(--txt2);line-height:1.5">' + ctEsc(a.testo) + '</div>' : '')
+      + '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px">'
+      + '<span style="font-size:10px;color:var(--txt3)">&#128100; da ' + ctEsc(a.da || 'Comando') + '</span>' + scad + '</div>'
+      + azioni
+      + '</div>';
+  }).join('');
+}
+
 // ── SITUAZIONE / COPERTURA — prossimi giorni (Blocco 5) ────────
 // Ritorna n giorni da oggi con i turni di servizio assegnati
 function _coperturaGiorni(n){
@@ -5047,6 +5095,8 @@ function renderAgendaPg(filtro) {
   _aggiornaBentoAg();
   // Render anche i To-Do preservando il filtro attivo (non chiama di nuovo _aggiornaBentoAg)
   renderTodoAg(_tdFiltroAg||'tutti', true);
+  // Avvisi del Comandante (bacheca) sempre aggiornati nella pagina Agenda
+  if(typeof renderAvvisiAgenda === 'function') renderAvvisiAgenda();
 }
 
 // Filter chips agenda pagina
@@ -5055,9 +5105,11 @@ function filtraAgendaPg(tipo, btn) {
   if(btn) btn.classList.add('on');
   var secAg = document.getElementById('ag-section-agenda');
   var secTd = document.getElementById('ag-section-compiti');
-  if(tipo === 'agenda')  { if(secAg) secAg.style.display=''; if(secTd) secTd.style.display='none'; }
-  else if(tipo === 'compiti') { if(secAg) secAg.style.display='none'; if(secTd) secTd.style.display=''; }
-  else { if(secAg) secAg.style.display=''; if(secTd) secTd.style.display=''; }
+  var secAv = document.getElementById('ag-section-avvisi');
+  if(tipo === 'agenda')  { if(secAg) secAg.style.display=''; if(secTd) secTd.style.display='none'; if(secAv) secAv.style.display='none'; }
+  else if(tipo === 'compiti') { if(secAg) secAg.style.display='none'; if(secTd) secTd.style.display=''; if(secAv) secAv.style.display='none'; }
+  else if(tipo === 'avvisi') { if(secAg) secAg.style.display='none'; if(secTd) secTd.style.display='none'; if(secAv) secAv.style.display=''; }
+  else { if(secAg) secAg.style.display=''; if(secTd) secTd.style.display=''; if(secAv) secAv.style.display=''; }
   renderAgendaPg(tipo);
 }
 
@@ -10676,6 +10728,32 @@ function toast(msg,tipo){
 
 
 
+// ── ANAGRAFICA PROTETTA (Nome / Cognome) ──────────────────────
+// Nome e Cognome di registrazione sono immutabili e SEPARATI dal nickname.
+// Recupera l'anagrafica autorevole dai record di iscrizione (ct_users /
+// ct_u / ct_p) invece di fidarsi di un ct_me eventualmente corrotto.
+function _nomeAnagrafico(me){
+  me = me || lsG('ct_me', null) || {};
+  var out = { nome: (me.nome || ''), cognome: (me.cognome || '') };
+  var uid = String(me.uid || me.id || '');
+  if(!uid) return out;
+  function _match(x){ return x && (String(x.uid || '') === uid || String(x.id || '') === uid); }
+  var cands = [].concat(lsG('ct_users', []) || [], lsG('ct_u', []) || [], lsG('ct_p', []) || []);
+  for(var i = 0; i < cands.length; i++){
+    var c = cands[i];
+    if(!_match(c)) continue;
+    var n = String(c.nome || '').trim();
+    // Ignora record in cui il nome coincide col nickname (dato corrotto)
+    var _nick = String(c.nickname || '').trim().toLowerCase();
+    if(n && (!_nick || n.toLowerCase() !== _nick)){
+      out.nome = n;
+      out.cognome = String(c.cognome || '').trim();
+      break;
+    }
+  }
+  return out;
+}
+
 function apriProfilo(){
   var me=lsG('ct_me',null);if(!me)return;
 
@@ -10683,10 +10761,12 @@ function apriProfilo(){
   var pNick=document.getElementById('mpf-nickname');
   if(pNick)pNick.value=me.nickname||'';
 
-  // Nome anagrafico reale (registrazione) — mostrato in sola lettura
+  // Nome anagrafico reale (registrazione) — mostrato in sola lettura.
+  // Recuperato dal record autorevole, mai dal nickname.
   var pNomeReale=document.getElementById('mpf-nome-reale');
   if(pNomeReale){
-    var _nomeReale=((me.nome||'')+' '+(me.cognome||'')).trim()||me.nome||'\u2014';
+    var _anagReale=_nomeAnagrafico(me);
+    var _nomeReale=((_anagReale.nome||'')+' '+(_anagReale.cognome||'')).trim()||me.nome||'\u2014';
     pNomeReale.textContent=_nomeReale;
   }
 
@@ -10719,6 +10799,11 @@ function apriProfilo(){
 
 function salvaProfilo(){
   var me=lsG('ct_me',null);if(!me)return;
+  // Anagrafica protetta: ripristina Nome/Cognome di registrazione
+  // (mai sovrascritti dal nickname) dal record autorevole.
+  var _anagSave=_nomeAnagrafico(me);
+  if(_anagSave.nome) me.nome=_anagSave.nome;
+  if(_anagSave.cognome) me.cognome=_anagSave.cognome;
   var nickEl=document.getElementById('mpf-nickname');
   var nickname=nickEl?nickEl.value.trim():'';
   var grado=document.getElementById('mpf-grado').value;

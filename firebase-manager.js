@@ -546,6 +546,7 @@ function _startListeners(reparto) {
       if(window.CDB) { CDB.set('ct_bacheca', arr); } else { localStorage.setItem('ct_bacheca', JSON.stringify(arr)); }
       if(typeof window._renderBachecaComando === 'function') window._renderBachecaComando();
       if(typeof window.renderBachecaDash === 'function') window.renderBachecaDash();
+      if(typeof window.renderAvvisiAgenda === 'function') window.renderAvvisiAgenda();
     }, function(e){ console.warn('onSnapshot bacheca:', e.message); }));
   } catch(e3) { console.warn('avvio listener bacheca:', e3.message); }
 
@@ -1370,6 +1371,46 @@ window.FirebaseModule = {
   saveUserProfile: async function(uid, profile, reparto) {
     try {
       var profileClean = Object.assign({}, profile);
+
+      // ── ANAGRAFICA PROTETTA (Nome / Cognome) ────────────────────
+      // Nome e Cognome sono fissati in fase di iscrizione e NON devono
+      // MAI essere sovrascritti dal nickname (bug storico). Leggiamo il
+      // documento esistente e, se contiene già l'anagrafica, la conserviamo
+      // su /utenti/{uid} e su reparti/{rep}/utenti/{uid}.
+      try {
+        var _anag = null;
+        var _toAn = function(){ return new Promise(function(_,r){ setTimeout(function(){ r(new Error('timeout')); }, 4000); }); };
+        if(window._fbGetDoc && window._fbDoc){
+          var _snapAn = await Promise.race([ window._fbGetDoc(window._fbDoc(db, 'utenti', uid)), _toAn() ]);
+          if(_snapAn && _snapAn.exists()){
+            var _oldAn = _snapAn.data() || {};
+            if(_oldAn.nome && String(_oldAn.nome).trim()){
+              _anag = { nome: _oldAn.nome, cognome: _oldAn.cognome || '' };
+            }
+          }
+          if(reparto && !_anag){
+            var _repAn = reparto.toLowerCase().replace(/\s+/g,'_');
+            var _snapRp = await Promise.race([ window._fbGetDoc(window._fbDoc(db, 'reparti', _repAn, 'utenti', uid)), _toAn() ]);
+            if(_snapRp && _snapRp.exists()){
+              var _oldRp = _snapRp.data() || {};
+              if(_oldRp.nome && String(_oldRp.nome).trim()){
+                _anag = { nome: _oldRp.nome, cognome: _oldRp.cognome || '' };
+              }
+            }
+          }
+        }
+        if(_anag){
+          profileClean.nome    = _anag.nome;
+          profileClean.cognome = _anag.cognome;
+        }
+        // Difesa: se il nome coincide col nickname, è un dato corrotto:
+        // non propagarlo (il campo nickname resta separato).
+        if(profileClean.nickname && profileClean.nome &&
+           String(profileClean.nome).trim().toLowerCase() === String(profileClean.nickname).trim().toLowerCase() &&
+           !(profileClean.cognome && String(profileClean.cognome).trim())){
+          delete profileClean.nome;
+        }
+      } catch(eAn){ /* primo salvataggio: nessuna anagrafica pregressa */ }
 
       // Protezione anti-azzeramento: un pool licenze vuoto NON deve essere scritto,
       // perché `setDoc` con merge:sovrascrive gli array presenti (una merge ignora
