@@ -2926,8 +2926,10 @@ function _isMyTurno(t, me) {
       if(_pMe && String(_pMe.id)===tPid) return true;
     }
   }
-  // Fallback per vecchie importazioni: nome completo esatto, mai parziale.
-  if(t.pnome && (me.nome || me.cognome)) {
+  // Fallback per vecchie importazioni: SOLO con nome E cognome completi.
+  // Mai col solo nome/cognome: con un omonimo (stesso nome, cognome diverso)
+  // aggancerebbe i turni della persona sbagliata.
+  if(t.pnome && me.nome && me.cognome) {
     var norm=function(v){return (v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();};
     var pn=norm(t.pnome),n=norm(me.nome),c=norm(me.cognome);
     if(pn&&[norm(c+' '+n),norm(n+' '+c)].indexOf(pn)!==-1) {
@@ -2949,6 +2951,32 @@ function _isMyTurno(t, me) {
   return false;
 }
 
+// -- Match STRETTO di proprietà del turno (identico al Calendario):
+//    solo pid / uid / ownerUid, NESSUN fallback sul nome → niente omonimie.
+function _isMioTurnoStrict(t, me){
+  if(!t || !me) return false;
+  var myPid = me.myPid || localStorage.getItem('ct_my_pid') || '';
+  var myUid = me.uid || me.id || '';                       // come il calendario
+  var meId  = (me.id===undefined||me.id===null||me.id==='') ? '' : String(me.id);
+  var tPid  = (t.pid===undefined||t.pid===null||t.pid==='') ? '' : String(t.pid);
+  var tUid  = String(t.ownerUid||t.uid||t.userId||'');
+  if(tPid){
+    if(myPid && tPid===String(myPid)) return true;
+    if(myUid && tPid===String(myUid)) return true;
+    if(meId && tPid===meId) return true;
+  }
+  if(tUid && ((myUid && tUid===String(myUid)) || (meId && tUid===meId))) return true;
+  // Risolvi la persona reale dell'utente da ct_p (per uid/id, mai per nome)
+  var _P = lsG('ct_p', []);
+  if(_P && _P.length){
+    var _pMe = null;
+    if(me.uid) _pMe = _P.find(function(p){ return p.uid===me.uid; });
+    if(!_pMe && meId) _pMe = _P.find(function(p){ return String(p.id)===meId; });
+    if(_pMe && tPid && String(_pMe.id)===tPid) return true;
+  }
+  return false;
+}
+
 // -- Helper: turno di "servizio" (non un permesso/assenza personale) --
 var _TIPI_PERSONALI_MIO = ['riposo','ferie','recupero','licenza','permesso','studio','937','104','ls','fest'];
 function _isServizioTurno(t){
@@ -2960,19 +2988,12 @@ function _isServizioTurno(t){
 //    dà priorità al turno di servizio rispetto a ferie/licenze/riposo --
 function _mioTurnoDelGiorno(T, me, ds){
   if(!T || !me) return null;
-  var meId = (me.id===undefined||me.id===null||me.id==='') ? '' : String(me.id);
-  var miei = T.filter(function(t){ return t && t.data===ds && _isMyTurno(t,me); });
+  // Match STRETTO (come il Calendario): solo pid/uid, nessun fallback sul nome,
+  // così non si aggancia un collega omonimo (stesso nome, cognome diverso).
+  var miei = T.filter(function(t){ return t && t.data===ds && _isMioTurnoStrict(t,me); });
   if(!miei.length) return null;
-  // Preferisci i turni corrispondenti per identità "forte" (id/uid) rispetto a
-  // un eventuale ct_my_pid rimasto stantio da sessioni precedenti.
-  var forti = miei.filter(function(t){
-    var tPid = (t.pid===undefined||t.pid===null||t.pid==='') ? '' : String(t.pid);
-    var owner = String(t.ownerUid||t.uid||t.userId||'');
-    return (meId && tPid===meId) || (me.uid && owner && owner===String(me.uid));
-  });
-  var pool = forti.length ? forti : miei;
-  for(var i=0;i<pool.length;i++){ if(_isServizioTurno(pool[i])) return pool[i]; }
-  return pool[0];
+  for(var i=0;i<miei.length;i++){ if(_isServizioTurno(miei[i])) return miei[i]; }
+  return miei[0];
 }
 
 function aggiornaWidget(){
@@ -7508,6 +7529,13 @@ function _syncMyPid(){
     // Se ct_my_pid è già impostato, verifica che esista ancora in ct_p
     var P = lsG('ct_p', []);
     if(myPid){
+      // Auto-riparazione: se ho un uid Firebase, il pid salvato DEVE corrispondere
+      // alla mia persona. Altrimenti (es. omonimia) lo correggo.
+      var byUidSelf = me.uid ? P.find(function(p){ return p.uid && p.uid === me.uid; }) : null;
+      if(byUidSelf && String(byUidSelf.id) !== String(myPid)){
+        localStorage.setItem('ct_my_pid', String(byUidSelf.id));
+        return;
+      }
       var exists = P.some(function(p){ return String(p.id) === String(myPid); });
       if(exists) return; // già ok
     }
@@ -7517,11 +7545,12 @@ function _syncMyPid(){
     // Cerca per nome+cognome (match robusto)
     var n = (me.nome||'').toLowerCase().trim();
     var c = (me.cognome||'').toLowerCase().trim();
-    var varianti = [
+    // Solo nome completo (cognome+nome o nome+cognome): MAI il solo nome/cognome,
+    // altrimenti con un omonimo sul nome si aggancia la persona sbagliata.
+    var varianti = (n && c ? [
       (c+' '+n).replace(/\s+/g,' ').trim(),
-      (n+' '+c).replace(/\s+/g,' ').trim(),
-      c, n
-    ].filter(function(v){ return v.length > 1; });
+      (n+' '+c).replace(/\s+/g,' ').trim()
+    ] : []).filter(function(v){ return v.length > 1; });
     var byNome = P.find(function(p){
       var pn = (p.nome||'').toLowerCase().trim().replace(/\s+/g,' ');
       return varianti.some(function(v){ return v === pn || pn === v; });
@@ -7923,6 +7952,15 @@ function aggSel(){
 
 // ---- CALENDARIO ----
 var cMO=new Date().getMonth(),cYR=new Date().getFullYear();
+var _calSel=null; // giorno selezionato (YYYY-MM-DD) — evidenzia .cal-cell.sel
+function _calSyncSel(){
+  var wrap=document.getElementById('cal-wrap');
+  if(!wrap) return;
+  wrap.querySelectorAll('.cal-cell').forEach(function(c){
+    var oc=c.getAttribute('onclick')||'';
+    c.classList.toggle('sel', !!_calSel && oc.indexOf("'"+_calSel+"'")!==-1);
+  });
+}
 function renderCal(){
   var mN=["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno",
           "Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
@@ -7934,6 +7972,9 @@ function renderCal(){
   var me=lsG("ct_me",null);
   var myPid=parseInt(localStorage.getItem("ct_my_pid")||"0");
   var myUid=(me&&(me.uid||me.id))||null;
+  // Giorno selezionato: default su oggi alla prima apertura
+  var _todayDs=og.getFullYear()+"-"+pad(og.getMonth()+1)+"-"+pad(og.getDate());
+  if(_calSel===null) _calSel=_todayDs;
 
   var cols={
     mattina:"#ffb300",pomeriggio:"#ff6d00",notte:"#7c4dff",
@@ -7975,7 +8016,7 @@ function renderCal(){
       })||null;
     }
 
-    h+="<div class=\"cal-cell"+(isO?" today":"")+"\" onclick=\"mostraGiorno('"+ds+"')\">";
+    h+="<div class=\"cal-cell"+(isO?" today":"")+((ds===_calSel)?" sel":"")+"\" onclick=\"mostraGiorno('"+ds+"')\">";
     h+="<div style=\"display:flex;align-items:center;justify-content:space-between\">";
     h+="<div class=\"cal-day-n\" style=\""+(isO?"color:var(--blue);font-weight:800":"")+"\">"+g+"</div>";
 
@@ -8068,6 +8109,8 @@ function calTab(tab) {
   if(btnAg) { btnAg.style.background = isTodo ? 'transparent' : 'var(--blue)'; btnAg.style.color = isTodo ? 'var(--txt2)' : '#fff'; btnAg.style.fontWeight = isTodo ? '600' : '700'; }
 }
 function mostraGiorno(ds){
+  _calSel=ds;
+  if(typeof _calSyncSel==='function') _calSyncSel();
   var mN=["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno",
           "Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
   var d=_parseDate(ds);
@@ -8654,6 +8697,14 @@ function switchRepTab(tab) {
   if (straordEl) straordEl.style.display = tab === 'straord' ? '' : 'none';
   if (tab === 'straord') renderStraord();
   if (tab === 'turni')   renderRep();
+  // Micro-transizione GPU (solo transform/opacity) sul pannello attivo
+  var _active = (tab === 'turni') ? turniEl : straordEl;
+  if (_active) {
+    _active.classList.remove('rep-panel-in');
+    void _active.offsetWidth; // reflow per riavviare l'animazione
+    _active.classList.add('rep-panel-in');
+    setTimeout(function(){ _active.classList.remove('rep-panel-in'); }, 340);
+  }
 }
 
 var _STRAORD_TIPI = {
@@ -8792,8 +8843,29 @@ function renderSalvadanaio() {
   // 1. Ore disponibili + creazione giorno "Recupero ore"
   var el1 = document.getElementById('salv-disponibili');
   if (el1) {
-    el1.innerHTML =
-      '<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--txt2)">Disponibili per recupero</div>'
+    // ── Cruscotto visivo: barra solida + chip colorati (M3 Expressive) ──
+    var b = s.corrente;
+    var lav = b ? (b.minLavorate || 0) : 0;
+    var segR = lav > 0 ? Math.round((b.minRecupero || 0) / lav * 100) : 0;
+    var segD = lav > 0 ? Math.round((b.minDaDestinare || 0) / lav * 100) : 0;
+    var segP = Math.max(0, 100 - segR - segD);
+    var pagateTot = (s.mesi || []).reduce(function(a, x){ return a + (x.minPagate || 0); }, 0);
+    var dash =
+      '<div class="salv-dash">'
+      + '<div class="wstr-bar-wrap" style="height:10px;display:flex">'
+      +   '<div class="wstr-bar-fill" style="width:' + segR + '%;background:var(--teal)"></div>'
+      +   '<div class="wstr-bar-fill" style="width:' + segD + '%;background:var(--gold)"></div>'
+      +   '<div class="wstr-bar-fill" style="width:' + segP + '%;background:var(--blue)"></div>'
+      + '</div>'
+      + '<div class="salv-chips">'
+      +   '<span class="salv-chip" style="--c:var(--txt)">&#128337; Lavorate <b>' + _minLabel(lav) + '</b></span>'
+      +   '<span class="salv-chip" style="--c:var(--gold)">&#127919; Da destinare <b>' + _minLabel(b ? b.minDaDestinare : 0) + '</b></span>'
+      +   '<span class="salv-chip" style="--c:var(--blue)">&#128176; A pagamento <b>' + _minLabel(pagateTot) + '</b></span>'
+      +   '<span class="salv-chip" style="--c:var(--teal)">&#127796; Giorni RO <b>' + s.giorniDisponibili + '</b></span>'
+      + '</div>'
+      + '</div>';
+    el1.innerHTML = dash
+      + '<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--txt2);margin-top:4px">Disponibili per recupero</div>'
     + '<div style="font-size:26px;font-weight:900;color:var(--teal);line-height:1.15">' + _minLabel(s.minDisponibili) + '</div>'
     + '<div style="font-size:11px;color:var(--txt2);margin-bottom:10px">= ' + s.giorniDisponibili + ' '
     +   (s.giorniDisponibili === 1 ? 'giorno' : 'giorni') + ' di licenza &middot; 1 giorno = ' + s.oreGiorno + 'h</div>'
@@ -11369,7 +11441,7 @@ function renderWidgetProssimo(me) {
   // Turno di oggi
   if (turnoLbl && me) {
     var T = lsG('ct_t', []);
-    var turnoOggi = T.find(function(t){ return _isMyTurno(t, me) && t.data === oggi; });
+    var turnoOggi = T.find(function(t){ return _isMioTurnoStrict(t, me) && t.data === oggi; });
     turnoLbl.textContent = turnoOggi ? (turnoOggi.orario || turnoOggi.tipo || '') : '';
   }
 }
@@ -14475,7 +14547,7 @@ function _checkRipplePulse() {
   var now = new Date();
   var oggi = now.getFullYear()+'-'+('0'+(now.getMonth()+1)).slice(-2)+'-'+('0'+now.getDate()).slice(-2);
   var T = lsG('ct_t', []);
-  var mioTurno = T.find(function(t){ return _isMyTurno(t, me) && t.data === oggi; });
+  var mioTurno = T.find(function(t){ return _isMioTurnoStrict(t, me) && t.data === oggi; });
   if(!mioTurno || !mioTurno.orario || mioTurno.orario.indexOf('-') < 0) return;
 
   var parts = mioTurno.orario.split('-');
@@ -14540,24 +14612,36 @@ function _initMagneticSnap() {
     if(navigator.vibrate) navigator.vibrate(15);
   }, true);
 
-  // Touch drag
+  // Touch: il feedback "drag" scatta SOLO dopo un vero trascinamento (soglia),
+  // così un semplice tap non fa "muovere" il widget.
+  var _tX = 0, _tY = 0, _tArmed = false;
   container.addEventListener('touchstart', function(e) {
     var el = e.target.closest('.wdg-wrap');
-    if(!el) return;
-    dragEl = el;
-    dragEl.classList.add('dragging-active');
+    if(!el || !e.touches || !e.touches.length) { _tArmed = false; return; }
+    dragEl = el; _tArmed = true;
+    _tX = e.touches[0].clientX; _tY = e.touches[0].clientY;
+  }, {passive:true, capture:true});
+
+  container.addEventListener('touchmove', function(e) {
+    if(!_tArmed || !dragEl || !e.touches || !e.touches.length) return;
+    var dx = e.touches[0].clientX - _tX;
+    var dy = e.touches[0].clientY - _tY;
+    if(!dragEl.classList.contains('dragging-active') && (Math.abs(dx) + Math.abs(dy) > 10)) {
+      dragEl.classList.add('dragging-active');
+    }
   }, {passive:true, capture:true});
 
   container.addEventListener('touchend', function() {
-    if(!dragEl) return;
-    dragEl.classList.remove('dragging-active');
-    dragEl.classList.add('snap-in');
-    dragEl.classList.add('snap-glow');
-    setTimeout(function(){
-      if(dragEl) { dragEl.classList.remove('snap-in'); dragEl.classList.remove('snap-glow'); }
-      dragEl = null;
-    }, 500);
-    if(navigator.vibrate) navigator.vibrate(15);
+    _tArmed = false;
+    var el = dragEl; dragEl = null;
+    if(!el) return;
+    var wasDragging = el.classList.contains('dragging-active');
+    el.classList.remove('dragging-active');
+    if(wasDragging) {
+      el.classList.add('snap-in'); el.classList.add('snap-glow');
+      setTimeout(function(){ el.classList.remove('snap-in'); el.classList.remove('snap-glow'); }, 500);
+      if(navigator.vibrate) navigator.vibrate(15);
+    }
   }, {passive:true, capture:true});
 }
 

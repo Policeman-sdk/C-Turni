@@ -1182,6 +1182,19 @@ html[data-font="xxl"] #pg-app { zoom: 1.35; }
 .salv-badge.warn { background:rgba(255,159,67,.15); color:var(--gold); }
 #wstr-salv-row:hover { opacity:.85; }
 
+/* ── Salvadanaio — cruscotto visivo (barra solida + chip colorati) ── */
+.salv-dash { margin-bottom: 14px; }
+.salv-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.salv-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  min-height: 28px; padding: 5px 10px;
+  border-radius: 999px; font-size: 11px; font-weight: 600;
+  color: var(--txt); background: var(--card2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--c, var(--blue));
+}
+.salv-chip b { font-weight: 900; color: var(--c, var(--txt)); }
+
 /* Bottoni tipo reparto (trasferimento/unisciti) */
 .tipo-rep-btn { border:1.5px solid var(--border); background:var(--bg2); padding:7px 12px; border-radius:20px; font-weight:600; font-size:12px; cursor:pointer; transition:all .15s; color:var(--txt2); appearance:none;-webkit-appearance:none; }
 .tipo-rep-btn.sel { background:var(--blue); color:#fff; border-color:var(--blue); }
@@ -1940,7 +1953,11 @@ html[data-font="xxl"] #pg-app { zoom: 1.35; }
 }
 .wdg-wrap:hover {
   box-shadow: var(--m3-shadow-md) !important;
-  transform: translateY(-2px) !important;
+}
+/* Sollevamento al hover SOLO su dispositivi con hover reale: su mobile l'hover
+   "sticky" faceva muovere il widget al semplice tocco. */
+@media (hover:hover) and (pointer:fine) {
+  .wdg-wrap:hover { transform: translateY(-2px) !important; }
 }
 .wdg-wrap.dragging {
   opacity: .45 !important;
@@ -4829,6 +4846,12 @@ body[data-atmosfera="oasi"]       .hero-ring-fill { stroke: #00C853; }
   background: var(--card);
   color: var(--txt);
   box-shadow: 0 2px 8px rgba(0,0,0,.12);
+}
+/* Transizione pannello Report — solo GPU (transform/opacity) */
+.rep-panel-in { animation: repPanelIn .3s cubic-bezier(.34,1.56,.64,1) both; }
+@keyframes repPanelIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* Selettore mese straordinari */
