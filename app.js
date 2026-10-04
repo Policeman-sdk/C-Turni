@@ -2909,8 +2909,23 @@ function _isMyTurno(t, me) {
   if(!t || !me) return false;
   var myPid = me.myPid || localStorage.getItem('ct_my_pid');
   var owner=String(t.ownerUid||t.uid||t.userId||'');
-  if(me.uid&&owner===String(me.uid))return true;
-  if(String(t.pid)===String(me.id)||(me.uid&&String(t.pid)===String(me.uid))||(myPid&&String(t.pid)===String(myPid)))return true;
+  if(me.uid&&owner&&owner===String(me.uid))return true;
+  // Confronto pid SOLO se realmente valorizzato (evita il falso positivo "undefined"==="undefined")
+  var tPid = (t.pid===undefined||t.pid===null||t.pid==='') ? '' : String(t.pid);
+  var meId = (me.id===undefined||me.id===null||me.id==='') ? '' : String(me.id);
+  if(tPid){
+    if(meId && tPid===meId) return true;
+    if(me.uid && tPid===String(me.uid)) return true;
+    if(myPid && tPid===String(myPid)) return true;
+    // Fallback: risolvi la persona reale dell'utente da ct_p (via uid o id)
+    var _P = lsG('ct_p', []);
+    if(_P && _P.length){
+      var _pMe = null;
+      if(me.uid) _pMe = _P.find(function(p){ return p.uid===me.uid; });
+      if(!_pMe && meId) _pMe = _P.find(function(p){ return String(p.id)===meId; });
+      if(_pMe && String(_pMe.id)===tPid) return true;
+    }
+  }
   // Fallback per vecchie importazioni: nome completo esatto, mai parziale.
   if(t.pnome && (me.nome || me.cognome)) {
     var norm=function(v){return (v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();};
@@ -2934,6 +2949,32 @@ function _isMyTurno(t, me) {
   return false;
 }
 
+// -- Helper: turno di "servizio" (non un permesso/assenza personale) --
+var _TIPI_PERSONALI_MIO = ['riposo','ferie','recupero','licenza','permesso','studio','937','104','ls','fest'];
+function _isServizioTurno(t){
+  if(!t) return false;
+  if(t.categoria_evento) return t.categoria_evento==='servizio';
+  return _TIPI_PERSONALI_MIO.indexOf(t.tipo)===-1;
+}
+// -- Turno del giorno dell'utente: se ha più voci nello stesso giorno,
+//    dà priorità al turno di servizio rispetto a ferie/licenze/riposo --
+function _mioTurnoDelGiorno(T, me, ds){
+  if(!T || !me) return null;
+  var meId = (me.id===undefined||me.id===null||me.id==='') ? '' : String(me.id);
+  var miei = T.filter(function(t){ return t && t.data===ds && _isMyTurno(t,me); });
+  if(!miei.length) return null;
+  // Preferisci i turni corrispondenti per identità "forte" (id/uid) rispetto a
+  // un eventuale ct_my_pid rimasto stantio da sessioni precedenti.
+  var forti = miei.filter(function(t){
+    var tPid = (t.pid===undefined||t.pid===null||t.pid==='') ? '' : String(t.pid);
+    var owner = String(t.ownerUid||t.uid||t.userId||'');
+    return (meId && tPid===meId) || (me.uid && owner && owner===String(me.uid));
+  });
+  var pool = forti.length ? forti : miei;
+  for(var i=0;i<pool.length;i++){ if(_isServizioTurno(pool[i])) return pool[i]; }
+  return pool[0];
+}
+
 function aggiornaWidget(){
   var me=lsG("ct_me",null);
   var w=document.getElementById("widget-oggi");
@@ -2941,10 +2982,7 @@ function aggiornaWidget(){
   var _now=new Date();
   var oggi=_now.getFullYear()+'-'+('0'+(_now.getMonth()+1)).slice(-2)+'-'+('0'+_now.getDate()).slice(-2);
   var T=lsG("ct_t",[]);
-  var mioTurno=null;
-  for(var i=0;i<T.length;i++){
-    if(_isMyTurno(T[i],me)&&T[i].data===oggi){mioTurno=T[i];break;}
-  }  var inner=document.getElementById("w-inner");
+  var mioTurno=_mioTurnoDelGiorno(T,me,oggi);  var inner=document.getElementById("w-inner");
 
   // Popola sempre avatar e nome utente
   var wAva=document.getElementById("w-ava");
@@ -3095,7 +3133,7 @@ function aggiornaHeroCard(){
   var now = new Date();
   var oggi = now.getFullYear()+'-'+('0'+(now.getMonth()+1)).slice(-2)+'-'+('0'+now.getDate()).slice(-2);
   var T = lsG('ct_t', []);
-  var mioTurno = T.find(function(t){ return _isMyTurno(t, me) && t.data === oggi; });
+  var mioTurno = _mioTurnoDelGiorno(T, me, oggi);
   var tipo = mioTurno ? (_codiceToTipo[mioTurno.codice] || mioTurno.tipo || 'riposo') : 'riposo';
 
   // Atmosfera
@@ -11091,7 +11129,11 @@ function toggleDashOrganizza(btn) {
   var panel = document.getElementById('dash-organizza-panel');
   var isOpen = panel.classList.toggle('open');
   btn.classList.toggle('open', isOpen);
-  if (isOpen) renderDopList();
+  if (isOpen) {
+    renderDopList();
+    // Rianima i widget su richiesta esplicita dell'utente (evita reveal continui)
+    if(typeof _frostReveal === 'function') _frostReveal();
+  }
 }
 
 function renderDopList() {
@@ -11363,7 +11405,7 @@ function renderWidgetSettimana(me) {
     giorno.setDate(lun.getDate() + i);
     var ds = giorno.getFullYear()+'-'+('0'+(giorno.getMonth()+1)).slice(-2)+'-'+('0'+giorno.getDate()).slice(-2);
     var isOggi = ds === (now.getFullYear()+'-'+('0'+(now.getMonth()+1)).slice(-2)+'-'+('0'+now.getDate()).slice(-2));
-    var mioT = T.find(function(t){ return _isMyTurno(t, me) && t.data === ds; });
+    var mioT = _mioTurnoDelGiorno(T, me, ds);
     var tipo = mioT ? (_codiceToTipo[mioT.codice] || mioT.tipo || 'riposo') : 'riposo';
     var sigla = mioT ? (mioT.codice || (_TURNO_SIGLA[tipo] || tipo.slice(0,2).toUpperCase())) : 'R';
     var col = colori[tipo] || '#37474F';
@@ -14473,6 +14515,8 @@ function _fireRipplePulse() {
 function _initMagneticSnap() {
   var container = document.getElementById('wdg-container');
   if(!container) return;
+  if(container._magneticInit) return;   // evita listener duplicati ad ogni render
+  container._magneticInit = true;
 
   var dragEl = null;
   var dragOverEl = null;
@@ -14595,12 +14639,18 @@ function _frostReveal() {
 }
 
 // -- INIT GLOBALE — chiamato da renderDash ---------------------
-function initPremiumEffects() {
+function initPremiumEffects(replayReveal) {
   _startGlassShimmer();
   _initMagneticSnap();
   _initGlassSpotlight();
   _animateHeroIcon();
-  _frostReveal();
+  // Frost Reveal: SOLO al primo ingresso in dashboard, oppure su richiesta
+  // esplicita (tap su "Organizza"). Così i widget non si rianimano ad ogni
+  // refresh/aggiornamento dati e l'effetto resta piacevole e non fastidioso.
+  if(replayReveal || !window._dashFrostDone) {
+    window._dashFrostDone = true;
+    _frostReveal();
+  }
 
   // Ripple pulse: controlla ogni minuto
   if(window._rippleTimer) clearInterval(window._rippleTimer);
