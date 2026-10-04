@@ -5202,7 +5202,7 @@ nav.bottom-bar#bottom-nav,
   box-shadow: 0 -6px 24px rgba(0,0,0,.32) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  z-index: 700 !important;
+  z-index: 1000 !important;
   display: flex !important;
   align-items: center !important;
   justify-content: space-evenly !important;
@@ -5246,3 +5246,116 @@ nav.bottom-bar#bottom-nav,
   border-left-color: var(--red);
   background: rgba(200,16,46,.07);
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   TASK 6 — APP SHELL / VIEWPORT BLOCCATA (stile app nativa)
+   ---------------------------------------------------------------
+   Il documento NON è più una pagina web scrollabile:
+   • html/body ......... dimensione = viewport esatto, mai scrollabili
+   • #pg-app ........... occupa il 100% del body (100% => segue anche
+                         le variazioni dinamiche della toolbar mobile,
+                         a differenza di 100vh/100dvh)
+   • .hdr .............. testata non comprimibile (60px)
+   • .body ............. riempie lo spazio fra header e bottom bar
+   • .cont ............. UNICO contenitore con scroll interno (momentum)
+   • #bottom-nav ....... ancorata al viewport (position:fixed, z-index 1000)
+
+   ⚠️  Nessun `transform` / `filter` / `contain` / `will-change` su
+   html, body, #pg-app, .body, .cont: creerebbero un containing block
+   per i discendenti `position: fixed` e farebbero "scorrere" via la
+   bottom navigation.
+   ⚠️  `overflow: clip` (con fallback `hidden`) dove NON deve esistere
+   uno scroll container: evita lo scroll-into-view automatico su focus
+   degli input (che sposterebbe l'header) mantenendo il clipping.
+   La logica JS resta invariata: il listener `document.addEventListener
+   ('scroll', ..., true)` legge già `.cont.scrollTop` per `.hdr.scrolled`,
+   e `vaiBN()` continua a lavorare su `.pag`/`#bottom-nav` come prima.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* 1. Body e viewport: nessuno scroll dell'intera pagina --------- */
+html,
+body {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;            /* annulla il body/min-height:100vh */
+  max-height: 100% !important;
+  overflow: hidden !important;
+  overflow: clip !important;              /* niente scroll container */
+  overscroll-behavior: none !important;   /* niente pull-to-refresh  */
+}
+body {
+  position: fixed !important;             /* viewport lock (iOS/WebView) */
+  inset: 0 !important;
+}
+
+/* 2. Shell applicativa = spazio esatto del viewport ------------- */
+#pg-app {
+  height: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+  overflow: clip !important;
+}
+
+/* 3. Header: altezza fissa, mai compresso dal flex -------------- */
+#pg-app > .hdr {
+  flex: 0 0 auto;
+  min-height: 60px;
+  max-height: 60px;
+}
+
+/* 4. Area centrale: fra header e bottom bar, sempre clippata ---- */
+#pg-app > .body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  overflow: clip;
+}
+
+/* 5. Scroll interno dell'app (unico scroller) ------------------- */
+#pg-app > .body > .cont {
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overflow-x: clip !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;         /* lo scroll non si propaga */
+}
+
+/* 6. Bottom navigation saldamente ancorata in basso ------------ */
+#bottom-nav,
+nav.bottom-bar#bottom-nav,
+.bottom-bar {
+  position: fixed !important;
+  bottom: 0 !important;
+  top: auto !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  transform: none !important;
+  z-index: 1000 !important;
+}
+
+/* 7. Stampa: ripristina il flusso normale del documento -------- */
+@media print {
+  html,
+  body {
+    position: static !important;
+    inset: auto !important;
+    width: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  #pg-app,
+  #pg-app > .body,
+  #pg-app > .body > .cont {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+}
+
