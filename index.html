@@ -646,11 +646,11 @@
       <!-- ═══ MODALITÀ FOCUS — RIMOSSA (Task 1) ═══ -->
 
         <input type="file" id="xi" accept=".xlsx,.xls" onchange="importXL(this.files[0])" style="display:none">
-        <!-- BARRA ORGANIZZA DASHBOARD -->
+        <!-- BARRA LAYOUT DASHBOARD — Blocco/Sblocco (sostituisce il vecchio "Organizza") -->
         <div style="display:flex;align-items:center;justify-content:flex-end;margin-top:14px;margin-bottom:4px">
-          <button id="btn-dash-organizza" onclick="toggleDashOrganizza(this)">&#9776; Organizza</button>
+          <button id="btn-dash-lock" onclick="toggleWidgetLock()" aria-pressed="true" title="Blocca o sblocca la disposizione dei widget">&#128274; Layout bloccato</button>
         </div>
-        <!-- PANNELLO ORGANIZZA -->
+        <!-- PANNELLO PERSONALIZZAZIONE WIDGET (visibile solo a layout sbloccato) -->
         <div id="dash-organizza-panel">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
             <div style="font-size:12px;font-weight:700;color:var(--txt)">&#9776; Ordine widget</div>
@@ -2024,10 +2024,16 @@
       </div>
     </div>
 
-    <!-- Nome (solo locale — nickname) -->
+    <!-- Nome anagrafico reale (registrazione) — sola lettura -->
     <div class="fg" style="margin-bottom:0">
-      <label>Nome / Nickname <span style="font-size:10px;color:var(--txt3);font-weight:400">(visibile solo a te)</span></label>
-      <input type="text" class="fc app-fc" id="mpf-nome" placeholder="Il tuo nome o nickname">
+      <label>Nome registrato <span style="font-size:10px;color:var(--txt3);font-weight:400">(anagrafica — non modificabile)</span></label>
+      <div class="fc app-fc m3-readonly" id="mpf-nome-reale" style="display:flex;align-items:center">—</div>
+    </div>
+
+    <!-- Nickname (solo locale — NON tocca il nome anagrafico) -->
+    <div class="fg" style="margin-bottom:0">
+      <label>Nickname <span style="font-size:10px;color:var(--txt3);font-weight:400">(come ti chiami nell'app — visibile solo a te)</span></label>
+      <input type="text" class="fc app-fc" id="mpf-nickname" placeholder="Il tuo nickname (opzionale)" autocomplete="off">
     </div>
 
     <!-- Grado — picker in-app -->
@@ -2583,12 +2589,17 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
       <div class="g2">
         <div class="fg" style="margin-bottom:0">
           <label>Ore a pagamento</label>
-          <input type="number" class="fc" id="chiusura-pagate" min="0" step="0.5" value="0" oninput="_chiusuraAnteprima()">
+          <input type="number" class="fc" id="chiusura-pagate" min="0" step="0.25" inputmode="decimal" value="0" oninput="_chiusuraAnteprima()">
         </div>
         <div class="fg" style="margin-bottom:0">
           <label>Ore a recupero</label>
-          <input type="number" class="fc" id="chiusura-recupero" min="0" step="0.5" value="0" oninput="_chiusuraAnteprima()">
+          <input type="number" class="fc" id="chiusura-recupero" min="0" step="0.25" inputmode="decimal" value="0" oninput="_chiusuraAnteprima()">
         </div>
+      </div>
+      <!-- Assegnazione rapida: esaurisce le ore senza lasciare minuti scoperti -->
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+        <button type="button" class="btn btn-sm" style="width:auto;font-size:11px" onclick="chiusuraAssegnaTutto('pag')">&#128176; Tutto a pagamento</button>
+        <button type="button" class="btn btn-sm" style="width:auto;font-size:11px" onclick="chiusuraAssegnaTutto('rec')">&#128260; Tutto a recupero</button>
       </div>
       <div id="chiusura-anteprima" style="font-size:12px;color:var(--txt2);margin-top:12px;line-height:1.6"></div>
       <div id="chiusura-err" class="emsg" style="display:none"></div>

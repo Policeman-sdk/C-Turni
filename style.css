@@ -1256,13 +1256,19 @@ html[data-font="xxl"] #pg-app { zoom: 1.35; }
   border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
 .dop-toggle.on{background:var(--green)}
 .dop-toggle.on::after{transform:translateX(16px)}
-/* Btn organizza in dashboard */
-#btn-dash-organizza{display:flex;align-items:center;gap:6px;padding:7px 13px;
-  border-radius:10px;background:var(--card);border:1px solid var(--border);
+/* Btn layout widget in dashboard (Lock / Unlock) — sostituisce il vecchio "Organizza" */
+#btn-dash-organizza,#btn-dash-lock{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;
+  border-radius:var(--radius-pill);background:var(--card);border:1px solid var(--border);
   color:var(--txt2);font-size:12px;font-weight:700;cursor:pointer;
-  appearance:none;-webkit-appearance:none;appearance:none;transition:background .16s,color .16s}
-#btn-dash-organizza:hover{background:var(--card2);color:var(--txt)}
-#btn-dash-organizza.open{background:var(--blue);color:#fff;border-color:var(--blue)}
+  appearance:none;-webkit-appearance:none;appearance:none;
+  transition:background .16s,color .16s,transform .16s var(--motion-spring),box-shadow .16s}
+#btn-dash-organizza:hover,#btn-dash-lock:hover{background:var(--card2);color:var(--txt);box-shadow:var(--elevation-1)}
+#btn-dash-lock:active{transform:scale(.95)}
+#btn-dash-organizza.open,#btn-dash-lock.open{background:var(--blue);color:#fff;border-color:var(--blue);
+  box-shadow:0 2px 10px rgba(91,159,255,.28)}
+/* Layout BLOCCATO: nessun handle di trascinamento né di ridimensionamento */
+.wdg-locked .wdg-drag-handle,
+.wdg-locked .wdg-resize-handle{display:none !important}
 
   @media print{
     body{background:#fff!important;color:#000!important}
@@ -5143,3 +5149,27 @@ body[data-atmosfera="oasi"]       .hero-ring-fill { stroke: #00C853; }
 
 /* Widget Dino — nessun resize handle, sempre grande */
 #widget-dino-dash .wdg-resize-handle { display: none !important; }
+
+/* ══════════════════════════════════════════════════════════════
+   M3 EXPRESSIVE — POLISH GLOBALE
+   Superfici solide, hit-area e feedback tattili più solidi.
+   Anima SOLO transform/opacity (GPU, zero reflow). Temi invariati.
+   ══════════════════════════════════════════════════════════════ */
+
+/* Campo in sola lettura (profilo): superficie piatta M3 */
+.m3-readonly{
+  background:var(--bg2)!important;border:1px solid var(--border)!important;
+  color:var(--txt2)!important;font-weight:600!important;cursor:default;
+  min-height:44px;display:flex;align-items:center;padding:12px 16px}
+
+/* Pulsanti: feedback spring + elevazione M3 (GPU-only) */
+.btn{transition:transform .18s var(--motion-spring),background .16s,color .16s,box-shadow .18s}
+.btn:hover{box-shadow:var(--elevation-2)}
+.btn:active{transform:scale(.94)}
+
+/* Toggle layout widget + input salvadanaio: hit area comoda */
+#btn-dash-lock,#chiusura-pagate,#chiusura-recupero{min-height:42px}
+
+/* Card conteggi Report: elevazione al passaggio (solo transform/box-shadow) */
+.rep-count-card{transition:transform .18s var(--motion-spring),box-shadow .18s}
+.rep-count-card:hover{transform:translateY(-1px);box-shadow:var(--elevation-1)}
