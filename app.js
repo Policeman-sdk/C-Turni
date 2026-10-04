@@ -4435,6 +4435,12 @@ function toggleImpProfilo() {
     if (pNuc) pNuc.value = me.nucleo || '';
     if (pGrado) pGrado.value = me.grado || '';
     if (pAva) pAva.value = me.ava || '';
+    // Anagrafica (Nome / Cognome) — separata dal nickname
+    var pNome = document.getElementById('pf-nome');
+    var pCogn = document.getElementById('pf-cognome');
+    var _anagImp = (typeof _nomeAnagrafico === 'function') ? _nomeAnagrafico(me) : { nome: me.nome, cognome: me.cognome };
+    if (pNome) pNome.value = _anagImp.nome || me.nome || '';
+    if (pCogn) pCogn.value = _anagImp.cognome || me.cognome || '';
     // Aggiorna preview avatar e griglia
     var prev = document.getElementById('pf-ava-prev');
     if (prev) {
@@ -6270,6 +6276,21 @@ function salvaImp(){
   var nNuc  =document.getElementById("pf-nuc");
   var nGrado=document.getElementById("pf-grado");
   var nAva  =document.getElementById("pf-ava");
+  // ── Anagrafica (Nome / Cognome) — separata dal nickname ────────
+  var nNome =document.getElementById("pf-nome");
+  var nCogn =document.getElementById("pf-cognome");
+  var pfErr =document.getElementById("pf-err");
+  if(pfErr) pfErr.classList.remove("on");
+  var esitoAnag={ ok:true, cambiato:false, me:u };   // nessuna modifica se i campi non ci sono
+  if(nNome && nCogn){
+    esitoAnag=_applicaAnagrafica(nNome.value, nCogn.value);
+    if(!esitoAnag.ok){
+      if(pfErr){ pfErr.textContent=esitoAnag.err; pfErr.classList.add("on"); }
+      toast(esitoAnag.err,"err");
+      return;
+    }
+    u=esitoAnag.me;
+  }
   // Salva sempre reparto e nucleo (anche se vuoti  non obbligatori)
   if(nRep)  u.reparto = nRep.value.trim();
   if(nNuc)  u.nucleo  = nNuc.value.trim();
@@ -6315,6 +6336,15 @@ function salvaImp(){
     var okEl=document.getElementById("pf-ok");
     if(okEl){okEl.classList.add("on");setTimeout(function(){okEl.classList.remove("on");},3000);}
     toast("Profilo aggiornato \u2713","ok");
+    // Anagrafica modificata: scrive su /utenti/{uid} + reparti/{rep}/utenti/{uid}
+    if(esitoAnag.cambiato){
+      if(typeof aggiornaHeroCard === 'function') aggiornaHeroCard();
+      if(typeof aggiornaWidget === 'function') aggiornaWidget();
+      _salvaAnagraficaCloud(u)
+        .then(function(){ return (window.FirebaseModule && window.FirebaseModule.savePersonale) ? window.FirebaseModule.savePersonale() : null; })
+        .then(function(){ return (window.FirebaseModule && window.FirebaseModule.savePersona) ? window.FirebaseModule.savePersona() : null; })
+        .catch(function(e){ console.warn("salvaImp anagrafica:", e && e.message); });
+    }
   }
   else{toast("Errore salvataggio","err");}
 }
@@ -10754,21 +10784,87 @@ function _nomeAnagrafico(me){
   return out;
 }
 
+// ── ANAGRAFICA MODIFICABILE (Nome / Cognome) ──────────────────
+// Nome e Cognome sono l'anagrafica reale (turni, tesserino, colleghi) e
+// restano SEPARATI dal nickname. Vengono modificati dalle Impostazioni
+// Profilo (pop-up "Il mio profilo" e sezione Profilo in Impostazioni) e
+// sincronizzati in locale (ct_me / ct_u / ct_p) e su Firebase
+// (/utenti/{uid} + reparti/{rep}/utenti/{uid}).
+
+// Ripulisce un campo anagrafico: niente markup, spazi normalizzati.
+function _anagNorm(v){
+  return String(v == null ? '' : v).replace(/[<>]/g,'').replace(/\s+/g,' ').trim();
+}
+
+// Applica Nome/Cognome a ct_me (+ cache ct_u / ct_p) con validazione.
+// Ritorna { ok, err, nome, cognome, cambiato, me }.
+function _applicaAnagrafica(nome, cognome){
+  var me = lsG('ct_me', null);
+  if(!me) return { ok:false, err:'Profilo non caricato' };
+  var n = _anagNorm(nome), c = _anagNorm(cognome);
+  if(n.length < 2) return { ok:false, err:'Inserisci un nome valido (min 2 lettere)' };
+  if(c.length > 0 && c.length < 2) return { ok:false, err:'Cognome troppo corto (min 2 lettere)' };
+  if(n.length > 40 || c.length > 40) return { ok:false, err:'Nome o cognome troppo lungo (max 40)' };
+
+  var cambiato = (n !== String(me.nome || '')) || (c !== String(me.cognome || ''));
+  me.nome = n;
+  me.cognome = c;
+  if(cambiato){ try{ me.anagraficaMod = new Date().toISOString(); }catch(e){} }
+  lsS('ct_me', me);
+
+  var _mia = function(x){
+    if(!x) return false;
+    if(me.uid && x.uid && x.uid === me.uid) return true;
+    if(me.id !== undefined && String(x.id) === String(me.id)) return true;
+    return false;
+  };
+  var U = lsG('ct_u', []);
+  for(var i=0;i<U.length;i++){ if(_mia(U[i])){ U[i].nome = n; U[i].cognome = c; break; } }
+  lsS('ct_u', U);
+
+  var P = lsG('ct_p', []);
+  var _pid = null; try{ _pid = localStorage.getItem('ct_my_pid'); }catch(e){}
+  for(var j=0;j<P.length;j++){
+    if(_mia(P[j]) || (_pid && String(P[j].id) === String(_pid))){ P[j].nome = n; P[j].cognome = c; break; }
+  }
+  lsS('ct_p', P);
+
+  return { ok:true, nome:n, cognome:c, cambiato:cambiato, me:me };
+}
+
+// Scrive l'anagrafica su Firestore: /utenti/{uid} e reparti/{rep}/utenti/{uid}.
+// { allowAnagraficaUpdate:true } dice a saveUserProfile di NON ripristinare
+// l'anagrafica precedente (protezione anti-corruzione del nickname).
+function _salvaAnagraficaCloud(me){
+  try{
+    var sess = lsG('ct_session', null) || {};
+    var uid  = sess.userId || me.uid || me.id;
+    if(!uid || !window.FirebaseModule || !window.FirebaseModule.saveUserProfile) return Promise.resolve(null);
+    return Promise.resolve(window.FirebaseModule.saveUserProfile(uid, me, me.reparto, { allowAnagraficaUpdate:true }));
+  }catch(e){ console.warn('_salvaAnagraficaCloud:', e && e.message); return Promise.resolve(null); }
+}
+
 function apriProfilo(){
   var me=lsG('ct_me',null);if(!me)return;
+
+  // Anagrafica (Nome / Cognome) — modificabile, separata dal nickname.
+  // Se ct_me è corrotto (nome = nickname) si usa il record autorevole.
+  var _anagApri=_nomeAnagrafico(me);
+  var pNome=document.getElementById('mpf-nome');
+  var pCogn=document.getElementById('mpf-cognome');
+  if(pNome)pNome.value=_anagApri.nome||me.nome||'';
+  if(pCogn)pCogn.value=_anagApri.cognome||me.cognome||'';
+
+  // Riferimento ai dati di registrazione (sola lettura)
+  var pNomeReale=document.getElementById('mpf-nome-reale');
+  if(pNomeReale){
+    var _nomeReale=(((_anagApri.nome||'')+' '+(_anagApri.cognome||'')).trim())||me.nome||'\u2014';
+    pNomeReale.textContent=_nomeReale;
+  }
 
   // Nickname — campo separato, solo locale (non sovrascrive mai l'anagrafica)
   var pNick=document.getElementById('mpf-nickname');
   if(pNick)pNick.value=me.nickname||'';
-
-  // Nome anagrafico reale (registrazione) — mostrato in sola lettura.
-  // Recuperato dal record autorevole, mai dal nickname.
-  var pNomeReale=document.getElementById('mpf-nome-reale');
-  if(pNomeReale){
-    var _anagReale=_nomeAnagrafico(me);
-    var _nomeReale=((_anagReale.nome||'')+' '+(_anagReale.cognome||'')).trim()||me.nome||'\u2014';
-    pNomeReale.textContent=_nomeReale;
-  }
 
   // Grado — picker in-app
   var pGrado=document.getElementById('mpf-grado');
@@ -10799,28 +10895,39 @@ function apriProfilo(){
 
 function salvaProfilo(){
   var me=lsG('ct_me',null);if(!me)return;
-  // Anagrafica protetta: ripristina Nome/Cognome di registrazione
-  // (mai sovrascritti dal nickname) dal record autorevole.
-  var _anagSave=_nomeAnagrafico(me);
-  if(_anagSave.nome) me.nome=_anagSave.nome;
-  if(_anagSave.cognome) me.cognome=_anagSave.cognome;
-  var nickEl=document.getElementById('mpf-nickname');
-  var nickname=nickEl?nickEl.value.trim():'';
-  var grado=document.getElementById('mpf-grado').value;
   var errEl=document.getElementById('mpf-err');
-  errEl.classList.remove('on');
+  if(errEl)errEl.classList.remove('on');
+
+  // ── Anagrafica (Nome / Cognome) — campo dedicato, separato dal nickname
+  // Aggiorna ct_me + cache locali (ct_u / ct_p); la scrittura cloud avviene
+  // qui sotto con { allowAnagraficaUpdate:true } per non essere ripristinata.
+  var elNome=document.getElementById('mpf-nome');
+  var elCogn=document.getElementById('mpf-cognome');
+  var esitoAnag=_applicaAnagrafica(elNome?elNome.value:'', elCogn?elCogn.value:'');
+  if(!esitoAnag.ok){
+    if(errEl){ errEl.textContent=esitoAnag.err; errEl.classList.add('on'); }
+    if(typeof haptic==='function') haptic('error');
+    return;
+  }
+  me=esitoAnag.me;
 
   // Nickname — campo dedicato: NON tocca nome/cognome anagrafici.
   // Il nickname è mostrato solo all'utente (saluto, profilo), mai ai colleghi.
+  var nickEl=document.getElementById('mpf-nickname');
+  var nickname=nickEl?nickEl.value.trim():'';
   if(nickname) me.nickname=nickname; else delete me.nickname;
 
   // Grado — salvato anche su Firebase
+  var gradoEl=document.getElementById('mpf-grado');
+  var grado=gradoEl?gradoEl.value:'';
   if(grado) me.grado=grado;
 
   // Avatar: leggi dal campo hidden (selezionato dalla griglia)
   var avaHidden = document.getElementById('mpf-ava');
   var nuovoAva = avaHidden && avaHidden.value ? avaHidden.value : null;
   if(nuovoAva) me.ava = nuovoAva;
+
+  lsS('ct_me', me);
 
   // Salva direttamente senza upload foto
   var _salvaConFoto = function(dataUrl){
@@ -10832,8 +10939,12 @@ function salvaProfilo(){
       return;
     }
     ctSpinner(true, 'Salvataggio profilo...');
-    window.FirebaseModule.saveUserProfile(uid, me, me.reparto)
+    window.FirebaseModule.saveUserProfile(uid, me, me.reparto, { allowAnagraficaUpdate:true })
       .then(function(){ return window.FirebaseModule.savePersonale(); })
+      .then(function(){
+        // Anagrafica modificata: propaga a "persone" (colleghi) se presente
+        if(esitoAnag.cambiato && window.FirebaseModule.savePersona) return window.FirebaseModule.savePersona();
+      })
       .then(function(){ _completaSalvataggio(me); })
       .catch(function(e){
         ctSpinner(false);
@@ -10880,6 +10991,9 @@ function salvaProfilo(){
     lsS('ct_p',P);
     if(typeof _syncAvaAllSections === 'function') _syncAvaAllSections(profilo.ava||null);
     aggUI();
+    // Anagrafica/Grado: aggiorna saluto Hero e widget della Dashboard
+    if(typeof aggiornaHeroCard === 'function') aggiornaHeroCard();
+    if(typeof aggiornaWidget === 'function') aggiornaWidget();
     closeM('m-profilo');
     toast('Profilo aggiornato \u2713','ok');
   }
@@ -12793,7 +12907,7 @@ function chiudiMenuRapido() {
 window.addEventListener('DOMContentLoaded', function() {
 
     // 1. Forza i picker e le notifiche in primo piano
-    var ids = ['m-datepicker', 'm-pers-picker', 'm-grado-picker', 'm-tema', 'm-fogli', 'm-avatar-editor', 'm-giorno', 'm-turno', 'm-todo', 'm-agenda', 'm-turni-custom', 'm-chiusura-straord', 'notif-drawer', 'notif-overlay'];
+    var ids = ['m-datepicker', 'm-pers-picker', 'm-grado-picker', 'm-tema', 'm-fogli', 'm-avatar-editor', 'm-giorno', 'm-turno', 'm-todo', 'm-agenda', 'm-turni-custom', 'm-chiusura-straord', 'm-profilo', 'notif-drawer', 'notif-overlay'];
     ids.forEach(function(id) {
         var el = document.getElementById(id);
         if (el) {

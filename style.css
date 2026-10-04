@@ -5202,7 +5202,7 @@ nav.bottom-bar#bottom-nav,
   box-shadow: 0 -6px 24px rgba(0,0,0,.32) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  z-index: 1000 !important;
+  z-index: 9999 !important;
   display: flex !important;
   align-items: center !important;
   justify-content: space-evenly !important;
@@ -5258,7 +5258,7 @@ nav.bottom-bar#bottom-nav,
    • .hdr .............. testata non comprimibile (60px)
    • .body ............. riempie lo spazio fra header e bottom bar
    • .cont ............. UNICO contenitore con scroll interno (momentum)
-   • #bottom-nav ....... ancorata al viewport (position:fixed, z-index 1000)
+   • #bottom-nav ....... ancorata al viewport (position:fixed, z-index 9999)
 
    ⚠️  Nessun `transform` / `filter` / `contain` / `will-change` su
    html, body, #pg-app, .body, .cont: creerebbero un containing block
@@ -5267,6 +5267,12 @@ nav.bottom-bar#bottom-nav,
    ⚠️  `overflow: clip` (con fallback `hidden`) dove NON deve esistere
    uno scroll container: evita lo scroll-into-view automatico su focus
    degli input (che sposterebbe l'header) mantenendo il clipping.
+   ⚠️  `min-height` di #pg-app è forzato a 0: la regola `.pg{
+   min-height:100vh}` misura `vh` SENZA lo zoom applicato a #pg-app,
+   quindi a XXL (zoom 1.35) la shell renderizzava ~1.35x il viewport e
+   la fascia bassa (fine contenuto + bordo inferiore della barra) finiva
+   sotto la piega, irraggiungibile. Con `min-height:0` la shell occupa
+   sempre esattamente il viewport, a qualsiasi livello di scala testo.
    La logica JS resta invariata: il listener `document.addEventListener
    ('scroll', ..., true)` legge già `.cont.scrollTop` per `.hdr.scrolled`,
    e `vaiBN()` continua a lavorare su `.pag`/`#bottom-nav` come prima.
@@ -5292,6 +5298,7 @@ body {
 #pg-app {
   height: 100% !important;
   max-height: 100% !important;
+  min-height: 0 !important;               /* annulla .pg{min-height:100vh} (vh ignora lo zoom) */
   overflow: hidden !important;
   overflow: clip !important;
 }
@@ -5336,10 +5343,18 @@ nav.bottom-bar#bottom-nav,
   max-width: none !important;
   margin: 0 !important;
   transform: none !important;
-  z-index: 1000 !important;
+  z-index: 9999 !important;               /* sempre in primo piano sul contenuto */
 }
 
-/* 7. Stampa: ripristina il flusso normale del documento -------- */
+/* 7. Gerarchia (layering): gli overlay che DEVONO coprire la barra
+      restano sopra i 9999 appena assegnati alla bottom navigation. */
+.modal          { z-index: 10000; }              /* base: openM assegna z-index dinamici più alti */
+.sheet-overlay  { z-index: 10000 !important; }   /* bottom-sheet del FAB (apriFabSheet) */
+#noti           { z-index: 10000; }              /* toast / notifiche rapide */
+#auth-overlay   { z-index: 10000; }              /* muro di login */
+#debug-banner   { z-index: 10000; }              /* nastro debug (solo admin) */
+
+/* 8. Stampa: ripristina il flusso normale del documento -------- */
 @media print {
   html,
   body {
@@ -5357,5 +5372,43 @@ nav.bottom-bar#bottom-nav,
     max-height: none !important;
     overflow: visible !important;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TASK 6 — PROFILO UTENTE: POP-UP FLUTTUANTE CENTRATO
+   ---------------------------------------------------------------
+   Il profilo ("Il mio profilo", avatar della Dashboard) non è più un
+   bottom-sheet a tutta altezza: diventa un pop-up centrato, con
+   overlay scuro (già in .modal), sempre contenuto nello schermo e
+   scrollabile SOLO al proprio interno. Vale a qualsiasi zoom testo.
+   ═══════════════════════════════════════════════════════════════ */
+#m-profilo {
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+}
+#m-profilo .mbox {
+  border-radius: var(--radius);
+  width: min(440px, 100%);
+  max-height: min(84vh, 780px);
+  max-height: min(84dvh, 780px);
+  margin: auto;                 /* centrato anche se l'overlay è flex-start */
+  animation: mPop .26s var(--motion-decel);
+}
+#m-profilo .mhan { display: none; }   /* niente maniglia da bottom-sheet */
+
+@keyframes mPop {
+  from { opacity: 0; transform: translateY(14px) scale(.96); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Riga anagrafica in sola lettura (riferimento ai dati di registrazione) */
+.mp-anag-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--txt3);
+  margin-top: 6px;
 }
 

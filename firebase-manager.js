@@ -1368,9 +1368,14 @@ window.FirebaseModule = {
 
   // ── Salva profilo utente su Firestore ───────────────────────
 
-  saveUserProfile: async function(uid, profile, reparto) {
+  saveUserProfile: async function(uid, profile, reparto, opts) {
     try {
       var profileClean = Object.assign({}, profile);
+      // opts.allowAnagraficaUpdate = true → l'utente ha modificato
+      // esplicitamente Nome/Cognome in "Impostazioni Profilo": i nuovi
+      // valori vanno scritti su /utenti/{uid} e reparti/{rep}/utenti/{uid}
+      // senza essere ripristinati dalla protezione sottostante.
+      var _allowAnag = !!(opts && opts.allowAnagraficaUpdate);
 
       // ── ANAGRAFICA PROTETTA (Nome / Cognome) ────────────────────
       // Nome e Cognome sono fissati in fase di iscrizione e NON devono
@@ -1399,16 +1404,22 @@ window.FirebaseModule = {
             }
           }
         }
-        if(_anag){
-          profileClean.nome    = _anag.nome;
-          profileClean.cognome = _anag.cognome;
-        }
-        // Difesa: se il nome coincide col nickname, è un dato corrotto:
-        // non propagarlo (il campo nickname resta separato).
-        if(profileClean.nickname && profileClean.nome &&
-           String(profileClean.nome).trim().toLowerCase() === String(profileClean.nickname).trim().toLowerCase() &&
-           !(profileClean.cognome && String(profileClean.cognome).trim())){
-          delete profileClean.nome;
+        if(_allowAnag){
+          // Modifica esplicita dell'utente: normalizza e salva i nuovi valori.
+          profileClean.nome    = String(profileClean.nome || '').replace(/\s+/g,' ').trim();
+          profileClean.cognome = String(profileClean.cognome || '').replace(/\s+/g,' ').trim();
+        } else {
+          if(_anag){
+            profileClean.nome    = _anag.nome;
+            profileClean.cognome = _anag.cognome;
+          }
+          // Difesa: se il nome coincide col nickname, è un dato corrotto:
+          // non propagarlo (il campo nickname resta separato).
+          if(profileClean.nickname && profileClean.nome &&
+             String(profileClean.nome).trim().toLowerCase() === String(profileClean.nickname).trim().toLowerCase() &&
+             !(profileClean.cognome && String(profileClean.cognome).trim())){
+            delete profileClean.nome;
+          }
         }
       } catch(eAn){ /* primo salvataggio: nessuna anagrafica pregressa */ }
 

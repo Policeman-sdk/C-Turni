@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover,interactive-widget=resizes-content">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>C-TURNI v4.2</title>
 <link rel="manifest" href="manifest.json">
@@ -1142,6 +1142,14 @@
                 </div>
                 <input type="hidden" id="pf-ava" value="">
               </div>
+              <!-- Anagrafica (Nome / Cognome) — separata dal nickname -->
+              <div class="fg" style="margin-bottom:10px">
+                <label>Nome e Cognome <span style="font-size:10px;color:var(--txt3);font-weight:400">(anagrafica)</span></label>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">
+                  <input type="text" class="fc" id="pf-nome" placeholder="Nome" autocomplete="name" maxlength="40">
+                  <input type="text" class="fc" id="pf-cognome" placeholder="Cognome" autocomplete="family-name" maxlength="40">
+                </div>
+              </div>
               <div class="g2">
                 <div class="fg" style="margin-bottom:10px"><label>Reparto (ID)</label>
                   <input type="text" class="fc" id="pf-rep" readonly style="opacity:.55;cursor:default;background:var(--bg2)" placeholder="—"></div>
@@ -1158,6 +1166,7 @@
                   </button>
                 </div>
               </div>
+              <div id="pf-err" class="emsg">Errore salvataggio</div>
               <div id="pf-ok" class="smsg">&#10003; Salvato!</div>
               <div style="display:flex;gap:8px;flex-wrap:wrap">
                 <button class="btn btn-p btn-sm" style="width:auto" onclick="salvaImp()">&#128190; Salva</button>
@@ -2036,16 +2045,20 @@
       </div>
     </div>
 
-    <!-- Nome anagrafico reale (registrazione) — sola lettura -->
+    <!-- Anagrafica reale (Nome / Cognome) — modificabile, separata dal nickname -->
     <div class="fg" style="margin-bottom:0">
-      <label>Nome registrato <span style="font-size:10px;color:var(--txt3);font-weight:400">(anagrafica — non modificabile)</span></label>
-      <div class="fc app-fc m3-readonly" id="mpf-nome-reale" style="display:flex;align-items:center">—</div>
+      <label>Nome e Cognome <span style="font-size:10px;color:var(--txt3);font-weight:400">(anagrafica — come risulti su turni e tesserino)</span></label>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">
+        <input type="text" class="fc app-fc" id="mpf-nome" placeholder="Nome" autocomplete="name" maxlength="40">
+        <input type="text" class="fc app-fc" id="mpf-cognome" placeholder="Cognome" autocomplete="family-name" maxlength="40">
+      </div>
+      <div class="mp-anag-note"><span>&#8505;</span><span>Registrato come: <b id="mpf-nome-reale">—</b></span></div>
     </div>
 
     <!-- Nickname (solo locale — NON tocca il nome anagrafico) -->
     <div class="fg" style="margin-bottom:0">
       <label>Nickname <span style="font-size:10px;color:var(--txt3);font-weight:400">(come ti chiami nell'app — visibile solo a te)</span></label>
-      <input type="text" class="fc app-fc" id="mpf-nickname" placeholder="Il tuo nickname (opzionale)" autocomplete="off">
+      <input type="text" class="fc app-fc" id="mpf-nickname" placeholder="Il tuo nickname (opzionale)" autocomplete="off" maxlength="24">
     </div>
 
     <!-- Grado — picker in-app -->
