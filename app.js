@@ -494,7 +494,7 @@ function _collegaPlaceholder(nome, cognome, uid, reparto) {
       });
       if (match && !found) {
         found = true;
-        console.log('[C-Turni] Placeholder collegato:', p.nome, '? uid', uid);
+        console.log('[C-Turni] Placeholder collegato:', p.nome, '-> uid', uid);
         return Object.assign({}, p, { uid: uid, reparto: reparto });
       }
       return p;
@@ -577,7 +577,7 @@ function renderTurniCustomImp() {
   el.innerHTML = TC.map(function(tc) {
     var bg = _TC_COLORI[tc.col] || _TC_COLORI.mattina;
     return '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:6px">'
-      + '<div style="width:36px;height:36px;border-radius:10px;background:'+bg+';display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">'+(tc.emoji||'?')+'</div>'
+      + '<div style="width:36px;height:36px;border-radius:10px;background:'+bg+';display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">'+(tc.emoji||'&#9200;')+'</div>'
       + '<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:var(--txt)">'+tc.nome+' <span style="font-size:10px;background:var(--bg2);padding:1px 5px;border-radius:5px;color:var(--txt2)">'+tc.codice+'</span></div>'
       + '<div style="font-size:11px;color:var(--txt2)">'+tc.oraIn+' – '+tc.oraFi+'</div></div>'
       + '<button onclick="delTurnoCustom('+tc.id+');renderTurniCustomImp();" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:14px;padding:4px;appearance:none;-webkit-appearance:none">&#128465;</button>'
@@ -590,7 +590,7 @@ function salvaTurnoCustomImp() {
   var codice = ((document.getElementById('tc-codice-imp')||{}).value||'').trim().toUpperCase();
   var oraIn  = (document.getElementById('tc-ora-in-imp')||{}).value || '08:00';
   var oraFi  = (document.getElementById('tc-ora-fi-imp')||{}).value || '16:00';
-  var emoji  = (document.getElementById('tc-emoji-imp')||{}).value.trim() || '?';
+  var emoji  = (document.getElementById('tc-emoji-imp')||{}).value.trim() || '&#9200;';
   var col    = (document.getElementById('tc-col-sel-imp')||{}).value || 'mattina';
   if(!nome) { toast('Inserisci un nome','err'); return; }
   if(!codice || codice.length < 2) { toast('Inserisci un codice (min 2 car.)','err'); return; }
@@ -605,7 +605,7 @@ function salvaTurnoCustomImp() {
   var of_lbl = document.getElementById('tc-ora-fi-imp-lbl'); if(of_lbl) of_lbl.textContent='16:00';
   renderTurniCustomImp();
   _aggiungiOpzioniCustomAlSelect();
-  toast('Turno personalizzato aggiunto ?','ok');
+  toast('&#9989; Turno personalizzato aggiunto','ok');
 }
 
 // -- Helper: priorità todo (bottoni in-app) --
@@ -716,7 +716,7 @@ function resetTotaleFirestore(){
         if(me.uid && window.FirebaseModule) {
           window.FirebaseModule.saveUserProfile(me.uid, me, rep).catch(function(){});
         }
-        toast('? Tutti i turni eliminati da Firestore', 'ok');
+        toast('&#128465; Tutti i turni eliminati da Firestore', 'ok');
         setTimeout(function(){ location.reload(); }, 1200);
       } catch(e) {
         console.warn('resetTotaleFirestore:', e.message);
@@ -897,7 +897,7 @@ function _renderStatoComando(){
   var hasVice = U.some(function(u){ return u.ruolo==='vice' && u.stato==='approved'; });
   var nVice = U.filter(function(u){ return u.ruolo==='vice' && u.stato==='approved'; }).length;
   if(btnDegrada) btnDegrada.style.display = (isCom && hasVice) ? 'inline-flex' : 'none';
-  if(btnDegrada && nVice > 1) btnDegrada.textContent = '? Rimuovi Vice (' + nVice + ')';
+  if(btnDegrada && nVice > 1) btnDegrada.textContent = 'Rimuovi Vice (' + nVice + ')';
 }
 
 function _popolaSelectMembri(selId, escludiRuoli){
@@ -1163,9 +1163,9 @@ function _renderRichiesteComando(){
     return '<div style="padding:12px 14px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-bottom:8px">'
       + '<div style="font-size:13px;font-weight:700">'+rich+' &#8646; '+verso+'</div>'
       + '<div style="font-size:12px;color:var(--txt2);margin-top:4px">'
-      + (mio.tipo||'?') + ' ' + (fmtD(mio.data)||'') + (mio.codice ? ' ('+mio.codice+')' : '')
+      + (mio.tipo||'--') + ' ' + (fmtD(mio.data)||'') + (mio.codice ? ' ('+mio.codice+')' : '')
       + ' &#8596; '
-      + (suo.tipo||'?') + ' ' + (fmtD(suo.data)||'') + (suo.codice ? ' ('+suo.codice+')' : '')
+      + (suo.tipo||'--') + ' ' + (fmtD(suo.data)||'') + (suo.codice ? ' ('+suo.codice+')' : '')
       + '</div>'
       + '<div style="font-size:11px;color:var(--txt3);margin-top:3px">Stato: '+stLbl+(r.confermatoVoce ? ' · <span style="color:var(--blue);font-weight:700">collega sentito a voce</span>' : '')+'</div>'
       + (r.stato==='attesa_collega'
@@ -1930,8 +1930,8 @@ function _cambioTurniCollega(pid){
   return _turniFuturiServizio(function(t){ return String(t.pid != null ? t.pid : '') === String(pid); });
 }
 function _fmtTurnoT(t){
-  if(!t) return '?';
-  return (t.tipo || '?') + ' ' + (fmtD(t.data) || '') + (t.codice ? ' (' + t.codice + ')' : '');
+  if(!t) return '--';
+  return (t.tipo || '--') + ' ' + (fmtD(t.data) || '') + (t.codice ? ' (' + t.codice + ')' : '');
 }
 
 function apriCambioTurno(){
@@ -2510,7 +2510,7 @@ function aggiungiRimanenzaAnnoUtente(){
   caricaPoolLicenzeMe();
   caricaSaldoFerie();
   _syncFerieFirebase();
-  toast("? Rimanenza "+anno+": "+giorni+" giorni salvata","ok");
+  toast("&#128197; Rimanenza "+anno+": "+giorni+" giorni salvata","ok");
 }
 function rimuoviRimanenzaAnno(pid,anno){
   ctConfirm('Rimuovere la rimanenza per l\'anno '+anno+'?', {title:'Rimuovi Rimanenza', ico:'🗑️', ok:'Rimuovi', danger:true}).then(function(ok){
@@ -2543,15 +2543,15 @@ function caricaPoolLicenzeMe(){
   if(!p){
     var CU=lsG("ct_users",[]);
     var cu=CU.find(function(x){return x.uid===me.uid||x.id===me.id;});
-    if(cu&&cu.licenzePool) p=cu;
+    if(cu&&cu.licenzePool&&cu.licenzePool.length) p=cu;
   }
   // Fallback: usa ct_me direttamente
-  if(!p&&me.licenzePool) p=me;
+  if(!p&&me.licenzePool&&me.licenzePool.length) p=me;
   if(!p){el.innerHTML='<div style="font-size:11px;color:var(--txt2);text-align:center;padding:8px">Nessun profilo trovato</div>';return;}
   var pool=(p.licenzePool||[]).slice().sort(function(a,b){return a.anno-b.anno;});
   var annoC=new Date().getFullYear();
   if(!pool.length){
-    el.innerHTML='<div style="font-size:11px;color:var(--txt2);padding:6px 0;text-align:center">Nessuna rimanenza  usa il tasto + per aggiungerne una</div>';
+    el.innerHTML='<div style="font-size:11px;color:var(--txt2);padding:6px 0;text-align:center">Nessuna rimanenza &mdash; usa il tasto + per aggiungerne una</div>';
     return;
   }
   el.innerHTML=pool.map(function(x){
@@ -2756,7 +2756,7 @@ function salvaAnnoEdit(){
   saveFeriePool(me.id,pool);
   renderFeriePool();
   chiudiPopupAnno();
-  toast("? Anno "+_annoEditCorrente+": "+_giorniEditTemp+" giorni salvati","ok");
+  toast("&#128197; Anno "+_annoEditCorrente+": "+_giorniEditTemp+" giorni salvati","ok");
 }
 
 function eliminaAnnoPool(anno){
@@ -4267,7 +4267,7 @@ var _ES = {
   todo:    { svg:'<svg width="64" height="64" viewBox="0 0 64 64" fill="none"><rect x="12" y="8" width="40" height="48" rx="6" fill="var(--bg2)" stroke="var(--border)" stroke-width="2"/><rect x="20" y="20" width="24" height="3" rx="1.5" fill="var(--txt3)"/><rect x="20" y="28" width="18" height="3" rx="1.5" fill="var(--txt3)"/><rect x="20" y="36" width="20" height="3" rx="1.5" fill="var(--txt3)"/><circle cx="48" cy="48" r="10" fill="var(--green)"/><path d="M44 48l3 3 5-5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>', title:'Tutto fatto!', sub:'Nessun promemoria aperto.\nGoditela.' },
   agenda:  { svg:'<svg width="64" height="64" viewBox="0 0 64 64" fill="none"><rect x="10" y="14" width="44" height="40" rx="6" fill="var(--bg2)" stroke="var(--border)" stroke-width="2"/><rect x="10" y="22" width="44" height="2" fill="var(--border)"/><rect x="20" y="8" width="4" height="12" rx="2" fill="var(--blue)"/><rect x="40" y="8" width="4" height="12" rx="2" fill="var(--blue)"/><circle cx="32" cy="38" r="8" fill="var(--bg2)" stroke="var(--border)" stroke-width="2"/><path d="M32 33v5l3 3" stroke="var(--txt2)" stroke-width="2" stroke-linecap="round"/></svg>', title:'Nessun appuntamento oggi', sub:'La giornata è tua.' },
   scadenze:{ svg:'<svg width="64" height="64" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="22" fill="var(--bg2)" stroke="var(--border)" stroke-width="2"/><path d="M32 20v12l7 7" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="32" cy="32" r="2" fill="var(--green)"/></svg>', title:'Nessuna scadenza', sub:'Sei in regola con tutto.' },
-  turni:   { svg:'<svg width="64" height="64" viewBox="0 0 64 64" fill="none"><rect x="8" y="16" width="48" height="36" rx="6" fill="var(--bg2)" stroke="var(--border)" stroke-width="2"/><path d="M8 26h48" stroke="var(--border)" stroke-width="2"/><rect x="16" y="8" width="4" height="12" rx="2" fill="var(--blue)"/><rect x="44" y="8" width="4" height="12" rx="2" fill="var(--blue)"/><path d="M24 38c0-4.4 3.6-8 8-8s8 3.6 8 8" stroke="var(--gold)" stroke-width="2" stroke-linecap="round"/><circle cx="32" cy="38" r="3" fill="var(--gold)"/></svg>', title:'Nessun turno oggi', sub:'Riposa, te lo sei guadagnato ?' },
+  turni:   { svg:'<svg width="64" height="64" viewBox="0 0 64 64" fill="none"><rect x="8" y="16" width="48" height="36" rx="6" fill="var(--bg2)" stroke="var(--border)" stroke-width="2"/><path d="M8 26h48" stroke="var(--border)" stroke-width="2"/><rect x="16" y="8" width="4" height="12" rx="2" fill="var(--blue)"/><rect x="44" y="8" width="4" height="12" rx="2" fill="var(--blue)"/><path d="M24 38c0-4.4 3.6-8 8-8s8 3.6 8 8" stroke="var(--gold)" stroke-width="2" stroke-linecap="round"/><circle cx="32" cy="38" r="3" fill="var(--gold)"/></svg>', title:'Nessun turno oggi', sub:'Riposa, te lo sei guadagnato &#128526;' },
   notifiche:{ svg:'<svg width="64" height="64" viewBox="0 0 64 64" fill="none"><path d="M32 10c-11 0-18 8-18 18v10l-4 6h44l-4-6V28c0-10-7-18-18-18z" fill="var(--bg2)" stroke="var(--border)" stroke-width="2"/><path d="M28 48a4 4 0 008 0" stroke="var(--txt2)" stroke-width="2" stroke-linecap="round"/><line x1="32" y1="10" x2="32" y2="6" stroke="var(--txt3)" stroke-width="2" stroke-linecap="round"/></svg>', title:'Nessuna notifica', sub:'Tutto tranquillo.' }
 };
 function emptyState(tipo){
@@ -4452,6 +4452,12 @@ function toggleNotifMaster(){
       scheduleAllTodoNotif();
       lsG("ct_ag",[]).forEach(function(a){if(a.notif>0)schedulaNotifAgenda(a);});
       scheduleNotifMattutina();
+      // Ora che il permesso è concesso (gesto utente), registra il Service Worker
+      // FCM e salva il token push: solo così le push arrivano ad app chiusa.
+      if(window.FirebaseModule && typeof window.FirebaseModule.initFCM === "function"){
+        window._fcmRunning = false; // consenti un nuovo tentativo dopo il consenso
+        window.FirebaseModule.initFCM().catch(function(){});
+      }
       // Notifica di test immediata
       setTimeout(function(){
         new Notification("🔔 C-Turni — Notifiche attive",{
@@ -4487,7 +4493,7 @@ function setNotifPre(min){
     setTimeout(schedulaPreTurniFirebase, 300);
   }
   var labels={60:"1h prima",360:"6h prima",720:"12h prima",1440:"24h prima"};
-  toast("? Notifica turno: "+(labels[min]||min+"min prima"),"ok");
+  toast("&#9200; Notifica turno: "+(labels[min]||min+"min prima"),"ok");
 }
 // Salva preferenze notifiche nel profilo utente su Firestore
 function _syncNotifPrefs(){
@@ -5382,9 +5388,15 @@ function resetAll(tipo){
 
 function _syncFerieFirebase(){
   var me=lsG("ct_me",null); if(!me) return;
-  // Aggiorna licenzePool da ct_u se disponibile
+  // Aggiorna licenzePool da ct_u SOLO se il pool è realmente valorizzato
+  // (un array vuoto è "truthy" in JS: senza il check su .length azzererebbe il pool).
   var U=lsG("ct_u",[]); var u=U.find(function(x){return x.id===me.id||x.uid===me.uid;});
-  if(u&&u.licenzePool) me.licenzePool=u.licenzePool;
+  if(u&&u.licenzePool&&u.licenzePool.length) me.licenzePool=u.licenzePool;
+  // Rete di sicurezza: non salvare un pool vuoto se una copia locale lo ha ancora
+  if((!me.licenzePool||!me.licenzePool.length) && typeof getFeriePool==='function'){
+    var _pool=getFeriePool(me.id);
+    if(_pool&&_pool.length) me.licenzePool=_pool;
+  }
   me.recuperiExtra=(lsG("ct_recuperi",[])).filter(function(r){return !r.usato;}).length;
   me.ct_recuperi=lsG("ct_recuperi",[]);
   lsS("ct_me",me);
@@ -5967,10 +5979,10 @@ function salvaTurnoCustom() {
 
   if(editId) {
     TC = TC.map(function(x){ return x.id === editId ? {id:editId,nome:nome,codice:codice,oraIn:oraIn,oraFi:oraFi,emoji:emoji,col:col} : x; });
-    toast('Turno aggiornato ?','ok');
+    toast('&#9989; Turno aggiornato','ok');
   } else {
     TC.push({id:Date.now(),nome:nome,codice:codice,oraIn:oraIn,oraFi:oraFi,emoji:emoji,col:col});
-    toast('Turno personalizzato aggiunto ?','ok');
+    toast('&#9989; Turno personalizzato aggiunto','ok');
   }
   lsS('ct_turni_custom', TC);
 
@@ -6116,7 +6128,7 @@ function aggOrarioSub(k){
   var i = document.getElementById('or-in-'+k);
   var u = document.getElementById('or-out-'+k);
   var sub = document.getElementById('or-sub-'+k);
-  if(i && u && sub) sub.textContent = i.value + ' ? ' + u.value;
+  if(i && u && sub) sub.textContent = i.value + ' \u2013 ' + u.value;
 }
 function salvaOrarioSingolo(k){
   var i = document.getElementById('or-in-'+k);
@@ -6138,7 +6150,7 @@ function salvaOrarioSingolo(k){
   if(arr) arr.style.transform = '';
   var ok = document.getElementById('orari-ok');
   if(ok){ ok.classList.add('on'); setTimeout(function(){ ok.classList.remove('on'); }, 2500); }
-  toast('Orario '+_ORARI_LABELS[k].replace(/^[^\s]+\s/,'')+' salvato ?','ok');
+  toast('&#9989; Orario '+_ORARI_LABELS[k].replace(/^[^\s]+\s/,'')+' salvato','ok');
 }
 function resetOrariPreset(){
   ctConfirm('Ripristinare gli orari di default?', {title:'Reset Orari', ico:'?', ok:'Ripristina'}).then(function(ok){
@@ -6185,7 +6197,7 @@ function salvaImp(){
     var gOld=GR[u.grado]?GR[u.grado].nome:u.grado;
     var gNew=GR[nGrado.value]?GR[nGrado.value].nome:nGrado.value;
     u.grado=nGrado.value;
-    toast("Promozione: "+gOld+" ? "+gNew,"ok");
+    toast("Promozione: "+gOld+" &#8594; "+gNew,"ok");
   }
   var ok1=lsS("ct_me",u);
   if(window.FirebaseModule)window.FirebaseModule.savePersonale();
@@ -6367,7 +6379,7 @@ function confermaCricaBackup(){
     if(d.ct_notif_prefs) lsS("ct_notif_prefs", d.ct_notif_prefs);
     if(d.ct_notif_pre!==undefined) lsS("ct_notif_pre", d.ct_notif_pre);
     _backupDaConfermare = null;
-    toast("? Backup ripristinato! Ricarico...","ok");
+    toast("&#9989; Backup ripristinato! Ricarico...","ok");
     setTimeout(function(){location.reload();}, 1500);
   });
 }
@@ -7999,7 +8011,7 @@ function renderCal(){
   h+="<div class=\"cal-grid\" style=\"background:var(--bg2);padding:6px 6px 0\">";
   gN.forEach(function(g){h+="<div style=\"text-align:center;font-size:9px;font-weight:700;color:var(--txt2);padding:2px\">"+g+"</div>";});
   h+="</div>";
-  h+="<div class=\"cal-grid\" style=\"padding:6px;gap:3px\">";
+  h+="<div class=\"cal-grid\" style=\"padding:6px\">";
   for(var i=0;i<off;i++)h+="<div class=\"cal-cell empty\"></div>";
 
   for(var g=1;g<=nG;g++){
@@ -12144,7 +12156,7 @@ function approvaUtente(id) {
     window.FirebaseModule.aggiornaStatoUtente(approvatoUid, 'approved').catch(function(e){ console.warn('approvaUtente Firebase:', e.message); });
   }
   var NOTS = lsG('ct_notif_app', []);
-  NOTS.push({ id: Date.now(), ts: Date.now(), letta: false, msg: '? Utente approvato', tipo: 'info', targetId: id });
+  NOTS.push({ id: Date.now(), ts: Date.now(), letta: false, msg: 'Utente approvato', tipo: 'info', targetId: id });
   lsS('ct_notif_app', NOTS);
   aggiornaBadgeNotif();
   renderPers();
@@ -12309,8 +12321,8 @@ var _GUIDE = {
       {ico:"&#8505;", tit:"Come funziona", txt:"Ogni persona ha un <strong>pool di giorni</strong> per anno. I giorni scalano automaticamente quando assegni un turno di tipo <strong>Ferie/Licenza (L)</strong>."},
       {ico:"&#9312;", tit:"Aggiungere giorni", txt:"Vai su <strong>Impostazioni &#8594; Ferie &amp; Licenze</strong>. Premi <strong>+ Anno</strong> e inserisci l'anno e i giorni disponibili per ogni persona."},
       {ico:"&#9313;", tit:"Ordine di consumo", txt:"I giorni vengono scalati partendo dall'anno più vecchio (<em>FIFO</em>). Se l'anno corrente è esaurito si passa al successivo."},
-      {ico:"&#9314;", tit:"Saldo residuo", txt:"Il saldo aggiornato  visibile nella card di ogni persona in <strong>Personale</strong> e nel widget statistiche."},
-      {ico:"937", tit:"Festività soppresse", txt:"Il codice <strong>937</strong> utilizza una delle 4 festività soppresse annuali, separatamente dal monte ferie."},
+      {ico:"&#9314;", tit:"Saldo residuo", txt:"Il saldo aggiornato è visibile nella card di ogni persona in <strong>Personale</strong> e nel widget statistiche."},
+      {ico:"&#9315;", tit:"Festività soppresse", txt:"Il codice <strong>937</strong> utilizza una delle 4 festività soppresse annuali, separatamente dal monte ferie."},
       {ico:"&#9313;", tit:"Recupero festivo", txt:"Il codice <strong>2</strong> consuma automaticamente il recupero disponibile più vecchio. Eliminando il turno, il recupero viene restituito."},
       {ico:"&#128218;", tit:"Licenza Studio", txt:"Codice <strong>LICSTU</strong>. Non scala dal pool ferie — è un tipo separato."}
     ]
@@ -12334,7 +12346,7 @@ var _GUIDE = {
       {ico:"&#128202;", tit:"Cosa sono i widget", txt:"I widget sono i blocchi informativi nella schermata principale: turno oggi, prossimi turni, meteo, statistiche, agenda, scadenze e to-do."},
       {ico:"&#9881;", tit:"Attivare/disattivare", txt:"Vai su <strong>Impostazioni &#8594; Widget Dashboard</strong> e usa i toggle per mostrare o nascondere ogni widget."},
       {ico:"&#8597;", tit:"Riordinare", txt:"Nella Dashboard premi <strong>&#9881; Organizza</strong> in alto a destra. Trascina i widget o usa i pulsanti &#8597; per cambiare l'ordine."},
-      {ico:"&#10024;", tit:"Animazioni turno", txt:"Il widget <em>Il tuo turno oggi</em> si anima in base al tipo di turno: pulse per mattina/pomeriggio, breathe per notte/riposo, shimmer per ferie, e cos via."},
+      {ico:"&#10024;", tit:"Animazioni turno", txt:"Il widget <em>Il tuo turno oggi</em> si anima in base al tipo di turno: pulse per mattina/pomeriggio, breathe per notte/riposo, shimmer per ferie, e così via."},
       {ico:"&#128100;", tit:"Avatar e colleghi", txt:"Il widget mostra il tuo avatar, il tuo nome e in basso i colleghi che lavorano con te oggi."}
     ]
   },
@@ -12366,7 +12378,7 @@ var _GUIDE = {
     azione: {label:"&#129338; Apri tesserino", fn:"vai('tess',null)"},
     passi: [
       {ico:"&#9312;", tit:"Accedere al tesserino", txt:"Vai su <strong>Impostazioni &#8594; Tesserino</strong> oppure cerca il pulsante nella dashboard."},
-      {ico:"&#128247;", tit:"Aggiungere la foto", txt:"Premi sull'area foto per caricare un'immagine. Puoi ritagliarla con l'editor integrato  il ritaglio viene applicato esattamente come lo imposti."},
+      {ico:"&#128247;", tit:"Aggiungere la foto", txt:"Premi sull'area foto per caricare un'immagine. Puoi ritagliarla con l'editor integrato: il ritaglio viene applicato esattamente come lo imposti."},
       {ico:"&#127894;", tit:"Grado e dati", txt:"Il grado, nome, cognome e reparto vengono presi automaticamente dal tuo profilo. Puoi modificarli nelle impostazioni profilo."},
       {ico:"&#128424;", tit:"Stampare / salvare", txt:"Premi <strong>&#128424; Stampa</strong> per aprire la finestra di stampa del browser. Seleziona <em>Salva come PDF</em> per ottenere il file."},
       {ico:"&#128271;", tit:"Timbro e firma", txt:"Il tesserino include un timbro tondo sovrapposto alla firma dell'autorità rilasciante per un aspetto realistico."}
@@ -12378,7 +12390,7 @@ var _GUIDE = {
     passi: [
       {ico:"&#8505;", tit:"Cosa sono", txt:"Gli orari preset sono i valori di default usati quando inserisci un turno. Puoi personalizzarli per ogni tipo: Mattina, Pomeriggio, Notte, Sera, ML, PL."},
       {ico:"&#9312;", tit:"Aprire la sezione", txt:"Vai su <strong>Impostazioni &#8594; Orari Turni</strong>. Vedrai la lista di tutti i tipi di turno con l'orario attuale."},
-      {ico:"&#128070;", tit:"Modificare un orario", txt:"Tocca la riga del turno che vuoi modificare  si espande mostrando i campi <strong>Inizio</strong> e <strong>Fine</strong>."},
+      {ico:"&#128070;", tit:"Modificare un orario", txt:"Tocca la riga del turno che vuoi modificare: si espande mostrando i campi <strong>Inizio</strong> e <strong>Fine</strong>."},
       {ico:"&#128190;", tit:"Salvare", txt:"Modifica gli orari e premi <strong>&#128190; Salva</strong> sulla riga. L'orario viene salvato immediatamente."},
       {ico:"&#8635;", tit:"Ripristinare i default", txt:"Premi <strong>&#8635; Ripristina default</strong> in fondo alla sezione per tornare agli orari standard."}
     ]
@@ -12571,7 +12583,7 @@ function closeM(id) {
     }
     if (id === 'm-turno') {
         var _tit = document.querySelector('#m-turno .mtit');
-        if (_tit) _tit.textContent = '? Nuovo Turno';
+        if (_tit) _tit.textContent = 'Nuovo Turno';
         var _eid = document.getElementById('mt-edit-id'); if (_eid) _eid.value = '';
         if (typeof _resetTurniMulti === 'function') _resetTurniMulti();
     }
@@ -12677,7 +12689,7 @@ function salvaTurnoRapido() {
     var tipoH = document.getElementById('r-tipo-hidden'); if(tipoH) tipoH.value='';
     document.querySelectorAll('#m-rapido .btn-r').forEach(function(b){ b.style.background=''; b.style.color=''; });
     closeM('m-rapido');
-    toast('Turno salvato ?', 'ok');
+    toast('&#9989; Turno salvato', 'ok');
     haptic('success');
 }
 
@@ -13200,7 +13212,7 @@ function confermaAvatarCrop() {
         // Aggiorna tutte le preview nell'UI
         if(typeof _syncAvaAllSections === 'function') _syncAvaAllSections(fotoUrl);
         if(typeof aggUI === 'function') aggUI();
-        toast('Foto salvata ?', 'ok');
+        toast('&#9989; Foto salvata', 'ok');
         haptic('success');
       })
       .catch(function(e) {
@@ -13219,7 +13231,7 @@ function confermaAvatarCrop() {
     var me = lsG('ct_me', null);
     if(me) { me.ava = data; lsS('ct_me', me); }
     if(typeof aggiornaHeroCard === 'function') aggiornaHeroCard();
-    toast('Foto ritagliata ?', 'ok');
+    toast('&#9989; Foto ritagliata', 'ok');
   }
 }
 
@@ -14422,7 +14434,7 @@ var AuthModule = (function() {
         lsS('ct_me', me);
       }
 
-      toast(nomeTarget + ' ? ' + (nuovoRuolo === 'comandante' ? 'Comandante' : nuovoRuolo === 'vice' ? 'Vice Comandante' : 'Addetto'), 'ok');
+      toast(nomeTarget + ' &#8594; ' + (nuovoRuolo === 'comandante' ? 'Comandante' : nuovoRuolo === 'vice' ? 'Vice Comandante' : 'Addetto'), 'ok');
       AuthModule.renderGestioneMemebri();
       if(typeof aggUI === 'function') aggUI();
     },
@@ -14615,25 +14627,13 @@ function _initMagneticSnap() {
   // Touch: il feedback "drag" scatta SOLO dopo un vero trascinamento (soglia),
   // così un semplice tap non fa "muovere" il widget.
   var _tX = 0, _tY = 0, _tArmed = false;
-  container.addEventListener('touchstart', function(e) {
-    var el = e.target.closest('.wdg-wrap');
-    if(!el || !e.touches || !e.touches.length) { _tArmed = false; return; }
-    dragEl = el; _tArmed = true;
-    _tX = e.touches[0].clientX; _tY = e.touches[0].clientY;
-  }, {passive:true, capture:true});
 
-  container.addEventListener('touchmove', function(e) {
-    if(!_tArmed || !dragEl || !e.touches || !e.touches.length) return;
-    var dx = e.touches[0].clientX - _tX;
-    var dy = e.touches[0].clientY - _tY;
-    if(!dragEl.classList.contains('dragging-active') && (Math.abs(dx) + Math.abs(dy) > 10)) {
-      dragEl.classList.add('dragging-active');
-    }
-  }, {passive:true, capture:true});
-
-  container.addEventListener('touchend', function() {
-    _tArmed = false;
-    var el = dragEl; dragEl = null;
+  // Riporta il widget allo stato normale. Usato anche su `touchcancel`: senza
+  // questo, quando il browser annulla il touch (es. per iniziare lo scroll) la
+  // classe .dragging-active restava attiva e il widget rimaneva ingrandito
+  // (il "movimento residuo" segnalato).
+  function _resetDrag() {
+    var el = dragEl; dragEl = null; _tArmed = false;
     if(!el) return;
     var wasDragging = el.classList.contains('dragging-active');
     el.classList.remove('dragging-active');
@@ -14642,7 +14642,30 @@ function _initMagneticSnap() {
       setTimeout(function(){ el.classList.remove('snap-in'); el.classList.remove('snap-glow'); }, 500);
       if(navigator.vibrate) navigator.vibrate(15);
     }
+  }
+
+  container.addEventListener('touchstart', function(e) {
+    // Non armare il drag magnetico se il tocco parte dall'handle di resize:
+    // altrimenti il widget si ingrandisce mentre si ridimensiona.
+    if(e.target.closest('.wdg-resize-handle')) { _tArmed = false; dragEl = null; return; }
+    var el = e.target.closest('.wdg-wrap');
+    if(!el || !e.touches || !e.touches.length) { _tArmed = false; return; }
+    dragEl = el; _tArmed = true;
+    _tX = e.touches[0].clientX; _tY = e.touches[0].clientY;
   }, {passive:true, capture:true});
+
+  container.addEventListener('touchmove', function(e) {
+    if(!_tArmed || !dragEl || !e.touches || !e.touches.length) return;
+    if(dragEl.classList.contains('resizing')) return; // resize in corso: nessuno scale
+    var dx = e.touches[0].clientX - _tX;
+    var dy = e.touches[0].clientY - _tY;
+    if(!dragEl.classList.contains('dragging-active') && (Math.abs(dx) + Math.abs(dy) > 10)) {
+      dragEl.classList.add('dragging-active');
+    }
+  }, {passive:true, capture:true});
+
+  container.addEventListener('touchend', _resetDrag, {passive:true, capture:true});
+  container.addEventListener('touchcancel', _resetDrag, {passive:true, capture:true});
 }
 
 // -- 6. GLASS SPOTLIGHT ----------------------------------------

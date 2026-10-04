@@ -110,6 +110,76 @@ function _stopListeners() {
   if(_unsubNotifiche){ try{ _unsubNotifiche(); }catch(e){} _unsubNotifiche = null; }
 }
 
+// ── Preserva i dati personali che il documento di reparto NON contiene ──────
+// (pool ferie/licenze, monte permessi studio). Evita che un profilo cloud
+// incompleto o una sincronizzazione fallita li cancellino da ct_me.
+function _datiPersonaliLocali(uid, id, oldMe){
+  var res = { licenzePool: null, ferieRes: null, permessiStudioMonte: null };
+  function prendi(obj){
+    if(!obj) return;
+    if(!res.licenzePool && obj.licenzePool && obj.licenzePool.length) res.licenzePool = obj.licenzePool;
+    if(res.ferieRes == null && obj.ferieRes != null && obj.ferieRes !== '') res.ferieRes = obj.ferieRes;
+    if(obj.permessiStudioMonte){
+      res.permessiStudioMonte = res.permessiStudioMonte || {};
+      for(var k in obj.permessiStudioMonte){
+        if(obj.permessiStudioMonte[k] && !Number(res.permessiStudioMonte[k]))
+          res.permessiStudioMonte[k] = obj.permessiStudioMonte[k];
+      }
+    }
+  }
+  // 1) Copia locale esplicita passata dal chiamante — è la fonte più affidabile,
+  //    perché viene catturata PRIMA di sovrascrivere ct_me con i dati Firestore.
+  //    Senza questa precedenza, un listener che clobbera ct_me fa perdere il pool.
+  if(oldMe) prendi(oldMe);
+  try { prendi(JSON.parse(localStorage.getItem('ct_me') || 'null')); } catch(e){}
+  try {
+    var P = JSON.parse(localStorage.getItem('ct_p') || '[]') || [];
+    for(var i=0;i<P.length;i++){ if(String(P[i].id)===String(id)||(P[i].uid&&String(P[i].uid)===String(uid))){ prendi(P[i]); break; } }
+  } catch(e){}
+  try {
+    var U = JSON.parse(localStorage.getItem('ct_u') || '[]') || [];
+    for(var j=0;j<U.length;j++){ if(String(U[j].id)===String(id)||(U[j].uid&&String(U[j].uid)===String(uid))){ prendi(U[j]); break; } }
+  } catch(e){}
+  return res;
+}
+
+// Rispecchia pool ferie/licenze e monte studio su ct_p, ct_u e ct_me.
+function _rispecchiaDatiPersonali(prof, uid, id){
+  if(!prof) return;
+  var match = function(o){ return o && (o.uid===prof.uid || o.id===prof.id || String(o.id)===String(id) || (uid && o.uid===uid)); };
+  try {
+    var P = lsG('ct_p', []);
+    P.forEach(function(p){ if(match(p)){ if(prof.licenzePool) p.licenzePool = prof.licenzePool; if(prof.ferieRes != null) p.ferieRes = prof.ferieRes; if(prof.permessiStudioMonte) p.permessiStudioMonte = prof.permessiStudioMonte; } });
+    lsS('ct_p', P);
+    var U = lsG('ct_u', []);
+    U.forEach(function(u){ if(match(u)){ if(prof.licenzePool) u.licenzePool = prof.licenzePool; if(prof.ferieRes != null) u.ferieRes = prof.ferieRes; if(prof.permessiStudioMonte) u.permessiStudioMonte = prof.permessiStudioMonte; } });
+    lsS('ct_u', U);
+  } catch(e){}
+}
+
+// Unisce nel profilo i dati personali presenti in locale. Restituisce true se
+// qualcosa è stato recuperato (così si può ri-sincronizzare su Firestore).
+function _ripristinaDatiPersonali(prof, uid, id, oldMe){
+  if(!prof) return false;
+  var loc = _datiPersonaliLocali(uid, id, oldMe), recuperato = false;
+  if((!prof.licenzePool || !prof.licenzePool.length) && loc.licenzePool){
+    prof.licenzePool = loc.licenzePool;
+    if(!prof.ferieRes) prof.ferieRes = loc.ferieRes || 30;
+    recuperato = true;
+  }
+  if(loc.permessiStudioMonte){
+    prof.permessiStudioMonte = prof.permessiStudioMonte || {};
+    for(var k in loc.permessiStudioMonte){
+      if(!Number(prof.permessiStudioMonte[k]) && Number(loc.permessiStudioMonte[k])){
+        prof.permessiStudioMonte[k] = loc.permessiStudioMonte[k];
+        recuperato = true;
+      }
+    }
+  }
+  if(recuperato) _rispecchiaDatiPersonali(prof, uid, id);
+  return recuperato;
+}
+
 // ── Avvia onSnapshot per turni, todo, personale, utenti ─────────
 function _startListeners(reparto) {
   _stopListeners();
@@ -189,6 +259,8 @@ function _startListeners(reparto) {
     _unsubscribers.push(onSnapshot(meRef, function(snap) {
       if(snap.exists()) {
         var prof = snap.data();
+        if(!prof.id) prof.id = prof.uid || session.userId;
+        if(!prof.uid) prof.uid = session.userId;
         var oldMe = JSON.parse(localStorage.getItem('ct_me') || 'null');
         // Salva le licenze locali PRIMA di sovrascrivere ct_me
         var _licenzeOld = (oldMe && oldMe.licenzePool && oldMe.licenzePool.length) ? oldMe.licenzePool : null;
@@ -228,16 +300,16 @@ function _startListeners(reparto) {
             prof.cognome = oldMe.cognome;
           }
         }
+        // Recupera i dati personali (pool ferie/licenze, monte permessi studio)
+        // usando la copia locale catturata in `oldMe` PRIMA di sovrascrivere ct_me.
+        // Senza questo ordine, un doc Firestore incompleto azzererebbe ferie/licenze.
+        var _recuperatoPersonali = _ripristinaDatiPersonali(prof, prof.uid, prof.id, oldMe);
         localStorage.setItem('ct_me', JSON.stringify(prof));
         // Straordinari dal cloud → salvadanaio disponibile anche sui nuovi dispositivi
         if (typeof window._straordLoadFirebase === 'function') {
           try { window._straordLoadFirebase(prof); } catch(e) { console.warn('straord load:', e.message); }
         }
-        // Se Firestore non ha licenzePool ma ne avevamo localmente, ripristinale
-        if ((!prof.licenzePool || !prof.licenzePool.length) && _licenzeOld) {
-          prof.licenzePool = _licenzeOld;
-          prof.ferieRes    = _ferieOld || 30;
-          localStorage.setItem('ct_me', JSON.stringify(prof));
+        if (_recuperatoPersonali) {
           if(window.FirebaseModule && prof.uid) {
             window.FirebaseModule.saveUserProfile(prof.uid, prof, prof.reparto).catch(function(){});
           }
@@ -340,7 +412,37 @@ function _startListeners(reparto) {
           if(_oldMePrivacy && (!myProfile.privacy || !myProfile.privacy.tosAccepted)) {
             myProfile.privacy = _oldMePrivacy;
           }
-          localStorage.setItem('ct_me', JSON.stringify(myProfile));
+          // IMPORTANTE: il documento di reparto NON contiene i dati personali
+          // (pool ferie/licenze, monte permessi studio, straordinari, tema…).
+          // Non deve quindi sostituire ct_me: uniamo i suoi campi al profilo locale
+          // per non cancellare ciò che vive solo in /utenti/{uid}.
+          var _mergedMe = {};
+          if(oldMe){ for(var _mk in oldMe){ _mergedMe[_mk] = oldMe[_mk]; } }
+          for(var _mk2 in myProfile){
+            // Il documento di reparto NON contiene i dati personali: un valore
+            // vuoto/assente non deve cancellare pool ferie, saldo o monte studio locali.
+            if(_mk2 === 'licenzePool'){
+              if((!myProfile[_mk2] || !myProfile[_mk2].length) &&
+                 oldMe && oldMe.licenzePool && oldMe.licenzePool.length) continue;
+            }
+            if(_mk2 === 'ferieRes' || _mk2 === 'ferie'){
+              if((myProfile[_mk2] === undefined || myProfile[_mk2] === null) &&
+                 oldMe && oldMe[_mk2] != null) continue;
+            }
+            if(_mk2 === 'permessiStudioMonte'){
+              var _nm = myProfile[_mk2];
+              if((!_nm || !Object.keys(_nm).length) && oldMe && oldMe.permessiStudioMonte) continue;
+              if(_nm && oldMe && oldMe.permessiStudioMonte){
+                var _amm = {};
+                for(var _pk in oldMe.permessiStudioMonte) _amm[_pk] = oldMe.permessiStudioMonte[_pk];
+                for(var _pk2 in _nm){ if(Number(_nm[_pk2])) _amm[_pk2] = _nm[_pk2]; }
+                _mergedMe[_mk2] = _amm;
+                continue;
+              }
+            }
+            _mergedMe[_mk2] = myProfile[_mk2];
+          }
+          localStorage.setItem('ct_me', JSON.stringify(_mergedMe));
           if(myProfile.ruolo !== session.ruolo || myProfile.stato !== session.stato) {
             session.ruolo = myProfile.ruolo;
             session.stato = myProfile.stato || session.stato;
@@ -523,6 +625,10 @@ window.FirebaseModule = {
           if(!prof.privacy) prof.privacy = localMe.privacy;
           else if(localMe.privacy.condividiTurni !== undefined) prof.privacy.condividiTurni = localMe.privacy.condividiTurni;
         }
+        // Non perdere pool ferie/licenze e monte permessi studio già presenti in locale
+        if(_ripristinaDatiPersonali(prof, uid, prof.id)) {
+          if(window.FirebaseModule && prof.uid) window.FirebaseModule.saveUserProfile(prof.uid, prof, prof.reparto).catch(function(){});
+        }
         localStorage.setItem('ct_me', JSON.stringify(prof));
         // Verifica TOS
         await window.FirebaseModule.verificaEForzaPrivacy(uid, prof);
@@ -604,9 +710,12 @@ window.FirebaseModule = {
           if(!prof.privacy) prof.privacy = _lm.privacy;
           else if(_lm.privacy.condividiTurni !== undefined) prof.privacy.condividiTurni = _lm.privacy.condividiTurni;
         }
+        // Ripristina pool ferie/licenze e monte permessi studio se Firestore non li ha
+        var _recuperatoLocali = _ripristinaDatiPersonali(prof, uid, prof.id, _lm);
         localStorage.setItem('ct_me', JSON.stringify(prof));
         // Verifica TOS
         await window.FirebaseModule.verificaEForzaPrivacy(uid, prof);
+        if(_recuperatoLocali && prof.uid) window.FirebaseModule.saveUserProfile(prof.uid, prof, prof.reparto).catch(function(){});
         // Ripristina preferenze
         if(prof.myPid) localStorage.setItem('ct_my_pid', String(prof.myPid));
         if(typeof window._straordLoadFirebase === 'function') window._straordLoadFirebase(prof);
@@ -1262,6 +1371,13 @@ window.FirebaseModule = {
     try {
       var profileClean = Object.assign({}, profile);
 
+      // Protezione anti-azzeramento: un pool licenze vuoto NON deve essere scritto,
+      // perché `setDoc` con merge:sovrascrive gli array presenti (una merge ignora
+      // solo i campi assenti, non un array vuoto). Così il cloud non perde il pool.
+      if(Array.isArray(profileClean.licenzePool) && profileClean.licenzePool.length === 0) {
+        delete profileClean.licenzePool;
+      }
+
       // Se ava è base64, prova upload su Storage per ottenere URL https
       if(profileClean.ava && profileClean.ava.startsWith('data:')) {
         try {
@@ -1475,13 +1591,17 @@ window.FirebaseModule = {
   // ── FCM: richiedi permesso e salva token ───────────────────
   initFCM: async function() {
     if(!messaging) { console.warn('[FCM] messaging non inizializzato'); return; }
+    // Evita esecuzioni concorrenti/duplicate (login + restore chiamano entrambi).
+    if(window._fcmRunning) { console.log('[FCM] init già in corso — skip'); return; }
+    window._fcmRunning = true;
+    setTimeout(function(){ window._fcmRunning = false; }, 15000); // reset di sicurezza
     try {
       var perm = Notification.permission;
       console.log('[FCM] Permesso notifiche:', perm);
-      if(perm === 'denied') { console.warn('[FCM] Permesso negato dall\'utente'); return; }
+      if(perm === 'denied') { console.warn('[FCM] Permesso negato dall\'utente'); window._fcmRunning = false; return; }
       if(perm !== 'granted') {
         perm = await Notification.requestPermission();
-        if(perm !== 'granted') { console.warn('[FCM] Permesso non concesso:', perm); return; }
+        if(perm !== 'granted') { console.warn('[FCM] Permesso non concesso:', perm); window._fcmRunning = false; return; }
       }
       // Trova o registra il SW FCM — prova scope multipli per compatibilità con hosting diversi
       var swReg = null;
@@ -1510,7 +1630,7 @@ window.FirebaseModule = {
         } catch(eTok) { console.warn('[FCM] getToken tentativo', _retry+1, ':', eTok.message); }
         if(_retry < 2) await new Promise(function(r){ setTimeout(r, 2000); });
       }
-      if(!token) { console.warn('[FCM] Token non ottenuto dopo 3 tentativi — verifica VAPID_KEY e SW'); return; }
+      if(!token) { console.warn('[FCM] Token non ottenuto dopo 3 tentativi — verifica VAPID_KEY e SW'); window._fcmRunning = false; return; }
       console.log('[FCM] Token ottenuto:', token.substring(0,20)+'...');
       // Salva token su Firestore
       var session = JSON.parse(localStorage.getItem('ct_session') || 'null');
@@ -1535,14 +1655,19 @@ window.FirebaseModule = {
       } else {
         console.warn('[FCM] Nessuna sessione attiva — token non salvato');
       }
-      // Messaggi in foreground → toast + notifica nativa
-      onMessage(messaging, function(payload) {
-        var title = (payload.notification && payload.notification.title) || 'C-Turni';
-        var body  = (payload.notification && payload.notification.body)  || '';
-        if(typeof window.toast === 'function') window.toast('\uD83D\uDD14 ' + title + (body ? ': ' + body : ''), 'ok');
-        if(Notification.permission === 'granted') new Notification(title, { body: body, icon: _NOTIF_ICON });
-      });
-    } catch(e) { console.error('[FCM] Errore initFCM:', e.message, e); }
+      // Messaggi in foreground → toast + notifica nativa (binding una sola volta,
+      // altrimenti ogni login/restore aggiunge un listener → notifiche duplicate).
+      if(!window._fcmMsgBound) {
+        window._fcmMsgBound = true;
+        onMessage(messaging, function(payload) {
+          var title = (payload.notification && payload.notification.title) || 'C-Turni';
+          var body  = (payload.notification && payload.notification.body)  || '';
+          if(typeof window.toast === 'function') window.toast('\uD83D\uDD14 ' + title + (body ? ': ' + body : ''), 'ok');
+          if(Notification.permission === 'granted') new Notification(title, { body: body, icon: _NOTIF_ICON });
+        });
+      }
+      window._fcmRunning = false;
+    } catch(e) { console.error('[FCM] Errore initFCM:', e.message, e); window._fcmRunning = false; }
   },
 
   // ── FCM: schedula push scrivendo su Firestore (letta da Cloud Function/Extension) ──
