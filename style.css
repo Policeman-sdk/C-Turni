@@ -5423,8 +5423,15 @@ nav.bottom-bar#bottom-nav,
    (transform/opacity) — zero reflow.
    ═══════════════════════════════════════════════════════════════ */
 
-/* 1) Contenitore: trasparente, fisso, non scrollabile via --------- */
-#bottom-nav.bottom-bar {
+/* 1) Contenitore: trasparente, fisso, non scrollabile via ---------
+   NOTA specificità: la vecchia regola legacy "nav.bottom-bar#bottom-nav"
+   (che applicava al contenitore un background solido a tutta larghezza,
+   il "quadrato" chiaro dietro la pillola) ha specificità (1,1,1). I due
+   selettori qui sotto la battono — il secondo, con l'attributo [class],
+   ha specificità (1,2,0) e vince a prescindere dall'ordine. Così la
+   barra resta UNA sola superficie: la pillola (.bn-items). */
+nav#bottom-nav.bottom-bar,
+#bottom-nav.bottom-bar[class] {
   position: fixed !important;
   bottom: 0 !important;
   top: auto !important;
@@ -5589,17 +5596,31 @@ nav.bottom-bar#bottom-nav,
    etichetta + colore dedicato (rosso) per la lettura a colpo d'occhio. */
 .ag-hero-avvisi {
   position: relative;
-  border-radius: 26px;
-  padding: 16px 16px 14px;
-  margin: 2px 0 20px;
+  border-radius: 28px;
+  padding: 18px 18px 16px;
+  margin: 4px 0 18px;
   background:
-    radial-gradient(120% 120% at 100% 0%, rgba(212,175,55,.20) 0%, rgba(212,175,55,0) 55%),
-    linear-gradient(140deg, rgba(91,159,255,.14) 0%, rgba(91,159,255,.04) 45%, var(--card) 100%);
+    radial-gradient(130% 120% at 100% 0%, rgba(212,175,55,.24) 0%, rgba(212,175,55,0) 58%),
+    linear-gradient(140deg, rgba(91,159,255,.18) 0%, rgba(91,159,255,.05) 48%, var(--card) 100%);
   border: 1px solid var(--border);
-  box-shadow: 0 6px 24px rgba(0,0,0,.20), 0 1px 3px rgba(0,0,0,.14);
+  box-shadow: 0 8px 28px rgba(0,0,0,.22), 0 1px 3px rgba(0,0,0,.14);
   overflow: hidden;
 }
-.ag-hero-avvisi.is-empty { box-shadow: 0 3px 14px rgba(0,0,0,.12); }
+/* Filo luminoso in alto — accento "M3 Expressive" */
+.ag-hero-avvisi::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--gold, #ffd166), var(--blue, #5b9fff) 55%, rgba(91,159,255,0) 100%);
+  opacity: .85;
+  pointer-events: none;
+}
+/* Nessun avviso attivo: la hero NON occupa spazio in cima all'Agenda
+   (viene nascosta da renderAvvisiAgenda, che però la rimostra quando
+   l'utente filtra esplicitamente su "Avvisi"). Il display:none qui è
+   solo un fallback per il primissimo paint, prima del render JS. */
+.ag-hero-avvisi.is-empty { display: none; }
 .ag-hero-head {
   position: relative;
   z-index: 1;
@@ -5661,4 +5682,88 @@ nav.bottom-bar#bottom-nav,
   background: linear-gradient(100deg, rgba(200,16,46,.16) 0%, rgba(200,16,46,.05) 70%);
   box-shadow: 0 4px 16px rgba(200,16,46,.20);
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   POPUP FAB — Menu rapido flottante sopra il tasto centrale "+"
+   ---------------------------------------------------------------
+   Il tasto "+" della bottom bar non apre più un bottom-sheet a
+   tutta larghezza: diventa un piccolo menu che sbocca SOPRA il
+   tasto (freccia rivolta verso il basso) su un overlay
+   semitrasparente. Animazione solo su transform/opacity (GPU).
+   ═══════════════════════════════════════════════════════════════ */
+.fab-pop-card {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 26px;
+  padding: 6px 16px 16px;
+  box-shadow: 0 22px 60px rgba(0,0,0,.5), 0 6px 18px rgba(0,0,0,.35);
+  transform-origin: 50% 100%;
+}
+/* Freccia che punta al tasto "+" */
+.fab-pop-tail {
+  position: absolute;
+  left: 50%;
+  bottom: -7px;
+  width: 15px;
+  height: 15px;
+  transform: translateX(-50%) rotate(45deg);
+  background: var(--card);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  border-bottom-right-radius: 4px;
+  pointer-events: none;
+}
+.fab-pop-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 2px 12px;
+}
+.fab-pop-title { font-size: 16px; font-weight: 800; color: var(--txt); letter-spacing: -.2px; }
+.fab-pop-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: var(--bg2);
+  color: var(--txt2);
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: transform .16s var(--motion-spring), background .2s;
+}
+.fab-pop-close:active { transform: scale(.9); }
+.fab-pop-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: min(46vh, 340px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.fab-pop-actions::-webkit-scrollbar { display: none; }
+.fab-pop-actions > button { transition: transform .16s var(--motion-spring), background .18s !important; }
+.fab-pop-actions > button:active { transform: scale(.97); }
+
+/* Animazione d'ingresso — solo transform/opacity (GPU, zero reflow) */
+@keyframes fabPopIn { from { opacity: 0; transform: translateY(16px) scale(.9); } to { opacity: 1; transform: none; } }
+@keyframes fabActIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.sheet-overlay.open .fab-pop-card { animation: fabPopIn .28s var(--motion-spring) both; }
+.sheet-overlay.open .fab-pop-actions > button { animation: fabActIn .26s var(--motion-decel) backwards; }
+.sheet-overlay.open .fab-pop-actions > button:nth-child(1) { animation-delay: .04s; }
+.sheet-overlay.open .fab-pop-actions > button:nth-child(2) { animation-delay: .08s; }
+.sheet-overlay.open .fab-pop-actions > button:nth-child(3) { animation-delay: .12s; }
+.sheet-overlay.open .fab-pop-actions > button:nth-child(4) { animation-delay: .16s; }
+.sheet-overlay.open .fab-pop-actions > button:nth-child(5) { animation-delay: .20s; }
+.sheet-overlay.open .fab-pop-actions > button:nth-child(6) { animation-delay: .24s; }
 

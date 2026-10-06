@@ -1528,10 +1528,19 @@ function renderAvvisiAgenda(){
   if(btnNuovo) btnNuovo.style.display = cmd ? 'inline-flex' : 'none';
   var cnt = document.getElementById('ag-avvisi-count');
   if(cnt) cnt.textContent = arr.length ? ('(' + arr.length + ')') : '';
+  // La hero card in cima all'Agenda non deve mai lasciare "spazio vuoto":
+  // se non ci sono avvisi si nasconde del tutto (la pagina parte pulita),
+  // ma resta visibile quando l'utente filtra esplicitamente su "Avvisi",
+  // dove mostriamo lo stato vuoto. La visibilità è gestita qui (e non in
+  // filtraAgendaPg) così tiene conto sia del filtro sia degli avvisi.
+  var filtroAg = (typeof _agPgFiltro === 'string') ? _agPgFiltro : 'tutto';
+  var mostraSezione = (filtroAg === 'tutto' || filtroAg === 'avvisi');
   var hero = document.getElementById('ag-section-avvisi');
+  if(hero){
+    hero.classList.toggle('is-empty', !arr.length);
+    hero.style.display = (mostraSezione && (arr.length || filtroAg === 'avvisi')) ? 'block' : 'none';
+  }
   if(!arr.length){
-    // Hero compatta: nessun avviso attivo (non occupa spazio in cima all'Agenda)
-    if(hero) hero.classList.add('is-empty');
     el.innerHTML = '<div class="ag-hero-empty">'
       + '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">'
       + '<path d="M3 10v4l14 5V5L3 10z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>'
@@ -1541,7 +1550,6 @@ function renderAvvisiAgenda(){
       + '</div>';
     return;
   }
-  if(hero) hero.classList.remove('is-empty');
   el.innerHTML = arr.map(function(a){
     var urgente = !!a.urgente;
     var badge = urgente
@@ -5139,17 +5147,25 @@ function renderAgendaPg(filtro) {
   if(typeof renderAvvisiAgenda === 'function') renderAvvisiAgenda();
 }
 
+// Filtro attivo nella pagina Agenda: 'tutto' | 'agenda' | 'compiti' | 'avvisi'.
+// Usato da renderAvvisiAgenda() per decidere quando la hero card degli avvisi
+// deve occupare spazio in cima alla pagina: nessuno spazio vuoto quando non
+// ci sono avvisi (filtro "tutto"), ma sempre visibile se l'utente seleziona
+// esplicitamente il filtro "Avvisi".
+var _agPgFiltro = 'tutto';
 // Filter chips agenda pagina
 function filtraAgendaPg(tipo, btn) {
+  _agPgFiltro = tipo || 'tutto';
   document.querySelectorAll('.ag-chip').forEach(function(c){ c.classList.remove('on'); });
   if(btn) btn.classList.add('on');
   var secAg = document.getElementById('ag-section-agenda');
   var secTd = document.getElementById('ag-section-compiti');
-  var secAv = document.getElementById('ag-section-avvisi');
-  if(tipo === 'agenda')  { if(secAg) secAg.style.display=''; if(secTd) secTd.style.display='none'; if(secAv) secAv.style.display='none'; }
-  else if(tipo === 'compiti') { if(secAg) secAg.style.display='none'; if(secTd) secTd.style.display=''; if(secAv) secAv.style.display='none'; }
-  else if(tipo === 'avvisi') { if(secAg) secAg.style.display='none'; if(secTd) secTd.style.display='none'; if(secAv) secAv.style.display=''; }
-  else { if(secAg) secAg.style.display=''; if(secTd) secTd.style.display=''; if(secAv) secAv.style.display=''; }
+  // NB: #ag-section-avvisi è gestita da renderAvvisiAgenda() (chiamata da
+  // renderAgendaPg) così la hero tiene conto sia del filtro sia degli avvisi.
+  if(tipo === 'agenda')  { if(secAg) secAg.style.display=''; if(secTd) secTd.style.display='none'; }
+  else if(tipo === 'compiti') { if(secAg) secAg.style.display='none'; if(secTd) secTd.style.display=''; }
+  else if(tipo === 'avvisi') { if(secAg) secAg.style.display='none'; if(secTd) secTd.style.display='none'; }
+  else { if(secAg) secAg.style.display=''; if(secTd) secTd.style.display=''; }
   renderAgendaPg(tipo);
 }
 
