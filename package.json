@@ -3,7 +3,7 @@
   "version": "4.3.0",
   "private": true,
   "scripts": {
-    "test": "node scripts/smoke.mjs",
+    "test": "node scripts/smoke.mjs && node scripts/test-excel-import.mjs",
     "prepare:web": "node scripts/prepareWeb.mjs",
     "android:add": "npm run prepare:web && npx cap add android",
     "android:sync": "npm run prepare:web && npx cap sync android",

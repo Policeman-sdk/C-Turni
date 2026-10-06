@@ -1528,17 +1528,20 @@ function renderAvvisiAgenda(){
   if(btnNuovo) btnNuovo.style.display = cmd ? 'inline-flex' : 'none';
   var cnt = document.getElementById('ag-avvisi-count');
   if(cnt) cnt.textContent = arr.length ? ('(' + arr.length + ')') : '';
+  var hero = document.getElementById('ag-section-avvisi');
   if(!arr.length){
-    el.innerHTML = '<div class="ag-empty-state">'
-      + '<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">'
-      + '<path d="M14 42V26a18 18 0 0136 0v16l6 7H8l6-7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>'
-      + '<path d="M26 52a6 6 0 0012 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'
+    // Hero compatta: nessun avviso attivo (non occupa spazio in cima all'Agenda)
+    if(hero) hero.classList.add('is-empty');
+    el.innerHTML = '<div class="ag-hero-empty">'
+      + '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">'
+      + '<path d="M3 10v4l14 5V5L3 10z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>'
+      + '<path d="M6 14.5V17a2 2 0 002 2h1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'
       + '</svg>'
-      + '<div class="ag-empty-title">Nessun avviso del Comando</div>'
-      + '<div class="ag-empty-sub">Le disposizioni di servizio appariranno qui</div>'
+      + '<span>Nessun avviso del Comando &mdash; le disposizioni appariranno qui</span>'
       + '</div>';
     return;
   }
+  if(hero) hero.classList.remove('is-empty');
   el.innerHTML = arr.map(function(a){
     var urgente = !!a.urgente;
     var badge = urgente
@@ -2991,6 +2994,37 @@ function _tipoEffettivoTurno(t){
   var cod = String(t.codice||'').trim().toUpperCase();
   if(_CODICE_TO_TIPO[cod] !== undefined) return _CODICE_TO_TIPO[cod];
   return t.tipo || 'altro';
+}
+// ---- TURNI PERSONALIZZATI (ct_turni_custom) --------------------------
+// Cerca la definizione di un turno personalizzato a partire dalla sua sigla
+function _tcFindByCodice(codice){
+  var c = String(codice||'').trim().toUpperCase();
+  if(!c) return null;
+  var list = lsG('ct_turni_custom', []);
+  if(!list || !list.length) return null;
+  for(var i=0;i<list.length;i++){
+    if(String(list[i].codice||'').trim().toUpperCase() === c) return list[i];
+  }
+  return null;
+}
+// Se il turno è di tipo "custom" e la sigla è definita in ct_turni_custom
+// restituisce la definizione (nome, colore, emoji, orari), altrimenti null
+function _tcMetaTurno(t){
+  if(!t) return null;
+  if(_tipoEffettivoTurno(t) !== 'custom') return null;
+  return _tcFindByCodice(t.codice);
+}
+// Estrae il colore pieno (hex) dalla palette dei turni personalizzati (_TC_COLORI)
+function _tcSolid(col){
+  var g = (typeof _TC_COLORI !== 'undefined' && _TC_COLORI[col]) ? _TC_COLORI[col] : '';
+  var m = /#([0-9a-fA-F]{6})/.exec(g);
+  return m ? ('#'+m[1]) : _TIPO_COLOR.custom;
+}
+// Sostituisce l'orario di un turno con quello del turno personalizzato (se definito)
+function _tcOrarioTurno(t){
+  var tc = _tcMetaTurno(t);
+  if(tc && tc.oraIn && tc.oraFi) return tc.oraIn+'-'+tc.oraFi;
+  return null;
 }
 
 // -- Helper: riconosce se un turno appartiene all'utente loggato --
@@ -9559,6 +9593,7 @@ function _apriWA(testo) {
 
 // ---- IMPORT EXCEL ----
 var _xlsWb=null;
+var _xlsNuovePersone=0;
 function importXL(file){
   if(!file)return;
   if(!file.name.match(/\.xlsx?$/i)){toast("Seleziona un file .xlsx","err");return;}
@@ -9628,14 +9663,10 @@ function confermImportF(modoSost){
         });
         if(mese===null)Object.keys(mM).forEach(function(k){if(sn.toLowerCase().indexOf(k)!==-1)mese=mM[k];});
       })();
-      for(var i=0;i<Math.min(8,rows.length);i++){
-        rows[i].forEach(function(cel){
-          var n=parseInt(cel);
-          if(!isNaN(n)&&n>2000&&n<2100)anno=n;
-          if(!isNaN(n)&&n>=1&&n<=12&&mese===null)mese=n-1;
-        });
-      }
-      if(mese===null)mese=new Date().getMonth();
+      var _maR = _xlsRilevaMeseAnno(sn, rows);
+      if(mese === null && _maR.mese !== null) mese = _maR.mese;
+      if(mese === null) mese = new Date().getMonth();
+      if(_maR.anno) anno = _maR.anno;
       dateDaRimuovere[anno+"-"+("0"+(mese+1)).slice(-2)]=true;
     });
 
@@ -9652,6 +9683,7 @@ function confermImportF(modoSost){
   }
 
   var tot=0;
+  _xlsNuovePersone=0;
   selezionati.forEach(function(sn){
     tot+=parseSheet(XLSX.utils.sheet_to_json(_xlsWb.Sheets[sn],{header:1,defval:""}),sn);
   });
@@ -9724,7 +9756,9 @@ function confermImportF(modoSost){
   var _me3=lsG('ct_me',null);
   if(_me3&&typeof renderWidgetProssimo==='function') renderWidgetProssimo(_me3);
   var modo=modoSost?"sostituiti":"aggiunti";
-  toast("&#9989; "+tot+" turni "+modo+" da "+selezionati.length+" foglio/i","ok");
+  var _msgImp="&#9989; "+tot+" turni "+modo+" da "+selezionati.length+" foglio/i";
+  if(_xlsNuovePersone>0) _msgImp += " &#183; "+_xlsNuovePersone+" nuov"+( _xlsNuovePersone===1?"a persona":"e persone");
+  toast(_msgImp,"ok");
   // Reschedula notifiche con i nuovi turni
   setTimeout(function(){
     lsS("ct_push_scheduled",[]);
@@ -9734,6 +9768,89 @@ function confermImportF(modoSost){
   if(tot > 0) {
     aggiungiNotifica("turni","Turni importati","&#128229; "+tot+" turni "+modo+" da Excel ("+selezionati.length+" foglio/i)","&#128229;","var(--teal)");
   }
+}
+// --- Supporto lettura Excel: date, mese/anno, matching persone ---
+// Converte una cella (serial Excel / data / testo gg-mm) nel giorno del mese (0 se non è un giorno)
+function _xlsDayFromCell(v){
+  if(v===null||v===undefined||v==="")return 0;
+  var n;
+  if(v instanceof Date){n=v.getDate();return (n>=1&&n<=31)?n:0;}
+  if(typeof v==="number"){n=v;}
+  else{
+    n=parseFloat(String(v).replace(',','.'));
+    if(isNaN(n)||String(v).length>6)return 0;
+  }
+  if(n>=1&&n<=31)return Math.floor(n);              // già giorno del mese
+  if(n>=20000&&n<80000){                             // serial Excel (1899-12-30)
+    var d=new Date(Date.UTC(1899,11,30)+(Math.floor(n))*86400000);
+    return d.getUTCDate();
+  }
+  return 0;
+}
+// Ricava mese (0-11) e anno dal nome del foglio e/o dalle prime righe
+function _xlsRilevaMeseAnno(sn,rows){
+  var mM={gen:0,gennaio:0,jan:0,january:0,feb:1,febbraio:1,february:1,mar:2,marzo:2,march:2,
+    apr:3,aprile:3,april:3,mag:4,maggio:4,may:4,giu:5,giugno:5,jun:5,june:5,lug:6,luglio:6,jul:6,july:6,
+    ago:7,agosto:7,aug:7,august:7,set:8,settembre:8,sep:8,september:8,ott:9,ottobre:9,oct:9,october:9,
+    nov:10,novembre:10,november:10,dic:11,dicembre:11,dec:11,december:11,
+    '01':0,'02':1,'03':2,'04':3,'05':4,'06':5,'07':6,'08':7,'09':8,'10':9,'11':10,'12':11};
+  var mese=null,anno=null;
+  var nomeF=String(sn||'').toLowerCase().replace(/[-_/\.]/g,' ').trim();
+  var tk=nomeF.split(/\s+/);
+  for(var k in mM){
+    for(var i=0;i<tk.length;i++){
+      if(tk[i]===k || tk[i].indexOf(k)===0){mese=mM[k];break;}
+    }
+    if(mese!==null)break;
+  }
+  var lim=Math.min(rows.length,12);
+  for(var ri=0;ri<lim&&(anno===null||mese===null);ri++){
+    var r=rows[ri]||[];
+    for(var ci=0;ci<Math.min(r.length,6);ci++){
+      var v=r[ci];
+      if(v===""||v===null||v===undefined)continue;
+      var s=String(v);
+      var ym=/(20\d{2})/.exec(s);
+      if(ym&&anno===null)anno=parseInt(ym[1],10);
+      var n=parseFloat(s.replace(',','.'));
+      if(!isNaN(n)&&String(s).length<=6){
+        if(mese===null&&n>=1&&n<=12&&ci<=2)mese=n-1;
+        if(n>2000&&n<2100&&anno===null)anno=n;
+      }
+      if(anno!==null&&mese!==null)break;
+    }
+  }
+  if(anno===null)anno=new Date().getFullYear();
+  return {mese:mese,anno:anno};
+}
+// Trova l'indice della Persona (per pid) al momento dell'importazione
+function _xlsMatchPersona(persone,grado,nome){
+  var g=String(grado||'').toLowerCase().trim();
+  var n=String(nome||'').toLowerCase().trim();
+  if(!n)return null;
+  var f=function(p){
+    var pn=String(p.nome||'').toLowerCase().trim();
+    var pg=String(p.grado||'').toLowerCase().trim();
+    if(pn!==n)return false;
+    if(g&&pg&&pg!==g)return false;
+    return true;
+  };
+  var hit=persone.filter(f);
+  if(hit.length)return hit[0];
+  hit=persone.filter(function(p){
+    var pn=String(p.nome||'').toLowerCase().trim();
+    if(!pn)return false;
+    if(pn!==n)return false;
+    return true;
+  });
+  if(hit.length)return hit[0];
+  // fallback: confronto sui token (cognome+nome in ordine diverso)
+  var nt=n.split(/\s+/).filter(function(x){return x.length>1;}).sort().join(' ');
+  hit=persone.filter(function(p){
+    var pt=String(p.nome||'').toLowerCase().split(/\s+/).filter(function(x){return x.length>1;}).sort().join(' ');
+    return pt&&pt===nt;
+  });
+  return hit.length?hit[0]:null;
 }
 function parseSheet(rows, sn) {
 
@@ -9789,23 +9906,24 @@ function parseSheet(rows, sn) {
 
   }
 
-  if(mese===null)mese=new Date().getMonth();
-
-
+  var _ma = _xlsRilevaMeseAnno(sn, rows);
+  if(mese === null && _ma.mese !== null) mese = _ma.mese;
+  if(mese === null) mese = new Date().getMonth();
+  anno = _ma.anno || anno;
 
   // -- STEP 1: Trova riga ancora "Grado" / "Cognome e Nome" ----
 
-  var anchorIdx = -1;
+  var anchorIdx = -1, gradoCol = -1, nomeCol = -1;
 
   for(var i=0;i<rows.length;i++){
 
-    var colA = String(rows[i][0]||'').trim().toLowerCase();
+    var _rH = rows[i] || []; var _gG = -1, _gN = -1; for(var _cH = 0; _cH < _rH.length; _cH++){ var _vH = String(_rH[_cH]||'').trim().toLowerCase(); if(!_vH) continue; if(_gG < 0 && (_vH === 'grado' || _vH.indexOf('grado') === 0)) _gG = _cH; if(_gN < 0 && _vH.indexOf('cognome') !== -1 && _vH.indexOf('nome') !== -1) _gN = _cH; } var colA = _gG >= 0 ? String(_rH[_gG]||'').trim().toLowerCase() : '';
 
-    var colB = String(rows[i][1]||'').trim().toLowerCase();
+    var colB = _gN >= 0 ? String(_rH[_gN]||'').trim().toLowerCase() : '';
 
-    if(colA === 'grado' && colB.indexOf('cognome') !== -1 && colB.indexOf('nome') !== -1){
+    if(_gG >= 0 && _gN > _gG){
 
-      anchorIdx = i; break;
+      anchorIdx = i; gradoCol = _gG; nomeCol = _gN; break;
 
     }
 
@@ -9817,13 +9935,15 @@ function parseSheet(rows, sn) {
 
     for(var i=0;i<rows.length;i++){
 
-      if(String(rows[i][0]||'').trim().toLowerCase() === 'grado'){ anchorIdx = i; break; }
+      var _rF = rows[i] || []; for(var _cF = 0; _cF < _rF.length; _cF++){ var _vF = String(_rF[_cF]||'').trim().toLowerCase(); if(_vF === 'grado' || _vF.indexOf('grado ') === 0){ anchorIdx = i; gradoCol = _cF; nomeCol = _cF + 1; break; } }
 
     }
 
   }
 
   if(anchorIdx < 0){ console.warn('parseSheet: riga ancora non trovata'); return 0; }
+  if(gradoCol < 0) gradoCol = 0;
+  if(nomeCol <= gradoCol) nomeCol = gradoCol + 1;
 
 
 
@@ -9849,14 +9969,33 @@ function parseSheet(rows, sn) {
 
   var colD = {};
 
-  var giorniR = rows[giorniRow];
+  var giorniR = rows[giorniRow] || [];
 
-  for(var c=2; c<giorniR.length; c++){
-
-    var n = parseInt(giorniR[c]);
-
-    if(!isNaN(n) && n>=1 && n<=31) colD[c] = n;
-
+  // Rileva la riga dei giorni: celle con data/serial dopo la colonna del nominativo
+  var _bestCnt = 0, _bestRow = -1, _bestMap = null;
+  for(var _rg = anchorIdx + 1; _rg <= Math.min(rows.length - 1, anchorIdx + 5); _rg++){
+    var _rowG = rows[_rg] || [], _mapG = {}, _cntG = 0;
+    for(var _cg = nomeCol + 1; _cg < _rowG.length; _cg++){
+      var _dg = _xlsDayFromCell(_rowG[_cg]);
+      if(_dg){ _mapG[_cg] = _dg; _cntG++; }
+    }
+    if(_cntG > _bestCnt){ _bestCnt = _cntG; _bestRow = _rg; _bestMap = _mapG; }
+  }
+  if(_bestCnt >= 20){
+    giorniRow = _bestRow; colD = _bestMap; giorniR = rows[giorniRow] || []; dataStart = giorniRow + 1;
+  } else {
+    // Fallback: numeri 1..31 nella riga giorni (se presenti)
+    for(var c=nomeCol+1; c<giorniR.length; c++){
+      var n = parseInt(giorniR[c]);
+      if(!isNaN(n) && n>=1 && n<=31) colD[c] = n;
+    }
+    if(Object.keys(colD).length < 5) colD = {};
+    // La prima riga dati è la prima riga con un nominativo dopo l'intestazione
+    dataStart = anchorIdx + 1;
+    for(var _ds = anchorIdx + 1; _ds < Math.min(rows.length, anchorIdx + 6); _ds++){
+      var _rr = rows[_ds] || [];
+      if(String(_rr[nomeCol]||'').trim() || String(_rr[gradoCol]||'').trim()){ dataStart = _ds; break; }
+    }
   }
 
 
@@ -9865,8 +10004,9 @@ function parseSheet(rows, sn) {
 
   // -- STEP 3: Codici turno ----------------------------------------------
   var cM2 = {"M":"mattina","ML":"ml","1515":"mattina","P":"pomeriggio","PL":"pl",
-    "N":"notte","NL":"notte","S":"sera","R":"riposo","RR":"recupero","L":"ferie","LICSTU":"licenza","PSTUDIO":"studio",
-    "104":"104","937":"937","FEST":"fest","CORSO":"corso","LS":"ls","ESAME":"esame","2":"recupero"};
+    "N":"notte","NL":"notte","S":"sera","R":"riposo","RR":"recupero","L":"ferie","LICSTU":"licenza","LIC":"licenza","PSTUDIO":"studio",
+    "104":"104","937":"937","FEST":"fest","CORSO":"corso","LS":"ls","ESAME":"esame","2":"recupero","PERM":"permesso",
+    "OBBM":"obbm","OBBP":"obbp","MOBB":"obbm","POBB":"obbp"};
 
   // Usa preset configurabili dall'utente
   var _op = (typeof getOrariPreset === 'function') ? getOrariPreset() : {};
@@ -9880,6 +10020,8 @@ function parseSheet(rows, sn) {
     if(tipo==="sera") return "20:00-02:00";
     if(tipo==="ml") return "06:00-16:00";
     if(tipo==="pl") return "12:00-22:00";
+    if(tipo==="obbm") return "07:00-13:00";
+    if(tipo==="obbp") return "13:00-19:00";
     return tipo.charAt(0).toUpperCase()+tipo.slice(1);
   }
   var oM = {
@@ -9889,6 +10031,8 @@ function parseSheet(rows, sn) {
     "pl":         _orario("pl"),
     "notte":      _orario("notte"),
     "sera":       _orario("sera"),
+    "obbm":       _orario("obbm"),
+    "obbp":       _orario("obbp"),
     "riposo":"Riposo","recupero":"Recupero","ferie":"Ferie","licenza":"Lic. Studio","studio":"Permesso studio","permesso":"Permesso","corso":"Corso"
   };
 
@@ -9918,17 +10062,17 @@ function parseSheet(rows, sn) {
 
   for(var i=dataStart; i<rows.length; i++){
 
-    var r = rows[i];
+    var r = rows[i] || [];
 
-    var colA = String(r[0]||'').trim();
+    var colA = String(r[gradoCol]||'').trim();
 
-    var colB = String(r[1]||'').trim();
+    var colB = String(r[nomeCol]||'').trim();
 
 
 
     // Stop condition: legenda
 
-    if(colA.toLowerCase().indexOf('legenda') === 0) break;
+    if(colA.toLowerCase().indexOf('legenda') === 0 || colB.toLowerCase().indexOf('legenda') === 0) break;
 
 
 
@@ -9994,6 +10138,7 @@ function parseSheet(rows, sn) {
       if(!persona){
         persona = {id: Date.now()+Math.floor(Math.random()*9999), nome: nR, grado: _pg.grado, reparto: '', ferieRes: 30, uid: fbMatch?fbMatch.uid:null, placeholder: true};
         P.push(persona);
+        _xlsNuovePersone++;
       }
     } else {
       // Aggiorna grado se mancante
@@ -10037,7 +10182,13 @@ function parseSheet(rows, sn) {
 
       if(!raw) return;
 
-      var tipo = cM2[raw]; if(!tipo) return;
+      var tipo = cM2[raw];
+      var _tcImp = null;
+      if(!tipo){
+        var _tcDef = (typeof _tcFindByCodice === 'function') ? _tcFindByCodice(raw) : null;
+        if(_tcDef && String(_tcDef.codice||'').trim()){ tipo = 'custom'; _tcImp = _tcDef; }
+      }
+      if(!tipo) return;
 
       var ds = anno+'-'+pad(mese+1)+'-'+pad(colD[col]);
 
@@ -10045,7 +10196,8 @@ function parseSheet(rows, sn) {
 
       if(!dup){
 
-        var _importTurno={id:Date.now()+Math.floor(Math.random()*99999),pid:persona.id,pnome:persona.nome,data:ds,tipo:tipo,orario:oM[tipo]||tipo,note:'',codice:raw,categoria_evento:_TIPI_PERSONALE.indexOf(tipo)!==-1?'personale':'servizio'};
+        var _orcImp = oM[tipo] || (_tcImp && _tcImp.oraIn && _tcImp.oraFi ? _tcImp.oraIn+'-'+_tcImp.oraFi : tipo);
+        var _importTurno={id:Date.now()+Math.floor(Math.random()*99999),pid:persona.id,pnome:persona.nome,data:ds,tipo:tipo,orario:_orcImp,note:'',codice:raw,categoria_evento:_TIPI_PERSONALE.indexOf(tipo)!==-1?'personale':'servizio'};
         var _meImp=lsG('ct_me',null),_isMeImp=_meImp&&(_studioIsMyPid(persona.id,_meImp)||(_meImp.uid&&persona.uid===_meImp.uid));
         if(_isMeImp&&tipo==='studio'){
           var _saldoImpStudio=getPermessoStudioSummary(parseInt(ds.slice(0,4),10),T.concat([_importTurno]));
@@ -10072,28 +10224,28 @@ function normG(t){
     // Ufficiali generali
     ["GENERALE","Gen."],["GEN.","Gen."],
     // Ufficiali superiori
-    ["TENENTE COLONNELLO","Ten.Col."],["TEN.COL.","Ten.Col."],["T.COL.","Ten.Col."],["TEN COL","Ten.Col."],
+    ["TENENTE COLONNELLO","Ten.Col."],["TEN.COL.","Ten.Col."],["T.COL.","Ten.Col."],["TEN COL","Ten.Col."],["TEN. COL.","Ten.Col."],
     ["COLONNELLO","Col."],["COL.","Col."],
     ["MAGGIORE","Magg."],["MAGG.","Magg."],["MAG.","Magg."],
     // Ufficiali inferiori
-    ["SOTTOTENENTE","S.Ten."],["S.TEN.","S.Ten."],["S TEN","S.Ten."],
+    ["SOTTOTENENTE","S.Ten."],["S.TEN.","S.Ten."],["S TEN","S.Ten."],["S. TEN.","S.Ten."],
     ["CAPITANO","Cap."],["CAP.","Cap."],
     ["TENENTE","Ten."],["TEN.","Ten."],
     // Sottufficiali
-    ["LUOGOTENENTE","Luog."],["LUOG.","Luog."],["LGT.","Luog."],
-    ["MARESCIALLO MAGGIORE","Mar.Magg."],["MAR.MAGG.","Mar.Magg."],["M.MAG.","Mar.Magg."],["MAR MAGG","Mar.Magg."],
-    ["MARESCIALLO CAPO","Mar.Cap."],["MAR.CAP.","Mar.Cap."],["M.CAP.","Mar.Cap."],["MAR CAP","Mar.Cap."],
-    ["MARESCIALLO ORDINARIO","Mar.Ord."],["MAR.ORD.","Mar.Ord."],["M.ORD.","Mar.Ord."],["MAR ORD","Mar.Ord."],
+    ["LUOGOTENENTE","Luog."],["LUOG.","Luog."],["LGT.","Luog."],["LUOG. TEN.","Luog."],
+    ["MARESCIALLO MAGGIORE","Mar.Magg."],["MAR.MAGG.","Mar.Magg."],["M.MAG.","Mar.Magg."],["MAR MAGG","Mar.Magg."],["MAR. MAGG.","Mar.Magg."],["M. MAG.","Mar.Magg."],
+    ["MARESCIALLO CAPO","Mar.Cap."],["MAR.CAP.","Mar.Cap."],["M.CAP.","Mar.Cap."],["MAR CAP","Mar.Cap."],["MAR. CA.","Mar.Cap."],["MAR.CA.","Mar.Cap."],["M. CAP.","Mar.Cap."],["MAR. CAP.","Mar.Cap."],
+    ["MARESCIALLO ORDINARIO","Mar.Ord."],["MAR.ORD.","Mar.Ord."],["M.ORD.","Mar.Ord."],["MAR ORD","Mar.Ord."],["MAR. ORD.","Mar.Ord."],["M. ORD.","Mar.Ord."],
     ["MARESCIALLO","Mar."],["MAR.","Mar."],
     // Graduati
-    ["BRIGADIERE CAPO","Brig.Ca."],["BRIG.CA.","Brig.Ca."],["B.CA.","Brig.Ca."],["BRIG CA","Brig.Ca."],
-    ["VICE BRIGADIERE","V.Brig."],["V.BRIG.","V.Brig."],["V BRIG","V.Brig."],["VB.","V.Brig."],
+    ["BRIGADIERE CAPO","Brig.Ca."],["BRIG.CA.","Brig.Ca."],["B.CA.","Brig.Ca."],["BRIG CA","Brig.Ca."],["BRIG. CA.","Brig.Ca."],["B. CA.","Brig.Ca."],
+    ["VICE BRIGADIERE","V.Brig."],["V.BRIG.","V.Brig."],["V BRIG","V.Brig."],["VB.","V.Brig."],["V. BRIG.","V.Brig."],
     ["BRIGADIERE","Brig."],["BRIG.","Brig."],
     // Appuntati
-    ["APPUNTATO SCELTO","App.Sc."],["APP.SC.","App.Sc."],["A.SC.","App.Sc."],["APP SC","App.Sc."],
+    ["APPUNTATO SCELTO","App.Sc."],["APP.SC.","App.Sc."],["A.SC.","App.Sc."],["APP SC","App.Sc."],["APP. SC.","App.Sc."],["A. SC.","App.Sc."],
     ["APPUNTATO","App."],["APP.","App."],
     // Carabinieri
-    ["CARABINIERE SCELTO","Car.Sc."],["CAR.SC.","Car.Sc."],["C.SC.","Car.Sc."],["CAR SC","Car.Sc."],
+    ["CARABINIERE SCELTO","Car.Sc."],["CAR.SC.","Car.Sc."],["C.SC.","Car.Sc."],["CAR SC","Car.Sc."],["CAR. SC.","Car.Sc."],["C. SC.","Car.Sc."],
     ["CARABINIERE","Car."],["CAR.","Car."],["CC.","Car."],["C.C.","Car."]
   ];
   // Usa startsWith per evitare match parziali (es. "TENENTE" in "LUOGOTENENTE")
@@ -10119,8 +10271,10 @@ function parseGradoNome(gCol, nCol){
         "BRIGADIERE CAPO","BRIGADIERE","VICE BRIGADIERE",
         "APPUNTATO SCELTO","APPUNTATO","CARABINIERE SCELTO","CARABINIERE",
         "LUOGOTENENTE","SOTTOTENENTE","TENENTE COLONNELLO","TENENTE","CAPITANO","MAGGIORE","COLONNELLO","GENERALE",
-        "MAR.MAGG.","MAR.CAP.","MAR.ORD.","MAR.","BRIG.CA.","BRIG.","V.BRIG.",
-        "APP.SC.","APP.","CAR.SC.","CAR.","LGT.","TEN.COL.","S.TEN.","TEN.","CAP.","MAGG.","COL.","GEN.",
+        "MAR.MAGG.","MAR. MAGG.","M. MAG.","MAR.CAP.","MAR. CA.","M. CAP.","MAR. CAP.","MAR.ORD.","MAR. ORD.","M. ORD.","MAR.",
+        "BRIG.CA.","BRIG. CA.","B. CA.","BRIG.","V.BRIG.","V. BRIG.",
+        "APP.SC.","APP. SC.","A. SC.","APP.","CAR. SC.","CAR.SC.","C. SC.","CAR.",
+        "LGT.","LUOG. TEN.","TEN.COL.","TEN. COL.","T. COL.","S.TEN.","S. TEN.","TEN.","CAP.","MAGG.","MAG.","COL.","GEN.",
         "M.MAG.","M.CAP.","M.ORD.","B.CA.","VB.","A.SC.","C.SC.","CC."
       ];
       for(var j=0;j<grMap.length;j++){
