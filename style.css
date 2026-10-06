@@ -2144,25 +2144,28 @@ html[data-font="xxl"] #pg-app { zoom: 1.35; }
   justify-content: space-evenly !important;
   padding: 0 8px !important;
   overflow: visible !important;
-  background: rgba(13,21,32,.88) !important;
-  border-radius: 50px !important;
-  border: 1px solid rgba(255,255,255,.1) !important;
-  backdrop-filter: blur(24px) !important;
-  -webkit-backdrop-filter: blur(24px) !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,.45) !important;
-  pointer-events: all !important;
+  /* Il <nav> è SOLO un contenitore: nessuno sfondo, nessun bordo,
+     nessun'ombra → niente più "quadrato" dietro la pillola.
+     L'unica superficie visibile è la pillola (.bn-items). */
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  pointer-events: none !important;
 }
 [data-theme=light] .bottom-bar,
 [data-theme=rosa-light] .bottom-bar,
 [data-theme=forestale-light] .bottom-bar,
 [data-theme=carabinieri-light] .bottom-bar {
-  background: rgba(255,255,255,.94) !important;
-  border-color: rgba(0,0,0,.08) !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,.12) !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
-[data-theme=rosa] .bottom-bar       { background: rgba(74,24,40,.94) !important; }
-[data-theme=forestale] .bottom-bar  { background: rgba(28,31,28,.94) !important; }
-[data-theme=carabinieri] .bottom-bar{ background: rgba(8,11,16,.97)  !important; }
+[data-theme=rosa] .bottom-bar       { background: transparent !important; }
+[data-theme=forestale] .bottom-bar  { background: transparent !important; }
+[data-theme=carabinieri] .bottom-bar{ background: transparent !important; }
 
 /* Slot FAB: sporge verso l'alto */
 .nav-fab-slot {
@@ -2717,12 +2720,13 @@ nav.bottom-bar#bottom-nav {
   justify-content: space-evenly !important;
   padding: 0 8px !important;
   overflow: visible !important;
-  /* Sfondo solido M3 — no trasparenza iOS */
-  background: var(--card) !important;
-  border-radius: 50px !important;
-  border: 1px solid var(--border2) !important;
-  box-shadow: 0 4px 20px rgba(0,0,0,.4), 0 1px 0 rgba(255,255,255,.04) inset !important;
-  pointer-events: all !important;
+  /* Sfondo solido M3 — spostato sulla pillola (.bn-items), non sul
+     contenitore: qui resta tutto trasparente. */
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  pointer-events: none !important;
   /* No backdrop-filter: stile solido */
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
@@ -2733,15 +2737,15 @@ nav.bottom-bar#bottom-nav {
 [data-theme=rosa-light] .bottom-bar,
 [data-theme=forestale-light] .bottom-bar,
 [data-theme=carabinieri-light] .bottom-bar {
-  background: var(--card) !important;
-  border-color: var(--border) !important;
-  box-shadow: 0 4px 16px rgba(0,0,0,.1) !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 /* Temi scuri custom */
-[data-theme=rosa]        .bottom-bar { background: var(--card) !important; }
-[data-theme=forestale]   .bottom-bar { background: var(--card) !important; }
-[data-theme=carabinieri] .bottom-bar { background: var(--card) !important; }
+[data-theme=rosa]        .bottom-bar { background: transparent !important; }
+[data-theme=forestale]   .bottom-bar { background: transparent !important; }
+[data-theme=carabinieri] .bottom-bar { background: transparent !important; }
 
 /* bn-item: icona + label verticale, stile M3 solido */
 .bottom-bar .bn-item {
@@ -3151,9 +3155,12 @@ body[data-atmosfera="oasi"] .hero-ring-fill { stroke: #06D6A0; }
 
 /* ── TASK 5: FLOATING NAV — già implementata, rafforzamento ── */
 .bottom-bar {
-  bottom: 18px !important;
-  backdrop-filter: blur(28px) !important;
-  -webkit-backdrop-filter: blur(28px) !important;
+  bottom: 16px !important;
+  /* Nessun backdrop-filter sul contenitore a tutta larghezza:
+     creerebbe una "banda" sfocata dietro la pillola. */
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: transparent !important;
 }
 /* Contenuto scorre sotto la nav in trasparenza */
 .cont {
@@ -5196,10 +5203,11 @@ nav.bottom-bar#bottom-nav,
   margin: 0 !important;
   border-radius: 0 !important;
   padding: 6px 10px calc(6px + env(safe-area-inset-bottom, 0px)) !important;
-  background: var(--card) !important;
+  /* Container TRASPARENTE: la barra non è più ancorata a tutta
+     larghezza, è la sola pillola (.bn-items) a restare visibile. */
+  background: transparent !important;
   border: none !important;
-  border-top: 1px solid var(--border) !important;
-  box-shadow: 0 -6px 24px rgba(0,0,0,.32) !important;
+  box-shadow: none !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   z-index: 9999 !important;
@@ -5209,14 +5217,14 @@ nav.bottom-bar#bottom-nav,
   overflow: visible !important;
   pointer-events: auto !important;
 }
-/* Temi chiari: barra solida chiara */
+/* Temi chiari: nessuno sfondo sul contenitore (la pillola resta chiara) */
 [data-theme=light] .bottom-bar,
 [data-theme=rosa-light] .bottom-bar,
 [data-theme=forestale-light] .bottom-bar,
 [data-theme=carabinieri-light] .bottom-bar {
-  background: var(--card) !important;
-  border-top-color: var(--border) !important;
-  box-shadow: 0 -6px 20px rgba(0,0,0,.10) !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 /* Il contenuto lascia sempre spazio alla barra fissa in basso */
 .cont {
@@ -5564,16 +5572,22 @@ nav#bottom-nav.bottom-bar,
   border-radius: 50% !important;
   background: linear-gradient(150deg, var(--blue2, #90c2ff) 0%, var(--blue) 52%, #2f74e0 100%) !important;
   color: #fff !important;
-  border: 4px solid var(--bg2) !important;
+  /* Anello del colore della pillola: il "+" sembra incassato nella barra
+     (notch) e allo stesso tempo in rilievo grazie all'ombra esterna. */
+  border: 5px solid var(--bg2) !important;
   font-size: 26px !important;
   line-height: 1 !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
+  flex-shrink: 0 !important;
   cursor: pointer !important;
   -webkit-tap-highlight-color: transparent !important;
   touch-action: manipulation !important;
-  box-shadow: 0 8px 22px rgba(91,159,255,.5), 0 3px 8px rgba(0,0,0,.35) !important;
+  box-shadow:
+    0 10px 24px rgba(91,159,255,.50),
+    0 3px 8px rgba(0,0,0,.35),
+    0 1px 0 rgba(255,255,255,.30) inset !important;
   transition: transform .2s var(--motion-spring), box-shadow .25s !important;
 }
 #bottom-nav .nav-fab:active { transform: scale(.9) !important; box-shadow: 0 4px 12px rgba(91,159,255,.45) !important; }
@@ -5717,30 +5731,27 @@ nav#bottom-nav.bottom-bar,
   border-bottom-right-radius: 4px;
   pointer-events: none;
 }
+/* Drag handle: la chiusura avviene toccando fuori, con Esc o
+   trascinando la maniglia verso il basso (nessun pulsante "X"). */
+.fab-pop-grip {
+  width: 40px;
+  height: 4px;
+  margin: 10px auto 2px;
+  border-radius: 2px;
+  background: var(--border2);
+  cursor: grab;
+  touch-action: none;          /* il drag non fa scrollare la pagina */
+  flex-shrink: 0;
+  transition: background .2s;
+}
+.fab-pop-grip:active { cursor: grabbing; background: var(--txt3); }
 .fab-pop-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px 2px 12px;
+  justify-content: flex-start;
+  padding: 6px 2px 12px;
 }
 .fab-pop-title { font-size: 16px; font-weight: 800; color: var(--txt); letter-spacing: -.2px; }
-.fab-pop-close {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: none;
-  background: var(--bg2);
-  color: var(--txt2);
-  font-size: 15px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  appearance: none;
-  -webkit-appearance: none;
-  transition: transform .16s var(--motion-spring), background .2s;
-}
-.fab-pop-close:active { transform: scale(.9); }
 .fab-pop-actions {
   display: flex;
   flex-direction: column;
@@ -5766,4 +5777,74 @@ nav#bottom-nav.bottom-bar,
 .sheet-overlay.open .fab-pop-actions > button:nth-child(4) { animation-delay: .16s; }
 .sheet-overlay.open .fab-pop-actions > button:nth-child(5) { animation-delay: .20s; }
 .sheet-overlay.open .fab-pop-actions > button:nth-child(6) { animation-delay: .24s; }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   KILL-SWITCH NAV — nessun contenitore dietro la pillola
+   ---------------------------------------------------------------
+   Il <nav> della bottom bar serve solo al posizionamento: NON deve
+   disegnare nulla (né background, né bordo, né ombra, né pseudo-
+   elementi). La sola superficie visibile resta la pillola flottante
+   `.bn-items`. Doppio selettore (id + attributo [class]) per battere
+   in ogni caso le regole legacy presenti più sopra nel file.
+   ═══════════════════════════════════════════════════════════════ */
+nav#bottom-nav.bottom-bar[class],
+#bottom-nav.bottom-bar[class],
+nav#bottom-nav.bottom-bar {
+  background: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  outline: none !important;
+  filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  overflow: visible !important;
+}
+nav#bottom-nav.bottom-bar[class]::before,
+nav#bottom-nav.bottom-bar[class]::after,
+#bottom-nav.bottom-bar[class]::before,
+#bottom-nav.bottom-bar[class]::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   AVVISI DEL COMANDANTE — conferma di lettura
+   Addetti: pulsante "Confermo di aver letto" → stato "Lettura
+   confermata". Comandante/Vice: conteggio "Letto da N / totali".
+   ═══════════════════════════════════════════════════════════════ */
+.av-letti {
+  font-size: 10px;
+  font-weight: 800;
+  margin-top: 8px;
+  color: var(--txt3);
+}
+.av-letti.has { color: var(--green); }
+.av-ack {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 7px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(6, 214, 160, .35);
+  background: rgba(6, 214, 160, .10);
+  color: var(--green);
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .16s var(--motion-spring), background .2s;
+}
+.av-ack:active { transform: scale(.96); }
+.av-ack.is-done {
+  cursor: default;
+  background: rgba(6, 214, 160, .14);
+  border-color: rgba(6, 214, 160, .50);
+}
 

@@ -1008,6 +1008,20 @@ function _isComandanteUI(){
   var me = lsG('ct_me', null);
   return !!(me && (me.ruolo === 'comandante' || me.ruolo === 'superadmin' || me.id === 1));
 }
+// Editor degli AVVISI del Comandante (Bacheca + hero in Agenda):
+// Comandante, Vice e Super amministratore possono pubblicare, modificare
+// ed eliminare. Gli Addetti (utenze normali) possono SOLO leggere l'avviso
+// e confermarne la lettura: per loro i pulsanti Modifica/Elimina non
+// vengono nemmeno generati (controllo applicato anche in fase di azione).
+function _isAvvisiEditor(){
+  var me = lsG('ct_me', null);
+  return !!(me && (me.ruolo === 'comandante' || me.ruolo === 'vice' || me.ruolo === 'superadmin' || me.id === 1));
+}
+// Uid dell'utente corrente — chiave delle conferme di lettura
+function _meAvvisiUid(){
+  var me = lsG('ct_me', null) || {};
+  return String(me.uid || me.id || '');
+}
 
 // Stato richieste: cache locale + flag caricamento
 window._richieste = [];
@@ -1387,9 +1401,74 @@ function _bachecaAttivi(){
     return String(b.creataIl || '').localeCompare(String(a.creataIl || ''));
   });
 }
+// ── CONFERMA DI LETTURA (Addetti) ─────────────────────────────
+// Ogni avviso porta con sé la mappa a.letture = { uid: timestamp },
+// scritta dal lettore al momento della conferma. Il Comando vede il
+// conteggio delle conferme; nessun Addetto può toccare titolo/testo.
+function _avvisiLetture(a){
+  return (a && a.letture && typeof a.letture === 'object') ? a.letture : {};
+}
+function _avvisiLettoDa(a){
+  var m = _avvisiLetture(a), n = 0;
+  for(var k in m){ if(Object.prototype.hasOwnProperty.call(m, k) && m[k]) n++; }
+  return n;
+}
+function _avvisiLetto(a){
+  var uid = _meAvvisiUid();
+  return !!(uid && _avvisiLetture(a)[uid]);
+}
+// Membri approvati del reparto: denominatore delle conferme di lettura
+function _avvisiMembri(){
+  var me = lsG('ct_me', null) || {};
+  var repMe = String(me.reparto || '').toLowerCase().replace(/\s+/g, '_');
+  return lsG('ct_users', []).filter(function(m){
+    if(!m || m.stato !== 'approved' || m.ruolo === 'superadmin') return false;
+    if(repMe && m.reparto && String(m.reparto).toLowerCase().replace(/\s+/g, '_') !== repMe) return false;
+    return true;
+  });
+}
+// Blocco riutilizzabile mostrato sotto ogni avviso:
+//  • Comandante/Vice  → conteggio "Letto da N / totali"
+//  • Addetti          → pulsante "Confermo di aver letto" oppure stato
+//                       "Lettura confermata" (dopo la conferma)
+function _avvisiChipLettura(a, isEditor){
+  var letti = _avvisiLettoDa(a);
+  if(isEditor){
+    var tot = _avvisiMembri().length;
+    return '<div class="av-letti' + (letti ? ' has' : '') + '">&#10003; Letto da ' + letti + (tot ? ' / ' + tot : '') + '</div>';
+  }
+  if(_avvisiLetto(a)){
+    return '<div class="av-ack is-done">&#10003; Lettura confermata</div>';
+  }
+  return '<button class="av-ack" onclick="_bachecaConfermaLettura(\'' + a.id + '\')">&#10003; Confermo di aver letto</button>';
+}
+// Registra la conferma di lettura dell'utente corrente (solo lettura:
+// non modifica alcun altro campo dell'avviso).
+function _bachecaConfermaLettura(id){
+  var uid = _meAvvisiUid();
+  if(!uid){ toast('Accedi per confermare la lettura', 'err'); return; }
+  var arr = _bachecaCarica();
+  var a = null;
+  for(var i = 0; i < arr.length; i++){ if(String(arr[i].id) === String(id)){ a = arr[i]; break; } }
+  if(!a) return;
+  var letture = _avvisiLetture(a);
+  if(letture[uid]) return;                       // già confermato
+  letture[uid] = Date.now();
+  a.letture = letture;
+  _bachecaSalvaCache(arr);
+  _renderBachecaComando();
+  renderBachecaDash();
+  renderAvvisiAgenda();
+  if(window.FirebaseModule && typeof window.FirebaseModule.saveBachecaLettura === 'function'){
+    try { window.FirebaseModule.saveBachecaLettura(String(a.id), letture); }
+    catch(err){ console.warn('saveBachecaLettura:', err.message); }
+  }
+  toast('Lettura confermata', 'ok');
+}
 window._bachecaEditId = null;
 // Apre il modal bacheca (nuovo avviso o modifica di uno esistente)
 function apriBacheca(id){
+  if(!_isAvvisiEditor()){ toast('Operazione riservata a Comandante e Vice', 'err'); return; }
   window._bachecaEditId = id || null;
   var arr = _bachecaCarica();
   var a = id ? arr.find(function(x){ return String(x.id) === String(id); }) : null;
@@ -1403,6 +1482,7 @@ function apriBacheca(id){
 }
 // Salva (crea o aggiorna) l'avviso: cache locale + Firestore + notifiche
 function salvaBacheca(){
+  if(!_isAvvisiEditor()){ toast('Operazione riservata a Comandante e Vice', 'err'); return; }
   var t = document.getElementById('bc-titolo');
   var titolo = t ? String(t.value || '').trim() : '';
   if(!titolo){
@@ -1459,6 +1539,7 @@ function salvaBacheca(){
 }
 // Elimina un avviso dalla bacheca (con conferma)
 function delBacheca(id){
+  if(!_isAvvisiEditor()){ toast('Operazione riservata a Comandante e Vice', 'err'); return; }
   ctConfirm('Eliminare questo avviso dalla bacheca?', {title:'Elimina avviso', ico:'🗑️', ok:'Elimina', danger:true}).then(function(ok){
     if(!ok) return;
     var arr = _bachecaCarica().filter(function(x){ return String(x.id) !== String(id); });
@@ -1475,6 +1556,11 @@ function delBacheca(id){
 function _renderBachecaComando(){
   var el = document.getElementById('pg-cmd-bacheca-lista');
   if(!el) return;
+  // Ruoli: la gestione della bacheca è riservata a Comandante e Vice.
+  if(!_isAvvisiEditor()){
+    el.innerHTML = '<div style="padding:10px;color:var(--txt3);font-size:12px">Solo Comandante e Vice possono gestire gli avvisi del Comando.</div>';
+    return;
+  }
   var arr = _bachecaAttivi();
   var html = arr.map(function(a){
     var badge = a.urgente
@@ -1483,11 +1569,13 @@ function _renderBachecaComando(){
     var scad = a.scade
       ? '<span style="font-size:9px;font-weight:800;color:var(--gold);background:rgba(212,175,55,.16);border-radius:6px;padding:2px 6px">&#128197; fino al ' + fmtD(a.scade) + '</span>'
       : '';
+    var _nL = _avvisiLettoDa(a), _nTot = _avvisiMembri().length;
+    var lettChip = '<span style="font-size:9px;font-weight:800;color:' + (_nL ? 'var(--green)' : 'var(--txt3)') + ';background:' + (_nL ? 'rgba(6,214,160,.14)' : 'var(--surface-tint)') + ';border-radius:6px;padding:2px 6px">&#10003; letto da ' + _nL + (_nTot ? '/' + _nTot : '') + '</span>';
     return '<div class="m3-row" style="padding:11px 14px;align-items:flex-start">'
       + '<div class="m3-row-ico" style="background:rgba(212,175,55,.12)">&#128227;</div>'
       + '<div class="m3-row-body"><div class="m3-row-title">' + ctEsc(a.titolo) + '</div>'
       + (a.testo ? '<div class="m3-row-sub">' + ctEsc(a.testo) + '</div>' : '')
-      + '<div style="margin-top:5px;display:flex;gap:5px;align-items:center;flex-wrap:wrap">' + badge + scad
+      + '<div style="margin-top:5px;display:flex;gap:5px;align-items:center;flex-wrap:wrap">' + badge + scad + lettChip
       + '<span style="font-size:9px;color:var(--txt3)">da ' + ctEsc(a.da || 'Comando') + '</span></div>'
       + '<div style="display:flex;gap:8px;margin-top:8px">'
       + '<button class="btn btn-sm btn-g" style="font-size:10px;padding:3px 8px" onclick="apriBacheca(\'' + a.id + '\')">&#9998; Modifica</button>'
@@ -1503,6 +1591,7 @@ function renderBachecaDash(){
   var arr = _bachecaAttivi();
   if(!arr.length){ el.style.display = 'none'; el.innerHTML = ''; return; }
   el.style.display = 'block';
+  var cmd = _isAvvisiEditor();
   el.innerHTML = '<div style="margin-top:14px">'
     + '<div class="m3-list-group-title" style="margin:0 0 8px">&#128227; Bacheca reparto</div>'
     + arr.slice(0, 3).map(function(a){
@@ -1511,6 +1600,7 @@ function renderBachecaDash(){
           + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="font-size:13px;font-weight:800;color:var(--txt)">' + ctEsc(a.titolo) + '</span>' + b + '</div>'
           + (a.testo ? '<div style="font-size:12px;color:var(--txt2);margin-top:4px">' + ctEsc(a.testo) + '</div>' : '')
           + '<div style="font-size:10px;color:var(--txt3);margin-top:5px">' + ctEsc(a.da || 'Comando') + (a.scade ? ' &middot; fino al ' + fmtD(a.scade) : '') + '</div>'
+          + _avvisiChipLettura(a, cmd)
           + '</div>';
       }).join('')
     + (arr.length > 3 ? '<div style="font-size:11px;color:var(--txt3);text-align:center">+ ' + (arr.length - 3) + ' altri avvisi</div>' : '')
@@ -1523,7 +1613,9 @@ function renderAvvisiAgenda(){
   var el = document.getElementById('agenda-avvisi-list');
   if(!el) return;
   var arr = _bachecaAttivi();
-  var cmd = (typeof _isComandanteUI === 'function') && _isComandanteUI();
+  // Ruoli: solo Comandante/Vice ricevono i pulsanti di gestione; per
+  // gli Addetti viene generato il solo pulsante di conferma lettura.
+  var cmd = _isAvvisiEditor();
   var btnNuovo = document.getElementById('ag-avvisi-nuovo');
   if(btnNuovo) btnNuovo.style.display = cmd ? 'inline-flex' : 'none';
   var cnt = document.getElementById('ag-avvisi-count');
@@ -1564,6 +1656,8 @@ function renderAvvisiAgenda(){
         + '<button class="btn btn-sm" style="font-size:10px;padding:3px 8px;background:rgba(200,16,46,.1);color:var(--red);border-color:rgba(200,16,46,.3)" onclick="delBacheca(\'' + a.id + '\')">&#128465; Elimina</button>'
         + '</div>'
       : '';
+    // Stato/azione di lettura: conteggio per il Comando, conferma per gli Addetti
+    var lettura = _avvisiChipLettura(a, cmd);
     return '<div class="ag-avviso-card' + (urgente ? ' urg' : '') + '">'
       + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">'
       + '<span style="font-size:14px;font-weight:800;color:var(--txt)">' + ctEsc(a.titolo) + '</span>' + badge + '</div>'
@@ -1571,6 +1665,7 @@ function renderAvvisiAgenda(){
       + '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px">'
       + '<span style="font-size:10px;color:var(--txt3)">&#128100; da ' + ctEsc(a.da || 'Comando') + '</span>' + scad + '</div>'
       + azioni
+      + lettura
       + '</div>';
   }).join('');
 }

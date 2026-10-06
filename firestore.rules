@@ -98,10 +98,18 @@ service cloud.firestore {
       match /config/{id} { allow read: if isSuperAdmin() || isApproved(reparto); allow write: if isSuperAdmin() || isCommand(reparto); }
       match /todo_condivisi/{id} { allow read, write: if isSuperAdmin() || isApproved(reparto); }
       match /agenda_condivisa/{id} { allow read, write: if isSuperAdmin() || isApproved(reparto); }
-      // Bacheca: tutti i membri leggono, solo il Comando pubblica/modifica (Blocco 4)
+      // Bacheca: tutti i membri leggono, solo il Comando pubblica/modifica (Blocco 4).
+      // Gli Addetti approvati possono SOLO aggiungere la propria conferma di
+      // lettura: l'update è ristretto al campo `letture` e alla propria chiave.
       match /bacheca/{id} {
         allow read: if isSuperAdmin() || isApproved(reparto);
-        allow create, update, delete: if isSuperAdmin() || isCommand(reparto);
+        allow create: if isSuperAdmin() || isCommand(reparto);
+        allow update: if isSuperAdmin() || isCommand(reparto) ||
+          (isApproved(reparto) &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['letture']) &&
+            (!('letture' in resource.data) ||
+              request.resource.data.letture.diff(resource.data.letture).affectedKeys().hasOnly([request.auth.uid])));
+        allow delete: if isSuperAdmin() || isCommand(reparto);
       }
       match /link_utenti/{uid} {
         allow read: if isSuperAdmin() || isApproved(reparto);

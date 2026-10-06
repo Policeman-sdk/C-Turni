@@ -1095,6 +1095,16 @@ window.FirebaseModule = {
     if(!rep) return;
     try { await deleteDoc(doc(db, 'reparti', rep, 'bacheca', String(id))); } catch(e) { console.warn('deleteBacheca:', e.message); }
   },
+  // Conferma di lettura di un avviso (Addetti): scrive SOLO il campo
+  // `letture` (merge) → resta consentito anche a chi non è Comando,
+  // perché non tocca titolo, testo, scadenza o urgenza dell'avviso.
+  saveBachecaLettura: async function(id, letture) {
+    var rep = _reparto();
+    if(!rep || !id) return;
+    try {
+      await setDoc(doc(db, 'reparti', rep, 'bacheca', String(id)), { letture: letture || {} }, { merge: true });
+    } catch(e) { console.warn('saveBachecaLettura:', e.message); }
+  },
   saveOrariPreset: async function(orari) {
     var rep = _reparto();
     if(!rep || !orari) return;
