@@ -5914,6 +5914,8 @@ html[data-theme=carabinieri-light] {
 .wdg-wrap.m3-card {
   border-radius: var(--hero-r-md) !important;
   border: var(--hero-hairline) !important;
+  /* ombra morbida e diffusa: stessa elevazione delle card di contenuto */
+  box-shadow: var(--hero-shadow-sm) !important;
 }
 .wdg-drag-handle {
   border-radius: 3px;
@@ -5994,18 +5996,50 @@ html[data-theme=carabinieri-light] {
 
 
 /* ═══════════════════════════════════════════════════════════════
-   LAMPEGGIANTE CARABINIERI — LED di emergenza realistico
+   LAMPEGGIANTE — LED di emergenza realistico (UNIVERSALE)
    ───────────────────────────────────────────────────────────────
-   Sostituisce la vecchia barretta piatta (@keyframes lampeggio):
-   ora è un piccolo dispositivo a due lenti (blu/rosso) con corpo in
-   metallo anodizzato, riflesso di vetro scorrevole e alone di luce
-   diffusa che investe la testata accanto al logo C-TURNI.
+   Dispositivo a due lenti (blu/rosso) con corpo in metallo, riflesso
+   di vetro scorrevole e alone di luce diffusa che investe la testata
+   accanto al logo C-TURNI.
 
-   • Markup .hdr-flash in position:absolute → nessun reflow, e resta
-     display:none in tutti gli altri temi (costo zero).
+   • Disponibile in TUTTI i temi (arma, forestale, rosa, carabinieri,
+     auto e relative varianti chiare): nessun vincolo di tema.
+   • Spegnibile dall'utente: Impostazioni ▸ Tema interfaccia ▸
+     "Effetto Lampeggiante Logo" → html[data-hf="off"] (costo zero).
+   • Markup .hdr-flash in position:absolute → nessun reflow.
    • Si animano SOLO opacity e transform (GPU).
    • Ritmo 2.2s in ease-in-out: realistico ma non fastidioso.
    ═══════════════════════════════════════════════════════════════ */
+
+/* Corpo del dispositivo: metallo anodizzato scuro (temi scuri) */
+:root {
+  --hf-metal: linear-gradient(90deg,
+    rgba(0,0,0,.92) 0%, #171c24 18%, #2a323e 46%,
+    #141922 74%, rgba(0,0,0,.90) 100%);
+  --hf-depth: inset 0 0 3px rgba(255,255,255,.10), inset 2px 0 6px rgba(0,0,0,.85);
+  --hf-ambient: 0 0 10px rgba(0,0,0,.45);
+}
+/* Temi chiari: alluminio spazzolato — il dispositivo resta leggibile */
+html[data-theme=light],
+html[data-theme=rosa-light],
+html[data-theme=forestale-light],
+html[data-theme=carabinieri-light] {
+  --hf-metal: linear-gradient(90deg,
+    rgba(88,100,120,.60) 0%, #e4e9f0 18%, #ffffff 46%,
+    #d9dfe8 74%, rgba(88,100,120,.55) 100%);
+  --hf-depth: inset 0 0 3px rgba(255,255,255,.90), inset 2px 0 6px rgba(40,52,74,.30);
+  --hf-ambient: 0 0 10px rgba(40,52,74,.25);
+}
+/* Tema AUTO con sistema in modalità chiara: stessa resa "alluminio" */
+@media (prefers-color-scheme: light) {
+  html[data-theme="auto"] {
+    --hf-metal: linear-gradient(90deg,
+      rgba(88,100,120,.60) 0%, #e4e9f0 18%, #ffffff 46%,
+      #d9dfe8 74%, rgba(88,100,120,.55) 100%);
+    --hf-depth: inset 0 0 3px rgba(255,255,255,.90), inset 2px 0 6px rgba(40,52,74,.30);
+    --hf-ambient: 0 0 10px rgba(40,52,74,.25);
+  }
+}
 
 /* Disattiva la vecchia barretta laterale (sostituita dal nuovo LED) */
 [data-theme=carabinieri] .hdr::before {
@@ -6013,9 +6047,8 @@ html[data-theme=carabinieri-light] {
   animation: none !important;
 }
 
-.hdr-flash { display: none; }
-
-[data-theme=carabinieri] .hdr-flash {
+/* Corpo del lampeggiante — absolute + pointer-events:none → zero reflow */
+.hdr-flash {
   display: block;
   position: absolute;
   left: 0; top: 0; bottom: 0;
@@ -6023,28 +6056,26 @@ html[data-theme=carabinieri-light] {
   z-index: 4;
   pointer-events: none;
   border-radius: 0 7px 7px 0;
-  /* Corpo in metallo anodizzato — sfumature di profondità */
-  background: linear-gradient(90deg,
-    rgba(0,0,0,.92) 0%,
-    #171c24 18%,
-    #262d38 46%,
-    #141922 74%,
-    rgba(0,0,0,.90) 100%);
-  box-shadow:
-    inset 0 0 3px rgba(255,255,255,.10),
-    inset 2px 0 6px rgba(0,0,0,.85),
-    0 0 10px rgba(0,0,0,.55);
+  background: var(--hf-metal);
+  box-shadow: var(--hf-depth), var(--hf-ambient);
+}
+
+/* ── INTERRUTTORE UTENTE ──
+   Impostazioni ▸ Tema interfaccia ▸ "Effetto Lampeggiante Logo".
+   Quando è spento il dispositivo sparisce del tutto (nessun costo GPU). */
+html[data-hf="off"] .hdr-flash {
+  display: none !important;
 }
 
 /* Lenti LED — vetro/plastica con gradiente radiale di profondità */
-[data-theme=carabinieri] .hf-lens {
+.hdr-flash .hf-lens {
   position: absolute;
   left: 2px; right: 2px;
   height: 40%;
   border-radius: 6px;
   will-change: opacity, transform;
 }
-[data-theme=carabinieri] .hf-lens.hf-blue {
+.hdr-flash .hf-lens.hf-blue {
   top: 6%;
   background: radial-gradient(58% 55% at 50% 40%,
     #ffffff 0%, #b8d4ff 22%, #2f6bff 58%, #001a8f 100%);
@@ -6055,7 +6086,7 @@ html[data-theme=carabinieri-light] {
     inset 0 0 4px rgba(255,255,255,.85);
   animation: hfFlashBlue 2.2s ease-in-out infinite;
 }
-[data-theme=carabinieri] .hf-lens.hf-red {
+.hdr-flash .hf-lens.hf-red {
   bottom: 6%;
   background: radial-gradient(58% 55% at 50% 60%,
     #ffffff 0%, #ffc0c0 22%, #e01818 58%, #7a0000 100%);
@@ -6083,7 +6114,7 @@ html[data-theme=carabinieri-light] {
 }
 
 /* Riflesso di vetro che scorre lungo il dispositivo */
-[data-theme=carabinieri] .hf-gloss {
+.hdr-flash .hf-gloss {
   position: absolute;
   left: 0; right: 0;
   top: -35%;
@@ -6103,7 +6134,7 @@ html[data-theme=carabinieri-light] {
 }
 
 /* Alone di luce diffusa che investe la testata (accanto al logo) */
-[data-theme=carabinieri] .hdr-flash::after {
+.hdr-flash::after {
   content: "";
   position: absolute;
   top: 0; bottom: 0; left: 0;
@@ -6125,8 +6156,7 @@ html[data-theme=carabinieri-light] {
 
 /* Accessibilità: con movimento ridotto le luci restano fisse */
 @media (prefers-reduced-motion: reduce) {
-  [data-theme=carabinieri] .hf-lens { animation: none; opacity: .88; }
-  [data-theme=carabinieri] .hf-gloss { display: none; }
-  [data-theme=carabinieri] .hdr-flash::after { animation: none; opacity: .40; }
+  .hdr-flash .hf-lens { animation: none; opacity: .88; }
+  .hdr-flash .hf-gloss { display: none; }
+  .hdr-flash::after { animation: none; opacity: .40; }
 }
-

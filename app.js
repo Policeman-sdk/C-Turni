@@ -18,6 +18,9 @@ if("serviceWorker" in navigator){
 document.addEventListener('DOMContentLoaded',function(){var _pg=document.getElementById('pg-app');if(_pg&&fs!==14){_pg.style.zoom=_fz[fs]||1;}});}}catch(e){}
 try{var t=JSON.parse(localStorage.getItem("ct_tema"));if(t===null||t===undefined)return;if(t)document.documentElement.setAttribute("data-theme",t);else document.documentElement.removeAttribute("data-theme");}catch(e){}})();
 
+// Lampeggiante logo: ripristina lo stato salvato prima del primo paint (no flicker)
+try{var _hf=JSON.parse(localStorage.getItem("ct_prefs"));if(_hf&&_hf.lampeggiante===false)document.documentElement.setAttribute("data-hf","off");}catch(e){}
+
 // ---- GRADI ----
 var GR={
   "Car.":{nome:"Carabiniere",col:"#2979ff",svg:"data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2060%2036%22%3E%3Crect%20x%3D%221%22%20y%3D%221%22%20width%3D%2258%22%20height%3D%2234%22%20rx%3D%224%22%20fill%3D%22%230e1f3a%22%20stroke%3D%22%23d4af37%22%20stroke-width%3D%221.5%22/%3E%3Crect%20x%3D%227%22%20y%3D%2215.5%22%20width%3D%2246%22%20height%3D%222%22%20rx%3D%221.5%22%20fill%3D%22%23cc1020%22/%3E%3Ctext%20x%3D%2230%22%20y%3D%2229%22%20font-size%3D%227%22%20fill%3D%22%238faac8%22%20text-anchor%3D%22middle%22%20font-family%3D%22serif%22%3ECC%3C/text%3E%3C/svg%3E"},
@@ -4411,6 +4414,22 @@ function setTemaComportamento(comp){
 }
 
 // ------------------------------------------------------
+
+// -- LAMPEGGIANTE LOGO (universale per tutti i temi) ------------
+// Mostra/nasconde il dispositivo LED accanto al logo C-TURNI.
+// Lo stato vive sull'attributo <html data-hf="off"> così il CSS
+// reagisce senza toccare il DOM dell'header (zero reflow).
+function setLampeggiante(on){
+  var attivo = (on !== false);
+  if(attivo) document.documentElement.removeAttribute('data-hf');
+  else       document.documentElement.setAttribute('data-hf','off');
+  var prefs = lsG('ct_prefs', {});
+  prefs.lampeggiante = attivo;
+  lsS('ct_prefs', prefs);
+  var el = document.getElementById('tog-lampeggiante');
+  if(el) el.checked = attivo;
+  toast('Lampeggiante logo: ' + (attivo ? 'attivato' : 'disattivato'), attivo ? 'ok' : 'warn');
+}
 // 4. FAB — Floating Action Button
 // ------------------------------------------------------
 var _fabOpen = false;
@@ -7658,6 +7677,8 @@ function aggUI(){
     if(togConfetti) togConfetti.checked = prefs.confetti !== false; // default ON
     var togSnooze = document.getElementById('tog-snooze');
     if(togSnooze) togSnooze.checked = prefs.snooze !== false; // default ON
+    var togLam = document.getElementById('tog-lampeggiante');
+    if(togLam) togLam.checked = prefs.lampeggiante !== false; // default ON
     // Comportamento tema
     _applicaComportamentoTema();
 

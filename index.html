@@ -347,7 +347,7 @@
 <div id="pg-app" class="pg">
   <header class="hdr">
     <div class="hdr-l">
-      <!-- Lampeggiante realistico (visibile solo nel tema Carabinieri) -->
+      <!-- Lampeggiante LED universale (spegnibile da Impostazioni ▸ Tema interfaccia) -->
       <div class="hdr-flash" aria-hidden="true"><span class="hf-lens hf-blue"></span><span class="hf-lens hf-red"></span><span class="hf-gloss"></span></div>
       <div class="logo">C-<span>TURNI</span></div>
     </div>
@@ -1358,6 +1358,20 @@
                 <span>Piccolo</span><span>Normale</span><span>Grande</span><span>XL</span><span>XXL</span>
               </div>
               <div id="font-size-lbl" style="display:none"></div>
+            </div>
+
+            <!-- Effetto Lampeggiante Logo (universale per tutti i temi) -->
+            <div style="border-top:1px solid var(--border);padding:14px 0 4px;margin-top:12px">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+                <div>
+                  <div style="font-size:13px;font-weight:700;color:var(--txt)">&#128680; Effetto Lampeggiante Logo</div>
+                  <div style="font-size:11px;color:var(--txt2);margin-top:2px">LED blu/rosso animato accanto a C-Turni</div>
+                </div>
+                <label class="m3-switch">
+                  <input type="checkbox" id="tog-lampeggiante" onchange="setLampeggiante(this.checked)">
+                  <span class="m3-switch-track"></span>
+                </label>
+              </div>
             </div>
           </div>
 
