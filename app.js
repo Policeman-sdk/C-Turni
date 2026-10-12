@@ -2518,6 +2518,22 @@ function initNotifiche(){
     schedulaPreTurniFirebase();
   }, 3600000); // ogni ora
 }
+// -- ANTI-DOPPIE NOTIFICHE ---------------------------------------------
+// Filtra i turni dell'utente e rimuove i duplicati IDENTICI (stesso pid/uid,
+// stessa data, tipo e orario) che nascono dai merge multi-device. Senza questo
+// un turno duplicato in ct_t genera due notifiche identiche (bug "doppie".
+function _turniMieiUnici(T, me){
+  var out = [], visti = {};
+  (T || []).forEach(function(t){
+    if(!_isMyTurno(t, me)) return;
+    var k = [String(t.pid || t.uid || t.ownerUid || ''), t.data || '', t.tipo || '', t.orario || ''].join('|');
+    if(visti[k]) return;
+    visti[k] = 1;
+    out.push(t);
+  });
+  return out;
+}
+
 function controllaNotifiche(){
   if(Notification.permission!=="granted")return;
   var me=lsG("ct_me",null);if(!me)return;
@@ -2525,21 +2541,23 @@ function controllaNotifiche(){
   if(prefs.preturno===false)return;
   var preMin=lsG("ct_notif_pre",60);
   if(preMin<=0)return;
-  var T=lsG("ct_t",[]);
+  var T=_turniMieiUnici(lsG("ct_t",[]), me);
   var ORI={mattina:"06:00",pomeriggio:"14:00",notte:"22:00"};
   var now=new Date();
   var notif=lsG("ct_notif_sent",[]);
   for(var dayOff=0; dayOff<=1; dayOff++){
     var checkDate=new Date(now);checkDate.setDate(checkDate.getDate()+dayOff);
     var ds=checkDate.getFullYear()+'-'+('0'+(checkDate.getMonth()+1)).slice(-2)+'-'+('0'+checkDate.getDate()).slice(-2);
-    T.filter(function(t){return _isMyTurno(t,me)&&t.data===ds;}).forEach(function(t){
+    T.filter(function(t){return t.data===ds;}).forEach(function(t){
       var orStr=(t.orario&&t.orario.split('-')[0].trim())||ORI[t.tipo]||"06:00";
       // FIX orario legale/solare: costruisci la data in ora locale, non UTC
       var parts=orStr.split(':');
       var turnoTime=new Date(ds.replace(/-/g,'/'));
       turnoTime.setHours(parseInt(parts[0],10),parseInt(parts[1],10),0,0);
       var diff=(turnoTime-now)/60000;
-      var notifId=t.id+'_pre'+preMin;
+      // Chiave di dedup sull'IDENTITÀ del turno (pid/uid + data + tipo), non
+      // sull'id del documento: così un turno duplicato non notifica due volte.
+      var notifId=[String(t.pid||t.uid||t.ownerUid||''),t.data,t.tipo||'',preMin].join('_');
       if(diff>0&&diff<=(preMin+5)&&notif.indexOf(notifId)===-1){
         var titoloPre="\u23F0 C-Turni \u2014 Turno tra "+(diff>=60?Math.round(diff/60)+"h":Math.round(diff)+" min");
         var bodyPre="Turno "+(t.codice||t.tipo||'').toUpperCase()+" alle "+orStr;
@@ -2561,7 +2579,7 @@ function schedulaPreTurniFirebase(){
   var prefs=lsG("ct_notif_prefs",{preturno:true});
   if(prefs.preturno===false)return;
   var preMin=lsG("ct_notif_pre",60);if(preMin<=0)return;
-  var T=lsG("ct_t",[]);
+  var T=_turniMieiUnici(lsG("ct_t",[]), me);
   var ORI={mattina:"06:00",pomeriggio:"14:00",notte:"22:00"};
   var now=new Date();
   var todayKey=now.toISOString().slice(0,10);
@@ -2576,7 +2594,7 @@ function schedulaPreTurniFirebase(){
   for(var dayOff=0;dayOff<=6;dayOff++){
     var checkDate=new Date(now);checkDate.setDate(checkDate.getDate()+dayOff);
     var ds=checkDate.getFullYear()+'-'+('0'+(checkDate.getMonth()+1)).slice(-2)+'-'+('0'+checkDate.getDate()).slice(-2);
-    T.filter(function(t){return _isMyTurno(t,me)&&t.data===ds;}).forEach(function(t){
+    T.filter(function(t){return t.data===ds;}).forEach(function(t){
       var orStr=(t.orario&&t.orario.split('-')[0].trim())||ORI[t.tipo]||"06:00";
       // Valida formato HH:MM — salta turni senza orario numerico (riposo, ferie, ecc.)
       if(!/^\d{1,2}:\d{2}$/.test(orStr))return;
@@ -2587,7 +2605,9 @@ function schedulaPreTurniFirebase(){
       if(isNaN(turnoTime.getTime()))return; // data non valida
       var scheduleAt=new Date(turnoTime.getTime()-(preMin*60000));
       if(scheduleAt<=now)return;
-      var pushId=t.id+'_pre'+preMin;
+      // Chiave di dedup sull'IDENTITÀ del turno (pid/uid + data + tipo): evita
+      // push duplicate quando lo stesso turno è presente con id diversi.
+      var pushId=[String(t.pid||t.uid||t.ownerUid||''),t.data,t.tipo||'',preMin].join('_');
       if(scheduled.indexOf(pushId)!==-1)return;
       var titoloPre="\u23F0 C-Turni \u2014 Turno tra "+(preMin>=60?Math.round(preMin/60)+"h":preMin+" min");
       var bodyPre="Turno "+(t.codice||t.tipo||'').toUpperCase()+" alle "+orStr;
@@ -3133,8 +3153,44 @@ function _tcOrarioTurno(t){
   return null;
 }
 
+// -- Helper ANTI-OMONIMIA: normalizza un nome ("Rossi Mario" → "rossi mario")
+function _nomeFullNorm(str){
+  return String(str||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+}
+
+// -- Helper ANTI-OMONIMIA ----------------------------------------------
+// Conta quante PERSONE DISTINTE in rubrica (ct_p + ct_users) hanno lo stesso
+// nome completo dell'utente loggato. Ritorna:
+//   1 → il nome completo identifica una sola persona (match per nome sicuro)
+//   2+ → esistono omonimi: il match per nome NON è affidabile (usare solo uid/pid)
+// Le voci dello stesso utente (stesso uid / stesso id) contano una sola volta.
+function _nomeOmonimi(me){
+  try{
+    if(!me || !me.nome || !me.cognome) return 0;
+    var mine = _nomeFullNorm((me.nome||'') + ' ' + (me.cognome||''));
+    if(!mine) return 0;
+    var P = lsG('ct_p', []).concat(lsG('ct_users', []));
+    var visti = {}, n = 0;
+    for(var i = 0; i < P.length; i++){
+      var p = P[i];
+      if(!p) continue;
+      var pn = _nomeFullNorm((p.nome||'') + ' ' + (p.cognome||''));
+      if(!pn || pn !== mine) continue;
+      var key = p.uid ? ('u:'+p.uid) : (p.id != null ? ('i:'+p.id) : ('k:'+i));
+      if(visti[key]) continue;
+      visti[key] = 1; n++;
+    }
+    return n;
+  } catch(e){ return 0; }
+}
+
+// -- Helper STRICT ANTI-OMONIMIA ---------------------------------------
+// (definita più sotto, dopo _isMyTurno — vedi _isMioTurnoStrict)
+
 // -- Helper: riconosce se un turno appartiene all'utente loggato --
-// Controlla pid numerico, uid Firebase, ct_my_pid, e pnome token-based case-insensitive
+// Controlla pid numerico, uid Firebase, ct_my_pid, e — solo in casi non
+// ambigui — il nome completo (mai con omonimi in reparto).
 function _isMyTurno(t, me) {
   if(!t || !me) return false;
   var myPid = me.myPid || localStorage.getItem('ct_my_pid');
@@ -3159,6 +3215,9 @@ function _isMyTurno(t, me) {
   // Fallback per vecchie importazioni: SOLO con nome E cognome completi.
   // Mai col solo nome/cognome: con un omonimo (stesso nome, cognome diverso)
   // aggancerebbe i turni della persona sbagliata.
+  // ANTI-OMONIMIA: con 2+ persone con lo stesso nome completo in rubrica il
+  // match per nome è inaffidabile → nessun aggancio (solo uid/pid contano).
+  if(_nomeOmonimi(me) > 1) return false;
   if(t.pnome && me.nome && me.cognome) {
     var norm=function(v){return (v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();};
     var pn=norm(t.pnome),n=norm(me.nome),c=norm(me.cognome);
@@ -3205,6 +3264,21 @@ function _isMioTurnoStrict(t, me){
     if(_pMe && tPid && String(_pMe.id)===tPid) return true;
   }
   return false;
+}
+
+// -- Match per Report/PDF: prima uid/pid (come _isMyTurno), poi il fallback
+//    sul nome completo — ma SOLO se quel nome non è ambiguo (nessun omonimo).
+//    Usato sia da renderRepData() sia da esportaPDF() così i numeri del PDF
+//    coincidono sempre con quelli mostrati a schermo (nessuna divergenza).
+function _isMioTurnoReport(t, me){
+  if(!t || !me) return false;
+  if(_isMyTurno(t, me)) return true;
+  if(!me.nome && !me.cognome) return false;
+  if(_nomeOmonimi(me) > 1) return false;   // omonimia → contano solo uid/pid
+  var meN  = ((me.cognome||'')+' '+(me.nome||'')).toLowerCase().replace(/\s+/g,' ').trim();
+  var meN2 = ((me.nome||'')+' '+(me.cognome||'')).toLowerCase().replace(/\s+/g,' ').trim();
+  var tN   = String(t.pnome||'').toLowerCase().replace(/\s+/g,' ').trim();
+  return !!(tN && (tN===meN || tN===meN2));
 }
 
 // -- Helper: turno di "servizio" (non un permesso/assenza personale) --
@@ -3642,41 +3716,126 @@ function pwaInstall(){
 }
 
 // ---- ESPORTA PDF ----
+// Etichette leggibili per i tipi di turno nel documento di stampa
+var _PDF_LBL_TIPO={
+  mattina:'Mattina',ml:'Mattina lunga',pomeriggio:'Pomeriggio',pl:'Pomeriggio lungo',
+  notte:'Notte',sera:'Sera',riposo:'Riposo',recupero:'Recupero',recuperoOre:'Recupero ore',
+  ferie:'Ferie',licenza:'Licenza',permesso:'Permesso',studio:'Permesso studio',
+  corso:'Corso',esame:'Esame','937':'Art. 937','104':'Legge 104',ls:'Legge 626',
+  fest:'Festivit\u00e0',custom:'Turno',altro:'Altro'
+};
+function _pdfEsc(v){
+  return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function _pdfTipoLabel(t){
+  var k=_tipoEffettivoTurno(t);
+  if(_PDF_LBL_TIPO[k]) return _PDF_LBL_TIPO[k];
+  var s=String((t&&t.tipo)||k||'');
+  return s ? s.charAt(0).toUpperCase()+s.slice(1) : 'Turno';
+}
+// Costruisce e stampa un documento dedicato (#print-doc): layout A4 pulito con
+// intestazione, riepilogo, tabella turni e firma. Non altera la pagina viva.
 function esportaPDF(){
   var me=lsG("ct_me",null);
   var mN=["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
+  var gN=["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
   var now=new Date();
-  var ph=document.getElementById("print-header");
-  var pp=document.getElementById("print-periodo");
-  if(ph)ph.style.display="block";
-  if(pp)pp.textContent=(me?"Operatore: "+me.nome+" | ":"")+"Mese: "+mN[now.getMonth()]+" "+now.getFullYear()+" | Stampato il: "+now.toLocaleDateString("it-IT");
-  // Filtra turni del mese corrente
-  var T=lsG("ct_t",[]);var P=lsG("ct_p",[]);
-  var Tf=T.filter(function(t){var d=new Date(t.data+"T00:00:00");return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth();});
-  Tf.sort(function(a,b){return a.data>b.data?1:-1;});
-  // Costruisci tabella temporanea per la stampa
-  var tbl='<table id="print-table" style="margin-top:8px"><thead><tr><th>Data</th><th>Persona</th><th>Grado</th><th>Tipo Turno</th><th>Orario</th><th>Cod.</th></tr></thead><tbody>';
-  if(!Tf.length){tbl+='<tr><td colspan="6" style="text-align:center;color:#888">Nessun turno nel mese</td></tr>';}
-  else{
+  // Periodo: se il Report è aperto usa il mese selezionato, altrimenti il corrente
+  var _selMese=document.getElementById("rp-sel-mese");
+  var mesSel=_selMese?parseInt(_selMese.value,10):now.getMonth();
+  if(isNaN(mesSel)||mesSel<0||mesSel>11) mesSel=now.getMonth();
+  var anno=now.getFullYear();
+  // Comandante/Vice: tutto il reparto; gli altri: solo i propri turni
+  var isCom = !!(me && (me.ruolo==='comandante' || me.ruolo==='vice'));
+  var T=lsG("ct_t",[]),P=lsG("ct_p",[]);
+  var Tf=T.filter(function(t){
+    if(!t || !t.data) return false;
+    var d=new Date(t.data+"T00:00:00");
+    if(isNaN(d.getTime())) return false;
+    if(d.getFullYear()!==anno || d.getMonth()!==mesSel) return false;
+    if(!isCom && me) return _isMioTurnoReport(t,me);
+    return true;
+  });
+  Tf.sort(function(a,b){
+    if(a.data!==b.data) return a.data>b.data?1:-1;
+    return String(a.pnome||'').localeCompare(String(b.pnome||''));
+  });
+  // Conteggi per tipo (riepilogo)
+  var conti={};
+  Tf.forEach(function(t){ var k=_tipoEffettivoTurno(t); conti[k]=(conti[k]||0)+1; });
+  var _ordK=['mattina','pomeriggio','notte','sera','riposo','ferie','licenza','permesso','recupero','recuperoOre','studio','corso','937','104','ls','fest','custom'];
+  var kpi='';
+  _ordK.forEach(function(k){
+    if(conti[k]) kpi+='<span class="pd-kpi-c"><b>'+conti[k]+'</b> '+_pdfEsc(_PDF_LBL_TIPO[k]||k)+'</span>';
+  });
+  if(!kpi) kpi='<span class="pd-kpi-c">Nessun turno</span>';
+  // Righe tabella
+  var righe='';
+  if(!Tf.length){
+    righe='<tr><td colspan="6" class="pd-empty">Nessun turno nel periodo selezionato</td></tr>';
+  } else {
     Tf.forEach(function(t){
-      var p=P.find(function(x){return x.id===t.pid;});
-      var gr=p?p.grado:"";
+      var p=P.find(function(x){
+        return (t.pid!==undefined && t.pid!==null && t.pid!=='' && String(x.id)===String(t.pid))
+          || (x.uid && t.uid && x.uid===t.uid);
+      });
       var d=new Date(t.data+"T00:00:00");
-      var ds=d.getDate()+"/"+(d.getMonth()+1)+"/"+d.getFullYear();
-      tbl+='<tr><td>'+ds+'</td><td>'+t.pnome+'</td><td>'+gr+'</td><td style="text-transform:capitalize">'+t.tipo+'</td><td>'+t.orario+'</td><td>'+( t.codice||"")+'</td></tr>';
+      var dataTxt=('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear();
+      var nome=((p&&p.grado)?p.grado+' ':'')+((p&&p.nome)||t.pnome||'—')+((p&&p.nome&&p.cognome)?' '+p.cognome:'');
+      var cat=_isServizioTurno(t)?'serv':((['ferie','licenza','riposo','permesso','studio','937','104','ls','fest'].indexOf(t.tipo)!==-1)?'ass':'alt');
+      righe+='<tr>'
+        +'<td class="pd-c-data">'+dataTxt+'<span class="pd-gg">'+gN[d.getDay()]+'</span></td>'
+        +'<td class="pd-c-nome">'+_pdfEsc(nome)+'</td>'
+        +'<td><span class="pd-chip pd-'+cat+'">'+_pdfEsc(_pdfTipoLabel(t))+'</span></td>'
+        +'<td class="pd-c-ora">'+_pdfEsc(t.orario||'—')+'</td>'
+        +'<td class="pd-c-cod">'+_pdfEsc(t.codice||'')+'</td>'
+        +'<td class="pd-c-note">'+_pdfEsc(t.note||t.nota||'')+'</td>'
+        +'</tr>';
     });
   }
-  tbl+='</tbody></table>';
-  var old=document.getElementById("print-table");if(old)old.remove();
-  var div=document.createElement("div");div.innerHTML=tbl;
-  ph.parentNode.insertBefore(div.firstChild,ph.nextSibling);
+  // Intestazione documento
+  var operatore=me ? [String(me.grado||'').trim(),String(me.nickname||me.nome||'').trim()].filter(Boolean).join(' ') : 'Ospite';
+  var reparto=(me&&me.reparto)?me.reparto:((lsG('ct_session',null)||{}).reparto||'—');
+  var gen=('0'+now.getDate()).slice(-2)+'/'+('0'+(now.getMonth()+1)).slice(-2)+'/'+now.getFullYear()+' '+('0'+now.getHours()).slice(-2)+':'+('0'+now.getMinutes()).slice(-2);
+  var doc=''
+    +'<header class="pd-head">'
+      +'<div class="pd-brand"><div class="pd-logo">C</div>'
+        +'<div><div class="pd-title">Registro Turni</div>'
+        +'<div class="pd-sub">C-TURNI &middot; '+_pdfEsc(reparto)+'</div></div></div>'
+      +'<div class="pd-meta">'
+        +'<div><span>Periodo</span><b>'+mN[mesSel]+' '+anno+'</b></div>'
+        +'<div><span>Operatore</span><b>'+_pdfEsc(operatore)+'</b></div>'
+        +'<div><span>Turni totali</span><b>'+Tf.length+'</b></div>'
+        +'<div><span>Generato</span><b>'+gen+'</b></div>'
+      +'</div>'
+    +'</header>'
+    +'<section class="pd-kpi">'+kpi+'</section>'
+    +'<table class="pd-table">'
+      +'<thead><tr><th class="pd-c-data">Data</th><th class="pd-c-nome">Persona</th><th>Turno</th>'
+      +'<th class="pd-c-ora">Orario</th><th class="pd-c-cod">Cod.</th><th class="pd-c-note">Note</th></tr></thead>'
+      +'<tbody>'+righe+'</tbody>'
+    +'</table>'
+    +'<div class="pd-sign"><div class="pd-sign-line"></div><div class="pd-sign-lbl">Firma del Comandante di Reparto</div></div>'
+    +'<footer class="pd-foot">Documento generato automaticamente da C-TURNI &middot; '+gen+' &middot; '+_pdfEsc(operatore)+'</footer>';
+  // Inserisce il documento nel body e attiva la stampa (poi ripulisce)
+  var old=document.getElementById('print-doc'); if(old) old.remove();
+  var wrap=document.createElement('div');
+  wrap.id='print-doc';
+  wrap.innerHTML=doc;
+  document.body.appendChild(wrap);
+  var _titoloOrig=document.title;
+  document.title='C-TURNI - Registro Turni '+mN[mesSel]+' '+anno;
+  var _cleanup=function(){
+    var el=document.getElementById('print-doc'); if(el) el.remove();
+    document.title=_titoloOrig;
+    window.removeEventListener('afterprint',_cleanup);
+  };
+  window.addEventListener('afterprint',_cleanup);
   setTimeout(function(){
     window.print();
-    setTimeout(function(){
-      if(ph)ph.style.display="none";
-      var t2=document.getElementById("print-table");if(t2)t2.remove();
-    },1000);
-  },200);
+    setTimeout(_cleanup,900);
+  },150);
 }
 
 // ---- NOTIFICA MATTUTINA ----
@@ -7847,6 +8006,9 @@ function _syncMyPid(){
     // Cerca per uid diretto
     var byUid = P.find(function(p){ return p.uid && (p.uid === uid || p.uid === me.uid); });
     if(byUid){ localStorage.setItem('ct_my_pid', String(byUid.id)); return; }
+    // ANTI-OMONIMIA: il pid si deduce dal nome SOLO se il nome completo
+    // identifica una sola persona del reparto (nessun omonimo).
+    if(_nomeOmonimi(me) > 1) return;
     // Cerca per nome+cognome (match robusto)
     var n = (me.nome||'').toLowerCase().trim();
     var c = (me.cognome||'').toLowerCase().trim();
@@ -8344,7 +8506,7 @@ function renderCal(){
       h += '<span></span>'; // placeholder per mantenere il flex layout
     }
 
-    h+="<button type=\"button\" onclick=\"event.stopPropagation();apriNuovoTurno('"+ds+"')\" style=\"background:none;border:none;color:var(--txt3);font-size:14px;line-height:1;padding:0 1px;cursor:pointer;appearance:none;-webkit-appearance:none\">+</button>";
+    h+="<button type=\"button\" class=\"cal-add\" aria-label=\"Nuovo turno\" title=\"Nuovo turno\" onclick=\"event.stopPropagation();apriNuovoTurno('"+ds+"')\">+</button>";
     h+="</div>";
 
     if(tg.length>0){
@@ -8665,18 +8827,9 @@ function renderRepData(){
     else inPeriodo=dt.getFullYear()===anno;
     if(!inPeriodo)return false;
     // Addetti vedono solo i propri turni nei conteggi in alto
-    if(!isCom && me){
-      // Match per pid/uid/myPid
-      if(_isMyTurno(t, me)) return true;
-      // Fallback match per nome (robustezza massima)
-      if(me.nome || me.cognome){
-        var meN = ((me.cognome||'')+' '+(me.nome||'')).toLowerCase().replace(/\s+/g,' ').trim();
-        var meN2 = ((me.nome||'')+' '+(me.cognome||'')).toLowerCase().replace(/\s+/g,' ').trim();
-        var tN = (t.pnome||'').toLowerCase().replace(/\s+/g,' ').trim();
-        if(tN && (tN===meN || tN===meN2)) return true;
-      }
-      return false;
-    }
+    // (match uid/pid + fallback sul nome SOLO senza omonimi: vedi
+    //  _isMioTurnoReport → stessa logica usata dal PDF, numeri identici)
+    if(!isCom && me) return _isMioTurnoReport(t, me);
     return true;
   });
   if(!Tf.length){d.innerHTML='<div style="padding:30px;text-align:center;color:var(--txt2);font-size:13px">Nessun dato nel periodo selezionato</div>';return;}
@@ -8706,36 +8859,39 @@ function renderRepData(){
   h+='</div>';
 
   if(P.length){
-    // Indice turni per pid e per pnome
+    // Indice turni per pid/uid e — solo per nomi NON ambigui — per pnome
     var tByPid={}, tByNome={};
     // Tf è già filtrato: per Addetto contiene solo i propri turni;
     // Comandante e Vice continuano a vedere l'intero reparto.
     var TfAll = Tf;
+    // ANTI-OMONIMIA: i nomi completi duplicati in rubrica NON possono essere
+    // usati per attribuire i turni (verrebbero scambiati fra omonimi).
+    var _nomeDup={}, _nomeCnt={};
+    P.forEach(function(p){
+      var _nk=_nomeFullNorm(p.nome);
+      if(!_nk) return;
+      _nomeCnt[_nk]=(_nomeCnt[_nk]||0)+1;
+    });
+    Object.keys(_nomeCnt).forEach(function(_nk){ if(_nomeCnt[_nk]>1) _nomeDup[_nk]=1; });
     TfAll.forEach(function(t){
-      var k=String(t.pid);
-      if(!tByPid[k])tByPid[k]=[];
-      tByPid[k].push(t);
-      if(t.pnome){
-        var n=t.pnome.toLowerCase().replace(/\s+/g,' ').trim();
-        if(!tByNome[n])tByNome[n]=[];
-        tByNome[n].push(t);
+      var k=(t.pid===undefined||t.pid===null||t.pid==='')?'':String(t.pid);
+      if(k){ if(!tByPid[k])tByPid[k]=[]; tByPid[k].push(t); }
+      // Solo i turni SENZA pid/uid possono essere agganciati per nome, e solo
+      // se quel nome completo NON è duplicato in rubrica.
+      if(t.pnome && !k && !t.uid && !t.ownerUid){
+        var n=_nomeFullNorm(t.pnome);
+        if(n && !_nomeDup[n]){ if(!tByNome[n])tByNome[n]=[]; tByNome[n].push(t); }
       }
     });
 
     // Se addetto: mostra solo se stesso; se comandante: mostra tutti
+    // ANTI-OMONIMIA: identificazione SOLO per uid/pid — mai per nome.
     var PfiltRep = isCom ? P : P.filter(function(p){
       if(!me) return false;
       var myPidStr = String(localStorage.getItem('ct_my_pid')||me.id||'');
-      if(String(p.id) === myPidStr) return true;
-      if(me.uid && p.uid === me.uid) return true;
-      if(String(p.id) === String(me.id)) return true;
-      // Fallback: match per nome (nel caso ct_my_pid non sia ancora impostato)
-      if(me.nome || me.cognome){
-        var meNome = ((me.cognome||'')+' '+(me.nome||'')).toLowerCase().replace(/\s+/g,' ').trim();
-        var meNome2 = ((me.nome||'')+' '+(me.cognome||'')).toLowerCase().replace(/\s+/g,' ').trim();
-        var pNome = (p.nome||'').toLowerCase().replace(/\s+/g,' ').trim();
-        if(pNome && (pNome === meNome || pNome === meNome2)) return true;
-      }
+      if(myPidStr && String(p.id) === myPidStr) return true;
+      if(me.uid && p.uid && p.uid === me.uid) return true;
+      if(me.id && p.id && String(p.id) === String(me.id)) return true;
       return false;
     });
 
@@ -8743,16 +8899,25 @@ function renderRepData(){
     var totT=TfAll.length||1;
     PfiltRep.forEach(function(p){
       var visti={}, turniP=[];
-      function addT(arr){(arr||[]).forEach(function(t){if(!visti[t.id]){visti[t.id]=true;turniP.push(t);}});}
+      function addT(arr){(arr||[]).forEach(function(t){
+        var tk = t.id ? String(t.id) : [String(t.pid||t.uid||''),t.data||'',t.tipo||'',t.orario||''].join('|');
+        if(visti[tk]) return;
+        visti[tk]=true; turniP.push(t);
+      });}
       addT(tByPid[String(p.id)]);
       if(p.uid) addT(tByPid[String(p.uid)]);
-      var pn=(p.nome||'').toLowerCase().replace(/\s+/g,' ').trim();
-      addT(tByNome[pn]);
-      var parti=pn.split(' ');
-      if(parti.length>=2){ addT(tByNome[parti.slice(1).join(' ')+' '+parti[0]]); }
-      // Per l'utente corrente: usa _isMyTurno come fallback definitivo
+      // Per nome SOLO se non ambiguo (nessun omonimo con lo stesso nome completo)
+      var pn=_nomeFullNorm(p.nome);
+      if(pn) addT(tByNome[pn]);
+      var _pp=(p.nome||'').split(' ');
+      var pnRev=_pp.length>=2 ? _nomeFullNorm(_pp.slice(1).join(' ')+' '+_pp[0]) : '';
+      if(pnRev && pnRev!==pn) addT(tByNome[pnRev]);
+      // Per l'utente corrente: fallback definitivo SOLO su uid/pid (strict)
       if(!isCom && me && (p.uid===me.uid || String(p.id)===String(me.id) || String(p.id)===String(localStorage.getItem('ct_my_pid')||''))){
-        TfAll.forEach(function(t){ if(_isMyTurno(t,me)&&!visti[t.id]){visti[t.id]=true;turniP.push(t);} });
+        TfAll.forEach(function(t){
+          var tk = t.id ? String(t.id) : [String(t.pid||t.uid||''),t.data||'',t.tipo||'',t.orario||''].join('|');
+          if(_isMioTurnoStrict(t,me)&&!visti[tk]){visti[tk]=true;turniP.push(t);}
+        });
       }
       if(!turniP.length)return;
       var pc=turniP.length;
@@ -12982,6 +13147,56 @@ var _GUIDE = {
       {ico:"&#128070;", tit:"Modificare un orario", txt:"Tocca la riga del turno che vuoi modificare: si espande mostrando i campi <strong>Inizio</strong> e <strong>Fine</strong>."},
       {ico:"&#128190;", tit:"Salvare", txt:"Modifica gli orari e premi <strong>&#128190; Salva</strong> sulla riga. L'orario viene salvato immediatamente."},
       {ico:"&#8635;", tit:"Ripristinare i default", txt:"Premi <strong>&#8635; Ripristina default</strong> in fondo alla sezione per tornare agli orari standard."}
+    ]
+  },
+  richieste: {
+    titolo: "&#128260; Richieste cambio turno",
+    azione: {label:"&#128260; Chiedi cambio turno", fn:"apriCambioTurno()"},
+    passi: [
+      {ico:"&#8505;", tit:"A cosa serve", txt:"Serve per <strong>scambiare due turni</strong> con un collega senza toccare a mano il calendario: la richiesta resta tracciata con chi, quando e quale turno."},
+      {ico:"&#9312;", tit:"Apri la richiesta", txt:"Vai in <strong>Calendario</strong> e premi <strong>&#128260; Chiedi cambio turno</strong>."},
+      {ico:"&#9313;", tit:"Scegli i due turni", txt:"Seleziona <strong>il tuo turno</strong>, il <strong>collega</strong> (cercalo per nome) e <strong>il suo turno</strong>. Puoi aggiungere una nota esplicativa."},
+      {ico:"&#9314;", tit:"Invia", txt:"Premi <strong>Invia richiesta</strong>. Il collega riceve una notifica con <strong>Approva / Rifiuta</strong>; se hai gi&#224; parlato a voce, spunta la conferma a voce: passer&#224; direttamente al Comando."},
+      {ico:"&#9315;", tit:"Approvazione del Comando", txt:"Dopo l'ok del collega la richiesta arriva al <strong>Comando</strong> per l'approvazione finale: al via libera i due turni vengono scambiati automaticamente."},
+      {ico:"&#128203;", tit:"Segui lo stato", txt:"In fondo al <strong>Calendario</strong> trovi <strong>Le mie richieste cambio turno</strong> con lo stato (attesa collega, attesa comando, approvata o rifiutata) e il pulsante <strong>Annulla</strong>."},
+      {ico:"&#9888;", tit:"Requisiti", txt:"Il collega deve essere <strong>collegato all'app</strong> (account approvato): senza account non pu&#242; ricevere n&#233; approvare la richiesta."}
+    ]
+  },
+  comando: {
+    titolo: "&#128227; Bacheca Comando",
+    azione: {label:"&#128227; Apri Menu Comando", fn:"vaiBN('comando',0)"},
+    passi: [
+      {ico:"&#8505;", tit:"Cosa contiene", txt:"Il <strong>Menu Comando</strong> raccoglie gli strumenti riservati a Comandante/Vice: avvisi, richieste cambio turno, compiti, situazione a 7 giorni, gestione turni e personale."},
+      {ico:"&#9312;", tit:"Pubblica un avviso", txt:"Apri <strong>Menu Comando &#8594; Nuovo avviso</strong>: scrivi titolo e testo e premi <strong>Pubblica</strong>."},
+      {ico:"&#9313;", tit:"Urgenza e scadenza", txt:"Spunta <strong>Urgente</strong> per portare l'avviso in cima con evidenza. Imposta una <strong>scadenza</strong>: superata quella data l'avviso sparisce da solo."},
+      {ico:"&#9314;", tit:"Dove lo vedono i militari", txt:"L'avviso compare nel widget <strong>&#128227; Bacheca</strong> della Dashboard e in <strong>Agenda</strong>, con il badge \"nuovo\" finch&#233; non viene letto."},
+      {ico:"&#9315;", tit:"Conferma di lettura", txt:"Ogni militare pu&#242; premere <strong>Confermo di aver letto</strong>. Il Comando vede in tempo reale <strong>Letto da N/totali</strong> sotto ogni avviso."},
+      {ico:"&#9998;", tit:"Modificare o eliminare", txt:"Dalla lista in <strong>Menu Comando</strong> tocca l'avviso per modificarlo o eliminarlo. Solo Comandante/Vice scrivono: gli altri lo vedono in sola lettura."}
+    ]
+  },
+  reparti: {
+    titolo: "&#127963; Reparti e Trasferimenti",
+    azione: {label:"&#128680; Trasferimento militare", fn:"vaiBN('comando',0)"},
+    passi: [
+      {ico:"&#8505;", tit:"Come nasce un reparto", txt:"Il <strong>reparto</strong> (Tipo Struttura + Comune + numero) si imposta in fase di <strong>registrazione</strong>. Turni, persone e avvisi sono isolati per reparto: ogni struttura vede solo i propri dati."},
+      {ico:"&#9312;", tit:"Strutture supportate", txt:"Stazione, Nucleo, Compagnia, Distaccamento, Tenenza, Gruppo: la denominazione completa viene composta automaticamente dal sistema."},
+      {ico:"&#9313;", tit:"Trasferire un militare", txt:"Da <strong>Menu Comando &#8594; Trasferimento militare</strong> scegli il militare, seleziona il <strong>Tipo Struttura</strong> di destinazione, completa i campi e conferma."},
+      {ico:"&#9314;", tit:"Approvazione del destinatario", txt:"Il <strong>Comandante del reparto di destinazione</strong> deve approvare il trasferimento: fino ad allora il militare resta operativo nel reparto di origine."},
+      {ico:"&#9315;", tit:"Dati e storico", txt:"Anagrafica e storico personale seguono il militare; l'accesso ai <strong>turni del nuovo reparto</strong> parte dall'approvazione, mentre i dati del vecchio reparto restano separati."},
+      {ico:"&#9888;", tit:"Chi pu&#242; trasferire", txt:"Solo <strong>Comandante/Vice</strong> del reparto. Nessun militare pu&#242; cambiare reparto da solo: serve l'ordine inserito dal Comando."}
+    ]
+  },
+  saldi: {
+    titolo: "&#128176; Saldi e Salvadanaio ore",
+    azione: {label:"&#128202; Apri Report", fn:"vaiBN('rep',99);switchRepTab('straord')"},
+    passi: [
+      {ico:"&#9312;", tit:"Dove si trova", txt:"Vai in <strong>Report</strong> (menu laterale, Impostazioni o widget salvadanaio della Dashboard) e apri la scheda <strong>&#9201; Straordinari</strong>."},
+      {ico:"&#9313;", tit:"Seleziona il mese", txt:"Usa le frecce <strong>&#8249; / &#8250;</strong> accanto al nome del mese per consultare un periodo precedente o successivo."},
+      {ico:"&#9314;", tit:"Totale e dettaglio", txt:"In alto leggi il <strong>Totale ore straordinario</strong> del mese, suddiviso per tipo: Ordinario, Festivo, Notturno, Reperibilit&#224;."},
+      {ico:"&#9315;", tit:"Salvadanaio", txt:"Il blocco <strong>&#128022; Salvadanaio ore</strong> mostra ore disponibili, ore del mese corrente, saldi dei mesi precedenti e ore gi&#224; pagate o recuperate."},
+      {ico:"&#9316;", tit:"Aggiungere una voce", txt:"Premi <strong>+ Aggiungi</strong> in <em>Voci registrate</em> per inserire manualmente un monte ore; le voci calcolate dai turni compaiono da sole."},
+      {ico:"&#128176;", tit:"Ferie e licenze", txt:"I saldi di <strong>ferie, licenze e festivit&#224; soppresse</strong> usano il pool annuale: li trovi in <strong>Impostazioni &#8594; Ferie &amp; Licenze</strong> e nelle card di <strong>Personale</strong>."},
+      {ico:"&#128172;", tit:"Condividere", txt:"Con <strong>Condividi su WhatsApp</strong> invii il riepilogo del mese a comando o colleghi in un tap."}
     ]
   },
   backup: {

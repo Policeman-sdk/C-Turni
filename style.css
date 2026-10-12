@@ -6160,3 +6160,158 @@ html[data-hf="off"] .hdr-flash {
   .hdr-flash .hf-gloss { display: none; }
   .hdr-flash::after { animation: none; opacity: .40; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   CALENDARIO — "+" DEL GIORNO: AREA DI TOCCO AMPIA
+   ───────────────────────────────────────────────────────────────
+   Il "+" in alto a destra di ogni cella resta visivamente identico
+   (14px, nessun ingombro aggiuntivo): l'area di tocco reale viene
+   portata a 44×44 px da un ::after trasparente centrato sul glifo.
+   • Nessuna modifica al layout della cella (zero reflow).
+   • Si animano SOLO color/transform (GPU).
+   • Il riquadro resta dentro la cella (overflow:hidden) → non ruba
+     tocchi alle celle vicine.
+   ═══════════════════════════════════════════════════════════════ */
+.cal-add{
+  position:relative;background:none;border:none;color:var(--txt3);
+  font-size:14px;line-height:1;padding:0 1px;cursor:pointer;flex-shrink:0;
+  appearance:none;-webkit-appearance:none;
+  transition:color .15s,transform .12s var(--motion-spring);
+}
+.cal-add::after{
+  content:'';position:absolute;left:50%;top:50%;
+  width:44px;height:44px;transform:translate(-50%,-50%);
+  border-radius:12px;
+}
+.cal-add:active{color:var(--blue);transform:scale(.86)}
+
+/* ═══════════════════════════════════════════════════════════════
+   ESPORTA PDF — DOCUMENTO DI STAMPA DEDICATO (#print-doc)
+   ───────────────────────────────────────────────────────────────
+   esportaPDF() costruisce un documento A4 (intestazione, riepilogo,
+   tabella, firma) dentro #print-doc, lo stampa e lo rimuove.
+   • #print-doc è display:none sullo schermo → nessun impatto visivo.
+   • In stampa TUTTO il resto dell'app è nascosto (body > *), mentre
+     #print-doc vince per specificità: l'app usata non lascia buchi.
+   • Colori forzati con print-color-adjust: intestazione e chip
+     restano leggibili anche con "grafica di sfondo" disattivata.
+   ═══════════════════════════════════════════════════════════════ */
+#print-doc{display:none}
+@media print{
+  @page{size:A4 portrait;margin:12mm 12mm 14mm}
+  html,body{background:#fff!important;color:#000!important;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body > *{display:none!important}
+  /* Markup legacy del vecchio export: non deve mai comparire in stampa */
+  #print-header{display:none!important}
+  #print-doc{
+    display:block!important;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
+    font-size:10px;line-height:1.45;color:#111;
+  }
+  #print-doc *{box-sizing:border-box}
+  .pd-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;
+    padding-bottom:10px;border-bottom:2px solid #0a1628;margin-bottom:12px}
+  .pd-brand{display:flex;align-items:center;gap:10px}
+  .pd-logo{width:34px;height:34px;border-radius:10px;background:#0a1628;color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900}
+  .pd-title{font-size:16px;font-weight:900;line-height:1.1}
+  .pd-sub{font-size:9px;letter-spacing:.6px;text-transform:uppercase;color:#555;margin-top:2px}
+  .pd-meta{font-size:9px;text-align:right;line-height:1.6}
+  .pd-meta > div{white-space:nowrap}
+  .pd-meta span{color:#666;text-transform:uppercase;letter-spacing:.5px;margin-right:4px}
+  .pd-meta b{font-weight:800}
+  .pd-kpi{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
+  .pd-kpi-c{display:inline-flex;align-items:center;gap:4px;padding:4px 9px;
+    border:1px solid #d3d9e2;border-radius:999px;background:#f4f6f9;font-size:9px;font-weight:700}
+  .pd-kpi-c b{font-weight:900}
+  .pd-table{width:100%;border-collapse:collapse;table-layout:fixed}
+  .pd-table th{background:#0a1628;color:#fff;font-size:8.5px;font-weight:800;
+    text-transform:uppercase;letter-spacing:.5px;text-align:left;padding:6px 7px;border:1px solid #0a1628}
+  .pd-table td{padding:5px 7px;border:1px solid #d3d9e2;vertical-align:middle;
+    font-size:9.5px;overflow:hidden}
+  .pd-table tbody tr:nth-child(even) td{background:#f7f9fc}
+  .pd-table tr{break-inside:avoid;page-break-inside:avoid}
+  .pd-table thead{display:table-header-group}
+  .pd-c-data{width:13%;white-space:nowrap;font-variant-numeric:tabular-nums;font-weight:700}
+  .pd-c-nome{width:24%}
+  .pd-c-ora{width:14%;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .pd-c-cod{width:10%;font-weight:800;color:#333}
+  .pd-c-note{width:22%;color:#444;font-size:9px}
+  .pd-gg{display:block;font-size:8px;font-weight:600;color:#666;text-transform:uppercase}
+  .pd-chip{display:inline-block;padding:2px 6px;border-radius:6px;font-size:9px;
+    font-weight:800;white-space:nowrap}
+  .pd-serv{background:#e3ecff;color:#123a8a;border:1px solid #b9cdf7}
+  .pd-ass{background:#e6f7ec;color:#0d6b34;border:1px solid #b6e3c6}
+  .pd-alt{background:#f0f2f6;color:#3c4553;border:1px solid #d3d9e2}
+  .pd-empty{text-align:center;color:#777;font-style:italic;padding:14px}
+  .pd-sign{margin-top:26px;width:60%;min-width:220px}
+  .pd-sign-line{border-bottom:1px solid #333;height:26px}
+  .pd-sign-lbl{font-size:8.5px;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
+  .pd-foot{margin-top:18px;padding-top:8px;border-top:1px solid #d3d9e2;font-size:8px;
+    color:#666;text-align:center}
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MODAL NUOVO / MODIFICA TURNO (#m-turno) — M3 EXPRESSIVE
+   ───────────────────────────────────────────────────────────────
+   Bottom-sheet in linguaggio M3: superficie solida (nessun blur),
+   angoli fluidi, sezioni raggruppate, campi "filled" e chip di
+   selezione con area di tocco ≥44px.
+   • Solo transform/opacity animati → zero reflow.
+   • Nessun token di tema ridefinito: le palette restano intatte.
+   • Modifiche additive e confinate a #m-turno (nessun impatto su
+     altri modal, che restano identici).
+   ═══════════════════════════════════════════════════════════════ */
+#m-turno .mbox{
+  border-radius:28px 28px 0 0;
+  border:var(--hero-hairline);border-bottom:none;
+  box-shadow:0 -10px 44px rgba(0,0,0,.40);
+  max-height:calc(92vh - env(safe-area-inset-bottom,0px));
+  max-height:calc(92dvh - env(safe-area-inset-bottom,0px));
+}
+html[data-theme=light] #m-turno .mbox,
+html[data-theme=rosa-light] #m-turno .mbox,
+html[data-theme=forestale-light] #m-turno .mbox,
+html[data-theme=carabinieri-light] #m-turno .mbox{
+  box-shadow:0 -10px 34px rgba(16,32,64,.14);
+}
+#m-turno .mhan{width:46px;height:5px;border-radius:3px;background:var(--border2);margin:12px auto 2px}
+#m-turno .mhd{
+  padding:14px 20px;border-bottom:var(--hero-hairline);background:var(--card);
+  backdrop-filter:none;-webkit-backdrop-filter:none;
+}
+#m-turno .mhd .mtit{font-size:17px;font-weight:900;letter-spacing:.2px}
+#m-turno .mcl{width:38px;height:38px;min-width:38px;font-size:19px;background:var(--card2)}
+#m-turno .mbod{padding:18px 20px 22px}
+/* Ogni sezione (Persona, Data, Tipo, Orario, Note) diventa un gruppo M3 */
+#m-turno .mbod > div > .fg{
+  background:var(--card2);border:var(--hero-hairline);
+  border-radius:var(--hero-r-sm);padding:14px 14px 16px;
+}
+#m-turno .fg > label{font-size:10px;font-weight:900;letter-spacing:1px}
+/* Campi "filled" M3 */
+#m-turno .fc{border-radius:14px 14px 8px 14px;background:var(--bg);border-width:1px}
+#m-turno .fc:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(91,159,255,.16)}
+/* Chip di selezione (tipo turno, giorni, periodo): tocco comodo */
+#m-turno .btn-turno-r,
+#m-turno .day-chip{
+  border-radius:var(--hero-r-xs);min-height:46px;background:var(--bg);
+  transition:transform .18s var(--motion-spring),background .16s,color .16s,border-color .16s;
+}
+#m-turno #mt-giorni-sett .day-chip{min-height:42px}
+#m-turno .btn-turno-r.sel,
+#m-turno .btn-turno-r:active,
+#m-turno .day-chip.sel,
+#m-turno .day-chip:active{
+  background:var(--blue);color:#fff;border-color:var(--blue);transform:scale(.95);
+}
+#m-turno #mt-range-toggle{min-height:48px;border-radius:var(--hero-r-sm)}
+#m-turno #mt-preview{border-radius:var(--hero-r-xs);background:var(--bg);border:var(--hero-hairline)}
+/* Footer azioni: superficie elevata, pulsanti comodi */
+#m-turno .mfoo{
+  border-top:var(--hero-hairline);box-shadow:0 -8px 26px rgba(0,0,0,.20);
+  backdrop-filter:none;-webkit-backdrop-filter:none;
+}
+#m-turno .mfoo .btn-sm{min-height:46px;border-radius:var(--radius-pill)}
+#m-turno #mt-save-btn{box-shadow:0 4px 16px rgba(91,159,255,.30)}

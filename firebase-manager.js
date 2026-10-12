@@ -460,19 +460,25 @@ function _startListeners(reparto) {
       var _chg = false;
       arr.forEach(function(u) {
         if(!u.uid || !u.nome) return;
-        var uN = ((u.nome||'')+' '+(u.cognome||'')).toLowerCase().trim();
-        var uNi = ((u.cognome||'')+' '+(u.nome||'')).toLowerCase().trim();
-        _P.forEach(function(p) {
-          if(p.uid) return;
-          var pn = (p.nome||'').toLowerCase().trim();
-          if(pn===uN||pn===uNi||uN.indexOf(pn)!==-1||pn.indexOf(uN)!==-1||uNi.indexOf(pn)!==-1){
-            p.uid=u.uid; if(u.grado&&!p.grado)p.grado=u.grado;
-            // Aggiorna sempre ava se l'utente Firebase ha un URL https più recente
-            if(u.ava && u.ava.startsWith('https')) p.ava=u.ava;
-            else if(u.ava&&!p.ava) p.ava=u.ava;
-            _chg=true;
-          }
+        var uN  = ((u.nome||'')+' '+(u.cognome||'')).replace(/\s+/g,' ').trim().toLowerCase();
+        var uNi = ((u.cognome||'')+' '+(u.nome||'')).replace(/\s+/g,' ').trim().toLowerCase();
+        if(!uN) return;
+        // ANTI-OMONIMIA: aggancia la persona SOLO se un unico profilo candidato
+        // corrisponde al nome completo (uguaglianza esatta, nei due versi).
+        // Niente match parziali: con due omonimi si aggancerebbe quello sbagliato.
+        var cand = _P.filter(function(p){
+          if(p.uid) return false;
+          var pn = (p.nome||'').replace(/\s+/g,' ').trim().toLowerCase();
+          return pn && (pn === uN || pn === uNi);
         });
+        if(cand.length !== 1) return;
+        var p = cand[0];
+        p.uid = u.uid;
+        if(u.grado && !p.grado) p.grado = u.grado;
+        // Aggiorna sempre ava se l'utente Firebase ha un URL https più recente
+        if(u.ava && u.ava.startsWith('https')) p.ava = u.ava;
+        else if(u.ava && !p.ava) p.ava = u.ava;
+        _chg = true;
       });
       if(_chg) lsS('ct_p', _P);
     } catch(e2) {}
@@ -589,10 +595,17 @@ function _startListeners(reparto) {
       snap.forEach(function(d){ arr.push(Object.assign({id: d.id}, d.data())); });
       arr.sort(function(a,b){ return new Date(b.ts||0)-new Date(a.ts||0); });
       localStorage.setItem('ct_notif_fb', JSON.stringify(arr));
-      // Aggiorna badge
-      var nonLette = arr.filter(function(n){ return !n.letta; }).length;
+      // Badge: conteggio sull'insieme UNIFICATO locale+cloud, così una notifica
+      // presente in entrambe le liste non viene contata DUE volte (bug doppie).
       var localNL = JSON.parse(localStorage.getItem('ct_notifiche')||'[]');
-      var totNonLette = nonLette + localNL.filter(function(n){ return !n.letta; }).length;
+      var _vistiN = {}, totNonLette = 0;
+      arr.concat(localNL).forEach(function(n){
+        if(!n) return;
+        var k = String(n.id);
+        if(_vistiN[k]) return;
+        _vistiN[k] = 1;
+        if(!n.letta) totNonLette++;
+      });
       var b = document.getElementById('notif-badge');
       if(b){ b.style.display = totNonLette>0?'flex':'none'; b.textContent = totNonLette>9?'9+':String(totNonLette); }
       // Se il drawer è aperto, aggiorna la lista
@@ -642,7 +655,15 @@ window.FirebaseModule = {
         if(window.CDB) { await CDB.set('ct_t', turni); } else { localStorage.setItem('ct_t', JSON.stringify(turni)); }
       }
       await this.syncUsers();
-      _toast('Dati sincronizzati dal cloud', 'ok');
+      // Benvenuto essenziale al login: "Benvenuto, [Grado Nome]" (niente
+      // messaggi tecnici sul cloud). Il nome arriva dal profilo appena salvato.
+      var _mn = '';
+      try {
+        var _mep = JSON.parse(localStorage.getItem('ct_me') || 'null') || {};
+        var _nomeB = String(_mep.nickname || _mep.nome || '').trim();
+        _mn = [String(_mep.grado || '').trim(), _nomeB].filter(Boolean).join(' ');
+      } catch(e2) {}
+      _toast('Benvenuto' + (_mn ? ', ' + _mn : ''), 'ok');
     } catch(e) {
       console.warn('FirebaseModule.onLogin:', e.message);
     }
