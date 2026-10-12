@@ -3,34 +3,79 @@
 html{--fs-base:14px;font-size:var(--fs-base)}
 /* overflow-x:hidden su body rompe position:fixed nei WebView — usare clip invece */
 body{height:100%;overflow-x:clip;font-size:var(--fs-base)}
-/* -- Material 3 Design Tokens -- */
+/* ═══════════════════════════════════════════════════════════════
+   SEZIONE 1 — DESIGN SYSTEM: TOKEN & TEMI  (UNICA FONTE DI VERITÀ)
+   ───────────────────────────────────────────────────────────────
+   Prima di questo refactor i token di tema erano sparsi in 10 punti
+   diversi del foglio (tre blocchi ":root", due blocchi duplicati per
+   il tema forestale, override chiari ripetuti, token "firma" e token
+   del lampeggiante a metà file). Ora vivono tutti QUI.
+
+   • Livello 1 — PRIMITIVI: superfici (--bg/--bg2/--card/--card2),
+     testi (--txt/--txt2/--txt3), accenti semantici (--blue, --red,
+     --gold, --green, --teal, --orange, --purple), elevazioni, raggi,
+     motion, token hero e token lampeggiante → uno per tema.
+   • Livello 2 — SEMANTICI: definiti una sola volta nel tema base.
+     Ereditano i primitivi del tema attivo (es. --accent:var(--blue)),
+     quindi seguono il cambio tema senza duplicazioni. Ogni tema
+     sovrascrive SOLO ciò che differisce davvero.
+
+   Il tema di default (localStorage "ct_tema" = "") NON imposta
+   l'attributo data-theme (vedi setTema() in app.js): la palette di
+   default è quindi quella di :root, l'unica live. Il vecchio blocco
+   [data-theme=""] era codice morto ed è stato rimosso.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 1.1 TEMA BASE — dark di default (arma, senza attributo) ── */
 :root{
-  /* Surface */
-  --bg:#080e17;--bg2:#0d1520;--card:#111d2b;--card2:#162233;
-  --border:rgba(255,255,255,.09);--border2:rgba(255,255,255,.16);
-  /* Text */
+  /* Superfici — 3 livelli di profondità M3 */
+  --bg:#0A111A;--bg2:#0f1a27;--card:#121E2D;--card2:#172436;
+  --border:rgba(255,255,255,.09);--border2:rgba(255,255,255,.15);
+  /* Testo */
   --txt:#e8edf5;--txt2:#8faac8;--txt3:#4a6a8a;
-  /* Primary (M3 Expressive blue) */
+  /* Primario M3 Expressive */
   --blue:#5b9fff;--blue2:#90c2ff;
-  /* Semantic */
-  --red:#f2453d;--gold:#ffd166;--green:#06d6a0;
+  /* Semantici */
+  --red:#D32F2F;--gold:#ffd166;--green:#06d6a0;
   --teal:#00e5ff;--orange:#ff9f43;--purple:#c084fc;
-  /* M3 Expressive extras */
+  /* Sistema: tinta, elevazioni, raggi, motion */
   --surface-tint:rgba(91,159,255,.08);
   --elevation-1:0 2px 6px rgba(0,0,0,.4),0 1px 2px rgba(0,0,0,.3);
   --elevation-2:0 4px 12px rgba(0,0,0,.45),0 2px 6px rgba(0,0,0,.3);
   --elevation-3:0 12px 32px rgba(0,0,0,.5),0 6px 12px rgba(0,0,0,.3);
-  /* M3 Expressive: raggi molto piu grandi */
   --radius:28px;--radius-sm:18px;--radius-xs:14px;--radius-pill:50px;
-  /* M3 Shadow — diffusa e leggera */
   --m3-shadow:0 4px 20px rgba(0,0,0,.05),0 1px 4px rgba(0,0,0,.04);
   --m3-shadow-md:0 6px 28px rgba(0,0,0,.08),0 2px 8px rgba(0,0,0,.05);
   --m3-shadow-lg:0 12px 40px rgba(0,0,0,.12),0 4px 12px rgba(0,0,0,.06);
-  /* Transitions */
   --motion-standard:cubic-bezier(.4,0,.2,1);
   --motion-decel:cubic-bezier(0,0,.2,1);
   --motion-accel:cubic-bezier(.4,0,1,1);
   --motion-spring:cubic-bezier(.34,1.56,.64,1);
+  /* Livello 2 — accento UI: nav, bottom bar, FAB, bottoni primari */
+  --accent:var(--blue);
+  --accent-bg:rgba(91,159,255,.12);
+  --accent-grad:linear-gradient(90deg,rgba(91,159,255,.18),rgba(91,159,255,.03));
+  --accent-ico-bg:rgba(91,159,255,.14);
+  --accent-ico-glow:0 0 8px rgba(91,159,255,.25);
+  --accent-border:rgba(91,159,255,.2);
+  --btn-grad:var(--blue);
+  --fab-grad:linear-gradient(150deg,var(--blue2,#90c2ff) 0%,var(--blue) 52%,#2f74e0 100%);
+  --fab-color:#fff;
+  --fab-border-color:var(--bg2);
+  --fab-shadow:0 10px 24px rgba(91,159,255,.50),0 3px 8px rgba(0,0,0,.35),0 1px 0 rgba(255,255,255,.30) inset;
+  --fab-shadow-active:0 4px 12px rgba(91,159,255,.45);
+  --hdr-grad:var(--hdr-bg, rgba(8,14,23,.92));
+  /* Token "firma" hero card — raggi asimmetrici + ombre diffuse */
+  --hero-r-lg:40px 40px 16px 40px;
+  --hero-r-md:28px 28px 12px 28px;
+  --hero-r-sm:20px 20px 10px 20px;
+  --hero-r-xs:14px 14px 8px 14px;
+  --hero-hairline:1px solid var(--border);
+  --hero-shadow-sm:0 4px 16px rgba(0,0,0,.18),0 1px 3px rgba(0,0,0,.10);
+  /* Token lampeggiante LED — metallo anodizzato scuro (temi scuri) */
+  --hf-metal:linear-gradient(90deg,rgba(0,0,0,.92) 0%,#171c24 18%,#2a323e 46%,#141922 74%,rgba(0,0,0,.90) 100%);
+  --hf-depth:inset 0 0 3px rgba(255,255,255,.10), inset 2px 0 6px rgba(0,0,0,.85);
+  --hf-ambient:0 0 10px rgba(0,0,0,.45);
 }
 
 
@@ -45,15 +90,141 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   transition:all 0.3s cubic-bezier(0.4,0,0.2,1)
 }
 
-/* ── TEMA ARMA (dark) — Blu Notte M3 ── */
-[data-theme=""],
-:root {
-  --bg:#0A111A;--bg2:#0f1a27;--card:#121E2D;--card2:#172436;
-  --border:rgba(255,255,255,.09);--border2:rgba(255,255,255,.15);
-  --txt:#e8edf5;--txt2:#8faac8;--txt3:#4a6a8a;
-  --blue:#5b9fff;--blue2:#90c2ff;
-  --red:#D32F2F;--gold:#ffd166;--green:#06d6a0;
-  --teal:#00e5ff;--orange:#ff9f43;--purple:#c084fc;
+/* ── 1.2 TEMA "AUTO" — segue il tema di sistema ── */
+@media(prefers-color-scheme:dark){
+  html[data-theme="auto"]{
+    --bg:#0d1b2a;--bg2:#111f30;--card:#162436;--card2:#1a2c40;
+    --txt:#e8edf2;--txt2:#8fa3b8;--txt3:#4a6278;
+    --border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.04);
+    --blue:#5b9fff;--teal:#26c6da;--gold:#c8a84b;--red:#c8102e;
+    --green:#6abf69;--orange:#ff9f43;--navy:#0d1b2a;
+    --elevation-1:0 2px 8px rgba(0,0,0,.4);--elevation-2:0 4px 16px rgba(0,0,0,.5);--elevation-3:0 8px 32px rgba(0,0,0,.6)
+  }
+}
+@media(prefers-color-scheme:light){
+  html[data-theme="auto"]{
+    --bg:#f0f4f8;--bg2:#ffffff;--card:#ffffff;--card2:#f8fafc;
+    --txt:#1a2332;--txt2:#5a7a9a;--txt3:#a0b4c8;
+    --border:rgba(0,0,0,.08);--border2:rgba(0,0,0,.04);
+    --blue:#2979ff;--teal:#00bcd4;--gold:#b8860b;--red:#c8102e;
+    --green:#388e3c;--orange:#e65100;--navy:#0d1b2a;
+    --elevation-1:0 2px 8px rgba(0,0,0,.08);--elevation-2:0 4px 16px rgba(0,0,0,.12);--elevation-3:0 8px 32px rgba(0,0,0,.16);
+    --hdr-bg:rgba(240,244,248,.95);
+    /* sistema in modalità chiara: stesse rese dei temi chiari */
+    --hero-shadow-sm:0 4px 16px rgba(16,32,64,.07),0 1px 3px rgba(16,32,64,.05);
+    --hf-metal:linear-gradient(90deg,rgba(88,100,120,.60) 0%,#e4e9f0 18%,#ffffff 46%,#d9dfe8 74%,rgba(88,100,120,.55) 100%);
+    --hf-depth:inset 0 0 3px rgba(255,255,255,.90), inset 2px 0 6px rgba(40,52,74,.30);
+    --hf-ambient:0 0 10px rgba(40,52,74,.25)
+  }
+}
+
+/* ── 1.3 TEMI SCURI ── */
+/* ARMA — Blu Notte M3 (giorno) */
+:root[data-theme="arma"] {
+  --bg: #0A111A;
+  --bg2: #0F1926;
+  --card: #121E2D;
+  --card2: #18283C;
+  --border: rgba(255, 255, 255, 0.08);
+  --border2: rgba(255, 255, 255, 0.15);
+  --txt: #FFFFFF;
+  --txt2: #A5B4C7;
+  --blue: #1976D2;
+  --red: #D32F2F;
+  --surface-tint: rgba(25, 118, 210, 0.1);
+}
+/* ARMA — notte */
+:root[data-theme="arma-dark"] {
+  --bg: #04070A;
+  --bg2: #080D14;
+  --card: #0A1119;
+  --card2: #0F1824;
+  --border: rgba(255, 255, 255, 0.05);
+  --border2: rgba(255, 255, 255, 0.1);
+  --txt: #E3E3E3;
+  --txt2: #7A899C;
+  --blue: #1565C0;
+  --red: #B71C1C;
+}
+/* FORESTALE (dark) — Grigio-Verde M3.
+   Il blocco duplicato che stava a inizio file è stato unito qui: i valori
+   sono quelli effettivi (il secondo blocco vinceva sul primo). */
+[data-theme=forestale]{
+  --bg:#1c1f1c;--bg2:#252825;--card:#2e332e;--card2:#363b36;
+  --border:#3d4a3d;--border2:#4e5e4e;
+  --txt:#e8ede8;--txt2:#9ab89a;--txt3:#607860;
+  --blue:#5a8a5a;--blue2:#6fa06f;--red:#c0392b;
+  --gold:#8fbe6a;--green:#6abf69;--teal:#80b080;--orange:#c9a84c;--purple:#8aaa8a;
+  --surface-tint:rgba(90,138,90,.08);
+  --elevation-1:0 2px 6px rgba(0,0,0,.45),0 1px 2px rgba(0,0,0,.35);
+  --elevation-2:0 4px 12px rgba(0,0,0,.5),0 2px 6px rgba(0,0,0,.35);
+  --elevation-3:0 12px 32px rgba(0,0,0,.55),0 6px 12px rgba(0,0,0,.35);
+  /* semantici: accento verde */
+  --accent:var(--green);
+  --accent-bg:rgba(90,138,90,.16);
+  --accent-grad:linear-gradient(90deg,rgba(90,138,90,.2),rgba(90,138,90,.03));
+  --accent-ico-bg:rgba(90,138,90,.16);
+  --accent-ico-glow:0 0 8px rgba(106,191,105,.25);
+  --accent-border:rgba(90,138,90,.25);
+  --btn-grad:linear-gradient(135deg,#3a5a3a,#5a8a5a);
+  --fab-grad:linear-gradient(150deg,#7cc47c,#5a8a5a 52%,#3f6b3f);
+  --fab-shadow:0 8px 22px rgba(90,138,90,.5),0 3px 8px rgba(0,0,0,.35);
+  --hdr-grad:linear-gradient(135deg,#1c2b1c,#2e402e,#1c2b1c)
+}
+/* FORESTALE — notte */
+:root[data-theme="forestale-dark"] {
+  --bg: #0E1410 !important;
+  --bg2: #141C16 !important;
+  --card: #18241B !important;
+  --card2: #1D2E22 !important;
+  --txt: #E1EBE3 !important;
+  --txt2: #8E9C91 !important;
+  --blue: #4CAF50 !important;
+  --border: rgba(255,255,255,0.1) !important;
+}
+/* ROSA 🌸 */
+[data-theme=rosa]{
+  --bg:#2a0a18;--bg2:#381220;--card:#4a1828;--card2:#562030;
+  --border:#8a2040;--border2:#b02850;
+  --txt:#fff0f4;--txt2:#ffb3c6;--txt3:#d4607a;
+  --blue:#ff4d80;--blue2:#ff80a0;--red:#e8002a;
+  --gold:#ffb3c6;--green:#ff80a0;--teal:#ff99b0;--orange:#ff6690;--purple:#ff80a0;
+  --surface-tint:rgba(255,77,128,.08);
+  --elevation-1:0 2px 6px rgba(0,0,0,.5),0 1px 2px rgba(0,0,0,.4);
+  --elevation-2:0 4px 12px rgba(0,0,0,.55),0 2px 6px rgba(0,0,0,.4);
+  --elevation-3:0 12px 32px rgba(0,0,0,.6),0 6px 12px rgba(0,0,0,.4);
+  /* semantici */
+  --accent-bg:rgba(255,77,128,.12);
+  --accent-grad:linear-gradient(90deg,rgba(255,77,128,.18),rgba(255,77,128,.03));
+  --accent-ico-bg:rgba(255,77,128,.14);
+  --accent-ico-glow:0 0 8px rgba(255,77,128,.25);
+  --accent-border:rgba(255,77,128,.2);
+  --btn-grad:linear-gradient(135deg,#c0304a,#ff4d80);
+  --fab-grad:linear-gradient(150deg,#ff8fb0,#ff4d80 52%,#d63070);
+  --fab-shadow:0 8px 22px rgba(255,77,128,.5),0 3px 8px rgba(0,0,0,.35);
+  --hdr-grad:linear-gradient(135deg,#4a1828,#8a2040,#c0304a)
+}
+/* CARABINIERI 🛡 */
+[data-theme=carabinieri]{
+  --bg:#080b10;--bg2:#0c1020;--card:#111828;--card2:#162030;
+  --border:#1e2d48;--border2:#263c60;
+  --txt:#ffffff;--txt2:#c8a96e;--txt3:#6a5030;
+  --blue:#c8a96e;--blue2:#e8c98e;--red:#8b0000;
+  --gold:#c8a96e;--green:#c8a96e;--teal:#e8c98e;--orange:#c8a96e;--purple:#a08050;
+  --surface-tint:rgba(200,169,110,.06);
+  --elevation-1:0 2px 6px rgba(0,0,0,.5),0 1px 2px rgba(0,0,0,.4);
+  --elevation-2:0 4px 12px rgba(0,0,0,.55),0 2px 6px rgba(0,0,0,.4);
+  --elevation-3:0 12px 32px rgba(0,0,0,.6),0 6px 12px rgba(0,0,0,.4);
+  /* semantici: accento oro */
+  --accent-bg:rgba(200,169,110,.14);
+  --accent-grad:linear-gradient(90deg,rgba(200,169,110,.14),rgba(200,169,110,.02));
+  --accent-ico-bg:rgba(200,169,110,.14);
+  --accent-ico-glow:0 0 8px rgba(200,169,110,.25);
+  --btn-grad:linear-gradient(135deg,#8b0000,#5c0000);
+  --fab-grad:linear-gradient(150deg,#e6d09a,#c8a96e 52%,#a5854a);
+  --fab-color:#0a0a0a;
+  --fab-shadow:0 8px 22px rgba(200,169,110,.45),0 3px 8px rgba(0,0,0,.35);
+  --hdr-grad:linear-gradient(135deg,#080b10 0%,#111828 50%,#080b10 100%)
 }
 
 /* ── TEMI CHIARI — specificità html[] per battere :root ── */
@@ -70,7 +241,16 @@ html[data-theme=light]{
   --m3-shadow:0 2px 12px rgba(0,0,0,.06),0 1px 3px rgba(0,0,0,.04);
   --m3-shadow-md:0 4px 20px rgba(0,0,0,.09),0 2px 6px rgba(0,0,0,.05);
   --m3-shadow-lg:0 8px 32px rgba(0,0,0,.12),0 3px 10px rgba(0,0,0,.06);
-  --hdr-bg:rgba(255,255,255,.95)
+  --hdr-bg:rgba(255,255,255,.95);
+  /* semantici: accento blu (leggero diverso dalla palette) */
+  --accent:#1565c0;
+  --accent-bg:rgba(21,101,192,.10);
+  --fab-border-color:var(--card);
+  /* sistema chiaro: ombre diffuse + lampeggiante in alluminio */
+  --hero-shadow-sm:0 4px 16px rgba(16,32,64,.07),0 1px 3px rgba(16,32,64,.05);
+  --hf-metal:linear-gradient(90deg,rgba(88,100,120,.60) 0%,#e4e9f0 18%,#ffffff 46%,#d9dfe8 74%,rgba(88,100,120,.55) 100%);
+  --hf-depth:inset 0 0 3px rgba(255,255,255,.90), inset 2px 0 6px rgba(40,52,74,.30);
+  --hf-ambient:0 0 10px rgba(40,52,74,.25)
 }
 html[data-theme=rosa-light]{
   --bg:#fff5f8;--bg2:#ffe0ea;--card:#ffffff;--card2:#fdf0f4;
@@ -82,7 +262,15 @@ html[data-theme=rosa-light]{
   --elevation-1:0 1px 3px rgba(0,0,0,.10),0 1px 2px rgba(0,0,0,.06);
   --elevation-2:0 3px 8px rgba(0,0,0,.10),0 2px 4px rgba(0,0,0,.06);
   --elevation-3:0 8px 24px rgba(0,0,0,.12),0 4px 8px rgba(0,0,0,.06);
-  --hdr-bg:rgba(255,245,248,.95)
+  --hdr-bg:rgba(255,245,248,.95);
+  --accent-bg:rgba(214,48,112,.10);
+  --fab-grad:linear-gradient(150deg,#ff7aa3,#ff4d80 52%,#d63070);
+  --fab-shadow:0 8px 22px rgba(255,77,128,.42),0 3px 8px rgba(0,0,0,.22);
+  --fab-border-color:var(--card);
+  --hero-shadow-sm:0 4px 16px rgba(16,32,64,.07),0 1px 3px rgba(16,32,64,.05);
+  --hf-metal:linear-gradient(90deg,rgba(88,100,120,.60) 0%,#e4e9f0 18%,#ffffff 46%,#d9dfe8 74%,rgba(88,100,120,.55) 100%);
+  --hf-depth:inset 0 0 3px rgba(255,255,255,.90), inset 2px 0 6px rgba(40,52,74,.30);
+  --hf-ambient:0 0 10px rgba(40,52,74,.25)
 }
 html[data-theme=forestale-light]{
   --bg:#f4f8f4;--bg2:#e4ede4;--card:#ffffff;--card2:#edf5ed;
@@ -94,7 +282,15 @@ html[data-theme=forestale-light]{
   --elevation-1:0 1px 3px rgba(0,0,0,.10),0 1px 2px rgba(0,0,0,.06);
   --elevation-2:0 3px 8px rgba(0,0,0,.10),0 2px 4px rgba(0,0,0,.06);
   --elevation-3:0 8px 24px rgba(0,0,0,.12),0 4px 8px rgba(0,0,0,.06);
-  --hdr-bg:rgba(244,248,244,.95)
+  --hdr-bg:rgba(244,248,244,.95);
+  --accent-bg:rgba(46,125,50,.10);
+  --fab-grad:linear-gradient(150deg,#66bb6a,#2e7d32 52%,#1b5e20);
+  --fab-shadow:0 8px 22px rgba(46,125,50,.42),0 3px 8px rgba(0,0,0,.22);
+  --fab-border-color:var(--card);
+  --hero-shadow-sm:0 4px 16px rgba(16,32,64,.07),0 1px 3px rgba(16,32,64,.05);
+  --hf-metal:linear-gradient(90deg,rgba(88,100,120,.60) 0%,#e4e9f0 18%,#ffffff 46%,#d9dfe8 74%,rgba(88,100,120,.55) 100%);
+  --hf-depth:inset 0 0 3px rgba(255,255,255,.90), inset 2px 0 6px rgba(40,52,74,.30);
+  --hf-ambient:0 0 10px rgba(40,52,74,.25)
 }
 html[data-theme=carabinieri-light]{
   --bg:#f5f5f0;--bg2:#eaeae0;--card:#ffffff;--card2:#f2f2ea;
@@ -106,65 +302,25 @@ html[data-theme=carabinieri-light]{
   --elevation-1:0 1px 3px rgba(0,0,0,.10),0 1px 2px rgba(0,0,0,.06);
   --elevation-2:0 3px 8px rgba(0,0,0,.10),0 2px 4px rgba(0,0,0,.06);
   --elevation-3:0 8px 24px rgba(0,0,0,.12),0 4px 8px rgba(0,0,0,.06);
-  --hdr-bg:rgba(245,245,240,.95)
+  --hdr-bg:rgba(245,245,240,.95);
+  --accent-bg:rgba(139,0,0,.10);
+  --fab-grad:linear-gradient(150deg,#c8a96e,#a5854a 52%,#8b6d3a);
+  --fab-color:#1a1208;
+  --fab-shadow:0 8px 22px rgba(200,169,110,.4),0 3px 8px rgba(0,0,0,.22);
+  --fab-border-color:var(--card);
+  --hero-shadow-sm:0 4px 16px rgba(16,32,64,.07),0 1px 3px rgba(16,32,64,.05);
+  --hf-metal:linear-gradient(90deg,rgba(88,100,120,.60) 0%,#e4e9f0 18%,#ffffff 46%,#d9dfe8 74%,rgba(88,100,120,.55) 100%);
+  --hf-depth:inset 0 0 3px rgba(255,255,255,.90), inset 2px 0 6px rgba(40,52,74,.30);
+  --hf-ambient:0 0 10px rgba(40,52,74,.25)
 }
 
-/* ── TEMA FORESTALE (dark) — Grigio-Verde M3 ── */
-[data-theme=forestale]{
-  --bg:#1c1f1c;--bg2:#252825;--card:#2e332e;--card2:#363b36;
-  --border:rgba(255,255,255,.1);--border2:rgba(255,255,255,.18);
-  --txt:#e8ede8;--txt2:#9ab89a;--txt3:#607860;
-  --blue:#2E7D32;--blue2:#4CAF50;--red:#c0392b;
-  --gold:#8fbe6a;--green:#6abf69;--teal:#80b080;--orange:#c9a84c;--purple:#8aaa8a;
-}
-[data-theme=forestale] .hdr{
-  background:linear-gradient(135deg,#1c2b1c,#2e402e)!important;
-  border-bottom:none!important
-}
-[data-theme=forestale] .btn-p{background:linear-gradient(135deg,#1b5e20,#2E7D32)!important}
+/* ── TEMA FORESTALE (dark): palette e regole spostate nella Sezione 1 ──
+   Il blocco [data-theme=forestale] qui presente era una copia superata
+   (i valori effettivi venivano dal secondo blocco a metà file, ora unito)
+   insieme a un .hdr e un .btn-p già sovrascritti: rimossi come codice morto. */
 
-/* ── PALETTE MATERIAL 3 — ARMA & FORESTALE (Task 2) ── */
-
-/* --- TEMA ARMA (Giorno) --- */
-:root[data-theme="arma"] {
-  --bg: #0A111A;
-  --bg2: #0F1926;
-  --card: #121E2D;
-  --card2: #18283C;
-  --border: rgba(255, 255, 255, 0.08);
-  --border2: rgba(255, 255, 255, 0.15);
-  --txt: #FFFFFF;
-  --txt2: #A5B4C7;
-  --blue: #1976D2;
-  --red: #D32F2F;
-  --surface-tint: rgba(25, 118, 210, 0.1);
-}
-
-/* --- TEMA ARMA (Notte) --- */
-:root[data-theme="arma-dark"] {
-  --bg: #04070A;
-  --bg2: #080D14;
-  --card: #0A1119;
-  --card2: #0F1824;
-  --border: rgba(255, 255, 255, 0.05);
-  --border2: rgba(255, 255, 255, 0.1);
-  --txt: #E3E3E3;
-  --txt2: #7A899C;
-  --blue: #1565C0;
-  --red: #B71C1C;
-}
-
-/* --- TEMA FORESTALE (Notte) --- */
-:root[data-theme="forestale-dark"] {
-  --bg: #0E1410 !important;
-  --bg2: #141C16 !important;
-  --card: #18241B !important;
-  --card2: #1D2E22 !important;
-  --txt: #E1EBE3 !important;
-  --txt2: #8E9C91 !important;
-  --blue: #4CAF50 !important;
-  --border: rgba(255,255,255,0.1) !important;
-}
+/* ── Palette ARMA / ARMA-NOTTE / FORESTALE-NOTTE spostata nella Sezione 1
+   (1.3 TEMI SCURI): qui restavano solo duplicati. ── */
 
 /* ── BACKGROUND ANIMATI CONTESTUALI ── */
 @keyframes focusGradient {
@@ -173,12 +329,12 @@ html[data-theme=carabinieri-light]{
   100% { background-position: 0% 50%; }
 }
 /* Mattina / ML */
-.focus-bg-mattina    { background: linear-gradient(135deg, #2A4A7F, #D27A52, #B9935A) !important; background-size: 200% 200% !important; animation: focusGradient 12s ease infinite !important; }
-.focus-bg-pomeriggio { background: linear-gradient(135deg, #8B3A3A, #7A2855, #2D1B4E) !important; background-size: 200% 200% !important; animation: focusGradient 12s ease infinite !important; }
-.focus-bg-notte      { background: linear-gradient(135deg, #09121B, #122230, #1A3144) !important; background-size: 200% 200% !important; animation: focusGradient 15s ease infinite !important; }
-.focus-bg-riposo     { background: linear-gradient(135deg, #1D434A, #183340, #0E252C) !important; background-size: 200% 200% !important; animation: focusGradient 14s ease infinite !important; }
-.focus-bg-studio     { background: linear-gradient(135deg, #0D3A66, #164E8A, #112244) !important; background-size: 200% 200% !important; animation: focusGradient 12s ease infinite !important; }
-.focus-bg-assenza    { background: linear-gradient(135deg, #3A2D5E, #5D3A5D, #1E1A3C) !important; background-size: 200% 200% !important; animation: focusGradient 14s ease infinite !important; }
+.focus-bg-mattina    { background: linear-gradient(135deg, #2A4A7F, #D27A52, #B9935A) !important; background-size: 200% 200% !important; }
+.focus-bg-pomeriggio { background: linear-gradient(135deg, #8B3A3A, #7A2855, #2D1B4E) !important; background-size: 200% 200% !important; }
+.focus-bg-notte      { background: linear-gradient(135deg, #09121B, #122230, #1A3144) !important; background-size: 200% 200% !important; }
+.focus-bg-riposo     { background: linear-gradient(135deg, #1D434A, #183340, #0E252C) !important; background-size: 200% 200% !important; }
+.focus-bg-studio     { background: linear-gradient(135deg, #0D3A66, #164E8A, #112244) !important; background-size: 200% 200% !important; }
+.focus-bg-assenza    { background: linear-gradient(135deg, #3A2D5E, #5D3A5D, #1E1A3C) !important; background-size: 200% 200% !important; }
 
 /* ── ANIMAZIONI ICONE TURNO (Task 1) ── */
 @keyframes steamRise  { 0% { transform: translateY(0) scale(1); opacity: 0; } 50% { opacity: 1; } 100% { transform: translateY(-8px) scale(1.1); opacity: 0; } }
@@ -186,11 +342,11 @@ html[data-theme=carabinieri-light]{
 @keyframes shieldGlint { 0% { transform: translateX(-150%) skewX(-20deg); } 20%, 100% { transform: translateX(250%) skewX(-20deg); } }
 @keyframes relaxWave  { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
 
-.icon-animate-sun   { transform-origin: center; animation: spinSun 20s linear infinite; }
-.icon-animate-steam { animation: steamRise 2s infinite ease-out; }
-.icon-animate-cloud { animation: floatCloud 6s ease-in-out infinite; }
-.icon-animate-star  { animation: twinkleStar 3s infinite ease-in-out; }
-.icon-animate-relax { transform-origin: bottom center; animation: relaxWave 4s ease-in-out infinite; }
+.icon-animate-sun   { transform-origin: center; }
+
+
+
+.icon-animate-relax { transform-origin: bottom center; }
 .icon-animate-glint-wrapper { position: relative; overflow: hidden; display: inline-block; }
 .icon-animate-glint-wrapper::after {
   content: '';
@@ -198,8 +354,7 @@ html[data-theme=carabinieri-light]{
   top: 0; left: 0;
   width: 40%; height: 100%;
   background: rgba(255,255,255,0.4);
-  animation: shieldGlint 5s infinite linear;
-}
+  }
 
 /* ── AMBIANCE GLOW (Task 2) ── */
 #focus-widget-container {
@@ -219,13 +374,13 @@ html[data-theme=carabinieri-light]{
   z-index: 0;
   transition: all 0.5s ease;
 }
-.focus-glow-mattina    #focus-widget-container::before { background: linear-gradient(135deg, #FFD166, #F4A261, #E9C46A); background-size: 150% 150%; animation: focusGradient 15s ease infinite; }
-.focus-glow-pomeriggio #focus-widget-container::before { background: linear-gradient(135deg, #F4511E, #E040FB, #7B1FA2); background-size: 150% 150%; animation: focusGradient 15s ease infinite; }
-.focus-glow-notte      #focus-widget-container::before { background: linear-gradient(135deg, #0D1B2A, #1A237E, #1565C0); background-size: 150% 150%; animation: focusGradient 20s ease infinite; }
-.focus-glow-smontante  #focus-widget-container::before { background: linear-gradient(135deg, #FFEFBA, #E0E0E0, #B0BEC5); background-size: 150% 150%; animation: focusGradient 15s ease infinite; }
-.focus-glow-riposo     #focus-widget-container::before { background: linear-gradient(135deg, #87A878, #A8C5A0, #6B9E6B); background-size: 150% 150%; animation: focusGradient 18s ease infinite; }
-.focus-glow-assenza    #focus-widget-container::before { background: linear-gradient(135deg, #7E57C2, #CE93D8, #4527A0); background-size: 150% 150%; animation: focusGradient 20s ease infinite; }
-.focus-glow-studio     #focus-widget-container::before { background: linear-gradient(135deg, #0288D1, #00BCD4, #006064); background-size: 150% 150%; animation: focusGradient 15s ease infinite; }
+.focus-glow-mattina    #focus-widget-container::before { background: linear-gradient(135deg, #FFD166, #F4A261, #E9C46A); background-size: 150% 150%; }
+.focus-glow-pomeriggio #focus-widget-container::before { background: linear-gradient(135deg, #F4511E, #E040FB, #7B1FA2); background-size: 150% 150%; }
+.focus-glow-notte      #focus-widget-container::before { background: linear-gradient(135deg, #0D1B2A, #1A237E, #1565C0); background-size: 150% 150%; }
+.focus-glow-smontante  #focus-widget-container::before { background: linear-gradient(135deg, #FFEFBA, #E0E0E0, #B0BEC5); background-size: 150% 150%; }
+.focus-glow-riposo     #focus-widget-container::before { background: linear-gradient(135deg, #87A878, #A8C5A0, #6B9E6B); background-size: 150% 150%; }
+.focus-glow-assenza    #focus-widget-container::before { background: linear-gradient(135deg, #7E57C2, #CE93D8, #4527A0); background-size: 150% 150%; }
+.focus-glow-studio     #focus-widget-container::before { background: linear-gradient(135deg, #0288D1, #00BCD4, #006064); background-size: 150% 150%; }
 
 /* Focus card — Bento M3 Premium */
 #focus-card {
@@ -249,11 +404,11 @@ html[data-theme=carabinieri-light]{
 @keyframes spinSun { 100% { transform: rotate(360deg); } }
 @keyframes fallRain { 0% { transform: translateY(-4px); opacity: 0; } 50% { opacity: 1; } 100% { transform: translateY(8px); opacity: 0; } }
 @keyframes floatCloud { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(4px); } }
-.meteo-sun-rays { transform-origin: center; animation: spinSun 8s linear infinite; }
-.meteo-rain-drop { animation: fallRain 1s linear infinite; }
-.meteo-rain-drop:nth-child(2) { animation-delay: 0.3s; }
-.meteo-rain-drop:nth-child(3) { animation-delay: 0.6s; }
-.meteo-cloud { animation: floatCloud 4s ease-in-out infinite; }
+.meteo-sun-rays { transform-origin: center; }
+
+
+
+
 #noti{position:fixed;top:14px;right:12px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
 .noti{background:var(--card);border:1px solid var(--border2);border-left:4px solid var(--blue);
   border-radius:var(--radius-sm);padding:12px 16px;min-width:220px;max-width:280px;
@@ -265,7 +420,7 @@ html[data-theme=carabinieri-light]{
 
 /* ── 1. SKELETON LOADERS ── */
 @keyframes skPulse{0%,100%{opacity:.4}50%{opacity:.9}}
-.sk{background:var(--bg2);border-radius:8px;animation:skPulse 1.4s ease-in-out infinite}
+.sk{background:var(--bg2);border-radius:8px}
 .sk-line{height:12px;margin-bottom:8px}.sk-line.w60{width:60%}.sk-line.w80{width:80%}.sk-line.w40{width:40%}
 .sk-block{height:80px;width:100%;margin-bottom:10px}
 .sk-circle{width:40px;height:40px;border-radius:50%;flex-shrink:0}
@@ -377,28 +532,7 @@ html[data-theme=carabinieri-light]{
   transition: padding-right .35s cubic-bezier(0.2,0,0,1);
 }
 
-/* ── 5. TEMA AUTO ── */
-@media(prefers-color-scheme:dark){
-  html[data-theme="auto"]{
-    --bg:#0d1b2a;--bg2:#111f30;--card:#162436;--card2:#1a2c40;
-    --txt:#e8edf2;--txt2:#8fa3b8;--txt3:#4a6278;
-    --border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.04);
-    --blue:#5b9fff;--teal:#26c6da;--gold:#c8a84b;--red:#c8102e;
-    --green:#6abf69;--orange:#ff9f43;--navy:#0d1b2a;
-    --elevation-1:0 2px 8px rgba(0,0,0,.4);--elevation-2:0 4px 16px rgba(0,0,0,.5);--elevation-3:0 8px 32px rgba(0,0,0,.6)
-  }
-}
-@media(prefers-color-scheme:light){
-  html[data-theme="auto"]{
-    --bg:#f0f4f8;--bg2:#ffffff;--card:#ffffff;--card2:#f8fafc;
-    --txt:#1a2332;--txt2:#5a7a9a;--txt3:#a0b4c8;
-    --border:rgba(0,0,0,.08);--border2:rgba(0,0,0,.04);
-    --blue:#2979ff;--teal:#00bcd4;--gold:#b8860b;--red:#c8102e;
-    --green:#388e3c;--orange:#e65100;--navy:#0d1b2a;
-    --elevation-1:0 2px 8px rgba(0,0,0,.08);--elevation-2:0 4px 16px rgba(0,0,0,.12);--elevation-3:0 8px 32px rgba(0,0,0,.16);
-    --hdr-bg:rgba(240,244,248,.95)
-  }
-}
+/* ── 5. TEMA AUTO → spostato nella Sezione 1.2 (token & temi) ── */
 .pg{display:none;min-height:100vh}.pgflex{display:none;min-height:100vh;align-items:center;justify-content:center}
 .pg.on{display:block}.pgflex.on{display:flex}
 .fg{margin-bottom:14px}
@@ -650,109 +784,65 @@ tr.t-corso td:first-child{border-left:3px solid #2979ff}
 
 /* --- TEMI --- */
 
-/* --- ROSA 🌸 --- */
-[data-theme=rosa]{
-  --bg:#2a0a18;--bg2:#381220;--card:#4a1828;--card2:#562030;
-  --border:#8a2040;--border2:#b02850;
-  --txt:#fff0f4;--txt2:#ffb3c6;--txt3:#d4607a;
-  --blue:#ff4d80;--blue2:#ff80a0;--red:#e8002a;
-  --gold:#ffb3c6;--green:#ff80a0;--teal:#ff99b0;--orange:#ff6690;--purple:#ff80a0;
-  --surface-tint:rgba(255,77,128,.08);
-  --elevation-1:0 2px 6px rgba(0,0,0,.5),0 1px 2px rgba(0,0,0,.4);
-  --elevation-2:0 4px 12px rgba(0,0,0,.55),0 2px 6px rgba(0,0,0,.4);
-  --elevation-3:0 12px 32px rgba(0,0,0,.6),0 6px 12px rgba(0,0,0,.4)
-}
-[data-theme=rosa] body{background:var(--bg)}
-[data-theme=rosa] .hdr{
-  background:linear-gradient(135deg,#4a1828,#8a2040,#c0304a)!important;
-  border-bottom:none!important
-}
-[data-theme=rosa] .btn-p{background:linear-gradient(135deg,#c0304a,#ff4d80)!important}
-[data-theme=rosa] .nv.on{background:rgba(255,77,128,.22)!important;border-left:3px solid #ff4d80}
-[data-theme=rosa] .card{border-color:rgba(255,77,128,.2)}
+/* --- ROSA 🌸 — palette in Sezione 1.3 (--accent = #ff4d80);
+   gli override di componente sono QUI una sola volta per tutti i temi
+   "colorati": prima erano ripetuti 3 volte (rosa, forestale, carabinieri). --- */
+[data-theme=rosa] body,
+[data-theme=forestale] body,
+[data-theme=carabinieri] body{background:var(--bg)}
+[data-theme=rosa] .hdr,
+[data-theme=forestale] .hdr,
+[data-theme=carabinieri] .hdr{background:var(--hdr-grad)!important}
+[data-theme=carabinieri] .hdr{position:relative;overflow:visible}
+[data-theme=rosa] .btn-p,
+[data-theme=forestale] .btn-p,
+[data-theme=carabinieri] .btn-p{background:var(--btn-grad)!important}
+[data-theme=carabinieri] .btn-p{border:1px solid var(--accent)!important}
+[data-theme=rosa] .nv.on,
+[data-theme=forestale] .nv.on,
+[data-theme=carabinieri] .nv.on{background:var(--accent-grad)!important;border-left:3px solid var(--accent)}
+[data-theme=rosa] .nv.on::before,
+[data-theme=forestale] .nv.on::before,
+[data-theme=carabinieri] .nv.on::before{background:var(--accent)}
+[data-theme=rosa] .nv.on .nv-ico,
+[data-theme=forestale] .nv.on .nv-ico,
+[data-theme=carabinieri] .nv.on .nv-ico{background:var(--accent-ico-bg)!important;box-shadow:var(--accent-ico-glow)!important}
+[data-theme=rosa] .card,
+[data-theme=forestale] .card{border-color:var(--accent-border)}
 /* Petali che cadono */
 [data-theme=rosa] .pg-app::before{
   content:"\1F338  \1F496  \1F337  \2728  \1F338  \1F49D  \1F33A  \1F380";
   position:fixed;top:-60px;left:0;width:200%;pointer-events:none;z-index:0;
-  font-size:22px;letter-spacing:48px;opacity:.08;white-space:nowrap;
-  animation:petaliFall 20s linear infinite
-}
+  font-size:22px;letter-spacing:48px;opacity:.08;white-space:nowrap}
 @keyframes petaliFall{from{transform:translateY(-60px) rotate(0deg)}to{transform:translateY(110vh) rotate(12deg)}}
 
-/* --- FORESTALE+ 🌲 --- */
-[data-theme=forestale]{
-  --bg:#1c1f1c;--bg2:#252825;--card:#2e332e;--card2:#363b36;
-  --border:#3d4a3d;--border2:#4e5e4e;
-  --txt:#e8ede8;--txt2:#9ab89a;--txt3:#607860;
-  --blue:#5a8a5a;--blue2:#6fa06f;--red:#c0392b;
-  --gold:#8fbe6a;--green:#6abf69;--teal:#80b080;--orange:#c9a84c;--purple:#8aaa8a;
-  --surface-tint:rgba(90,138,90,.08);
-  --elevation-1:0 2px 6px rgba(0,0,0,.45),0 1px 2px rgba(0,0,0,.35);
-  --elevation-2:0 4px 12px rgba(0,0,0,.5),0 2px 6px rgba(0,0,0,.35);
-  --elevation-3:0 12px 32px rgba(0,0,0,.55),0 6px 12px rgba(0,0,0,.35)
-}
-[data-theme=forestale] body{background:var(--bg)}
-[data-theme=forestale] .hdr{
-  background:linear-gradient(135deg,#1c2b1c,#2e402e,#1c2b1c)!important;
-  border-bottom:none!important
-}
-[data-theme=forestale] .btn-p{background:linear-gradient(135deg,#3a5a3a,#5a8a5a)!important}
-[data-theme=forestale] .nv.on{background:rgba(90,138,90,.25)!important;border-left:3px solid #6abf69}
-[data-theme=forestale] .card{border-color:rgba(90,138,90,.25)}
+/* --- FORESTALE+ 🌲 — palette e accento verde in Sezione 1.3;
+   .hdr/.btn-p/.nv.on/.card unificati nella regola raggruppata qui sopra --- */
 /* Pattuglia che scorre */
 [data-theme=forestale] .pg-app::after{
   content:"\1F332\1F332  \1F697  \1F33F  \1F98C  \1F332  \1F332";
   position:fixed;bottom:18px;left:-260px;pointer-events:none;z-index:0;
-  font-size:24px;opacity:.10;white-space:nowrap;
-  animation:pattuglia 16s linear infinite
-}
+  font-size:24px;opacity:.10;white-space:nowrap}
 @keyframes pattuglia{0%{left:-260px}100%{left:110vw}}
 /* Radar verde */
 [data-theme=forestale] .hdr::after{
   content:"";position:absolute;right:16px;top:50%;transform:translateY(-50%);
   width:8px;height:8px;border-radius:50%;background:#6abf69;
-  box-shadow:0 0 0 0 rgba(106,191,105,.7);
-  animation:radar 2.5s ease-in-out infinite
-}
+  box-shadow:0 0 0 0 rgba(106,191,105,.7)}
 @keyframes radar{0%,100%{box-shadow:0 0 0 0 rgba(106,191,105,.7)}50%{box-shadow:0 0 0 10px rgba(106,191,105,0)}}
 
-/* --- CARABINIERI 🛡 --- */
-
-[data-theme=carabinieri]{
-  --bg:#080b10;--bg2:#0c1020;--card:#111828;--card2:#162030;
-  --border:#1e2d48;--border2:#263c60;
-  --txt:#ffffff;--txt2:#c8a96e;--txt3:#6a5030;
-  --blue:#c8a96e;--blue2:#e8c98e;--red:#8b0000;
-  --gold:#c8a96e;--green:#c8a96e;--teal:#e8c98e;--orange:#c8a96e;--purple:#a08050;
-  --surface-tint:rgba(200,169,110,.06);
-  --elevation-1:0 2px 6px rgba(0,0,0,.5),0 1px 2px rgba(0,0,0,.4);
-  --elevation-2:0 4px 12px rgba(0,0,0,.55),0 2px 6px rgba(0,0,0,.4);
-  --elevation-3:0 12px 32px rgba(0,0,0,.6),0 6px 12px rgba(0,0,0,.4)
-}
-[data-theme=carabinieri] body{background:var(--bg)}
-[data-theme=carabinieri] .hdr{
-  background:linear-gradient(135deg,#080b10 0%,#111828 50%,#080b10 100%)!important;
-  border-bottom:none!important;
-  position:relative;overflow:visible
-}
-[data-theme=carabinieri] .btn-p{
-  background:linear-gradient(135deg,#8b0000,#5c0000)!important;
-  border:1px solid #c8a96e!important
-}
-[data-theme=carabinieri] .nv.on{background:rgba(200,169,110,.12)!important;border-left:3px solid #c8a96e}
+/* --- CARABINIERI 🛡 — palette e accento oro in Sezione 1.3;
+   .hdr/.btn-p/.nv.on unificati nella regola raggruppata precedente --- */
 /* Stemma di sfondo */
 [data-theme=carabinieri] .pg-app::before{
   content:"?";position:fixed;right:-20px;bottom:-30px;
   font-size:280px;pointer-events:none;z-index:0;
-  opacity:.025;transform:rotate(-8deg);
-  animation:stemmaBreath 5s ease-in-out infinite
-}
+  opacity:.025;transform:rotate(-8deg)}
 @keyframes stemmaBreath{0%,100%{opacity:.025;transform:rotate(-8deg) scale(1)}50%{opacity:.04;transform:rotate(-8deg) scale(1.02)}}
 /* Lampeggione blu-rosso */
 [data-theme=carabinieri] .hdr::before{
   content:"";position:absolute;left:0;top:0;width:3px;height:100%;
-  background:linear-gradient(180deg,#0000ff,#8b0000);
-  animation:lampeggio 1.2s ease-in-out infinite alternate
+  background:linear-gradient(180deg,#0000ff,#8b0000)
 }
 @keyframes lampeggio{from{opacity:1;background:linear-gradient(180deg,#0033cc,transparent)}to{opacity:.3;background:linear-gradient(180deg,transparent,#8b0000)}}
 
@@ -1212,15 +1302,9 @@ html[data-font="xxl"] #pg-app { zoom: 1.35; }
 /* Restyling v3.1 */
 #ava-wrap>div:first-child{border-radius:10px;padding:3px 6px;transition:background .16s}
 #ava-wrap>div:first-child:hover{background:rgba(255,255,255,.07)}
-[data-theme=rosa] .nv.on{background:linear-gradient(90deg,rgba(255,77,128,.18),rgba(255,77,128,.03))!important}
-[data-theme=rosa] .nv.on::before{background:#ff4d80}
-[data-theme=rosa] .nv.on .nv-ico{background:rgba(255,77,128,.14)!important;box-shadow:0 0 8px rgba(255,77,128,.25)!important}
-[data-theme=forestale] .nv.on{background:linear-gradient(90deg,rgba(90,138,90,.2),rgba(90,138,90,.03))!important}
-[data-theme=forestale] .nv.on::before{background:#6abf69}
-[data-theme=forestale] .nv.on .nv-ico{background:rgba(90,138,90,.16)!important;box-shadow:0 0 8px rgba(106,191,105,.25)!important}
-[data-theme=carabinieri] .nv.on{background:linear-gradient(90deg,rgba(200,169,110,.14),rgba(200,169,110,.02))!important}
-[data-theme=carabinieri] .nv.on::before{background:#c8a96e}
-[data-theme=carabinieri] .nv.on .nv-ico{background:rgba(200,169,110,.14)!important;box-shadow:0 0 8px rgba(200,169,110,.25)!important}
+/* (es) Override .nv.on per rosa/forestale/carabinieri: unificati all'inizio
+   della sezione temi con i token --accent / --accent-grad / --accent-ico-*.
+   Prima erano duplicati qui e a inizio file. */
 
 
 /* === DASHBOARD DRAG & DROP === */
@@ -1307,21 +1391,20 @@ html[data-font="xxl"] #pg-app { zoom: 1.35; }
 @keyframes wdg-pulse-red-slow{0%,100%{box-shadow:0 0 0 0 rgba(127,0,0,.5)}50%{box-shadow:0 0 0 12px rgba(127,0,0,0)}}
 @keyframes wdg-fade-ico{0%,100%{opacity:1}50%{opacity:.4}}
 @keyframes wdg-bounce-ico{0%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}60%{transform:translateY(-3px)}}
-.wdg-anim-mattina{animation:wdg-pulse-warm 1.8s ease-in-out infinite}
-.wdg-anim-ml{animation:wdg-pulse-warm 1.8s ease-in-out infinite}
-.wdg-anim-pomeriggio{animation:wdg-pulse-warm-slow 2.4s ease-in-out infinite}
-.wdg-anim-pl{animation:wdg-pulse-red 1.1s ease-in-out infinite}
-.wdg-anim-notte{animation:wdg-breathe 3.5s ease-in-out infinite}
-.wdg-anim-sera{animation:wdg-breathe 3.5s ease-in-out infinite}
-.wdg-anim-riposo{animation:wdg-breathe 4s ease-in-out infinite}
-.wdg-anim-recupero{animation:wdg-breathe 4s ease-in-out infinite}
-.wdg-anim-ferie{background-size:200% auto!important;animation:wdg-shimmer 2.5s linear infinite}
-.wdg-anim-937{background-size:200% auto!important;animation:wdg-shimmer 2.5s linear infinite}
-.wdg-anim-licenza{background-size:200% auto!important;animation:wdg-shimmer 3.5s linear infinite}
-.wdg-anim-104{animation:wdg-pulse-violet 2s ease-in-out infinite}
-.wdg-anim-ls{animation:wdg-pulse-red-slow 2.2s ease-in-out infinite}
-.wdg-anim-permesso #w-ico,.wdg-anim-fest #w-ico{animation:wdg-fade-ico 2s ease-in-out infinite}
-.wdg-anim-corso #w-ico,.wdg-anim-esame #w-ico{animation:wdg-bounce-ico 1s ease-in-out infinite}
+
+
+
+
+
+
+
+
+.wdg-anim-ferie{background-size:200% auto!important}
+.wdg-anim-937{background-size:200% auto!important}
+.wdg-anim-licenza{background-size:200% auto!important}
+
+/* (le animazioni .wdg-anim-* sono in fondo, nel blocco
+   @media (prefers-reduced-motion: no-preference)) */
 
 /* === WIDGET INTERNI M3 === */
 /* Il contenuto dei widget  generato da JS, ma i wrapper hanno gi .wdg-wrap con M3 */
@@ -1809,8 +1892,7 @@ html[data-font="xxl"] #pg-app { zoom: 1.35; }
   background: linear-gradient(90deg, #5b9fff, #90c2ff);
   border-radius: 2px;
   transition: width .4s ease;
-  animation: splashSlideLR 1.6s cubic-bezier(.4,0,.2,1) infinite;
-}
+  }
 
 @keyframes splashSlideLR {
   0%   { transform: translateX(-100%); width: 60%; }
@@ -3469,9 +3551,7 @@ body[data-atmosfera="oasi"] .hero-ring-fill { stroke: #06D6A0; }
 }
 
 /* ── 5. LIVE PULSE — badge verde squadra ── */
-.squadra-live-badge {
-  animation: livePulse 2.4s ease-in-out infinite;
-}
+
 @keyframes livePulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(6,214,160,0.7); }
   50%       { box-shadow: 0 0 0 5px rgba(6,214,160,0); }
@@ -3563,7 +3643,7 @@ body[data-atmosfera="riposo"]    #ambient-glow { background: radial-gradient(ell
   z-index: 1;
   width: 100%;
   border-radius: 40px 40px 16px 40px;
-  background: #1E1E24;
+  background: var(--card);
   border: 1px solid rgba(255,255,255,0.05);
   box-shadow: 0 8px 32px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.3);
   padding: 20px 20px 22px;
@@ -3658,7 +3738,7 @@ body[data-atmosfera="oasi"]       .hero-ring-fill { stroke: #00C853; }
 
 /* ── M3 CARD — Solid Surface Widget ── */
 .m3-card {
-  background: #1E1E24 !important;
+  background: var(--card) !important;
   border: 1px solid rgba(255,255,255,0.05) !important;
   border-radius: 24px !important;
   box-shadow: 0 4px 20px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.25) !important;
@@ -3769,8 +3849,7 @@ body[data-atmosfera="oasi"]       .hero-ring-fill { stroke: #00C853; }
 .squadra-in-servizio {
   border-color: #00C853 !important;
   box-shadow: 0 0 0 0 rgba(0,200,83,0.5);
-  animation: squadraPulse 2.2s ease-in-out infinite;
-}
+  }
 @keyframes squadraPulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(0,200,83,0.5); }
   50%       { box-shadow: 0 0 0 6px rgba(0,200,83,0); }
@@ -3783,9 +3862,8 @@ body[data-atmosfera="oasi"]       .hero-ring-fill { stroke: #00C853; }
   height: 12px;
   background: #00C853;
   border-radius: 50%;
-  border: 2px solid #1E1E24;
-  animation: livePulse 2.4s ease-in-out infinite;
-}
+  border: 2px solid var(--card);
+  }
 .squadra-nome {
   font-size: 10px;
   font-weight: 700;
@@ -3958,9 +4036,8 @@ body[data-atmosfera="oasi"]       .hero-ring-fill { stroke: #00C853; }
     rgba(255,255,255,0.06) 75%
   ) !important;
   background-size: 200% 100% !important;
-  animation: avaShimmer 1.4s ease-in-out infinite !important;
   color: transparent !important;
-}
+  }
 [data-theme=light] .ava-loading,
 [data-theme=rosa-light] .ava-loading,
 [data-theme=forestale-light] .ava-loading,
@@ -4393,8 +4470,7 @@ body[data-atmosfera="oasi"]       .hero-ring-fill { stroke: #00C853; }
   border: 4px solid rgba(255,255,255,0.2);
   border-top-color: #fff;
   border-radius: 50%;
-  animation: ctSpin 0.7s linear infinite;
-}
+  }
 @keyframes ctSpin { to { transform: rotate(360deg); } }
 
 /* ── TIME PICKER IN-APP ── */
@@ -5542,17 +5618,13 @@ nav#bottom-nav.bottom-bar,
   white-space: nowrap !important;
 }
 
-/* Stato attivo — micro-lift + accento tema (solo GPU) ------------- */
-#bottom-nav .bn-item.on { color: var(--blue) !important; background: rgba(91,159,255,.12) !important; }
+/* Stato attivo — micro-lift + accento tema (solo GPU) -------------
+   Un solo blocco per TUTTI i temi: prima c'erano 7 override
+   [data-theme=…] con colori fissi. Ora bastano --accent / --accent-bg. */
+#bottom-nav .bn-item.on { color: var(--accent) !important; background: var(--accent-bg) !important; }
 #bottom-nav .bn-item.on .bn-ico-wrap { transform: translateY(-1px) scale(1.08) !important; }
 #bottom-nav .bn-item.on .bn-label { opacity: 1 !important; font-weight: 800 !important; }
-[data-theme=light] #bottom-nav .bn-item.on { color:#1565c0 !important; background: rgba(21,101,192,.10) !important; }
-[data-theme=rosa] #bottom-nav .bn-item.on { color:#ff4d80 !important; background: rgba(255,77,128,.12) !important; }
-[data-theme=forestale] #bottom-nav .bn-item.on { color:#6abf69 !important; background: rgba(90,138,90,.16) !important; }
-[data-theme=carabinieri] #bottom-nav .bn-item.on { color:#c8a96e !important; background: rgba(200,169,110,.14) !important; }
-[data-theme=rosa-light] #bottom-nav .bn-item.on { color:#d63070 !important; background: rgba(214,48,112,.10) !important; }
-[data-theme=forestale-light] #bottom-nav .bn-item.on { color:#2e7d32 !important; background: rgba(46,125,50,.10) !important; }
-[data-theme=carabinieri-light] #bottom-nav .bn-item.on { color:#8b0000 !important; background: rgba(139,0,0,.10) !important; }
+/* (gli override bn-item.on per tema sono nei token --accent/--accent-bg) */
 
 /* 4) Elemento centrale in evidenza — FAB "Aggiungi" -------------- */
 #bottom-nav .nav-fab-slot {
@@ -5570,11 +5642,11 @@ nav#bottom-nav.bottom-bar,
   width: 58px !important;
   height: 58px !important;
   border-radius: 50% !important;
-  background: linear-gradient(150deg, var(--blue2, #90c2ff) 0%, var(--blue) 52%, #2f74e0 100%) !important;
-  color: #fff !important;
+  background: var(--fab-grad) !important;
+  color: var(--fab-color) !important;
   /* Anello del colore della pillola: il "+" sembra incassato nella barra
      (notch) e allo stesso tempo in rilievo grazie all'ombra esterna. */
-  border: 5px solid var(--bg2) !important;
+  border: 5px solid var(--fab-border-color) !important;
   font-size: 26px !important;
   line-height: 1 !important;
   display: flex !important;
@@ -5584,23 +5656,12 @@ nav#bottom-nav.bottom-bar,
   cursor: pointer !important;
   -webkit-tap-highlight-color: transparent !important;
   touch-action: manipulation !important;
-  box-shadow:
-    0 10px 24px rgba(91,159,255,.50),
-    0 3px 8px rgba(0,0,0,.35),
-    0 1px 0 rgba(255,255,255,.30) inset !important;
+  box-shadow: var(--fab-shadow) !important;
   transition: transform .2s var(--motion-spring), box-shadow .25s !important;
 }
-#bottom-nav .nav-fab:active { transform: scale(.9) !important; box-shadow: 0 4px 12px rgba(91,159,255,.45) !important; }
-[data-theme=light] #bottom-nav .nav-fab,
-[data-theme=rosa-light] #bottom-nav .nav-fab,
-[data-theme=forestale-light] #bottom-nav .nav-fab,
-[data-theme=carabinieri-light] #bottom-nav .nav-fab { border-color: var(--card) !important; }
-[data-theme=rosa] #bottom-nav .nav-fab { background: linear-gradient(150deg,#ff8fb0,#ff4d80 52%,#d63070) !important; box-shadow: 0 8px 22px rgba(255,77,128,.5), 0 3px 8px rgba(0,0,0,.35) !important; }
-[data-theme=rosa-light] #bottom-nav .nav-fab { background: linear-gradient(150deg,#ff7aa3,#ff4d80 52%,#d63070) !important; box-shadow: 0 8px 22px rgba(255,77,128,.42), 0 3px 8px rgba(0,0,0,.22) !important; }
-[data-theme=forestale] #bottom-nav .nav-fab { background: linear-gradient(150deg,#7cc47c,#5a8a5a 52%,#3f6b3f) !important; box-shadow: 0 8px 22px rgba(90,138,90,.5), 0 3px 8px rgba(0,0,0,.35) !important; }
-[data-theme=forestale-light] #bottom-nav .nav-fab { background: linear-gradient(150deg,#66bb6a,#2e7d32 52%,#1b5e20) !important; box-shadow: 0 8px 22px rgba(46,125,50,.42), 0 3px 8px rgba(0,0,0,.22) !important; }
-[data-theme=carabinieri] #bottom-nav .nav-fab { background: linear-gradient(150deg,#e6d09a,#c8a96e 52%,#a5854a) !important; color:#0a0a0a !important; box-shadow: 0 8px 22px rgba(200,169,110,.45), 0 3px 8px rgba(0,0,0,.35) !important; }
-[data-theme=carabinieri-light] #bottom-nav .nav-fab { background: linear-gradient(150deg,#c8a96e,#a5854a 52%,#8b6d3a) !important; color:#1a1208 !important; box-shadow: 0 8px 22px rgba(200,169,110,.4), 0 3px 8px rgba(0,0,0,.22) !important; }
+#bottom-nav .nav-fab:active { transform: scale(.9) !important; box-shadow: var(--fab-shadow-active) !important; }
+/* (gli override per tema del FAB sono nei token --fab-* della Sezione 1:
+   prima erano 7 regole [data-theme=…] con gradienti e ombre ripetuti) */
 
 /* 5) Contenuto: spazio per la pillola flottante ------------------ */
 .cont { padding-bottom: calc(112px + env(safe-area-inset-bottom, 0px)) !important; }
@@ -5865,29 +5926,7 @@ nav#bottom-nav.bottom-bar[class]::after,
    • Modifiche additive/override, coerenti con lo stile del file.
    ═══════════════════════════════════════════════════════════════ */
 
-/* ── TOKEN "FIRMA" DELLA HERO CARD ── */
-:root {
-  --hero-r-lg: 40px 40px 16px 40px;   /* card grandi / hero */
-  --hero-r-md: 28px 28px 12px 28px;   /* card e widget medi */
-  --hero-r-sm: 20px 20px 10px 20px;   /* item di lista */
-  --hero-r-xs: 14px 14px 8px 14px;    /* celle e chip */
-  --hero-hairline: 1px solid var(--border);
-  /* Ombra morbida e diffusa per le card di contenuto */
-  --hero-shadow-sm: 0 4px 16px rgba(0,0,0,.18), 0 1px 3px rgba(0,0,0,.10);
-}
-/* Temi chiari: ombre tenui e diffuse (nessuna perdita di contrasto) */
-html[data-theme=light],
-html[data-theme=rosa-light],
-html[data-theme=forestale-light],
-html[data-theme=carabinieri-light] {
-  --hero-shadow-sm: 0 4px 16px rgba(16,32,64,.07), 0 1px 3px rgba(16,32,64,.05);
-}
-/* Tema AUTO con sistema in modalità chiara: stesse ombre tenui */
-@media (prefers-color-scheme: light) {
-  html[data-theme="auto"] {
-    --hero-shadow-sm: 0 4px 16px rgba(16,32,64,.07), 0 1px 3px rgba(16,32,64,.05);
-  }
-}
+/* ── TOKEN "FIRMA" DELLA HERO CARD → Sezione 1.1 (--hero-*) ── */
 
 
 /* ── 1. HOME — Hero Card e superfici principali ── */
@@ -6011,35 +6050,7 @@ html[data-theme=carabinieri-light] {
    • Ritmo 2.2s in ease-in-out: realistico ma non fastidioso.
    ═══════════════════════════════════════════════════════════════ */
 
-/* Corpo del dispositivo: metallo anodizzato scuro (temi scuri) */
-:root {
-  --hf-metal: linear-gradient(90deg,
-    rgba(0,0,0,.92) 0%, #171c24 18%, #2a323e 46%,
-    #141922 74%, rgba(0,0,0,.90) 100%);
-  --hf-depth: inset 0 0 3px rgba(255,255,255,.10), inset 2px 0 6px rgba(0,0,0,.85);
-  --hf-ambient: 0 0 10px rgba(0,0,0,.45);
-}
-/* Temi chiari: alluminio spazzolato — il dispositivo resta leggibile */
-html[data-theme=light],
-html[data-theme=rosa-light],
-html[data-theme=forestale-light],
-html[data-theme=carabinieri-light] {
-  --hf-metal: linear-gradient(90deg,
-    rgba(88,100,120,.60) 0%, #e4e9f0 18%, #ffffff 46%,
-    #d9dfe8 74%, rgba(88,100,120,.55) 100%);
-  --hf-depth: inset 0 0 3px rgba(255,255,255,.90), inset 2px 0 6px rgba(40,52,74,.30);
-  --hf-ambient: 0 0 10px rgba(40,52,74,.25);
-}
-/* Tema AUTO con sistema in modalità chiara: stessa resa "alluminio" */
-@media (prefers-color-scheme: light) {
-  html[data-theme="auto"] {
-    --hf-metal: linear-gradient(90deg,
-      rgba(88,100,120,.60) 0%, #e4e9f0 18%, #ffffff 46%,
-      #d9dfe8 74%, rgba(88,100,120,.55) 100%);
-    --hf-depth: inset 0 0 3px rgba(255,255,255,.90), inset 2px 0 6px rgba(40,52,74,.30);
-    --hf-ambient: 0 0 10px rgba(40,52,74,.25);
-  }
-}
+/* Corpo del dispositivo LED → token --hf-* nella Sezione 1.1 ── */
 
 /* Disattiva la vecchia barretta laterale (sostituita dal nuovo LED) */
 [data-theme=carabinieri] .hdr::before {
@@ -6084,8 +6095,7 @@ html[data-hf="off"] .hdr-flash {
     0 0 12px 3px rgba(40,110,255,.80),
     0 0 30px 9px rgba(0,50,230,.42),
     inset 0 0 4px rgba(255,255,255,.85);
-  animation: hfFlashBlue 2.2s ease-in-out infinite;
-}
+  }
 .hdr-flash .hf-lens.hf-red {
   bottom: 6%;
   background: radial-gradient(58% 55% at 50% 60%,
@@ -6095,8 +6105,7 @@ html[data-hf="off"] .hdr-flash {
     0 0 12px 3px rgba(255,40,40,.80),
     0 0 30px 9px rgba(200,0,0,.42),
     inset 0 0 4px rgba(255,255,255,.85);
-  animation: hfFlashRed 2.2s ease-in-out infinite;
-}
+  }
 /* Blu e rosso si alternano: blu → rosso → blu → rosso */
 @keyframes hfFlashBlue {
   0%, 18%   { opacity: 1;   transform: scale(1);    }
@@ -6124,8 +6133,7 @@ html[data-hf="off"] .hdr-flash {
   opacity: 0;
   background: linear-gradient(180deg,
     transparent 0%, rgba(255,255,255,.65) 50%, transparent 100%);
-  animation: hfGloss 3.8s cubic-bezier(.4,0,.2,1) infinite;
-}
+  }
 @keyframes hfGloss {
   0%        { transform: translateY(0);    opacity: 0; }
   8%        { opacity: .55; }
@@ -6145,8 +6153,7 @@ html[data-hf="off"] .hdr-flash {
   background:
     radial-gradient(64px 42% at 4% 22%, rgba(70,130,255,.45) 0%, rgba(70,130,255,0) 72%),
     radial-gradient(64px 42% at 4% 78%, rgba(255,50,50,.40) 0%, rgba(255,50,50,0) 72%);
-  animation: hfWash 2.2s ease-in-out infinite;
-}
+  }
 @keyframes hfWash {
   0%, 100% { opacity: .28; }
   22%      { opacity: .78; }
@@ -6315,3 +6322,86 @@ html[data-theme=carabinieri-light] #m-turno .mbox{
 }
 #m-turno .mfoo .btn-sm{min-height:46px;border-radius:var(--radius-pill)}
 #m-turno #mt-save-btn{box-shadow:0 4px 16px rgba(91,159,255,.30)}
+
+/* ═══════════════════════════════════════════════════════════════
+   PERFORMANCE — EFFETTI AMBIENTALI (solo con movimento consentito)
+   ───────────────────────────────────────────────────────────────
+   Le animazioni CONTINUE del foglio (sfumature dinamiche, riflessi,
+   lampeggianti, glitter, radar, badge pulsanti) sono dichiarate SOLO
+   qui: con "riduci movimento" attivo (impostazione di sistema) o su
+   WebView che non le supporta non vengono mai eseguite → zero lavoro
+   GPU e batteria preservata. Gli stati statici equivalenti sono nel
+   blocco @media (prefers-reduced-motion: reduce) qui sotto.
+   • Si animano solo transform/opacity/background-position (GPU).
+   • Le regole base restano identiche: nessun colore/layout toccato.
+   ═══════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: no-preference) {
+  .focus-bg-mattina{ animation: focusGradient 12s ease infinite !important; }
+  .focus-bg-pomeriggio{ animation: focusGradient 12s ease infinite !important; }
+  .focus-bg-notte{ animation: focusGradient 15s ease infinite !important; }
+  .focus-bg-riposo{ animation: focusGradient 14s ease infinite !important; }
+  .focus-bg-studio{ animation: focusGradient 12s ease infinite !important; }
+  .focus-bg-assenza{ animation: focusGradient 14s ease infinite !important; }
+  .icon-animate-sun{ animation: spinSun 20s linear infinite; }
+  .icon-animate-steam{ animation: steamRise 2s infinite ease-out; }
+  .icon-animate-cloud{ animation: floatCloud 6s ease-in-out infinite; }
+  .icon-animate-star{ animation: twinkleStar 3s infinite ease-in-out; }
+  .icon-animate-relax{ animation: relaxWave 4s ease-in-out infinite; }
+  .icon-animate-glint-wrapper::after{ animation: shieldGlint 5s infinite linear; }
+  .focus-glow-mattina #focus-widget-container::before{ animation: focusGradient 15s ease infinite; }
+  .focus-glow-pomeriggio #focus-widget-container::before{ animation: focusGradient 15s ease infinite; }
+  .focus-glow-notte #focus-widget-container::before{ animation: focusGradient 20s ease infinite; }
+  .focus-glow-smontante #focus-widget-container::before{ animation: focusGradient 15s ease infinite; }
+  .focus-glow-riposo #focus-widget-container::before{ animation: focusGradient 18s ease infinite; }
+  .focus-glow-assenza #focus-widget-container::before{ animation: focusGradient 20s ease infinite; }
+  .focus-glow-studio #focus-widget-container::before{ animation: focusGradient 15s ease infinite; }
+  .meteo-sun-rays{ animation: spinSun 8s linear infinite; }
+  .meteo-rain-drop{ animation: fallRain 1s linear infinite; }
+  .meteo-rain-drop:nth-child(2){ animation-delay: 0.3s; }
+  .meteo-rain-drop:nth-child(3){ animation-delay: 0.6s; }
+  .meteo-cloud{ animation: floatCloud 4s ease-in-out infinite; }
+  .sk{ animation:skPulse 1.4s ease-in-out infinite; }
+  [data-theme=rosa] .pg-app::before{ animation:petaliFall 20s linear infinite; }
+  [data-theme=forestale] .pg-app::after{ animation:pattuglia 16s linear infinite; }
+  [data-theme=forestale] .hdr::after{ animation:radar 2.5s ease-in-out infinite; }
+  [data-theme=carabinieri] .pg-app::before{ animation:stemmaBreath 5s ease-in-out infinite; }
+  .wdg-anim-mattina{ animation:wdg-pulse-warm 1.8s ease-in-out infinite; }
+  .wdg-anim-ml{ animation:wdg-pulse-warm 1.8s ease-in-out infinite; }
+  .wdg-anim-pomeriggio{ animation:wdg-pulse-warm-slow 2.4s ease-in-out infinite; }
+  .wdg-anim-pl{ animation:wdg-pulse-red 1.1s ease-in-out infinite; }
+  .wdg-anim-notte{ animation:wdg-breathe 3.5s ease-in-out infinite; }
+  .wdg-anim-sera{ animation:wdg-breathe 3.5s ease-in-out infinite; }
+  .wdg-anim-riposo{ animation:wdg-breathe 4s ease-in-out infinite; }
+  .wdg-anim-recupero{ animation:wdg-breathe 4s ease-in-out infinite; }
+  .wdg-anim-ferie{ animation:wdg-shimmer 2.5s linear infinite; }
+  .wdg-anim-937{ animation:wdg-shimmer 2.5s linear infinite; }
+  .wdg-anim-licenza{ animation:wdg-shimmer 3.5s linear infinite; }
+  .wdg-anim-104{ animation:wdg-pulse-violet 2s ease-in-out infinite; }
+  .wdg-anim-ls{ animation:wdg-pulse-red-slow 2.2s ease-in-out infinite; }
+  .wdg-anim-permesso #w-ico,.wdg-anim-fest #w-ico{ animation:wdg-fade-ico 2s ease-in-out infinite; }
+  .wdg-anim-corso #w-ico,.wdg-anim-esame #w-ico{ animation:wdg-bounce-ico 1s ease-in-out infinite; }
+  .splash-progress-bar{ animation: splashSlideLR 1.6s cubic-bezier(.4,0,.2,1) infinite; }
+  .squadra-live-badge{ animation: livePulse 2.4s ease-in-out infinite; }
+  .squadra-in-servizio{ animation: squadraPulse 2.2s ease-in-out infinite; }
+  .ava-loading{ animation: avaShimmer 1.4s ease-in-out infinite !important; }
+  .ct-spin-ring{ animation: ctSpin 0.7s linear infinite; }
+  .hdr-flash .hf-lens.hf-blue{ animation: hfFlashBlue 2.2s ease-in-out infinite; }
+  .hdr-flash .hf-lens.hf-red{ animation: hfFlashRed 2.2s ease-in-out infinite; }
+  .hdr-flash .hf-gloss{ animation: hfGloss 3.8s cubic-bezier(.4,0,.2,1) infinite; }
+  .hdr-flash::after{ animation: hfWash 2.2s ease-in-out infinite; }
+  /* vecchia barretta laterale carabinieri (neutralizzata da
+     [data-theme=carabinieri] .hdr::before{content:none}!important) */
+  [data-theme=carabinieri] .hdr::before{ animation: lampeggio 1.2s ease-in-out infinite alternate; }
+}
+
+/* Stati statici (congelati) degli effetti ambientali qui sopra */
+@media (prefers-reduced-motion: reduce) {
+  /* riflesso scorrevole: senza animazione resterebbe una barra fissa */
+  .icon-animate-glint-wrapper::after { display: none; }
+  /* barra di avanzamento: ferma al 60% invece che invisibile (width:0) */
+  .splash-progress-bar { width: 60%; }
+  /* badge pulsanti: nessuna ombra animata residua */
+  .squadra-live-badge, .squadra-in-servizio, [class*="wdg-anim-"] { animation: none !important; }
+}
+
+/* ── FINE SEZIONE PERFORMANCE ── */
