@@ -4,17 +4,107 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover,interactive-widget=resizes-content">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>C-TURNI v4.2</title>
+<title>C-TURNI v5.0 beta</title>
 <link rel="manifest" href="manifest.json">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="C-Turni">
 <meta name="theme-color" content="#0d1b2a" id="theme-color-meta">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230d1b2a'/%3E%3Cpolygon points='50,12 56,32 76,32 60,44 66,64 50,52 34,64 40,44 24,32 44,32' fill='%23c8a84b'/%3E%3Ctext x='50' y='88' text-anchor='middle' font-size='28' font-weight='900' font-family='Arial,sans-serif' fill='%23ffffff' letter-spacing='2'%3ECT%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="style.css?v=4.3.0">
+<link rel="stylesheet" href="style.css?v=5.0.0">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
-<body><!-- ═══ SPLASH SCREEN M3 Expressive v4.0 ═══ -->
+<body>
+<!-- ══════════════════════════════════════════════════════════════════
+     L0 — FLUID ATMOSPHERE (§19.2 / §19.18 del design system)
+     Artwork PNG per tema (assets/bg/bg-*.png, 1536x2752, mapping 1:1
+     con data-theme gestito da setTema()), velo di contrasto
+     (.nf-bg-scrim) e mesh gradient a 4 stop + texture noise +
+     filigrane istituzionali (Fiamma dell'Arma, foglia Forestale,
+     costellazioni tattiche, griglia).
+     Livello puramente decorativo: nessun id/handler usato da app.js.
+     ══════════════════════════════════════════════════════════════════ -->
+<div id="nf-bg" aria-hidden="true">
+  <div id="nf-bg-art" class="nf-bg-art"></div>
+  <div class="nf-bg-scrim"></div>
+  <svg class="nf-bg-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1600" preserveAspectRatio="xMidYMid slice">
+    <defs>
+      <radialGradient id="nfG1" cx="18%" cy="10%" r="72%">
+        <stop offset="0%" stop-color="#0d1b2a" stop-opacity=".95"/>
+        <stop offset="55%" stop-color="#0a111a" stop-opacity=".55"/>
+        <stop offset="100%" stop-color="#070a0e" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="nfG2" cx="86%" cy="22%" r="66%">
+        <stop offset="0%" stop-color="#2a1620" stop-opacity=".8"/>
+        <stop offset="60%" stop-color="#14100f" stop-opacity=".35"/>
+        <stop offset="100%" stop-color="#070a0e" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="nfG3" cx="50%" cy="96%" r="78%">
+        <stop offset="0%" stop-color="#132033" stop-opacity=".85"/>
+        <stop offset="62%" stop-color="#0b1220" stop-opacity=".3"/>
+        <stop offset="100%" stop-color="#05080c" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="nfG4" cx="30%" cy="62%" r="52%">
+        <stop offset="0%" stop-color="#c8a86e" stop-opacity=".13"/>
+        <stop offset="70%" stop-color="#c8a86e" stop-opacity=".03"/>
+        <stop offset="100%" stop-color="#c8a86e" stop-opacity="0"/>
+      </radialGradient>
+      <filter id="nfNoise" x="0" y="0" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" seed="7" result="n"/>
+        <feColorMatrix in="n" type="saturate" values="0"/>
+      </filter>
+      <linearGradient id="nfFil" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#f0d9a0" stop-opacity=".9"/>
+        <stop offset="100%" stop-color="#c8a86e" stop-opacity=".5"/>
+      </linearGradient>
+    </defs>
+    <rect class="nf-bg-base" width="1200" height="1600" fill="#070a0e"/>
+    <rect class="nf-bg-mesh nf-bg-m1" width="1200" height="1600" fill="url(#nfG1)"/>
+    <rect class="nf-bg-mesh nf-bg-m2" width="1200" height="1600" fill="url(#nfG2)"/>
+    <rect class="nf-bg-mesh nf-bg-m3" width="1200" height="1600" fill="url(#nfG3)"/>
+    <rect class="nf-bg-mesh nf-bg-m4" width="1200" height="1600" fill="url(#nfG4)"/>
+    <rect class="nf-bg-noise" width="1200" height="1600" filter="url(#nfNoise)" opacity=".045"/>
+
+    <!-- FILIGRANA · FIAMMA DELL'ARMA (Carabinieri) -->
+    <g class="nf-fil nf-fil-arma" fill="url(#nfFil)" transform="translate(600 640) scale(1.06)">
+      <polygon points="0,-150 13,-120 46,-126 22,-98 44,-74 12,-82 0,-52 -12,-82 -44,-74 -22,-98 -46,-126 -13,-120"/>
+      <path d="M0,-40 C34,-52 46,-82 44,-104 C66,-70 76,-34 62,2 C54,24 40,40 24,52 L-24,52 C-40,40 -54,24 -62,2 C-76,-34 -66,-70 -44,-104 C-46,-82 -34,-52 0,-40 Z"/>
+      <path d="M-40,56 C-56,66 -66,80 -70,96 L-84,132 L84,132 L70,96 C66,80 56,66 40,56 Z"/>
+      <rect x="-96" y="138" width="192" height="12" rx="6"/>
+      <rect x="-72" y="156" width="144" height="8" rx="4"/>
+    </g>
+
+    <!-- FILIGRANA · FOGLIA (Forestale dell'Arma) -->
+    <g class="nf-fil nf-fil-forestale" fill="url(#nfFil)" transform="translate(600 620) scale(1.15)">
+      <path d="M0,-130 C58,-96 88,-46 88,10 C88,66 50,110 0,132 C-50,110 -88,66 -88,10 C-88,-46 -58,-96 0,-130 Z"/>
+      <path d="M0,-118 L0,132" stroke="#070a0e" stroke-width="8" opacity=".5"/>
+      <path d="M0,-70 L54,-22 M0,-30 L70,22 M0,14 L62,62 M0,-70 L-54,-22 M0,-30 L-70,22 M0,14 L-62,62"
+            stroke="#070a0e" stroke-width="6" opacity=".35" fill="none"/>
+    </g>
+
+    <!-- FILIGRANA · COSTELLAZIONI TATTICHE (Notte / Arma / Rosa) -->
+    <g class="nf-fil nf-fil-costellazioni" fill="none" stroke="url(#nfFil)" stroke-width="2.4">
+      <polyline points="210,300 320,236 430,286 540,208 660,262 780,196 900,250 1010,182"/>
+      <polyline points="240,1180 360,1240 470,1176 590,1244 700,1178 820,1246 940,1182 1050,1240"/>
+      <g fill="url(#nfFil)" stroke="none">
+        <circle cx="210" cy="300" r="7"/><circle cx="320" cy="236" r="5"/><circle cx="430" cy="286" r="7"/>
+        <circle cx="540" cy="208" r="5"/><circle cx="660" cy="262" r="7"/><circle cx="780" cy="196" r="5"/>
+        <circle cx="900" cy="250" r="7"/><circle cx="1010" cy="182" r="5"/>
+        <circle cx="240" cy="1180" r="6"/><circle cx="360" cy="1240" r="5"/><circle cx="470" cy="1176" r="6"/>
+        <circle cx="590" cy="1244" r="5"/><circle cx="700" cy="1178" r="6"/><circle cx="820" cy="1246" r="5"/>
+        <circle cx="940" cy="1182" r="6"/><circle cx="1050" cy="1240" r="5"/>
+      </g>
+    </g>
+
+    <!-- FILIGRANA · GRIGLIA TATTICA (Arma / Notte) -->
+    <g class="nf-fil nf-fil-griglia" stroke="url(#nfFil)" stroke-width="1.1" opacity=".5">
+      <line x1="0" y1="400" x2="1200" y2="400"/><line x1="0" y1="800" x2="1200" y2="800"/>
+      <line x1="0" y1="1200" x2="1200" y2="1200"/><line x1="300" y1="0" x2="300" y2="1600"/>
+      <line x1="600" y1="0" x2="600" y2="1600"/><line x1="900" y1="0" x2="900" y2="1600"/>
+    </g>
+  </svg>
+</div>
+<!-- ═══ SPLASH SCREEN M3 Expressive v4.0 ═══ -->
 <div id="splash-screen">
   <div class="splash-logo-box">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="72" height="72">
@@ -239,7 +329,7 @@
           </div>
           <div class="fg" style="margin-bottom:10px">
             <label>Sede / Città *</label>
-            <input type="text" class="fc" id="reg-sede" placeholder="Es. Varazze" oninput="aggiornaRepartoId()">
+            <input type="text" class="fc" id="reg-sede" placeholder="Es. Centro" oninput="aggiornaRepartoId()">
           </div>
           <div style="margin-bottom:10px;padding:8px 12px;background:rgba(41,121,255,.07);border-radius:10px;border:1px solid rgba(41,121,255,.15)">
             <div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">ID Reparto generato</div>
@@ -630,7 +720,7 @@
               </text>
               <path id="ts-bot" d="M 5,29 A 24,24 0 0,0 53,29" fill="none"/>
               <text font-size="4.8" font-weight="700" fill="#1a237e" font-family="Arial Narrow,Arial,sans-serif" letter-spacing="1.5">
-                <textPath href="#ts-bot" startOffset="18%">VARAZZE &#8226; ITALIA</textPath>
+                <textPath href="#ts-bot" startOffset="18%">COMANDO CARABINIERI &#8226; REPVBBLICA ITALIANA</textPath>
               </text>
               <polygon points="29,17 31.2,23.5 38,23.5 32.5,27.5 34.7,34 29,30 23.3,34 25.5,27.5 20,23.5 26.8,23.5" fill="#1a237e"/>
               <text x="29" y="37" text-anchor="middle" font-size="4" font-weight="700" fill="#1a237e" font-family="Arial,sans-serif" letter-spacing="1">2024</text>
@@ -1628,6 +1718,16 @@
           <div id="sec-changelog" class="imp-sub">
             <div style="padding:14px;border-top:1px solid var(--border);font-size:12px;color:var(--txt2)">
 
+              <!-- v5.0 beta -->
+              <div style="font-weight:800;color:var(--gold);margin-bottom:6px;font-size:13px">v5.0 beta — Ottobre 2026 🆕</div>
+              <div style="padding-left:10px;border-left:2px solid var(--gold);margin-bottom:14px;line-height:1.7">
+                <div>💎 <strong>Design System Fluid Bento Tech</strong> — Completa reingegnerizzazione dell'interfaccia con bordi ultra-sottili da 1px, raggi tecnici compatti e superfici scure satinate.</div>
+                <div>🎨 <strong>Nuovi Sfondi Istituzionali Dinamici</strong> — 8 sfondi SVG dedicati con texture volumetriche, reticoli tattici e filigrane ufficiali ad alta definizione per tutti i temi scuri e chiari.</div>
+                <div>🗓️ <strong>Pop-up Giorno & Colleghi</strong> — Scheda giorno riorganizzata con suddivisione dei colleghi in servizio per fascia oraria (Mattina, Pomeriggio, Notte, Riposo) e spaziatura ottimizzata sopra la navbar.</div>
+                <div>📋 <strong>Agenda & Appuntamenti Rigenerati</strong> — Layout delle card eventi più spazioso, confortevole e con cifre numeriche tabulari.</div>
+                <div>🛡️ <strong>Tesserino Militare Integrato</strong> — Visualizzazione della tessera di riconoscimento in stile Bento Glass direttamente nella sezione profilo.</div>
+                <div>⚡ <strong>Zero Reflow & GPU Motion</strong> — Animazioni e transizioni ottimizzate per le massime prestazioni a 60 FPS senza impatto sulla batteria.</div>
+              </div>
               <!-- v4.2 -->
               <div style="font-weight:800;color:var(--gold);margin-bottom:6px;font-size:13px">v4.2 — Apr 2026 &#127381;</div>
               <div style="padding-left:10px;border-left:2px solid var(--gold);margin-bottom:14px;line-height:1.7">
@@ -1707,7 +1807,7 @@
           </div>
           <div class="m3-row">
             <div class="m3-row-ico" style="background:rgba(41,121,255,.12)">&#128736;</div>
-            <div class="m3-row-body"><div class="m3-row-title">Versione</div><div class="m3-row-sub">C-TURNI v4.2 — Emanuele Di Leo</div></div>
+            <div class="m3-row-body"><div class="m3-row-title">Versione</div><div class="m3-row-sub">C-TURNI v5.0 beta — Emanuele Di Leo</div></div>
           </div>
 
           <!-- Sezione legale -->
@@ -2762,21 +2862,21 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
   <div class="mbox" style="max-width:420px">
     <div class="mhan"></div>
     <div class="mhd">
-      <div class="mtit">&#127775; Novità in C-TURNI v4.2</div>
+      <div class="mtit">&#127775; Novità in C-TURNI v5.0 beta</div>
     </div>
     <div class="mbod" style="padding:16px;max-height:65vh;overflow-y:auto">
-      <div style="font-size:13px;color:var(--txt2);margin-bottom:16px;line-height:1.6">Benvenuto in <strong style="color:var(--gold)">C-TURNI v4.2</strong> — avatar reali, widget straordinari e tanti fix. Ecco le novità:</div>
+      <div style="font-size:13px;color:var(--txt2);margin-bottom:16px;line-height:1.6">Benvenuto in <strong style="color:var(--gold)">C-TURNI v5.0 beta</strong> — nuovo design Fluid Bento Tech, sfondi istituzionali dinamici e agenda rigenerata. Ecco le novità:</div>
       <div style="display:flex;flex-direction:column;gap:12px;font-size:13px;color:var(--txt)">
-        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#127894;</span><div><strong>Avatar PNG reali</strong><br><span style="font-size:12px;color:var(--txt2)">Picker ridisegnato M3 Expressive con immagini PNG per Truppa, Ufficiali e Forestali. Chip bar, griglia 4 colonne, check animato.</span></div></div>
-        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#127894;</span><div><strong>Gradi come immagini</strong><br><span style="font-size:12px;color:var(--txt2)">19 PNG realistici per tutti i gradi. Visibili nella dashboard affianco al nome e nel picker impostazioni.</span></div></div>
-        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#9203;</span><div><strong>Widget Straordinari</strong><br><span style="font-size:12px;color:var(--txt2)">Nuovo widget in dashboard: ore del giorno, totale mese, barra progresso. Pulsante + per aggiunta rapida con controlli tutti in-app.</span></div></div>
-        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#128202;</span><div><strong>Report — Straordinari</strong><br><span style="font-size:12px;color:var(--txt2)">Nuova tab in Report con selettore mese, cards per tipo, lista con modifica ed eliminazione voce per voce.</span></div></div>
-        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#128172;</span><div><strong>Fix WhatsApp</strong><br><span style="font-size:12px;color:var(--txt2)">Rimossi orari hardcoded, testo più pulito, nessun preset forzato nel messaggio condiviso.</span></div></div>
-        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#9989;</span><div><strong>Fix bootloop, meteo, dino</strong><br><span style="font-size:12px;color:var(--txt2)">Risolto loop infinito all'avvio. Icone meteo SVG corrette. Emoji dino/cactus/pterodattilo al posto di ⚠️.</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#128142;</span><div><strong>Design System Fluid Bento Tech</strong><br><span style="font-size:12px;color:var(--txt2)">Bordi ultra-sottili da 1px, raggi tecnici compatti e superfici scure satinate su tutta l'app.</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#127912;</span><div><strong>Nuovi Sfondi Istituzionali</strong><br><span style="font-size:12px;color:var(--txt2)">8 artwork dedicati con texture volumetriche, reticoli tattici e filigrane ufficiali per tutti i temi scuri e chiari.</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#128467;&#65039;</span><div><strong>Pop-up Giorno &amp; Colleghi</strong><br><span style="font-size:12px;color:var(--txt2)">Colleghi in servizio divisi per fascia oraria (Mattina, Pomeriggio, Notte, Riposo), con spaziatura ottimizzata sopra la navbar.</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#128203;</span><div><strong>Agenda &amp; Appuntamenti</strong><br><span style="font-size:12px;color:var(--txt2)">Card eventi più spaziose e confortevoli, con cifre numeriche tabulari.</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#128737;&#65039;</span><div><strong>Tesserino Militare Integrato</strong><br><span style="font-size:12px;color:var(--txt2)">Tessera di riconoscimento in stile Bento Glass direttamente nella sezione profilo.</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#9889;</span><div><strong>Zero Reflow &amp; GPU Motion</strong><br><span style="font-size:12px;color:var(--txt2)">Animazioni e transizioni ottimizzate per 60 FPS senza impatto sulla batteria.</span></div></div>
       </div>
     </div>
     <div class="mfoo">
-      <button class="btn btn-p" style="width:100%" onclick="chiudiNovita()">&#10004; Scopri v4.2</button>
+      <button class="btn btn-p" style="width:100%" onclick="chiudiNovita()">&#10004; Scopri v5.0 beta</button>
     </div>
   </div>
 </div>
@@ -2798,7 +2898,7 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
     <!-- Motto -->
     <div id="egg-motto" style="text-align:center;font-size:11px;color:rgba(255,255,255,.6);font-style:italic;padding:0 20px 10px">&#171;Nei Secoli Fedele&#187;</div>
     <!-- Versione -->
-    <div style="text-align:center;font-size:10px;color:rgba(212,175,55,.7);padding-bottom:14px;letter-spacing:2px">C-TURNI v4.2</div>
+    <div style="text-align:center;font-size:10px;color:rgba(212,175,55,.7);padding-bottom:14px;letter-spacing:2px">C-TURNI v5.0 beta</div>
     <div class="mfoo" style="background:rgba(0,0,0,.3);border-top:1px solid rgba(212,175,55,.2)">
       <button class="btn btn-g btn-sm" onclick="closeM('m-egg');document.body.style.overflow=''" style="width:100%">&#10005; Chiudi</button>
     </div>
@@ -3008,7 +3108,7 @@ function chiudiSheetGiorno() {
 <script src="state.js?v=1.0.0"></script>
 <script src="biometric.js?v=1.0.0"></script>
 <script src="Game/carabiniere-runner.js?v=2.0.0"></script>
-<script src="app.js?v=4.3.0"></script>
+<script src="app.js?v=5.0.0"></script>
 <script type="module" src="firebase-manager.js?v=4.3.0"></script>
 
 <!-- MODAL CONFIRM CUSTOM -->

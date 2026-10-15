@@ -6405,3 +6405,665 @@ html[data-theme=carabinieri-light] #m-turno .mbox{
 }
 
 /* ── FINE SEZIONE PERFORMANCE ── */
+
+/* ───────────────────────────────────────────────────────────────────────
+   §19 · DESIGN SYSTEM ''FLUID BENTO TECH'' v3.0 · PATCH DI PRODUZIONE
+   ───────────────────────────────────────────────────────────────────────
+   Applicata a index.html di produzione: id, listener Firebase e sezione
+   profilo NON modificati. Adattamenti rispetto al sandbox di design:
+     - 19.11 riscritta su #noti/.noti (markup di produzione)
+     - 19.12 (dock di collaudo) non applicata
+     - 19.18 riscritta su PNG diretti (#nf-bg-art come div)
+     - .nf-preset-* (login dimostrativo) non applicata
+   ─────────────────────────────────────────────────────────────────────── */
+
+/* ══════════════════════════════════════════════════════════════════════
+   §19 — DESIGN SYSTEM "FLUID BENTO TECH" v3.0      (sandbox C-TURNI)
+   ──────────────────────────────────────────────────────────────────────
+   Livello di override applicato sopra `style.css` (base 1:1 di
+   produzione, 6400 righe) per il linguaggio visivo descritto in
+   DESIGN.md:
+     L0  Fluid Atmosphere  → #nf-bg (SVG, filigrane istituzionali)
+     L1  Bento Grid        → bordi 1px --border-subtle, hairline, 14px
+     L2  Glass Panels      → rgba(13,18,25,.78) + blur(16px)
+     L3  Nav pill 24px + FAB squircle 48 + bottom sheet fluidi
+   Regole: solo override mirati, nessuna modifica al DOM di produzione.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── 19.1 · TOKEN DI STILE (DESIGN.md §2) ───────────────────────────── */
+:root{
+  --radius-xs:10px;          /* chip, badge, pillole */
+  --radius-sm:12px;          /* input e celle */
+  --radius-md:12px;
+  --radius-lg:16px;          /* hero card e modali (tetto massimo) */
+  --radius-bento:14px;       /* widget e card standard */
+  --radius-chip:10px;
+  --radius-pill:9999px;
+  /* riallineamento dei token "storici" di style.css alla nuova scala */
+  --radius:16px;
+  --radius-sm-legacy:12px;
+
+  --border-subtle:rgba(255,255,255,.07);
+  --border-prominent:rgba(255,255,255,.14);
+  --border-glow:rgba(200,169,110,.35);
+
+  --shadow-bento:0 2px 8px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+  --hairline-top:inset 0 1px 0 rgba(255,255,255,.09);
+  --glass:rgba(13,18,25,.78);
+  --glass-2:rgba(19,26,37,.72);
+  --font-mono:"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+
+  /* raggi "firma" della hero card riportati entro i 16px */
+  --hero-r-lg:16px 16px 12px 16px;
+  --hero-r-md:14px 14px 12px 14px;
+  --hero-r-sm:12px 12px 10px 12px;
+  --hero-r-xs:10px 10px 10px 10px;
+  --hero-hairline:1px solid var(--border-subtle);
+}
+html[data-theme="light"],html[data-theme$="-light"]{
+  --border-subtle:rgba(14,22,34,.10);
+  --border-prominent:rgba(14,22,34,.18);
+  --hairline-top:inset 0 1px 0 rgba(255,255,255,.85);
+  --shadow-bento:0 1px 2px rgba(16,24,40,.05), 0 8px 24px rgba(16,24,40,.08);
+  --glass:rgba(255,255,255,.80);
+  --glass-2:rgba(255,255,255,.86);
+}
+
+/* ── 19.2 · L0 — FLUID ATMOSPHERE ───────────────────────────────────── */
+#nf-bg{
+  position:fixed; inset:0; z-index:-1; pointer-events:none; overflow:hidden;
+  background:#070a0e;
+  contain:strict;
+}
+#nf-bg svg{position:absolute; inset:0; width:100%; height:100%; display:block}
+.nf-bg-mesh{transform-origin:50% 50%; will-change:transform}
+.nf-fil{opacity:0; transition:opacity .6s var(--motion-standard)}
+.nf-bg-noise{mix-blend-mode:soft-light}
+
+/* l'atmosfera deve restare visibile: la shell è trasparente */
+body{background:#070a0e}
+body,#pg-app,.body,.cont,.pag{background:transparent!important}
+#ambient-glow{display:none!important}
+
+/* filigrana attiva in base al tema (DESIGN.md §1 / L0) */
+html:not([data-theme]) .nf-fil-arma,
+html[data-theme="auto"] .nf-fil-arma,
+html[data-theme="sistema"] .nf-fil-arma,
+html[data-theme="carabinieri"] .nf-fil-arma,
+html[data-theme="carabinieri-dark"] .nf-fil-arma,
+html[data-theme="arma"] .nf-fil-arma,
+html[data-theme="arma-dark"] .nf-fil-arma{opacity:.065}
+html[data-theme="forestale"] .nf-fil-forestale,
+html[data-theme="forestale-dark"] .nf-fil-forestale{opacity:.075}
+html[data-theme="notte"] .nf-fil-costellazioni,
+html[data-theme="arma"] .nf-fil-costellazioni,
+html[data-theme="arma-dark"] .nf-fil-costellazioni,
+html[data-theme="rosa"] .nf-fil-costellazioni,
+html[data-theme="rosa-dark"] .nf-fil-costellazioni{opacity:.075}
+html[data-theme="arma"] .nf-fil-griglia,
+html[data-theme="arma-dark"] .nf-fil-griglia,
+html[data-theme="notte"] .nf-fil-griglia{opacity:.05}
+html[data-theme="rosa"] .nf-fil-costellazioni,
+html[data-theme="rosa-dark"] .nf-fil-costellazioni{opacity:.06}
+
+/* varianti GIORNO: canvas satinato + aurore pastello + filigrana scura */
+html[data-theme="light"] #nf-bg,
+html[data-theme$="-light"] #nf-bg{
+  background:
+    radial-gradient(120% 85% at 10% 6%, #dde9ff 0%, rgba(221,233,255,0) 58%),
+    radial-gradient(110% 80% at 90% 16%, #ffe7f1 0%, rgba(255,231,241,0) 60%),
+    radial-gradient(120% 90% at 50% 102%, #e4f7f0 0%, rgba(228,247,240,0) 64%),
+    linear-gradient(180deg,#f8fbfe 0%,#eef3f9 100%);
+}
+html[data-theme="light"] #nf-bg svg,
+html[data-theme$="-light"] #nf-bg svg{opacity:.30}
+html[data-theme="light"] .nf-fil,
+html[data-theme$="-light"] .nf-fil{fill:#0e1622; stroke:#0e1622}
+html[data-theme="light"] .nf-fil-arma,
+html[data-theme$="-light"] .nf-fil-arma{opacity:.06}
+html[data-theme="light"] .nf-fil-costellazioni,
+html[data-theme$="-light"] .nf-fil-costellazioni{opacity:.05}
+
+/* deriva organica — solo transform (GPU), mai su layout */
+@media (prefers-reduced-motion:no-preference){
+  .nf-bg-m1{animation:nfDrift1 38s ease-in-out infinite alternate}
+  .nf-bg-m2{animation:nfDrift2 47s ease-in-out infinite alternate}
+  .nf-bg-m3{animation:nfDrift3 55s ease-in-out infinite alternate}
+  .nf-bg-m4{animation:nfPulse4 21s ease-in-out infinite alternate}
+  .nf-fil{animation:nfFilDrift 64s ease-in-out infinite alternate}
+}
+@keyframes nfDrift1{from{transform:translate3d(-2%,-1%,0) scale(1.04)}to{transform:translate3d(3%,2%,0) scale(1.10)}}
+@keyframes nfDrift2{from{transform:translate3d(2%,1%,0) scale(1.06)}to{transform:translate3d(-3%,3%,0) scale(1.02)}}
+@keyframes nfDrift3{from{transform:translate3d(0,2%,0) scale(1.02)}to{transform:translate3d(0,-2%,0) scale(1.08)}}
+@keyframes nfPulse4{from{opacity:.75}to{opacity:1}}
+@keyframes nfFilDrift{from{transform:translate3d(0,0,0)}to{transform:translate3d(0,-2.2%,0)}}
+
+
+/* ── 19.3 · SUPERFICI BENTO (L1) — bordo 1px + hairline + 14px ──────── */
+.m3-card,.wdg-wrap,.bento-card,.card,.sc,.twrap,.sett-card,
+.ag-item,.todo-item,.pers-card,.straord-row,.dop-item,.m3-list-group,
+.imp-profilo-body,.notif-card,.ag-hero-avvisi,.studio-card,.rec-card,
+.ferie-card,.salv-card,.m3-row-group{
+  border:1px solid var(--border-subtle)!important;
+  box-shadow:var(--hairline-top),var(--shadow-bento)!important;
+}
+.m3-card,.bento-card,.card,.sc,.twrap,.sett-card,.ag-item,.todo-item,
+.pers-card,.ag-hero-avvisi,.studio-card,.rec-card,.ferie-card,.salv-card,
+.m3-list-group{
+  border-radius:var(--radius-bento)!important;
+}
+.wdg-wrap{
+  border-radius:var(--radius-bento)!important;
+  background:var(--glass)!important;
+  backdrop-filter:blur(16px) saturate(140%);
+  -webkit-backdrop-filter:blur(16px) saturate(140%);
+}
+.wdg-wrap:hover{box-shadow:var(--hairline-top),0 6px 20px rgba(0,0,0,.45)!important}
+.m3-list-group{overflow:hidden;background:var(--glass)!important}
+.m3-list-group .m3-row+.m3-row,.m3-list-group>.m3-row+.m3-row{border-top:1px solid var(--border-subtle)!important}
+
+/* input e celle → 12px */
+.fc,.app-fc,.picker-btn,.dop-grid-btn,input.fc,select.fc,textarea.fc{
+  border-radius:var(--radius-md)!important;
+}
+/* chip, badge, pillole → 10px */
+.badge,.chip,.day-chip,.notif-pill,.straord-min-pill,.straord-tipo-pill,
+.pers-chk,.dop-preset-btn,.dop-toggle,.cal-meteo-ico,.wdg-sett-chip,
+.wdg-mv-btn,.straord-act-btn,.tess-chip{
+  border-radius:var(--radius-chip)!important;
+}
+
+/* hero card + card profilo: raggi ≤16px e vetro fumé */
+.hero-card,.pcard{
+  border-radius:var(--radius-lg) var(--radius-lg) var(--radius-md) var(--radius-lg)!important;
+  border:1px solid var(--border-subtle)!important;
+  box-shadow:var(--hairline-top),var(--shadow-bento)!important;
+}
+.pcard::after{display:none!important}
+
+/* ── 19.4 · BOTTOM NAV — pillola flottante 24px ─────────────────────── */
+#bottom-nav{
+  position:fixed!important;
+  left:12px!important; right:12px!important;
+  bottom:calc(10px + env(safe-area-inset-bottom,0px))!important;
+  top:auto!important;
+  width:auto!important; max-width:460px!important;
+  margin:0 auto!important;
+  border-radius:24px!important;
+  background:rgba(10,15,22,.72)!important;
+  backdrop-filter:blur(16px) saturate(150%)!important;
+  -webkit-backdrop-filter:blur(16px) saturate(150%)!important;
+  border:1px solid var(--border-subtle)!important;
+  box-shadow:var(--shadow-bento),var(--hairline-top)!important;
+  overflow:visible!important;
+  height:auto!important; min-height:56px!important;
+  display:flex!important; align-items:center!important; justify-content:center!important;
+  padding:6px 4px!important;
+  transform:none!important;
+}
+/* nessun riquadro bianco dietro la pillola */
+#bottom-nav::before,#bottom-nav::after{background:transparent!important;box-shadow:none!important;border:none!important}
+.bn-wrap,.bottom-bar-wrap,.nav-wrap{background:transparent!important;box-shadow:none!important;border:none!important}
+#pg-app>*:has(>#bottom-nav),#pg-app>*:has(>.bottom-bar){background:transparent!important;box-shadow:none!important;border:none!important}
+.bn-items{gap:2px!important;align-items:center!important}
+
+/* FAB centrale — squircle 48x48 con gradiente d'accento */
+.nav-fab{
+  width:48px!important; height:48px!important;
+  min-width:48px!important; min-height:48px!important;
+  border-radius:16px!important;
+  background:var(--fab-grad,linear-gradient(150deg,#90c2ff,#5b9fff 52%,#2f74e0))!important;
+  color:var(--fab-color,#fff)!important;
+  border:1px solid rgba(255,255,255,.22)!important;
+  box-shadow:0 8px 20px rgba(91,159,255,.42),0 2px 6px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.35)!important;
+  display:flex!important; align-items:center!important; justify-content:center!important;
+  font-size:20px!important; line-height:1!important;
+}
+.nav-fab:active{transform:scale(.94)!important}
+.nav-fab-slot{width:56px!important;margin-top:-30px!important}
+
+/* ── 19.5 · MODALI E BOTTOM SHEET (L3) ──────────────────────────────── */
+.modal .mbox{
+  border-radius:var(--radius-lg) var(--radius-lg) 0 0!important;
+  background:var(--glass)!important;
+  backdrop-filter:blur(16px) saturate(140%);
+  -webkit-backdrop-filter:blur(16px) saturate(140%);
+  border:1px solid var(--border-subtle)!important;
+  border-bottom:none!important;
+}
+@media(min-width:768px){
+  .modal .mbox{
+    border-radius:var(--radius-lg)!important;
+    border-bottom:1px solid var(--border-subtle)!important;
+  }
+}
+#sheet-giorno>div{border-radius:var(--radius-lg) var(--radius-lg) 0 0!important;background:var(--glass)!important;border:1px solid var(--border-subtle)!important;border-bottom:none!important}
+#sheet-giorno #mg-turno,#sheet-giorno #mg-colleghi,#sheet-giorno #mg-todo{
+  border-radius:var(--radius-bento)!important;border:1px solid var(--border-subtle)!important;
+  background:var(--glass-2)!important;box-shadow:var(--hairline-top)!important;
+}
+.fab-pop-card{border-radius:var(--radius-lg)!important;background:var(--glass)!important;border:1px solid var(--border-subtle)!important}
+.fab-pop-actions>button{border-radius:var(--radius-bento)!important;border:1px solid var(--border-subtle)!important;background:var(--glass-2)!important}
+.fab-pop-actions>button>span:first-child{border-radius:var(--radius-md)!important}
+#notif-drawer{border-radius:0 0 var(--radius-lg) var(--radius-lg)!important;background:var(--glass)!important;backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%);border:1px solid var(--border-subtle)!important;border-top:none!important}
+.mcl{border-radius:var(--radius-chip)!important}
+.mhan{background:var(--border-prominent)!important;border-radius:var(--radius-pill)!important}
+
+
+/* ── 19.6 · TESSERINO DIGITALE — tessera d'identificazione in vetro ─── */
+.tess-card{
+  border-radius:var(--radius-lg)!important;
+  background:linear-gradient(160deg,rgba(26,33,44,.92) 0%,rgba(13,19,27,.96) 55%,rgba(9,13,19,.98) 100%)!important;
+  border:1px solid var(--border-subtle)!important;
+  box-shadow:var(--shadow-bento),var(--hairline-top)!important;
+  color:var(--txt)!important;
+  font-family:inherit;
+  overflow:hidden;
+  position:relative;
+}
+.tess-card::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(120% 80% at 88% 0%, rgba(200,169,110,.14) 0%, rgba(200,169,110,0) 62%),
+    radial-gradient(90% 70% at 0% 100%, rgba(91,159,255,.10) 0%, rgba(91,159,255,0) 60%);
+}
+.tess-card::after{background:none!important;opacity:0!important}
+.nf-tess{position:relative;z-index:1;padding:16px 16px 14px;display:grid;gap:12px}
+.nf-tess-top{display:flex;align-items:center;gap:10px}
+.nf-tess-stemma{width:34px;height:34px;flex-shrink:0;opacity:.92}
+.nf-tess-stemma svg{width:100%;height:100%;display:block}
+.nf-tess-title{font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#e6d3a8}
+.nf-tess-sub{font-size:10.5px;color:var(--txt2);margin-top:2px}
+.nf-tess-grid{display:flex;gap:14px;align-items:center}
+.nf-tess-photo{
+  width:66px;height:78px;flex-shrink:0;border-radius:var(--radius-chip);
+  background:rgba(255,255,255,.05);border:1px solid var(--border-subtle);
+  display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:26px;
+}
+.nf-tess-photo img{width:100%;height:100%;object-fit:cover}
+.nf-tess-id{min-width:0;flex:1;display:grid;gap:5px}
+.nf-tess-name{font-size:15px;font-weight:800;color:#f2f6fb;letter-spacing:-.2px}
+.nf-tess-grade{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--txt2)}
+.nf-tess-grade img{height:22px;width:auto;object-fit:contain;filter:drop-shadow(0 1px 3px rgba(0,0,0,.5))}
+.nf-tess-k{text-transform:uppercase;letter-spacing:.08em;font-size:9.5px;color:var(--txt3)}
+.nf-tess-mono{
+  font-family:var(--font-mono)!important;letter-spacing:.10em;font-size:12px;
+  color:#e6d3a8;font-weight:700;
+}
+.nf-tess-divider{height:1px;background:var(--border-subtle)}
+.nf-tess-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--txt3)}
+.nf-tess-stamp{
+  position:absolute;right:-10px;bottom:-6px;width:106px;height:106px;
+  transform:rotate(-9deg);display:flex;align-items:center;justify-content:center;
+  pointer-events:none;border:0;padding:0;max-width:none;border-radius:50%;
+}
+.nf-tess-stamp-ring{
+  position:absolute;inset:0;border-radius:50%;
+  border:1.5px solid rgba(200,169,110,.20);
+  box-shadow:inset 0 0 0 3px rgba(200,169,110,.06);
+}
+.nf-tess-stamp-txt{
+  position:relative;max-width:80px;text-align:center;line-height:1.5;
+  font-size:7.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
+  color:rgba(200,169,110,.32);
+}
+
+/* ── 19.7 · PROFILE CARD + QUICK STATS ──────────────────────────────── */
+#imp-profilo-card{border-radius:var(--radius-bento)!important;background:var(--glass)!important;border:1px solid var(--border-subtle)!important}
+.imp-profilo-ava{border-radius:50%!important;box-shadow:0 0 0 2px var(--border-prominent)!important}
+.nf-stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
+.nf-stat{
+  background:var(--glass-2);border:1px solid var(--border-subtle);border-radius:var(--radius-bento);
+  padding:10px 8px;text-align:center;box-shadow:var(--hairline-top);
+}
+.nf-stat-v{font-size:17px;font-weight:900;color:var(--txt);line-height:1.1;font-variant-numeric:tabular-nums}
+.nf-stat-k{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--txt3);margin-top:4px}
+.nf-stat.gold .nf-stat-v{color:#e6d3a8}
+
+/* ── 19.8 · COMPONENTI OPERATIVI (calendario · straord · notifiche) ─── */
+.cal-cell{border-radius:var(--radius-md)!important;border:1px solid transparent}
+.cal-cell.today{border-color:var(--accent-border,rgba(91,159,255,.35))!important}
+.cal-cell.sel{border-color:var(--border-glow)!important;background:rgba(200,169,110,.10)!important}
+.straord-row{border-radius:var(--radius-bento)!important}
+.notif-pill.sel{background:var(--accent-bg,rgba(91,159,255,.16))!important;border-color:var(--border-prominent)!important;color:var(--txt)!important}
+#notif-center-list>div{border-radius:var(--radius-bento)!important;border:1px solid var(--border-subtle)!important;background:var(--glass-2)!important;box-shadow:var(--hairline-top)!important}
+.dop-item{border-radius:var(--radius-bento)!important;background:var(--glass-2)!important}
+
+/* ── 19.9 · RIDUZIONE DEL MOVIMENTO ─────────────────────────────────── */
+@media (prefers-reduced-motion:reduce){
+  #nf-bg svg{animation:none!important}
+  .nf-bg-mesh,.nf-fil{animation:none!important;transform:none!important}
+  .pag,.modal,.wdg-wrap,.m3-card{animation:none!important;transition:none!important}
+}
+html[data-motion="off"] #nf-bg svg,html[data-motion="off"] .nf-bg-mesh,html[data-motion="off"] .nf-fil{animation:none!important;transform:none!important}
+
+/* ── 19.10 · LOGIN OFFLINE (vetro Bento sull'atmosfera) ─────────────── */
+#auth-overlay{background:transparent!important;backdrop-filter:blur(2px)}
+#auth-overlay::before{
+  content:"";position:absolute;inset:0;z-index:-1;
+  background:radial-gradient(120% 80% at 20% 0%,rgba(91,159,255,.10),transparent 60%),
+             radial-gradient(100% 70% at 90% 100%,rgba(200,169,110,.10),transparent 62%);
+}
+#auth-card{
+  background:var(--glass)!important;
+  border:1px solid var(--border-subtle)!important;
+  border-radius:var(--radius-lg)!important;
+  box-shadow:var(--shadow-bento),var(--hairline-top)!important;
+  backdrop-filter:blur(16px) saturate(140%);
+  -webkit-backdrop-filter:blur(16px) saturate(140%);
+}
+
+/* ── 19.11 · TOAST (produzione: #noti / .noti, creati da toast() in app.js)
+   Il sandbox usava #nf-toast-wrap/.nf-toast; lo stile Bento va applicato
+   al contenitore e alle card di notifica realmente presenti. */
+#noti{z-index:100000!important}
+.noti{
+  background:var(--glass)!important;
+  border:1px solid var(--border-subtle)!important;
+  border-left-width:4px!important;
+  border-radius:var(--radius-bento)!important;
+  box-shadow:var(--shadow-bento),var(--hairline-top)!important;
+  backdrop-filter:blur(16px) saturate(140%);
+  -webkit-backdrop-filter:blur(16px) saturate(140%);
+}
+.noti.ok{border-left-color:var(--green)!important}
+.noti.err{border-left-color:var(--red)!important}
+.noti.warn{border-left-color:var(--gold)!important}
+/* ── 19.13 · ADATTAMENTO ≤620px (singola colonna) ───────────────────── */
+@media (max-width:620px){
+  .cont{padding:12px!important}
+  #bottom-nav{left:8px!important;right:8px!important}
+  #nf-bg svg{opacity:.86}
+  .nf-stat-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .nf-tess-photo{width:58px;height:70px}
+  .hdr{padding:8px 12px!important}
+}
+/* ── 19.14 · NAV PILL & FAB — correzione di specificità ────────────────
+   In style.css la pillola realmente visibile è `.bn-items` (la barra
+   `#bottom-nav`/`.bottom-bar` resta trasparente: nessun riquadro bianco),
+   con selettori rinforzati tipo `nav#bottom-nav.bottom-bar, #bottom-nav.bottom-bar[class]`.
+   Per imporre il linguaggio Bento servono selettori di pari o maggiore
+   specificità + !important. */
+#bottom-nav.bottom-bar,#bottom-nav[class],nav#bottom-nav.bottom-bar,#bottom-nav,.bottom-bar{
+  background:transparent!important;
+  box-shadow:none!important;
+  border-radius:0!important;
+  max-width:none!important;
+}
+#bottom-nav.bottom-bar .bn-items,#bottom-nav .bn-items[class],nav#bottom-nav.bottom-bar .bn-items{
+  max-width:460px!important;
+  width:calc(100% - 24px)!important;
+  height:58px!important;
+  border-radius:24px!important;
+  background:rgba(10,15,22,.72)!important;
+  border:1px solid var(--border-subtle)!important;
+  box-shadow:var(--shadow-bento),var(--hairline-top)!important;
+  backdrop-filter:blur(16px) saturate(150%)!important;
+  -webkit-backdrop-filter:blur(16px) saturate(150%)!important;
+  gap:2px!important;
+  padding:0 8px!important;
+  overflow:visible!important;
+}
+#bottom-nav.bottom-bar .bn-items::before,
+#bottom-nav.bottom-bar .bn-items::after{background:transparent!important;box-shadow:none!important}
+#bottom-nav.bottom-bar .bn-item[class]{border-radius:14px!important}
+
+#bottom-nav.bottom-bar .nav-fab-slot,nav#bottom-nav.bottom-bar .nav-fab-slot{
+  width:56px!important;
+  margin-top:-28px!important;
+}
+#bottom-nav.bottom-bar .nav-fab,nav#bottom-nav.bottom-bar .nav-fab,#bottom-nav .nav-fab[class]{
+  width:48px!important;
+  height:48px!important;
+  min-width:48px!important;
+  min-height:48px!important;
+  border-radius:16px!important;
+  background:var(--fab-grad,linear-gradient(150deg,#90c2ff,#5b9fff 52%,#2f74e0))!important;
+  color:var(--fab-color,#fff)!important;
+  border:1px solid rgba(255,255,255,.22)!important;
+  box-shadow:0 8px 20px rgba(91,159,255,.42),0 2px 6px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.35)!important;
+  font-size:19px!important;
+}
+#bottom-nav.bottom-bar .nav-fab:active{transform:scale(.94)!important}
+
+/* varianti giorno: pillola satinata chiara */
+html[data-theme="light"] #bottom-nav .bn-items,
+html[data-theme$="-light"] #bottom-nav .bn-items{
+  background:rgba(255,255,255,.80)!important;
+  border:1px solid var(--border-subtle)!important;
+  box-shadow:var(--shadow-bento)!important;
+}
+
+/* il contenuto scorrevole non deve finire sotto la pillola flottante */
+.cont{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))!important}
+
+/* ── 19.15 · VETRO BENTO sui widget (blur 16px, come da DESIGN.md) ───── */
+#pg-app .wdg-wrap[class],#pg-app .m3-card[class],#pg-app .bento-card[class],
+#pg-app .m3-list-group[class],body #pg-app .wdg-wrap{
+  backdrop-filter:blur(16px) saturate(140%)!important;
+  -webkit-backdrop-filter:blur(16px) saturate(140%)!important;
+}
+@media (prefers-reduced-motion:reduce){
+  #pg-app .wdg-wrap[class],#pg-app .m3-card[class],#pg-app .bento-card[class]{
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
+  }
+}
+
+/* ── 19.16 · EFFIGIE DEI GRADI (PNG locale, mai schiacciata) ─────────── */
+.hero-grade-badge{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  overflow:hidden;
+  border-radius:6px;
+  max-height:32px;
+}
+#hero-grade-img,.hero-grade-img{
+  height:26px!important;
+  width:auto!important;
+  min-width:0!important;
+  max-width:78px;
+  object-fit:contain!important;
+  display:block;
+}
+.hero-grade-badge img{object-fit:contain!important}
+.wdg-settimana-grid{gap:2px!important}
+.wdg-sett-chip{line-height:1.15!important}
+
+/* ── 19.17 · CONTRASTO NELLE VARIANTI GIORNO ─────────────────────────── */
+html[data-theme="light"] .tscr table td,html[data-theme$="-light"] .tscr table td,
+html[data-theme="light"] .tscr table th,html[data-theme$="-light"] .tscr table th,
+html[data-theme="light"] .tscr table tr,html[data-theme$="-light"] .tscr table tr{
+  color:var(--txt)!important;
+}
+html[data-theme="light"] .tscr table thead th,html[data-theme$="-light"] .tscr table thead th{
+  color:var(--txt2)!important;
+}
+html[data-theme="light"] .hero-card,html[data-theme$="-light"] .hero-card{
+  border:1px solid var(--border-subtle)!important;
+}
+html[data-theme="light"] .wdg-lbl,html[data-theme$="-light"] .wdg-lbl{color:var(--txt)!important}
+html[data-theme="light"] .ptit,html[data-theme$="-light"] .ptit{color:var(--txt)!important}
+html[data-theme="light"] .psub,html[data-theme$="-light"] .psub{color:var(--txt2)!important}
+html[data-theme="light"] h1,html[data-theme="light"] h2,html[data-theme="light"] h3,
+html[data-theme$="-light"] h1,html[data-theme$="-light"] h2,html[data-theme$="-light"] h3{color:var(--txt)!important}
+html[data-theme="light"] .splash-label,html[data-theme$="-light"] .splash-label{color:var(--txt2)!important}
+
+/* ── 19.18 · L0a ── ARTWORK PER TEMA (assets/bg/bg-*.png) ───────────
+   Ogni tema monta il proprio artwork 1536x2752 come background-image di
+   #nf-bg-art (nessun wrapper SVG/object: i PNG sono usati direttamente).
+   Mapping 1:1 con il valore di data-theme impostato da setTema():
+     (nessun attributo) / vuoto / notte    -> bg-notte-dark.png
+     carabinieri / carabinieri-dark / arma / arma-dark -> bg-carabinieri-dark.png
+     carabinieri-light                     -> bg-carabinieri-light.png
+     forestale / forestale-dark            -> bg-forestale-dark.png
+     forestale-light                       -> bg-forestale-light.png
+     rosa / rosa-dark                      -> bg-rosa-dark.png
+     rosa-light                            -> bg-rosa-light.png
+     light / chiaro                        -> bg-chiaro-light.png
+     auto                                  -> prefers-color-scheme (dark: Notte, light: Giorno)
+   Il velo (.nf-bg-scrim) mantiene il contrasto del testo sopra l'artwork. */
+#nf-bg-art{
+  position:absolute;inset:0;pointer-events:none;opacity:.94;
+  background-color:#070a0e;
+  background-image:url("assets/bg/bg-notte-dark.png");
+  background-repeat:no-repeat;background-position:50% 50%;background-size:cover;
+}
+/* tema predefinito (Notte) e alias storici */
+html:not([data-theme]) #nf-bg-art,
+html[data-theme=""] #nf-bg-art,
+html[data-theme="notte"] #nf-bg-art,
+html[data-theme="notte-dark"] #nf-bg-art{background-image:url("assets/bg/bg-notte-dark.png")}
+/* Carabinieri + alias Arma (stesso artwork, DESIGN.md 3.6) */
+html[data-theme="carabinieri"] #nf-bg-art,
+html[data-theme="carabinieri-dark"] #nf-bg-art,
+html[data-theme="arma"] #nf-bg-art,
+html[data-theme="arma-dark"] #nf-bg-art{background-image:url("assets/bg/bg-carabinieri-dark.png")}
+html[data-theme="carabinieri-light"] #nf-bg-art{background-image:url("assets/bg/bg-carabinieri-light.png")}
+/* Forestale */
+html[data-theme="forestale"] #nf-bg-art,
+html[data-theme="forestale-dark"] #nf-bg-art{background-image:url("assets/bg/bg-forestale-dark.png")}
+html[data-theme="forestale-light"] #nf-bg-art{background-image:url("assets/bg/bg-forestale-light.png")}
+/* Rosa */
+html[data-theme="rosa"] #nf-bg-art,
+html[data-theme="rosa-dark"] #nf-bg-art{background-image:url("assets/bg/bg-rosa-dark.png")}
+html[data-theme="rosa-light"] #nf-bg-art{background-image:url("assets/bg/bg-rosa-light.png")}
+/* Giorno */
+html[data-theme="light"] #nf-bg-art,
+html[data-theme="chiaro"] #nf-bg-art{background-image:url("assets/bg/bg-chiaro-light.png")}
+/* Auto: artwork E atmosfera legati alla preferenza di sistema. La sezione 1.2
+   usa lo stesso schema ("sistema in modalità chiara: stesse rese dei temi
+   chiari"), quindi anche il velo e la base satinata seguono il sistema. */
+@media (prefers-color-scheme: light){
+  html[data-theme="auto"] #nf-bg-art{
+    background-image:url("assets/bg/bg-chiaro-light.png");
+    opacity:.88;
+  }
+  html[data-theme="auto"] #nf-bg{
+    background:
+      radial-gradient(120% 85% at 10% 6%, #dde9ff 0%, rgba(221,233,255,0) 58%),
+      radial-gradient(110% 80% at 90% 16%, #ffe7f1 0%, rgba(255,231,241,0) 60%),
+      radial-gradient(120% 90% at 50% 102%, #e4f7f0 0%, rgba(228,247,240,0) 64%),
+      linear-gradient(180deg,#f8fbfe 0%,#eef3f9 100%);
+  }
+  html[data-theme="auto"] #nf-bg svg{opacity:.30}
+  html[data-theme="auto"] .nf-bg-scrim{
+    background:linear-gradient(180deg,
+      rgba(255,255,255,.60) 0%,rgba(255,255,255,.30) 34%,rgba(255,255,255,.44) 70%,rgba(255,255,255,.68) 100%);
+  }
+}
+.nf-bg-scrim{
+  position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg,
+    rgba(4,7,11,.50) 0%,rgba(4,7,11,.18) 32%,rgba(4,7,11,.30) 68%,rgba(4,7,11,.64) 100%);
+}
+/* il vecchio rect di base opaco dell'SVG mesh coprirebbe l'artwork */
+#nf-bg .nf-bg-base{display:none!important}
+/* varianti GIORNO: velo chiaro, artwork un filo piu leggero */
+html[data-theme="light"] #nf-bg-art,
+html[data-theme$="-light"] #nf-bg-art{opacity:.88}
+html[data-theme="light"] .nf-bg-scrim,
+html[data-theme$="-light"] .nf-bg-scrim{
+  background:linear-gradient(180deg,
+    rgba(255,255,255,.60) 0%,rgba(255,255,255,.30) 34%,rgba(255,255,255,.44) 70%,rgba(255,255,255,.68) 100%);
+}
+html[data-motion="off"] #nf-bg-art{transition:none}
+/* ── 19.19 · POP-UP GIORNO (#sheet-giorno) ────────────────────────────
+   Il contenuto (compreso «Condividi su WhatsApp») deve restare sempre
+   visibile: padding inferiore di sicurezza pari all'ingombro della bottom
+   bar flottante + area sicura del dispositivo.                            */
+#sheet-giorno>div{
+  border-radius:var(--radius-lg) var(--radius-lg) 0 0!important;
+  background:var(--glass)!important;
+  border:1px solid var(--border-subtle)!important;
+  border-bottom:none!important;
+  padding-bottom:calc(115px + env(safe-area-inset-bottom,0px))!important;
+  max-height:calc(100vh - 56px)!important;
+  box-shadow:0 -18px 50px rgba(0,0,0,.5)!important;
+}
+#mg-turno,#mg-colleghi,#mg-todo{
+  border-radius:var(--radius-bento)!important;
+  background:var(--glass-2)!important;
+  border:1px solid var(--border-subtle)!important;
+  margin-bottom:12px!important;
+}
+#sheet-giorno .btn-p{margin-bottom:0!important}
+/* colleghi raggruppati per fascia oraria */
+.nf-coll-head{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--txt3);margin-bottom:10px}
+.nf-coll-grp{margin-bottom:12px}
+.nf-coll-grp:last-child{margin-bottom:0}
+.nf-coll-grp-h{
+  display:flex;align-items:center;gap:8px;padding:7px 11px;
+  border-radius:var(--radius-chip);background:rgba(255,255,255,.05);
+  border:1px solid var(--border-subtle);font-size:11px;color:var(--txt2);
+}
+.nf-coll-grp-h b{font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--txt)}
+.nf-coll-grp-range{margin-left:auto;font-size:10px;color:var(--txt3);font-variant-numeric:tabular-nums}
+.nf-coll-grp-n{
+  min-width:20px;text-align:center;font-size:10px;font-weight:800;color:var(--txt);
+  background:var(--glass-2);border:1px solid var(--border-subtle);border-radius:50px;padding:1px 6px;
+}
+.nf-coll-grp[data-fascia="mattina"] .nf-coll-grp-h{border-color:rgba(255,179,0,.30)}
+.nf-coll-grp[data-fascia="pomeriggio"] .nf-coll-grp-h{border-color:rgba(255,109,0,.30)}
+.nf-coll-grp[data-fascia="notte"] .nf-coll-grp-h{border-color:rgba(124,77,255,.34)}
+.nf-coll-row{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--border-subtle)}
+.nf-coll-row:last-child{border-bottom:none}
+.nf-coll-sig{min-width:36px;text-align:center;padding:3px 6px;border-radius:var(--radius-chip);font-size:10.5px;font-weight:800}
+
+/* ── 19.20 · RESPIRO E SPAZIATURA IN AGENDA (#pag-ag) ──────────────────
+   Righe non compresse: 14px/16px di padding, 8px di distacco, 14px di
+   raggio; orario in cifre monospazio tabulari, titolo e nota ben distanziati. */
+#pag-ag .ag-item,#pag-ag .todo-item{
+  padding:14px 16px!important;
+  margin-bottom:8px!important;
+  border-radius:14px!important;
+  gap:12px!important;
+  align-items:flex-start!important;
+}
+#pag-ag .ag-item>span:first-child{
+  font-variant-numeric:tabular-nums!important;
+  font-feature-settings:"tnum" 1!important;
+  min-width:48px!important;
+  letter-spacing:.02em;
+  padding-top:1px;
+}
+#pag-ag .ag-item>div,#pag-ag .todo-item>div{min-width:0}
+#pag-ag .ag-item>div>div:nth-child(2),#pag-ag .todo-item>div>div:nth-child(2){
+  margin-top:3px!important;line-height:1.5;
+}
+#agenda-list-pg>div>div:first-child,#todo-list-ag>div>div:first-child{margin-bottom:8px!important}
+#pag-ag .ag-item:last-child,#pag-ag .todo-item:last-child{margin-bottom:0!important}
+
+/* ── 19.21 · CARD PROFILO = TESSERINO DIGITALE UNIFICATO ───────────────
+   La card in cima a Impostazioni è essa stessa il tesserino Bento: a riposo
+   mostra la tessera, «Modifica Profilo» apre in place i campi editabili. */
+#imp-profilo-card{
+  display:block!important;
+  padding:14px!important;
+  cursor:default!important;
+  border-radius:var(--radius-lg)!important;
+  background:var(--glass)!important;
+  border:1px solid var(--border-subtle)!important;
+  box-shadow:var(--shadow-bento),var(--hairline-top)!important;
+}
+#imp-profilo-card.editing{border-color:var(--border-prominent)!important}
+#imp-profilo-card .nf-imp-legacy{display:none!important}
+#imp-profilo-card .nf-tess-bento{margin:0!important;border-radius:var(--radius-bento)!important}
+.nf-tess-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.nf-tess-actions .btn{flex:0 0 auto;width:auto}
+#imp-profilo-body{border-top:1px solid var(--border)!important;margin-top:2px}
+#imp-profilo-body .avm3-picker{margin-top:2px}
+#imp-profilo-body .avm3-grid{max-height:220px;overflow-y:auto}
+/* varianti GIORNO: la tessera resta leggibile su superfici chiare */
+html[data-theme="light"] #imp-profilo-card .nf-tess-name,
+html[data-theme$="-light"] #imp-profilo-card .nf-tess-name{color:#f2f6fb!important}
+
+/* ── 19.22 · GERARCHIA DEL SELETTORE COLLEGHI (fix z-index) ────────────
+   Il form di inserimento turno (#m-turno) riceve z-index dinamici da openM()
+   (≥99700), mentre la regola di produzione fissa #m-pers-picker a 20010: il
+   selettore finiva quindi DIETRO il form. Con un valore fisso !important la
+   gerarchia è stabile e l'assegnazione inline non-important di openM() non
+   può più scavalcare il CSS.                                              */
+#m-pers-picker{z-index:100060!important}
+#m-pers-picker .mbox{position:relative;z-index:1}

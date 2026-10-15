@@ -1,11 +1,11 @@
-// firebase-messaging-sw.js — C-Turni v4.3: offline app shell + notifiche FCM
+// firebase-messaging-sw.js — C-Turni v5.0 beta: offline app shell + notifiche FCM
 importScripts('https://www.gstatic.com/firebasejs/11.8.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/11.8.1/firebase-messaging-compat.js');
 
-const CACHE_NAME = 'c-turni-v4.3.0';
+const CACHE_NAME = 'c-turni-v5.0.0';
 const APP_SHELL = [
-  './', './index.html', './style.css?v=4.3.0', './db.js?v=1.0.0',
-  './state.js?v=1.0.0', './biometric.js?v=1.0.0', './app.js?v=4.3.0',
+  './', './index.html', './style.css?v=5.0.0', './db.js?v=1.0.0',
+  './state.js?v=1.0.0', './biometric.js?v=1.0.0', './app.js?v=5.0.0',
   './manifest.json', './icon-192.png', './icon-512.png',
   './Game/carabiniere-runner.js?v=2.0.0'
 ];

@@ -1,6 +1,6 @@
 {
   "name": "c-turni",
-  "version": "4.3.0",
+  "version": "5.0.0-beta",
   "private": true,
   "scripts": {
     "test": "node scripts/smoke.mjs && node scripts/test-excel-import.mjs",
