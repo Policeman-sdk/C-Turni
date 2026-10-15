@@ -408,7 +408,7 @@ function invitaCollega(){
   var link = base + '?join=' + encodeURIComponent(me.reparto);
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(link).then(function(){
-      toast('&#128279; Link copiato! Condividilo con il collega','ok');
+      toast('🔗 Link copiato! Condividilo con il collega','ok');
     }).catch(function(){ _fallbackCopyInvite(link); });
   } else { _fallbackCopyInvite(link); }
 }
@@ -416,7 +416,7 @@ function _fallbackCopyInvite(link){
   var ta = document.createElement('textarea');
   ta.value = link; ta.style.position='fixed'; ta.style.opacity='0';
   document.body.appendChild(ta); ta.select();
-  try{ document.execCommand('copy'); toast('&#128279; Link copiato!','ok'); }
+  try{ document.execCommand('copy'); toast('🔗 Link copiato!','ok'); }
   catch(e){ toast('Link: '+link,'ok'); }
   document.body.removeChild(ta);
 }
@@ -580,10 +580,10 @@ function renderTurniCustomImp() {
   el.innerHTML = TC.map(function(tc) {
     var bg = _TC_COLORI[tc.col] || _TC_COLORI.mattina;
     return '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:6px">'
-      + '<div style="width:36px;height:36px;border-radius:10px;background:'+bg+';display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">'+(tc.emoji||'&#9200;')+'</div>'
+      + '<div style="width:36px;height:36px;border-radius:10px;background:'+bg+';display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">'+(tc.emoji||'⏰')+'</div>'
       + '<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:var(--txt)">'+tc.nome+' <span style="font-size:10px;background:var(--bg2);padding:1px 5px;border-radius:5px;color:var(--txt2)">'+tc.codice+'</span></div>'
       + '<div style="font-size:11px;color:var(--txt2)">'+tc.oraIn+' – '+tc.oraFi+'</div></div>'
-      + '<button onclick="delTurnoCustom('+tc.id+');renderTurniCustomImp();" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:14px;padding:4px;appearance:none;-webkit-appearance:none">&#128465;</button>'
+      + '<button onclick="delTurnoCustom('+tc.id+');renderTurniCustomImp();" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:14px;padding:4px;appearance:none;-webkit-appearance:none">🗑</button>'
       + '</div>';
   }).join('');
 }
@@ -593,7 +593,7 @@ function salvaTurnoCustomImp() {
   var codice = ((document.getElementById('tc-codice-imp')||{}).value||'').trim().toUpperCase();
   var oraIn  = (document.getElementById('tc-ora-in-imp')||{}).value || '08:00';
   var oraFi  = (document.getElementById('tc-ora-fi-imp')||{}).value || '16:00';
-  var emoji  = (document.getElementById('tc-emoji-imp')||{}).value.trim() || '&#9200;';
+  var emoji  = (document.getElementById('tc-emoji-imp')||{}).value.trim() || '⏰';
   var col    = (document.getElementById('tc-col-sel-imp')||{}).value || 'mattina';
   if(!nome) { toast('Inserisci un nome','err'); return; }
   if(!codice || codice.length < 2) { toast('Inserisci un codice (min 2 car.)','err'); return; }
@@ -608,7 +608,7 @@ function salvaTurnoCustomImp() {
   var of_lbl = document.getElementById('tc-ora-fi-imp-lbl'); if(of_lbl) of_lbl.textContent='16:00';
   renderTurniCustomImp();
   _aggiungiOpzioniCustomAlSelect();
-  toast('&#9989; Turno personalizzato aggiunto','ok');
+  toast('✅ Turno personalizzato aggiunto','ok');
 }
 
 // -- Helper: priorità todo (bottoni in-app) --
@@ -639,12 +639,12 @@ function aggiornaStatoReparto(){
   if(!me || !info) return;
   var rep = me.reparto || '';
   if(_isPrivato(rep)){
-    info.innerHTML = '&#128100; Sei in <strong>Modalità Personale</strong>. I tuoi turni sono privati.';
+    info.innerHTML = '👤 Sei in <strong>Modalità Personale</strong>. I tuoi turni sono privati.';
     if(btnU){ btnU.style.display='inline-flex'; }
     if(btnS){ btnS.style.display='none'; }
     if(btnT){ btnT.style.display='none'; }
   } else {
-    info.innerHTML = '&#127968; Sei nel reparto: <strong style="color:var(--blue)">' + rep + '</strong>';
+    info.innerHTML = '🏠 Sei nel reparto: <strong style="color:var(--blue)">' + rep + '</strong>';
     if(btnU){ btnU.style.display='none'; }
     if(btnS){ btnS.style.display='inline-flex'; }
     if(btnT){ btnT.style.display='inline-flex'; }
@@ -719,7 +719,7 @@ function resetTotaleFirestore(){
         if(me.uid && window.FirebaseModule) {
           window.FirebaseModule.saveUserProfile(me.uid, me, rep).catch(function(){});
         }
-        toast('&#128465; Tutti i turni eliminati da Firestore', 'ok');
+        toast('🗑 Tutti i turni eliminati da Firestore', 'ok');
         setTimeout(function(){ location.reload(); }, 1200);
       } catch(e) {
         console.warn('resetTotaleFirestore:', e.message);
@@ -772,12 +772,12 @@ function aggiornaUnitiId(){
       var existing = await window.FirebaseModule.getUsersByReparto(id);
       if(existing.length > 0){
         var cmd = existing.find(function(u){ return (u.ruolo==='comandante'||u.ruolo==='vice') && (u.stato==='approved'||u.stato==='approvato'); });
-        hint.innerHTML = '&#9989; Reparto trovato. Potrai unirti dopo l\'approvazione del Comandante' + (cmd ? ' (<strong>'+(cmd.grado||'')+' '+cmd.nome+' '+cmd.cognome+'</strong>)' : '') + '.';
+        hint.innerHTML = '✅ Reparto trovato. Potrai unirti dopo l\'approvazione del Comandante' + (cmd ? ' (<strong>'+(cmd.grado||'')+' '+cmd.nome+' '+cmd.cognome+'</strong>)' : '') + '.';
         hint.style.background = 'rgba(6,214,160,.08)';
         hint.style.borderColor = 'rgba(6,214,160,.3)';
         hint.style.color = 'var(--green)';
       } else {
-        hint.innerHTML = '&#128640; Nuovo reparto: sarai il primo iscritto e diventerai automaticamente <strong>Comandante</strong>.';
+        hint.innerHTML = '🚀 Nuovo reparto: sarai il primo iscritto e diventerai automaticamente <strong>Comandante</strong>.';
         hint.style.background = 'rgba(41,121,255,.07)';
         hint.style.borderColor = 'rgba(41,121,255,.2)';
         hint.style.color = 'var(--blue)';
@@ -888,7 +888,7 @@ function _renderStatoComando(){
   if(!isCom && !isVice){ sec.style.display='none'; return; }
   sec.style.display='block';
   var info = document.getElementById('stato-comando-info');
-  if(info) info.innerHTML = isCom ? '&#128081; Sei il <strong>Comandante</strong> del reparto.' : '&#11088; Sei il <strong>Vice Comandante</strong> del reparto.';
+  if(info) info.innerHTML = isCom ? '👑 Sei il <strong>Comandante</strong> del reparto.' : '⭐ Sei il <strong>Vice Comandante</strong> del reparto.';
   var btnPassa = document.getElementById('btn-passa-comando');
   var btnPromuovi = document.getElementById('btn-promuovi-vice');
   var btnDegrada = document.getElementById('btn-degrada-vice');
@@ -1079,7 +1079,7 @@ function renderComando(){
   var wrap = document.getElementById('pg-comando-wrap');
   if(!wrap) return;
   if(!_ruoloCanVedereComando()){
-    wrap.innerHTML = '<div style="padding:20px;color:var(--txt2);text-align:center">&#128274; Accesso riservato a Comandante e Vice.</div>';
+    wrap.innerHTML = '<div style="padding:20px;color:var(--txt2);text-align:center">🔒 Accesso riservato a Comandante e Vice.</div>';
     return;
   }
   _richLoad();
@@ -1090,14 +1090,14 @@ function renderComando(){
   var delega = lsG('ct_delega', null);
   if(delega && delega.attiva){
     html += '<div style="background:rgba(212,175,55,.1);border:1px solid var(--gold);border-radius:14px;padding:12px 14px;margin-bottom:16px">'
-      + '<div style="font-size:12px;font-weight:800;color:var(--gold)">&#128081; Delega comando attiva</div>'
+      + '<div style="font-size:12px;font-weight:800;color:var(--gold)">👑 Delega comando attiva</div>'
       + '<div style="font-size:12px;color:var(--txt2);margin-top:4px">Comando retto da <strong>'+ _nomeUtente(delega.aUid, 'Vice') +'</strong>'
       + (delega.al ? ' fino al ' + fmtD(delega.al) : '')
       + '.</div></div>';
   }
 
   // Sezione Richieste cambio turno
-  html += '<div class="m3-list-group-title">&#128257; Richieste cambio turno</div>';
+  html += '<div class="m3-list-group-title">🔁 Richieste cambio turno</div>';
   html += '<div class="m3-list-group">'
     + '<div class="m3-row" style="padding:12px 14px">'
     + '<div style="font-size:13px;color:var(--txt2)">'
@@ -1109,31 +1109,31 @@ function renderComando(){
     + '</div>';
 
   // Compiti assegnati (Blocco 3)
-  html += '<div class="m3-list-group-title">&#9989; Compiti e appuntamenti</div>';
+  html += '<div class="m3-list-group-title">✅ Compiti e appuntamenti</div>';
   html += '<div class="m3-list-group">'
     + '<div class="m3-row tap" onclick="openM(\'m-todo\')">'
-    + '<div class="m3-row-ico" style="background:rgba(66,133,244,.12)">&#128287;</div>'
+    + '<div class="m3-row-ico" style="background:rgba(66,133,244,.12)">🔟</div>'
     + '<div class="m3-row-body"><div class="m3-row-title">Assegna un compito</div><div class="m3-row-sub">Promemoria con scadenza per uno o pi&ugrave; militari</div></div>'
-    + '<div class="m3-row-right">&#8250;</div></div>'
+    + '<div class="m3-row-right">›</div></div>'
     + '<div class="m3-row tap" onclick="openM(\'m-agenda\')">'
-    + '<div class="m3-row-ico" style="background:rgba(212,175,55,.12)">&#128209;</div>'
+    + '<div class="m3-row-ico" style="background:rgba(212,175,55,.12)">📑</div>'
     + '<div class="m3-row-body"><div class="m3-row-title">Assegna un appuntamento</div><div class="m3-row-sub">Fissa un impegno per il reparto</div></div>'
-    + '<div class="m3-row-right">&#8250;</div></div>'
+    + '<div class="m3-row-right">›</div></div>'
     + '</div>';
   html += '<div id="pg-cmd-compiti-lista" class="m3-list-group" style="margin-top:8px"></div>';
 
   // Bacheca avvisi del Comando (Blocco 4)
-  html += '<div class="m3-list-group-title">&#128227; Bacheca</div>';
+  html += '<div class="m3-list-group-title">📣 Bacheca</div>';
   html += '<div class="m3-list-group">'
     + '<div class="m3-row tap" onclick="apriBacheca()">'
-    + '<div class="m3-row-ico" style="background:rgba(212,175,55,.12)">&#128227;</div>'
+    + '<div class="m3-row-ico" style="background:rgba(212,175,55,.12)">📣</div>'
     + '<div class="m3-row-body"><div class="m3-row-title">Nuovo avviso</div><div class="m3-row-sub">Pubblica un avviso per tutto il reparto</div></div>'
-    + '<div class="m3-row-right">&#8250;</div></div>'
+    + '<div class="m3-row-right">›</div></div>'
     + '<div id="pg-cmd-bacheca-lista"></div>'
     + '</div>';
 
   // Situazione e statistiche (Blocco 5/12)
-  html += '<div class="m3-list-group-title">&#128202; Situazione e statistiche</div>';
+  html += '<div class="m3-list-group-title">📊 Situazione e statistiche</div>';
   html += '<div class="m3-list-group"><div class="m3-row" style="padding:12px 14px">'
     + '<div id="pg-cmd-situazione" style="width:100%;font-size:13px;color:var(--txt2)">Copertura dei prossimi 7 giorni in aggiornamento...</div>'
     + '</div></div>';
@@ -1143,16 +1143,16 @@ function renderComando(){
   html += _cmdTrasferimentoHtml();
 
   // Link esistenti: membri
-  html += '<div class="m3-list-group-title">&#128101; Personale</div>';
+  html += '<div class="m3-list-group-title">👥 Personale</div>';
   html += '<div class="m3-list-group">'
     + '<div class="m3-row tap" onclick="window._persFrom=\'comando\';vaiBN(\'pers\',0)">'
-    + '<div class="m3-row-ico" style="background:rgba(0,200,83,.12)">&#128101;</div>'
+    + '<div class="m3-row-ico" style="background:rgba(0,200,83,.12)">👥</div>'
     + '<div class="m3-row-body"><div class="m3-row-title">Gestisci Personale</div><div class="m3-row-sub">Visualizza e gestisci il personale del reparto</div></div>'
-    + '<div class="m3-row-right">&#8250;</div></div>'
+    + '<div class="m3-row-right">›</div></div>'
     + '<div class="m3-row tap" onclick="vaiBN(\'membri\',0)">'
-    + '<div class="m3-row-ico" style="background:rgba(200,16,46,.12)">&#128101;</div>'
+    + '<div class="m3-row-ico" style="background:rgba(200,16,46,.12)">👥</div>'
     + '<div class="m3-row-body"><div class="m3-row-title">Approvazione Militari</div><div class="m3-row-sub">Approva o rifiuta le richieste di accesso</div></div>'
-    + '<div class="m3-row-right">&#8250;</div></div>'
+    + '<div class="m3-row-right">›</div></div>'
     + '</div>';
 
   wrap.innerHTML = html;
@@ -1178,23 +1178,23 @@ function _renderRichiesteComando(){
     var mio = r.mioTurno || {};
     var suo = r.versoTurno || {};
     return '<div style="padding:12px 14px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-bottom:8px">'
-      + '<div style="font-size:13px;font-weight:700">'+rich+' &#8646; '+verso+'</div>'
+      + '<div style="font-size:13px;font-weight:700">'+rich+' ⇆ '+verso+'</div>'
       + '<div style="font-size:12px;color:var(--txt2);margin-top:4px">'
       + (mio.tipo||'--') + ' ' + (fmtD(mio.data)||'') + (mio.codice ? ' ('+mio.codice+')' : '')
-      + ' &#8596; '
+      + ' ↔ '
       + (suo.tipo||'--') + ' ' + (fmtD(suo.data)||'') + (suo.codice ? ' ('+suo.codice+')' : '')
       + '</div>'
       + '<div style="font-size:11px;color:var(--txt3);margin-top:3px">Stato: '+stLbl+(r.confermatoVoce ? ' · <span style="color:var(--blue);font-weight:700">collega sentito a voce</span>' : '')+'</div>'
       + (r.stato==='attesa_collega'
           ? '<div style="display:flex;gap:8px;margin-top:8px">'
-            + '<button class="btn btn-p btn-sm" style="flex:1;font-size:11px" onclick="fsmCambioTurno(\''+r.id+'\',\'collega_accetta\')">&#10003; Accetta (come collega)</button>'
-            + '<button class="btn btn-sm" style="flex:1;font-size:11px;background:rgba(200,16,46,.1);color:var(--red);border-color:rgba(200,16,46,.3)" onclick="fsmCambioTurno(\''+r.id+'\',\'collega_rifiuta\')">&#10005; Rifiuta</button>'
+            + '<button class="btn btn-p btn-sm" style="flex:1;font-size:11px" onclick="fsmCambioTurno(\''+r.id+'\',\'collega_accetta\')">✓ Accetta (come collega)</button>'
+            + '<button class="btn btn-sm" style="flex:1;font-size:11px;background:rgba(200,16,46,.1);color:var(--red);border-color:rgba(200,16,46,.3)" onclick="fsmCambioTurno(\''+r.id+'\',\'collega_rifiuta\')">✕ Rifiuta</button>'
             + '</div>'
           : '')
       + (r.stato==='attesa_comando'
           ? '<div style="display:flex;gap:8px;margin-top:6px">'
-            + '<button class="btn btn-g btn-sm" style="flex:1;font-size:11px" onclick="fsmCambioTurno(\''+r.id+'\',\'comando_approva\')">&#128081; Approva (comando)</button>'
-            + '<button class="btn btn-sm" style="flex:1;font-size:11px;background:rgba(200,16,46,.1);color:var(--red);border-color:rgba(200,16,46,.3)" onclick="fsmCambioTurno(\''+r.id+'\',\'comando_rifiuta\')">&#10005; Rifiuta</button>'
+            + '<button class="btn btn-g btn-sm" style="flex:1;font-size:11px" onclick="fsmCambioTurno(\''+r.id+'\',\'comando_approva\')">👑 Approva (comando)</button>'
+            + '<button class="btn btn-sm" style="flex:1;font-size:11px;background:rgba(200,16,46,.1);color:var(--red);border-color:rgba(200,16,46,.3)" onclick="fsmCambioTurno(\''+r.id+'\',\'comando_rifiuta\')">✕ Rifiuta</button>'
             + '</div>'
           : '')
       + '</div>';
@@ -1219,15 +1219,15 @@ function _renderCompitiComando(){
 
   var html = TD.map(function(t){
     var destinatari = t.assegnatoNomi ? ctEsc(t.assegnatoNomi.join(', ')) : '';
-    var scad = t.data ? '&#128197; ' + String(t.data).split('-').reverse().join('/') : '';
+    var scad = t.data ? '📅 ' + String(t.data).split('-').reverse().join('/') : '';
     var fatto = (t.stato==='fatto' || t.done);
     var badge = fatto
-      ? '<span style="font-size:9px;font-weight:800;color:var(--green);background:rgba(6,214,160,.16);border-radius:6px;padding:2px 6px">&#10003; Fatto'+(t.fattoDa?' da '+ctEsc(t.fattoDa):'')+'</span>'
-      : '<span style="font-size:9px;font-weight:800;color:var(--gold);background:rgba(212,175,55,.16);border-radius:6px;padding:2px 6px">&#128229; Da fare</span>';
+      ? '<span style="font-size:9px;font-weight:800;color:var(--green);background:rgba(6,214,160,.16);border-radius:6px;padding:2px 6px">✓ Fatto'+(t.fattoDa?' da '+ctEsc(t.fattoDa):'')+'</span>'
+      : '<span style="font-size:9px;font-weight:800;color:var(--gold);background:rgba(212,175,55,.16);border-radius:6px;padding:2px 6px">📥 Da fare</span>';
     return '<div class="m3-row" style="padding:11px 14px;align-items:flex-start">'
-      + '<div class="m3-row-ico" style="background:rgba(66,133,244,.12)">&#128287;</div>'
+      + '<div class="m3-row-ico" style="background:rgba(66,133,244,.12)">🔟</div>'
       + '<div class="m3-row-body"><div class="m3-row-title">'+ctEsc(t.tit)+'</div>'
-      + '<div class="m3-row-sub">&#128101; '+destinatari+(scad?' &middot; '+scad:'')+'</div>'
+      + '<div class="m3-row-sub">👥 '+destinatari+(scad?' &middot; '+scad:'')+'</div>'
       + '<div style="margin-top:5px;display:flex;gap:5px;align-items:center;flex-wrap:wrap">'+badge
       + '<button class="btn btn-sm btn-g" style="font-size:10px;padding:3px 8px" onclick="toggleTodoCondiviso('+t.id+')">'+(fatto?'Riapri':'Segna fatto')+'</button>'
       + '</div></div></div>';
@@ -1235,12 +1235,12 @@ function _renderCompitiComando(){
 
   html += AG.map(function(a){
     var destinatari = a.assegnatoNomi ? ctEsc(a.assegnatoNomi.join(', ')) : '';
-    var quando = String(a.data).split('-').reverse().join('/') + (a.ora ? ' &#128336; ' + a.ora : '');
+    var quando = String(a.data).split('-').reverse().join('/') + (a.ora ? ' 🕐 ' + a.ora : '');
     var passato = String(a.data) < oggi;
     return '<div class="m3-row" style="padding:11px 14px;align-items:flex-start'+(passato?';opacity:.55':'')+'">'
-      + '<div class="m3-row-ico" style="background:rgba(212,175,55,.12)">&#128209;</div>'
+      + '<div class="m3-row-ico" style="background:rgba(212,175,55,.12)">📑</div>'
       + '<div class="m3-row-body"><div class="m3-row-title">'+ctEsc(a.tit)+'</div>'
-      + '<div class="m3-row-sub">&#128101; '+destinatari+' &middot; &#128197; '+quando+(a.luogo?' &middot; &#128205; '+ctEsc(a.luogo):'')+'</div>'
+      + '<div class="m3-row-sub">👥 '+destinatari+' &middot; 📅 '+quando+(a.luogo?' &middot; 📍 '+ctEsc(a.luogo):'')+'</div>'
       + '</div></div>';
   }).join('');
 
@@ -1257,35 +1257,35 @@ function _renderCompitiComando(){
 // GESTIONE TURNI in Menu Comando — carica Excel, orari preset, turni custom
 // (spostate da Impostazioni: visibili solo a Comandante/Vice)
 function _cmdGestioneTurniHtml(){
-  var h = '<div class="m3-list-group-title">&#128197; Gestione turni</div>';
+  var h = '<div class="m3-list-group-title">📅 Gestione turni</div>';
   h += '<div class="m3-list-group">'
     + '<div class="m3-row tap" onclick="document.getElementById(\'xi\').click()">'
-    + '<div class="m3-row-ico" style="background:rgba(0,200,83,.12)">&#128202;</div>'
+    + '<div class="m3-row-ico" style="background:rgba(0,200,83,.12)">📊</div>'
     + '<div class="m3-row-body"><div class="m3-row-title">Carica turni da Excel</div><div class="m3-row-sub">Importa un file .xlsx con i turni del reparto</div></div>'
-    + '<div class="m3-row-right">&#8250;</div></div>'
+    + '<div class="m3-row-right">›</div></div>'
     + '<div class="m3-row tap" onclick="toggleImpSec(\'orari-body\',\'arr-orari\');renderOrariPreset();">'
-    + '<div class="m3-row-ico" style="background:rgba(0,188,212,.12)">&#9200;</div>'
+    + '<div class="m3-row-ico" style="background:rgba(0,188,212,.12)">⏰</div>'
     + '<div class="m3-row-body"><div class="m3-row-title">Orari preset turni</div><div class="m3-row-sub">Personalizza gli orari di ogni tipo di turno</div></div>'
-    + '<div class="m3-row-right" id="arr-orari">&#8250;</div></div>'
+    + '<div class="m3-row-right" id="arr-orari">›</div></div>'
     + '<div id="orari-body" class="imp-sub"><div style="padding:14px;border-top:1px solid var(--border)">'
-    + '<div style="font-size:11px;color:var(--txt2);margin-bottom:10px">&#9200; Modifica gli orari preset per ogni tipo di turno e premi Salva.</div>'
+    + '<div style="font-size:11px;color:var(--txt2);margin-bottom:10px">⏰ Modifica gli orari preset per ogni tipo di turno e premi Salva.</div>'
     + '<div id="orari-preset-list"></div>'
-    + '<div id="orari-ok" class="smsg" style="margin-top:8px">&#10003; Salvato!</div>'
-    + '<button onclick="resetOrariPreset()" style="width:100%;padding:10px;border-radius:10px;background:rgba(200,16,46,.08);color:var(--red);border:1px solid rgba(200,16,46,.25);font-size:12px;font-weight:700;cursor:pointer;margin-top:8px">&#8635; Ripristina default</button>'
+    + '<div id="orari-ok" class="smsg" style="margin-top:8px">✓ Salvato!</div>'
+    + '<button onclick="resetOrariPreset()" style="width:100%;padding:10px;border-radius:10px;background:rgba(200,16,46,.08);color:var(--red);border:1px solid rgba(200,16,46,.25);font-size:12px;font-weight:700;cursor:pointer;margin-top:8px">↻ Ripristina default</button>'
     + '</div></div>'
     + '<div class="m3-row tap" onclick="apriTurniCustom()">'
-    + '<div class="m3-row-ico" style="background:rgba(255,159,67,.12)">&#128197;</div>'
+    + '<div class="m3-row-ico" style="background:rgba(255,159,67,.12)">📅</div>'
     + '<div class="m3-row-body"><div class="m3-row-title">Turni Personalizzati</div><div class="m3-row-sub">Crea e gestisci tipi di turno custom</div></div>'
-    + '<div class="m3-row-right">&#8250;</div></div>'
+    + '<div class="m3-row-right">›</div></div>'
     + '</div>';
   return h;
 }
 // TRASFERIMENTO MILITARE in Menu Comando — il Comandante sposta un dipendente
 // (form spostato da Impostazioni > Opzioni Avanzate)
 function _cmdTrasferimentoHtml(){
-  var h = '<div class="m3-list-group-title">&#128680; Trasferimento militare</div>';
+  var h = '<div class="m3-list-group-title">🚨 Trasferimento militare</div>';
   h += '<div class="m3-list-group">'
-    + '<div style="padding:12px 14px;font-size:12px;color:var(--txt2);line-height:1.6">Seleziona il militare e la nuova struttura: al raggiungimento il Comandante del reparto destinatario ne curer&#224; l\'approvazione.</div>'
+    + '<div style="padding:12px 14px;font-size:12px;color:var(--txt2);line-height:1.6">Seleziona il militare e la nuova struttura: al raggiungimento il Comandante del reparto destinatario ne curerà l\'approvazione.</div>'
     + '<div id="cmd-trasf" style="padding:0 14px 14px">'
     + '<div class="fg" style="margin-bottom:8px"><label>Militare</label>'
     + '<select class="fc" id="trasf-militare"><option value="">Caricamento...</option></select></div>'
@@ -1299,7 +1299,7 @@ function _cmdTrasferimentoHtml(){
     + '<button type="button" class="tipo-rep-btn" data-val="gruppo" onclick="selTipoRep(\'trasf\',\'gruppo\',this)">Gruppo</button>'
     + '<button type="button" class="tipo-rep-btn" data-val="legione" onclick="selTipoRep(\'trasf\',\'legione\',this)">Legione</button>'
     + '</div><input type="hidden" id="trasf-tipo-struttura" value=""></div>'
-    + '<div class="fg" style="margin-bottom:8px"><label>Specialit&#224;</label>'
+    + '<div class="fg" style="margin-bottom:8px"><label>Specialità</label>'
     + '<div id="trasf-spec-btns" style="display:flex;flex-wrap:wrap;gap:6px">'
     + '<button type="button" class="tipo-rep-btn" data-val="territoriale" onclick="selSpecRep(\'trasf\',\'territoriale\',this)">Territoriale</button>'
     + '<button type="button" class="tipo-rep-btn" data-val="forestale" onclick="selSpecRep(\'trasf\',\'forestale\',this)">Forestale</button>'
@@ -1312,11 +1312,11 @@ function _cmdTrasferimentoHtml(){
     + '<button type="button" class="tipo-rep-btn" data-val="nas" onclick="selSpecRep(\'trasf\',\'nas\',this)">N.A.S.</button>'
     + '<button type="button" class="tipo-rep-btn" data-val="nit" onclick="selSpecRep(\'trasf\',\'nit\',this)">N.I.T.</button>'
     + '</div><input type="hidden" id="trasf-specialita" value=""></div>'
-    + '<div class="fg" style="margin-bottom:8px"><label>Sede / Citt&#224;</label><input type="text" class="fc" id="trasf-sede" placeholder="Es. Varazze" oninput="aggiornaTrasferimentoId()"></div>'
+    + '<div class="fg" style="margin-bottom:8px"><label>Sede / Città</label><input type="text" class="fc" id="trasf-sede" placeholder="Es. Varazze" oninput="aggiornaTrasferimentoId()"></div>'
     + '<div style="margin-bottom:10px;padding:8px 12px;background:rgba(41,121,255,.07);border-radius:10px;border:1px solid rgba(41,121,255,.15)">'
     + '<div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Nuovo Reparto</div>'
-    + '<div id="trasf-reparto-preview" style="font-size:13px;font-weight:700;color:var(--blue);font-family:monospace">&#8212;</div></div>'
-    + '<button class="btn btn-p btn-sm" style="width:100%" onclick="comandoTrasferisciMilitare()">&#10132; Trasferisci militare</button>'
+    + '<div id="trasf-reparto-preview" style="font-size:13px;font-weight:700;color:var(--blue);font-family:monospace">—</div></div>'
+    + '<button class="btn btn-p btn-sm" style="width:100%" onclick="comandoTrasferisciMilitare()">➔ Trasferisci militare</button>'
     + '</div></div>';
   return h;
 }
@@ -1438,12 +1438,12 @@ function _avvisiChipLettura(a, isEditor){
   var letti = _avvisiLettoDa(a);
   if(isEditor){
     var tot = _avvisiMembri().length;
-    return '<div class="av-letti' + (letti ? ' has' : '') + '">&#10003; Letto da ' + letti + (tot ? ' / ' + tot : '') + '</div>';
+    return '<div class="av-letti' + (letti ? ' has' : '') + '">✓ Letto da ' + letti + (tot ? ' / ' + tot : '') + '</div>';
   }
   if(_avvisiLetto(a)){
-    return '<div class="av-ack is-done">&#10003; Lettura confermata</div>';
+    return '<div class="av-ack is-done">✓ Lettura confermata</div>';
   }
-  return '<button class="av-ack" onclick="_bachecaConfermaLettura(\'' + a.id + '\')">&#10003; Confermo di aver letto</button>';
+  return '<button class="av-ack" onclick="_bachecaConfermaLettura(\'' + a.id + '\')">✓ Confermo di aver letto</button>';
 }
 // Registra la conferma di lettura dell'utente corrente (solo lettura:
 // non modifica alcun altro campo dell'avviso).
@@ -1480,7 +1480,7 @@ function apriBacheca(id){
   var u = document.getElementById('bc-urgente'); if(u) u.checked = a ? !!a.urgente : false;
   var d = document.getElementById('bc-scade');  if(d) d.value = (a && a.scade) ? a.scade : '';
   var e = document.getElementById('bc-err');    if(e) e.style.display = 'none';
-  var tt = document.getElementById('bc-title'); if(tt) tt.innerHTML = a ? '&#9998; Modifica avviso' : '&#128227; Nuovo avviso';
+  var tt = document.getElementById('bc-title'); if(tt) tt.innerHTML = a ? '✎ Modifica avviso' : '📣 Nuovo avviso';
   openM('m-bacheca');
 }
 // Salva (crea o aggiorna) l'avviso: cache locale + Firestore + notifiche
@@ -1567,22 +1567,22 @@ function _renderBachecaComando(){
   var arr = _bachecaAttivi();
   var html = arr.map(function(a){
     var badge = a.urgente
-      ? '<span style="font-size:9px;font-weight:800;color:var(--red);background:rgba(200,16,46,.16);border-radius:6px;padding:2px 6px">&#128680; URGENTE</span>'
-      : '<span style="font-size:9px;font-weight:800;color:var(--blue);background:rgba(66,133,244,.16);border-radius:6px;padding:2px 6px">&#128227; AVVISO</span>';
+      ? '<span style="font-size:9px;font-weight:800;color:var(--red);background:rgba(200,16,46,.16);border-radius:6px;padding:2px 6px">🚨 URGENTE</span>'
+      : '<span style="font-size:9px;font-weight:800;color:var(--blue);background:rgba(66,133,244,.16);border-radius:6px;padding:2px 6px">📣 AVVISO</span>';
     var scad = a.scade
-      ? '<span style="font-size:9px;font-weight:800;color:var(--gold);background:rgba(212,175,55,.16);border-radius:6px;padding:2px 6px">&#128197; fino al ' + fmtD(a.scade) + '</span>'
+      ? '<span style="font-size:9px;font-weight:800;color:var(--gold);background:rgba(212,175,55,.16);border-radius:6px;padding:2px 6px">📅 fino al ' + fmtD(a.scade) + '</span>'
       : '';
     var _nL = _avvisiLettoDa(a), _nTot = _avvisiMembri().length;
-    var lettChip = '<span style="font-size:9px;font-weight:800;color:' + (_nL ? 'var(--green)' : 'var(--txt3)') + ';background:' + (_nL ? 'rgba(6,214,160,.14)' : 'var(--surface-tint)') + ';border-radius:6px;padding:2px 6px">&#10003; letto da ' + _nL + (_nTot ? '/' + _nTot : '') + '</span>';
+    var lettChip = '<span style="font-size:9px;font-weight:800;color:' + (_nL ? 'var(--green)' : 'var(--txt3)') + ';background:' + (_nL ? 'rgba(6,214,160,.14)' : 'var(--surface-tint)') + ';border-radius:6px;padding:2px 6px">✓ letto da ' + _nL + (_nTot ? '/' + _nTot : '') + '</span>';
     return '<div class="m3-row" style="padding:11px 14px;align-items:flex-start">'
-      + '<div class="m3-row-ico" style="background:rgba(212,175,55,.12)">&#128227;</div>'
+      + '<div class="m3-row-ico" style="background:rgba(212,175,55,.12)">📣</div>'
       + '<div class="m3-row-body"><div class="m3-row-title">' + ctEsc(a.titolo) + '</div>'
       + (a.testo ? '<div class="m3-row-sub">' + ctEsc(a.testo) + '</div>' : '')
       + '<div style="margin-top:5px;display:flex;gap:5px;align-items:center;flex-wrap:wrap">' + badge + scad + lettChip
       + '<span style="font-size:9px;color:var(--txt3)">da ' + ctEsc(a.da || 'Comando') + '</span></div>'
       + '<div style="display:flex;gap:8px;margin-top:8px">'
-      + '<button class="btn btn-sm btn-g" style="font-size:10px;padding:3px 8px" onclick="apriBacheca(\'' + a.id + '\')">&#9998; Modifica</button>'
-      + '<button class="btn btn-sm" style="font-size:10px;padding:3px 8px;background:rgba(200,16,46,.1);color:var(--red);border-color:rgba(200,16,46,.3)" onclick="delBacheca(\'' + a.id + '\')">&#128465; Elimina</button>'
+      + '<button class="btn btn-sm btn-g" style="font-size:10px;padding:3px 8px" onclick="apriBacheca(\'' + a.id + '\')">✎ Modifica</button>'
+      + '<button class="btn btn-sm" style="font-size:10px;padding:3px 8px;background:rgba(200,16,46,.1);color:var(--red);border-color:rgba(200,16,46,.3)" onclick="delBacheca(\'' + a.id + '\')">🗑 Elimina</button>'
       + '</div></div></div>';
   }).join('');
   el.innerHTML = html || '<div style="padding:10px;color:var(--txt3);font-size:12px">Nessun avviso attivo</div>';
@@ -1596,9 +1596,9 @@ function renderBachecaDash(){
   el.style.display = 'block';
   var cmd = _isAvvisiEditor();
   el.innerHTML = '<div style="margin-top:14px">'
-    + '<div class="m3-list-group-title" style="margin:0 0 8px">&#128227; Bacheca reparto</div>'
+    + '<div class="m3-list-group-title" style="margin:0 0 8px">📣 Bacheca reparto</div>'
     + arr.slice(0, 3).map(function(a){
-        var b = a.urgente ? '<span style="font-size:9px;font-weight:800;color:var(--red);background:rgba(200,16,46,.16);border-radius:6px;padding:2px 6px">&#128680; URGENTE</span>' : '';
+        var b = a.urgente ? '<span style="font-size:9px;font-weight:800;color:var(--red);background:rgba(200,16,46,.16);border-radius:6px;padding:2px 6px">🚨 URGENTE</span>' : '';
         return '<div style="background:' + (a.urgente ? 'rgba(200,16,46,.08)' : 'var(--bg2)') + ';border:1px solid ' + (a.urgente ? 'rgba(200,16,46,.3)' : 'var(--border)') + ';border-radius:14px;padding:11px 14px;margin-bottom:8px">'
           + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="font-size:13px;font-weight:800;color:var(--txt)">' + ctEsc(a.titolo) + '</span>' + b + '</div>'
           + (a.testo ? '<div style="font-size:12px;color:var(--txt2);margin-top:4px">' + ctEsc(a.testo) + '</div>' : '')
@@ -1648,15 +1648,15 @@ function renderAvvisiAgenda(){
   el.innerHTML = arr.map(function(a){
     var urgente = !!a.urgente;
     var badge = urgente
-      ? '<span style="font-size:9px;font-weight:800;color:var(--red);background:rgba(200,16,46,.16);border-radius:6px;padding:2px 6px">&#128680; URGENTE</span>'
-      : '<span style="font-size:9px;font-weight:800;color:var(--gold);background:rgba(212,175,55,.16);border-radius:6px;padding:2px 6px">&#128227; DISPOSIZIONE</span>';
+      ? '<span style="font-size:9px;font-weight:800;color:var(--red);background:rgba(200,16,46,.16);border-radius:6px;padding:2px 6px">🚨 URGENTE</span>'
+      : '<span style="font-size:9px;font-weight:800;color:var(--gold);background:rgba(212,175,55,.16);border-radius:6px;padding:2px 6px">📣 DISPOSIZIONE</span>';
     var scad = a.scade
-      ? '<span style="font-size:9px;font-weight:800;color:var(--txt2);background:var(--surface-tint);border-radius:6px;padding:2px 6px">&#128197; fino al ' + fmtD(a.scade) + '</span>'
+      ? '<span style="font-size:9px;font-weight:800;color:var(--txt2);background:var(--surface-tint);border-radius:6px;padding:2px 6px">📅 fino al ' + fmtD(a.scade) + '</span>'
       : '';
     var azioni = cmd
       ? '<div style="display:flex;gap:8px;margin-top:8px">'
-        + '<button class="btn btn-sm btn-g" style="font-size:10px;padding:3px 8px" onclick="apriBacheca(\'' + a.id + '\')">&#9998; Modifica</button>'
-        + '<button class="btn btn-sm" style="font-size:10px;padding:3px 8px;background:rgba(200,16,46,.1);color:var(--red);border-color:rgba(200,16,46,.3)" onclick="delBacheca(\'' + a.id + '\')">&#128465; Elimina</button>'
+        + '<button class="btn btn-sm btn-g" style="font-size:10px;padding:3px 8px" onclick="apriBacheca(\'' + a.id + '\')">✎ Modifica</button>'
+        + '<button class="btn btn-sm" style="font-size:10px;padding:3px 8px;background:rgba(200,16,46,.1);color:var(--red);border-color:rgba(200,16,46,.3)" onclick="delBacheca(\'' + a.id + '\')">🗑 Elimina</button>'
         + '</div>'
       : '';
     // Stato/azione di lettura: conteggio per il Comando, conferma per gli Addetti
@@ -1666,7 +1666,7 @@ function renderAvvisiAgenda(){
       + '<span style="font-size:14px;font-weight:800;color:var(--txt)">' + ctEsc(a.titolo) + '</span>' + badge + '</div>'
       + (a.testo ? '<div style="font-size:12px;color:var(--txt2);line-height:1.5">' + ctEsc(a.testo) + '</div>' : '')
       + '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px">'
-      + '<span style="font-size:10px;color:var(--txt3)">&#128100; da ' + ctEsc(a.da || 'Comando') + '</span>' + scad + '</div>'
+      + '<span style="font-size:10px;color:var(--txt3)">👤 da ' + ctEsc(a.da || 'Comando') + '</span>' + scad + '</div>'
       + azioni
       + lettura
       + '</div>';
@@ -1696,7 +1696,7 @@ function _renderSituazioneComando(){
   var html = '<div style="font-size:12px;color:var(--txt2);margin-bottom:6px">Copertura dei prossimi 7 giorni — solo turni di servizio (M/ML/P/PL/N/S).</div>';
   html += giorni.map(function(g){
     var corpo = g.scoperto
-      ? '<span style="color:var(--red);font-weight:800">&#9888; SCOPERTO</span>'
+      ? '<span style="color:var(--red);font-weight:800">⚠ SCOPERTO</span>'
       : g.turni.map(function(t){ return '<span style="font-size:10px;font-weight:700;background:rgba(66,133,244,.14);color:var(--blue);border-radius:6px;padding:2px 6px">' + ctEsc(t.nome) + ' (' + ctEsc(t.codice) + ')</span>'; }).join(' ');
     return '<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-top:1px solid var(--border)">'
       + '<span style="font-size:11px;font-weight:800;color:' + (g.scoperto ? 'var(--red)' : (g.oggi ? 'var(--gold)' : 'var(--txt2)')) + ';min-width:74px">' + (g.oggi ? 'Oggi ' : '') + fmtD(g.data) + '</span>'
@@ -1704,7 +1704,7 @@ function _renderSituazioneComando(){
       + '</div>';
   }).join('');
   html += '<div style="font-size:12px;margin-top:8px;font-weight:700;color:' + (scoperti ? 'var(--red)' : 'var(--green)') + '">'
-    + (scoperti ? '&#9888; ' + scoperti + ' giorno/i scoperto/i nei prossimi 7 giorni' : '&#10004; Copertura completa per i prossimi 7 giorni')
+    + (scoperti ? '⚠ ' + scoperti + ' giorno/i scoperto/i nei prossimi 7 giorni' : '✔ Copertura completa per i prossimi 7 giorni')
     + '</div>';
   el.innerHTML = html;
 }
@@ -1753,7 +1753,7 @@ function _cambioTurnoLog(r, da, azione, dettaglio){
 }
 function _cambioTurnoNotifica(uid, titolo, sub, ico, extra){
   if(!uid) return;
-  var n = { id: Date.now()+Math.random(), tipo:'turni', titolo:titolo, sub:sub||'', ico:ico||'&#128257;', colore:'var(--blue)', ts:new Date().toISOString(), letta:false };
+  var n = { id: Date.now()+Math.random(), tipo:'turni', titolo:titolo, sub:sub||'', ico:ico||'🔁', colore:'var(--blue)', ts:new Date().toISOString(), letta:false };
   if(extra && typeof extra === 'object'){ Object.keys(extra).forEach(function(k){ n[k] = extra[k]; }); }
   var sess = lsG('ct_session', null);
   if(sess && sess.userId && String(sess.userId)===String(uid)){
@@ -1828,7 +1828,7 @@ function fsmCambioTurno(rid, azione){
       r.rispostaCollega = { esito:'rifiutata', da:myUid, il:new Date().toISOString() };
       _cambioTurnoLog(r, myUid, 'collega_rifiuta', '');
       _cambioTurnoSalva(r);
-      _cambioTurnoNotifica(r.richiedenteUid, 'Cambio turno rifiutato dal collega', 'Il collega ha rifiutato lo scambio di turno.', '&#10005;');
+      _cambioTurnoNotifica(r.richiedenteUid, 'Cambio turno rifiutato dal collega', 'Il collega ha rifiutato lo scambio di turno.', '✕');
       toast('Richiesta rifiutata','ok');
       return;
     }
@@ -1836,11 +1836,11 @@ function fsmCambioTurno(rid, azione){
     r.rispostaCollega = { esito:'accettata', da:myUid, il:new Date().toISOString() };
     _cambioTurnoLog(r, myUid, 'collega_accetta', '');
     _cambioTurnoSalva(r);
-    _cambioTurnoNotifica(r.richiedenteUid, 'Cambio turno accettato dal collega', 'In attesa di approvazione del comando.', '&#10003;');
+    _cambioTurnoNotifica(r.richiedenteUid, 'Cambio turno accettato dal collega', 'In attesa di approvazione del comando.', '✓');
     var cmd = lsG('ct_users', []).find(function(u){ return (u.ruolo==='comandante'||u.ruolo==='vice') && u.stato==='approved'; });
     if(cmd && cmd.uid){
       _cambioTurnoNotifica(cmd.uid, 'Richiesta cambio turno da approvare',
-        _nomeUtente(r.richiedenteUid, 'Un militare') + ' e ' + _nomeUtente(r.versoUid, 'un collega') + ' chiedono lo scambio.', '&#128081;');
+        _nomeUtente(r.richiedenteUid, 'Un militare') + ' e ' + _nomeUtente(r.versoUid, 'un collega') + ' chiedono lo scambio.', '👑');
     }
     toast('Collega ha accettato: ora serve l\'approvazione del comando','ok');
     return;
@@ -1854,8 +1854,8 @@ function fsmCambioTurno(rid, azione){
       r.rispostaComando = { esito:'rifiutata', da:myUid, il:new Date().toISOString() };
       _cambioTurnoLog(r, myUid, 'comando_rifiuta', '');
       _cambioTurnoSalva(r);
-      _cambioTurnoNotifica(r.richiedenteUid, 'Cambio turno rifiutato dal comando', 'Il Comandante ha rifiutato lo scambio di turni.', '&#10005;');
-      _cambioTurnoNotifica(r.versoUid, 'Cambio turno rifiutato dal comando', 'Il Comandante ha rifiutato lo scambio di turni.', '&#10005;');
+      _cambioTurnoNotifica(r.richiedenteUid, 'Cambio turno rifiutato dal comando', 'Il Comandante ha rifiutato lo scambio di turni.', '✕');
+      _cambioTurnoNotifica(r.versoUid, 'Cambio turno rifiutato dal comando', 'Il Comandante ha rifiutato lo scambio di turni.', '✕');
       toast('Richiesta rifiutata','ok');
       return;
     }
@@ -1874,8 +1874,8 @@ function fsmCambioTurno(rid, azione){
     r.rispostaComando = { esito:'approvata', da:myUid, il:new Date().toISOString() };
     _cambioTurnoLog(r, myUid, 'comando_approva', 'swap eseguito');
     _cambioTurnoSalva(r);
-    _cambioTurnoNotifica(r.richiedenteUid, 'Cambio turno APPROVATO', 'Il tuo scambio di turno è stato eseguito.', '&#10003;');
-    _cambioTurnoNotifica(r.versoUid, 'Cambio turno APPROVATO', 'Il tuo scambio di turno è stato eseguito.', '&#10003;');
+    _cambioTurnoNotifica(r.richiedenteUid, 'Cambio turno APPROVATO', 'Il tuo scambio di turno è stato eseguito.', '✓');
+    _cambioTurnoNotifica(r.versoUid, 'Cambio turno APPROVATO', 'Il tuo scambio di turno è stato eseguito.', '✓');
     if(typeof renderTurni === 'function') renderTurni();
     if(typeof renderOggi === 'function') renderOggi();
     if(typeof renderCal === 'function') renderCal();
@@ -1931,7 +1931,7 @@ function _renderAssegnaList(kind){
   }
   var html = '<button type="button" class="tipo-rep-btn' + (st.tutto ? ' sel' : '') + '" '
     + 'style="width:100%;text-align:left;margin-bottom:6px" onclick="assegnaTutto(\'' + kind + '\')">'
-    + '&#128101; Tutto il reparto</button>';
+    + '👥 Tutto il reparto</button>';
   html += militari.map(function(m){
     var on = !st.tutto && st.uids.indexOf(m.uid) !== -1;
     return '<label style="display:flex;align-items:center;gap:9px;padding:9px 10px;background:var(--bg2);border:1px solid '
@@ -2027,7 +2027,7 @@ function _assegnaNotifica(item, kind){
   if(uids.indexOf('tutto') !== -1) uids = _assegnaMilitari().map(function(m){ return m.uid; });
   uids = uids.filter(function(u){ return u && u !== 'tutto'; });
   uids.forEach(function(uid){
-    _cambioTurnoNotifica(uid, tit, sub, '&#128287;');
+    _cambioTurnoNotifica(uid, tit, sub, '🔟');
     if(window.FirebaseModule && typeof window.FirebaseModule.schedulePush === 'function'){
       try {
         window.FirebaseModule.schedulePush(uid, 'C-Turni — ' + tit, sub,
@@ -2135,13 +2135,13 @@ function renderCambioTurnoModal(){
   var s = window._cambioSel;
   var miei = _cambioMieiTurni();
   var colleghi = _cambioColleghiFuturi();
-  // Gli onclick usano l'entit&#224; HTML &#39; (apice) per evitare escape nei nomi
+  // Gli onclick usano l'entità HTML &#39; (apice) per evitare escape nei nomi
   function chip(label, on, fnCall){
     return '<button type="button" class="tipo-rep-btn' + (on ? ' sel' : '') + '" '
       + 'style="flex:none;text-align:left;font-size:12px" onclick="' + fnCall + '">' + label + '</button>';
   }
   var html = '';
-  html += '<div class="fg" style="margin-bottom:0"><label>&#128257; 1. Il tuo turno (da scambiare)</label>'
+  html += '<div class="fg" style="margin-bottom:0"><label>🔁 1. Il tuo turno (da scambiare)</label>'
     + '<div style="display:flex;flex-wrap:wrap;gap:6px">'
     + (miei.length
         ? miei.map(function(t){
@@ -2150,7 +2150,7 @@ function renderCambioTurnoModal(){
           }).join('')
         : '<div style="font-size:12px;color:var(--txt3)">Nessun turno di servizio futuro assegnato a te.</div>')
     + '</div></div>';
-  html += '<div class="fg" style="margin-bottom:0"><label>&#128101; 2. Il collega</label>'
+  html += '<div class="fg" style="margin-bottom:0"><label>👥 2. Il collega</label>'
     + '<div style="display:flex;flex-wrap:wrap;gap:6px">'
     + (colleghi.length
         ? colleghi.map(function(c){
@@ -2162,7 +2162,7 @@ function renderCambioTurnoModal(){
     + '</div></div>';
   if(s.versoPid){
     var suoi = _cambioTurniCollega(s.versoPid);
-    html += '<div class="fg" style="margin-bottom:0"><label>&#128257; 3. Turno del collega (con cui scambiare)</label>'
+    html += '<div class="fg" style="margin-bottom:0"><label>🔁 3. Turno del collega (con cui scambiare)</label>'
       + '<div style="display:flex;flex-wrap:wrap;gap:6px">'
       + (suoi.length
           ? suoi.map(function(t){
@@ -2183,9 +2183,9 @@ function renderCambioTurnoModal(){
   html += '<div style="font-size:12px;color:var(--txt2);background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px">'
     + (pronto
         ? (window._cambioConfermatoVoce
-            ? '&#9989; Pronto: il collega è già stato sentito a voce; la richiesta andrà al comando.'
-            : '&#9989; Pronto: prima accetta il collega, poi approva il comando.')
-        : '&#128101; Seleziona il tuo turno, il collega e il suo turno per continuare.')
+            ? '✅ Pronto: il collega è già stato sentito a voce; la richiesta andrà al comando.'
+            : '✅ Pronto: prima accetta il collega, poi approva il comando.')
+        : '👥 Seleziona il tuo turno, il collega e il suo turno per continuare.')
     + '</div>';
   body.innerHTML = html;
 }
@@ -2239,9 +2239,9 @@ function creaRichiestaCambio(){
   if(confermatoVoce){
     var cmd = lsG('ct_users', []).find(function(u){ return (u.ruolo==='comandante'||u.ruolo==='vice'||u.ruolo==='superadmin') && u.stato==='approved'; });
     if(cmd && cmd.uid) _cambioTurnoNotifica(cmd.uid, 'Cambio turno da approvare',
-      nomeMe + ' dichiara di avere già sentito a voce ' + collega.nome + '.', '&#128081;');
+      nomeMe + ' dichiara di avere già sentito a voce ' + collega.nome + '.', '👑');
   } else {
-    _cambioTurnoNotifica(r.versoUid, 'Richiesta cambio turno', sub, '&#128257;',
+    _cambioTurnoNotifica(r.versoUid, 'Richiesta cambio turno', sub, '🔁',
       { azione: 'approva_richiesta', richiestaId: r.id });
   }
   if(window.FirebaseModule && typeof window.FirebaseModule.schedulePush === 'function'){
@@ -2278,7 +2278,7 @@ function _renderMieRichieste(){
   chiuse = chiuse.slice(0, 5);
   var statoLbl = {
     attesa_collega: 'In attesa del collega', attesa_comando: 'In attesa del comando',
-    approvata: 'Approvata &#10003;', rifiutata_collega: 'Rifiutata dal collega',
+    approvata: 'Approvata ✓', rifiutata_collega: 'Rifiutata dal collega',
     rifiutata_comando: 'Rifiutata dal comando', scaduta: 'Scaduta', annullata: 'Annullata'
   };
   function riga(r){
@@ -2289,17 +2289,17 @@ function _renderMieRichieste(){
     var h = '<div style="padding:11px 14px;border-top:1px solid var(--border)">'
       + '<div style="font-size:13px;font-weight:700">' + ctEsc(String(altra)) + '</div>'
       + '<div style="font-size:12px;color:var(--txt2);margin-top:3px">'
-      + ctEsc(_fmtTurnoT(t1)) + ' &#8596; ' + ctEsc(_fmtTurnoT(t2)) + '</div>'
+      + ctEsc(_fmtTurnoT(t1)) + ' ↔ ' + ctEsc(_fmtTurnoT(t2)) + '</div>'
       + '<div style="font-size:11px;color:var(--txt3);margin-top:3px">' + (statoLbl[r.stato] || ctEsc(String(r.stato))) + '</div>';
     if(!mio && r.stato === 'attesa_collega'){
       h += '<div style="display:flex;gap:8px;margin-top:8px">'
-        + '<button class="btn btn-p btn-sm" style="flex:1;font-size:11px" onclick="fsmCambioTurno(&#39;' + r.id + '&#39;,&#39;collega_accetta&#39;)">&#10003; Accetta</button>'
-        + '<button class="btn btn-sm" style="flex:1;font-size:11px;background:rgba(200,16,46,.1);color:var(--red);border-color:rgba(200,16,46,.3)" onclick="fsmCambioTurno(&#39;' + r.id + '&#39;,&#39;collega_rifiuta&#39;)">&#10005; Rifiuta</button>'
+        + '<button class="btn btn-p btn-sm" style="flex:1;font-size:11px" onclick="fsmCambioTurno(&#39;' + r.id + '&#39;,&#39;collega_accetta&#39;)">✓ Accetta</button>'
+        + '<button class="btn btn-sm" style="flex:1;font-size:11px;background:rgba(200,16,46,.1);color:var(--red);border-color:rgba(200,16,46,.3)" onclick="fsmCambioTurno(&#39;' + r.id + '&#39;,&#39;collega_rifiuta&#39;)">✕ Rifiuta</button>'
         + '</div>';
     }
     if(mio && r.stato === 'attesa_collega'){
       h += '<div style="display:flex;gap:8px;margin-top:8px">'
-        + '<button class="btn btn-g btn-sm" style="flex:1;font-size:11px" onclick="annullaRichiestaCambio(&#39;' + r.id + '&#39;)">&#10006; Annulla</button>'
+        + '<button class="btn btn-g btn-sm" style="flex:1;font-size:11px" onclick="annullaRichiestaCambio(&#39;' + r.id + '&#39;)">✖ Annulla</button>'
         + '</div>';
     }
     return h + '</div>';
@@ -2325,7 +2325,7 @@ function annullaRichiestaCambio(rid){
   r.stato = 'annullata';
   _cambioTurnoLog(r, me.uid || me.id, 'annulla', '');
   _cambioTurnoSalva(r);
-  _cambioTurnoNotifica(r.versoUid, 'Richiesta cambio turno annullata', 'Il richiedente ha annullato la richiesta.', '&#10006;');
+  _cambioTurnoNotifica(r.versoUid, 'Richiesta cambio turno annullata', 'Il richiedente ha annullato la richiesta.', '✖');
   toast('Richiesta annullata','ok');
   _aggiornaBadgeComando();
 }
@@ -2687,7 +2687,7 @@ function aggiungiRimanenzaAnnoUtente(){
   caricaPoolLicenzeMe();
   caricaSaldoFerie();
   _syncFerieFirebase();
-  toast("&#128197; Rimanenza "+anno+": "+giorni+" giorni salvata","ok");
+  toast("📅 Rimanenza "+anno+": "+giorni+" giorni salvata","ok");
 }
 function rimuoviRimanenzaAnno(pid,anno){
   ctConfirm('Rimuovere la rimanenza per l\'anno '+anno+'?', {title:'Rimuovi Rimanenza', ico:'🗑️', ok:'Rimuovi', danger:true}).then(function(ok){
@@ -2739,7 +2739,7 @@ function caricaPoolLicenzeMe(){
       +'<span style="font-size:13px;font-weight:700;color:'+col+'">'+x.anno+'</span>'
       +'<span style="font-size:11px;color:var(--txt2);margin-left:6px">'+x.giorni+' gg rimanenti</span>'
       +badge+'</div>'
-      +'<button onclick="rimuoviRimanenzaAnno('+p.id+','+x.anno+')" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:15px;padding:2px 4px;appearance:none;-webkit-appearance:none">&#128465;</button>'
+      +'<button onclick="rimuoviRimanenzaAnno('+p.id+','+x.anno+')" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:15px;padding:2px 4px;appearance:none;-webkit-appearance:none">🗑</button>'
       +'</div>';
   }).join("");
 }
@@ -2831,17 +2831,17 @@ function renderFeriePool(){
     var pct=Math.round((x.giorni/maxGg)*100);
     var badge=isOld
       ?'<span style="font-size:9px;background:rgba(212,175,55,.15);color:var(--gold);padding:1px 7px;border-radius:10px;font-weight:700;margin-left:6px">PREC.</span>'
-      :'<span style="font-size:9px;background:rgba(0,200,83,.12);color:var(--green);padding:1px 7px;border-radius:10px;font-weight:700;margin-left:6px">&#10004; ATTUALE</span>';
+      :'<span style="font-size:9px;background:rgba(0,200,83,.12);color:var(--green);padding:1px 7px;border-radius:10px;font-weight:700;margin-left:6px">✔ ATTUALE</span>';
     return '<div style="background:var(--bg2);border-radius:12px;margin-bottom:8px;border:1px solid var(--border);overflow:hidden">'
       +'<div style="display:flex;align-items:center;gap:10px;padding:11px 13px;cursor:pointer" onclick="apriModificaAnno('+x.anno+')">'
       +'<div style="flex:1;min-width:0">'
       +'<div style="display:flex;align-items:center;flex-wrap:wrap;margin-bottom:2px">'
-      +'<span style="font-size:13px;font-weight:800;color:var(--txt)">&#128197; '+x.anno+'</span>'+badge+'</div>'
+      +'<span style="font-size:13px;font-weight:800;color:var(--txt)">📅 '+x.anno+'</span>'+badge+'</div>'
       +'<div style="font-size:30px;font-weight:900;color:'+col+';line-height:1.1">'+x.giorni
       +'<span style="font-size:12px;font-weight:400;color:var(--txt2);margin-left:5px">giorni disponibili</span></div>'
       +'</div>'
       +'<button onclick="event.stopPropagation();eliminaAnnoPool('+x.anno+')" '
-      +'style="background:rgba(200,16,46,.1);border:1px solid rgba(200,16,46,.25);color:var(--red);border-radius:9px;padding:7px 11px;cursor:pointer;font-size:14px;appearance:none;-webkit-appearance:none;flex-shrink:0">&#128465;</button>'
+      +'style="background:rgba(200,16,46,.1);border:1px solid rgba(200,16,46,.25);color:var(--red);border-radius:9px;padding:7px 11px;cursor:pointer;font-size:14px;appearance:none;-webkit-appearance:none;flex-shrink:0">🗑</button>'
       +'</div>'
       +'<div style="height:5px;background:var(--bg);margin:0 13px 10px;border-radius:3px;overflow:hidden">'
       +'<div style="height:5px;width:'+pct+'%;background:'+col+';border-radius:3px;transition:width .5s ease"></div>'
@@ -2858,14 +2858,14 @@ function apriAggiungiAnno(){
     '<div id="m-aggiungi-anno-bs" style="display:flex;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99999;align-items:flex-end;justify-content:center;backdrop-filter:blur(3px)">'
     +'<div style="background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:520px;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 32px rgba(0,0,0,.4)">'
     +'<div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 16px"></div>'
-    +'<div style="font-size:16px;font-weight:800;margin-bottom:16px">&#128197; Aggiungi anno licenze</div>'
+    +'<div style="font-size:16px;font-weight:800;margin-bottom:16px">📅 Aggiungi anno licenze</div>'
     +'<div class="fg"><label>Anno</label>'
     +'<input type="number" id="aal-year" class="fc" value="'+annoC+'" min="2000" max="2100"></div>'
     +'<div class="fg"><label>Giorni disponibili</label>'
     +'<input type="number" id="aal-giorni" class="fc" value="30" min="0" max="365"></div>'
     +'<div style="display:flex;gap:10px;margin-top:4px">'
     +'<button class="btn btn-g" style="flex:1" onclick="document.getElementById(\'m-aggiungi-anno-bs\').remove()">Annulla</button>'
-    +'<button class="btn btn-p" style="flex:1" onclick="_confermaAggiungiAnno()">&#10133; Aggiungi</button>'
+    +'<button class="btn btn-p" style="flex:1" onclick="_confermaAggiungiAnno()">➕ Aggiungi</button>'
     +'</div></div></div>';
   document.body.insertAdjacentHTML('beforeend',html);
 }
@@ -2933,7 +2933,7 @@ function salvaAnnoEdit(){
   saveFeriePool(me.id,pool);
   renderFeriePool();
   chiudiPopupAnno();
-  toast("&#128197; Anno "+_annoEditCorrente+": "+_giorniEditTemp+" giorni salvati","ok");
+  toast("📅 Anno "+_annoEditCorrente+": "+_giorniEditTemp+" giorni salvati","ok");
 }
 
 function eliminaAnnoPool(anno){
@@ -2941,7 +2941,7 @@ function eliminaAnnoPool(anno){
   var pool=getFeriePool(me.id).filter(function(x){return x.anno!==anno;});
   saveFeriePool(me.id,pool);
   renderFeriePool();
-  toast("&#128197; Anno "+anno+" eliminato","ok");
+  toast("📅 Anno "+anno+" eliminato","ok");
 }
 
 function apriScalaManuale(){
@@ -2958,7 +2958,7 @@ function apriScalaManuale(){
     '<div id="m-scala-manuale" style="display:flex;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:10000;align-items:flex-end;justify-content:center;backdrop-filter:blur(3px)">'
     +'<div style="background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:520px;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 32px rgba(0,0,0,.4)">'
     +'<div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 16px"></div>'
-    +'<div style="font-size:16px;font-weight:800;margin-bottom:4px">&#8722; Scala giorni manualmente</div>'
+    +'<div style="font-size:16px;font-weight:800;margin-bottom:4px">− Scala giorni manualmente</div>'
     +'<div style="font-size:11px;color:var(--txt2);margin-bottom:16px">Usa questa funzione per turni precedenti all\'iscrizione o correzioni manuali.</div>'
     +'<div class="fg"><label>Anno da scalare</label>'
     +'<select id="sm-anno" class="fc">'+opzioni+'</select></div>'
@@ -2968,7 +2968,7 @@ function apriScalaManuale(){
     +'<input type="text" id="sm-motivo" class="fc" placeholder="es. Ferie luglio 2024" maxlength="60"></div>'
     +'<div style="display:flex;gap:10px;margin-top:4px">'
     +'<button class="btn btn-g" style="flex:1" onclick="document.getElementById(\'m-scala-manuale\').remove()">Annulla</button>'
-    +'<button class="btn btn-p" style="flex:1;background:var(--teal)" onclick="_salvaScalaManuale()">&#8722; Scala</button>'
+    +'<button class="btn btn-p" style="flex:1;background:var(--teal)" onclick="_salvaScalaManuale()">− Scala</button>'
     +'</div></div></div>';
   document.body.insertAdjacentHTML('beforeend',html);
 }
@@ -2998,7 +2998,7 @@ function _salvaScalaManuale(){
   renderFeriePool();
   _syncFerieFirebase();
   document.getElementById('m-scala-manuale').remove();
-  toast("&#127958; Scalati "+giorni+" gg dal "+anno+(motivo?" — "+motivo:""),"ok");
+  toast("🏖 Scalati "+giorni+" gg dal "+anno+(motivo?" — "+motivo:""),"ok");
 }
 
 function renderFeriePoolOnImp(){
@@ -3347,7 +3347,7 @@ function aggiornaWidget(){
   if(mioTurno){
     w.style.display="block";
     if(inner&&_tipoBg[tipoRisolto])inner.style.background=_tipoBg[tipoRisolto];
-    var ico=_tipoIco[tipoRisolto]||"&#128197;";
+    var ico=_tipoIco[tipoRisolto]||"📅";
     document.getElementById("w-ico").innerHTML=ico;
     document.getElementById("w-bg-ico").innerHTML=ico;
     document.getElementById("w-tipo").textContent=titoloTipoMap[tipoRisolto]||mioTurno.tipo;
@@ -3397,7 +3397,7 @@ function aggiornaWidget(){
       var nomeBreve=p?(p.nome||''):(t.pnome||t.nome||'');
       if(!nomeBreve)return ''; // salta se non c'è proprio nessun nome
       var ini=nomeBreve.charAt(0).toUpperCase()+(p&&p.cognome?p.cognome.charAt(0).toUpperCase():'');
-      var icoT=_tipoIco[t.tipo]||"&#128197;";
+      var icoT=_tipoIco[t.tipo]||"📅";
       return "<div style=\"display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.1);border-radius:20px;padding:3px 8px 3px 4px\">"+
         "<div style=\"width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0\">"+ini+"</div>"+
         "<span style=\"font-size:10px;font-weight:600;opacity:.9\">"+nomeBreve+"</span>"+
@@ -3922,7 +3922,7 @@ function getNomeFestivo(ds){
   var pasqua=new Date(y,month-1,day);
   var lunedi=new Date(y,month-1,day+1);
   if(d.toDateString()===pasqua.toDateString())return "Pasqua";
-  if(d.toDateString()===lunedi.toDateString())return "Luned&#236; dell\'Angelo (Pasquetta)";
+  if(d.toDateString()===lunedi.toDateString())return "Lunedì dell\'Angelo (Pasquetta)";
   return null;
 }
 function isFestivo(ds){
@@ -4161,8 +4161,8 @@ function _openTodoMenu(id, filtro) {
   var html = '<div id="_todo-menu-sheet" style="display:flex;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)" onclick="if(event.target===this)this.remove()">'
     +'<div style="background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:520px;padding:8px 0 calc(16px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 32px rgba(0,0,0,.4)">'
     +'<div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:10px auto 14px"></div>'
-    +'<button onclick="rinviaTodo('+id+');document.getElementById(\'_todo-menu-sheet\').remove()" style="display:flex;align-items:center;gap:14px;width:100%;padding:14px 20px;background:none;border:none;color:var(--txt);font-size:14px;font-weight:600;cursor:pointer;text-align:left;appearance:none;-webkit-appearance:none"><span style="font-size:20px">&#128336;</span> Rinvia</button>'
-    +'<button onclick="delTodo('+id+');renderTodoAg(\''+filtro+'\');document.getElementById(\'_todo-menu-sheet\').remove()" style="display:flex;align-items:center;gap:14px;width:100%;padding:14px 20px;background:none;border:none;color:var(--red);font-size:14px;font-weight:600;cursor:pointer;text-align:left;appearance:none;-webkit-appearance:none"><span style="font-size:20px">&#128465;</span> Elimina</button>'
+    +'<button onclick="rinviaTodo('+id+');document.getElementById(\'_todo-menu-sheet\').remove()" style="display:flex;align-items:center;gap:14px;width:100%;padding:14px 20px;background:none;border:none;color:var(--txt);font-size:14px;font-weight:600;cursor:pointer;text-align:left;appearance:none;-webkit-appearance:none"><span style="font-size:20px">🕐</span> Rinvia</button>'
+    +'<button onclick="delTodo('+id+');renderTodoAg(\''+filtro+'\');document.getElementById(\'_todo-menu-sheet\').remove()" style="display:flex;align-items:center;gap:14px;width:100%;padding:14px 20px;background:none;border:none;color:var(--red);font-size:14px;font-weight:600;cursor:pointer;text-align:left;appearance:none;-webkit-appearance:none"><span style="font-size:20px">🗑</span> Elimina</button>'
     +'<button onclick="document.getElementById(\'_todo-menu-sheet\').remove()" style="display:flex;align-items:center;justify-content:center;width:calc(100% - 32px);margin:8px 16px 0;padding:14px;background:var(--bg2);border:none;border-radius:14px;color:var(--txt2);font-size:14px;font-weight:700;cursor:pointer;appearance:none;-webkit-appearance:none">Annulla</button>'
     +'</div></div>';
   document.body.insertAdjacentHTML('beforeend', html);
@@ -4215,7 +4215,7 @@ function rinviaTodo(id){
     '<div id="m-rinvia-todo" style="display:flex;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99999;align-items:flex-end;justify-content:center;backdrop-filter:blur(3px)">'
     +'<div style="background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:520px;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 32px rgba(0,0,0,.4)">'
     +'<div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 14px"></div>'
-    +'<div style="font-size:15px;font-weight:800;margin-bottom:14px">&#128336; Rinvia: '+ctEsc(t.tit)+'</div>'
+    +'<div style="font-size:15px;font-weight:800;margin-bottom:14px">🕐 Rinvia: '+ctEsc(t.tit)+'</div>'
     +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'
     +'<button class="btn btn-g btn-sm" onclick="_rinviaTodoRel('+id+',1)">+1 giorno</button>'
     +'<button class="btn btn-g btn-sm" onclick="_rinviaTodoRel('+id+',3)">+3 giorni</button>'
@@ -4226,7 +4226,7 @@ function rinviaTodo(id){
     +'</div>'
     +'<div style="display:flex;gap:10px;margin-top:4px">'
     +'<button class="btn btn-g" style="flex:1" onclick="document.getElementById(\'m-rinvia-todo\').remove()">Annulla</button>'
-    +'<button class="btn btn-p" style="flex:1" onclick="_rinviaTodoData('+id+')">&#128336; Rinvia</button>'
+    +'<button class="btn btn-p" style="flex:1" onclick="_rinviaTodoData('+id+')">🕐 Rinvia</button>'
     +'</div></div></div>';
   document.body.insertAdjacentHTML('beforeend',html);
 }
@@ -4247,7 +4247,7 @@ function _rinviaTodoRel(id,giorni){
   schedulaNotifTodo(t);
   var bs=document.getElementById('m-rinvia-todo');if(bs)bs.remove();
   renderTodo();
-  toast("&#128336; Rinviato al "+t.data,"ok");
+  toast("🕐 Rinviato al "+t.data,"ok");
 }
 
 function _rinviaTodoData(id){
@@ -4265,7 +4265,7 @@ function _rinviaTodoData(id){
   if(ora&&data)_schedulaNotifPrecisa("\u23F0 To-Do: "+t.tit,data,ora);
   var bs=document.getElementById('m-rinvia-todo');if(bs)bs.remove();
   renderTodo();
-  toast("&#128336; Rinviato al "+data+(ora?" ore "+ora:""),"ok");
+  toast("🕐 Rinviato al "+data+(ora?" ore "+ora:""),"ok");
 }
 function filtraTodo(f){
   _tdFiltro=f;
@@ -4292,24 +4292,24 @@ function renderTodo(){
   var po={alta:0,media:1,bassa:2};
   TD.sort(function(a,b){if(a.done!==b.done)return a.done?1:-1;return (po[a.prio]||1)-(po[b.prio]||1);});
   if(!TD.length){el.innerHTML=emptyState('todo');return;}
-  var pLbl={alta:"&#128308; Alta",media:"&#128993; Media",bassa:"&#128994; Bassa"};
+  var pLbl={alta:"🔴 Alta",media:"🟡 Media",bassa:"🟢 Bassa"};
   el.innerHTML=TD.map(function(t){
-    var ds=t.data?'<span style="font-size:10px;color:var(--txt2);margin-left:6px">&#128197; '+t.data+(t.ora?' &#9201; '+t.ora:'')+'</span>':"";
-    var rc=t.ricor?'<span style="font-size:10px;color:var(--teal);margin-left:6px">&#128260; Ricorrente</span>':"";
+    var ds=t.data?'<span style="font-size:10px;color:var(--txt2);margin-left:6px">📅 '+t.data+(t.ora?' ⏱ '+t.ora:'')+'</span>':"";
+    var rc=t.ricor?'<span style="font-size:10px;color:var(--teal);margin-left:6px">🔄 Ricorrente</span>':"";
     var nt=t.note?'<div style="font-size:11px;color:var(--txt2);margin-top:3px">'+ctEsc(t.note)+'</div>':"";
     return '<div class="swipe-wrap">'+
-      '<div class="swipe-bg right">&#10003;</div>'+
+      '<div class="swipe-bg right">✓</div>'+
       '<div class="swipe-item todo-item p-'+t.prio+(t.done?" done":"")+ '" id="tditem-'+t.id+'" data-tid="'+t.id+'">'+
-        '<button class="chk'+(t.done?" on":"")+'" onclick="toggleTodo('+t.id+')">'+( t.done?"&#10003;":"")+'</button>'+
+        '<button class="chk'+(t.done?" on":"")+'" onclick="toggleTodo('+t.id+')">'+( t.done?"✓":"")+'</button>'+
         '<div style="flex:1;min-width:0">'+
           '<div style="font-weight:700;font-size:13px;color:var(--txt)'+(t.done?';text-decoration:line-through;opacity:.5':'')+'">'+(t.tit||'')+'</div>'+
           nt+
           '<div style="margin-top:5px"><span class="pbdg">'+pLbl[t.prio]+'</span>'+ds+rc+'</div>'+
         '</div>'+
-        '<button onclick="rinviaTodo('+t.id+')" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:14px;padding:4px;appearance:none;-webkit-appearance:none;flex-shrink:0" title="Rinvia">&#128336;</button>'+
-        '<button onclick="delTodo('+t.id+')" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:16px;padding:4px;appearance:none;-webkit-appearance:none;flex-shrink:0">&#128465;</button>'+
+        '<button onclick="rinviaTodo('+t.id+')" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:14px;padding:4px;appearance:none;-webkit-appearance:none;flex-shrink:0" title="Rinvia">🕐</button>'+
+        '<button onclick="delTodo('+t.id+')" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:16px;padding:4px;appearance:none;-webkit-appearance:none;flex-shrink:0">🗑</button>'+
       '</div>'+
-      '<div class="swipe-bg left">&#128465;</div>'+
+      '<div class="swipe-bg left">🗑</div>'+
     '</div>';
   }).join("");
   setTimeout(initSwipeTodo, 50);
@@ -4337,7 +4337,7 @@ function setTema(t){
   aggThemeColor(t);
   _aggiornaAutoCustomTema(t);
   var cfg=_TEMI_CFG[t]||_TEMI_CFG[""];
-  toast("Tema: "+cfg.nome+" &#10003;","ok");
+  toast("Tema: "+cfg.nome+" ✓","ok");
 }
 function aprireTemapicker() {
   const TEMI_NOTTE = ['', 'rosa', 'forestale', 'carabinieri'];
@@ -4376,7 +4376,7 @@ function aggTemaUI(t){
   // Icona notte/giorno
   var isDay=t&&(t.indexOf("light")!==-1);
   var btnTh=document.getElementById("btn-th");
-  if(btnTh)btnTh.innerHTML=isDay?"&#9728;":"&#127769;";
+  if(btnTh)btnTh.innerHTML=isDay?"☀":"🌙";
   var sel=document.getElementById("tema-select");if(sel)sel.value=t;
   var ico=document.getElementById("tema-ico");if(ico)ico.innerHTML=cfg.emoji;
   var desc=document.getElementById("tema-desc");if(desc)desc.textContent=cfg.nome;
@@ -4465,7 +4465,7 @@ function togTheme(){
   // Aggiorna icona tasto
   var isDay=next.indexOf("light")!==-1||next==="light";
   var btn=document.getElementById("btn-th");
-  if(btn)btn.innerHTML=isDay?"&#9728;":"&#127769;";
+  if(btn)btn.innerHTML=isDay?"☀":"🌙";
 }
 
 
@@ -4673,7 +4673,7 @@ var _ES = {
   todo:    { svg:'<svg width="64" height="64" viewBox="0 0 64 64" fill="none"><rect x="12" y="8" width="40" height="48" rx="6" fill="var(--bg2)" stroke="var(--border)" stroke-width="2"/><rect x="20" y="20" width="24" height="3" rx="1.5" fill="var(--txt3)"/><rect x="20" y="28" width="18" height="3" rx="1.5" fill="var(--txt3)"/><rect x="20" y="36" width="20" height="3" rx="1.5" fill="var(--txt3)"/><circle cx="48" cy="48" r="10" fill="var(--green)"/><path d="M44 48l3 3 5-5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>', title:'Tutto fatto!', sub:'Nessun promemoria aperto.\nGoditela.' },
   agenda:  { svg:'<svg width="64" height="64" viewBox="0 0 64 64" fill="none"><rect x="10" y="14" width="44" height="40" rx="6" fill="var(--bg2)" stroke="var(--border)" stroke-width="2"/><rect x="10" y="22" width="44" height="2" fill="var(--border)"/><rect x="20" y="8" width="4" height="12" rx="2" fill="var(--blue)"/><rect x="40" y="8" width="4" height="12" rx="2" fill="var(--blue)"/><circle cx="32" cy="38" r="8" fill="var(--bg2)" stroke="var(--border)" stroke-width="2"/><path d="M32 33v5l3 3" stroke="var(--txt2)" stroke-width="2" stroke-linecap="round"/></svg>', title:'Nessun appuntamento oggi', sub:'La giornata è tua.' },
   scadenze:{ svg:'<svg width="64" height="64" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="22" fill="var(--bg2)" stroke="var(--border)" stroke-width="2"/><path d="M32 20v12l7 7" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="32" cy="32" r="2" fill="var(--green)"/></svg>', title:'Nessuna scadenza', sub:'Sei in regola con tutto.' },
-  turni:   { svg:'<svg width="64" height="64" viewBox="0 0 64 64" fill="none"><rect x="8" y="16" width="48" height="36" rx="6" fill="var(--bg2)" stroke="var(--border)" stroke-width="2"/><path d="M8 26h48" stroke="var(--border)" stroke-width="2"/><rect x="16" y="8" width="4" height="12" rx="2" fill="var(--blue)"/><rect x="44" y="8" width="4" height="12" rx="2" fill="var(--blue)"/><path d="M24 38c0-4.4 3.6-8 8-8s8 3.6 8 8" stroke="var(--gold)" stroke-width="2" stroke-linecap="round"/><circle cx="32" cy="38" r="3" fill="var(--gold)"/></svg>', title:'Nessun turno oggi', sub:'Riposa, te lo sei guadagnato &#128526;' },
+  turni:   { svg:'<svg width="64" height="64" viewBox="0 0 64 64" fill="none"><rect x="8" y="16" width="48" height="36" rx="6" fill="var(--bg2)" stroke="var(--border)" stroke-width="2"/><path d="M8 26h48" stroke="var(--border)" stroke-width="2"/><rect x="16" y="8" width="4" height="12" rx="2" fill="var(--blue)"/><rect x="44" y="8" width="4" height="12" rx="2" fill="var(--blue)"/><path d="M24 38c0-4.4 3.6-8 8-8s8 3.6 8 8" stroke="var(--gold)" stroke-width="2" stroke-linecap="round"/><circle cx="32" cy="38" r="3" fill="var(--gold)"/></svg>', title:'Nessun turno oggi', sub:'Riposa, te lo sei guadagnato 😎' },
   notifiche:{ svg:'<svg width="64" height="64" viewBox="0 0 64 64" fill="none"><path d="M32 10c-11 0-18 8-18 18v10l-4 6h44l-4-6V28c0-10-7-18-18-18z" fill="var(--bg2)" stroke="var(--border)" stroke-width="2"/><path d="M28 48a4 4 0 008 0" stroke="var(--txt2)" stroke-width="2" stroke-linecap="round"/><line x1="32" y1="10" x2="32" y2="6" stroke="var(--txt3)" stroke-width="2" stroke-linecap="round"/></svg>', title:'Nessuna notifica', sub:'Tutto tranquillo.' }
 };
 function emptyState(tipo){
@@ -4835,7 +4835,7 @@ function aggNotifStatus(){
   var el=document.getElementById("notif-status-txt"),tog=document.getElementById("tog-notif-master");
   if(!("Notification" in window)){if(el)el.textContent="Non supportate";return;}
   var p=Notification.permission;
-  if(el){if(p==="granted")el.innerHTML="&#10003; Attive";else if(p==="denied")el.innerHTML="&#9940; Bloccate &#8212; sblocca nel browser";else el.textContent="Tocca per abilitare";}
+  if(el){if(p==="granted")el.innerHTML="✓ Attive";else if(p==="denied")el.innerHTML="⛔ Bloccate — sblocca nel browser";else el.textContent="Tocca per abilitare";}
   if(tog) tog.checked = (p==="granted");
   var prefs=lsG("ct_notif_prefs",{mattina:true,todo:true,agenda:true,festivi:true,preturno:true});
   ["mattina","todo","agenda","festivi"].forEach(function(k){
@@ -4905,7 +4905,7 @@ function setNotifPre(min){
     setTimeout(schedulaPreTurniFirebase, 300);
   }
   var labels={60:"1h prima",360:"6h prima",720:"12h prima",1440:"24h prima"};
-  toast("&#9200; Notifica turno: "+(labels[min]||min+"min prima"),"ok");
+  toast("⏰ Notifica turno: "+(labels[min]||min+"min prima"),"ok");
 }
 // Salva preferenze notifiche nel profilo utente su Firestore
 function _syncNotifPrefs(){
@@ -5196,7 +5196,7 @@ function rinviaAgenda(id){
     '<div id="m-rinvia-ag" style="display:flex;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99999;align-items:flex-end;justify-content:center;backdrop-filter:blur(3px)">'
     +'<div style="background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:520px;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 32px rgba(0,0,0,.4)">'
     +'<div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 14px"></div>'
-    +'<div style="font-size:15px;font-weight:800;margin-bottom:14px">&#128336; Rinvia: '+ctEsc(a.tit)+'</div>'
+    +'<div style="font-size:15px;font-weight:800;margin-bottom:14px">🕐 Rinvia: '+ctEsc(a.tit)+'</div>'
     +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'
     +'<button class="btn btn-g btn-sm" onclick="_rinviaAgRel('+id+',1,'+isCondivisa+')">+1 giorno</button>'
     +'<button class="btn btn-g btn-sm" onclick="_rinviaAgRel('+id+',3,'+isCondivisa+')">+3 giorni</button>'
@@ -5207,7 +5207,7 @@ function rinviaAgenda(id){
     +'</div>'
     +'<div style="display:flex;gap:10px;margin-top:4px">'
     +'<button class="btn btn-g" style="flex:1" onclick="document.getElementById(\'m-rinvia-ag\').remove()">Annulla</button>'
-    +'<button class="btn btn-p" style="flex:1" onclick="_rinviaAgData('+id+','+isCondivisa+')">&#128336; Rinvia</button>'
+    +'<button class="btn btn-p" style="flex:1" onclick="_rinviaAgData('+id+','+isCondivisa+')">🕐 Rinvia</button>'
     +'</div></div></div>';
   document.body.insertAdjacentHTML('beforeend',html);
 }
@@ -5224,7 +5224,7 @@ function _rinviaAgRel(id,giorni,isCondivisa){
     if(window.FirebaseModule)window.FirebaseModule.saveAgendaCondivisa(a).catch(function(){});
     var bs=document.getElementById('m-rinvia-ag');if(bs)bs.remove();
     renderAgendaPg();
-    toast("&#128336; Rinviato al "+a.data,"ok");
+    toast("🕐 Rinviato al "+a.data,"ok");
     return;
   }
   var AG=lsG("ct_ag",[]);
@@ -5241,7 +5241,7 @@ function _rinviaAgRel(id,giorni,isCondivisa){
   var bs=document.getElementById('m-rinvia-ag');if(bs)bs.remove();
   renderAgenda();
   if(typeof renderAgendaPg==='function') renderAgendaPg();
-  toast("&#128336; Rinviato al "+a.data,"ok");
+  toast("🕐 Rinviato al "+a.data,"ok");
 }
 
 function _rinviaAgData(id,isCondivisa){
@@ -5257,7 +5257,7 @@ function _rinviaAgData(id,isCondivisa){
     if(window.FirebaseModule)window.FirebaseModule.saveAgendaCondivisa(a).catch(function(){});
     var bs=document.getElementById('m-rinvia-ag');if(bs)bs.remove();
     renderAgendaPg();
-    toast("&#128336; Rinviato al "+data+(ora?" ore "+ora:""),"ok");
+    toast("🕐 Rinviato al "+data+(ora?" ore "+ora:""),"ok");
     return;
   }
   var AG=lsG("ct_ag",[]);
@@ -5272,7 +5272,7 @@ function _rinviaAgData(id,isCondivisa){
   var bs=document.getElementById('m-rinvia-ag');if(bs)bs.remove();
   renderAgenda();
   if(typeof renderAgendaPg==='function') renderAgendaPg();
-  toast("&#128336; Rinviato al "+data+(ora?" ore "+ora:""),"ok");
+  toast("🕐 Rinviato al "+data+(ora?" ore "+ora:""),"ok");
 }
 // -- Dettaglio appuntamento personale --------------------------
 function apriDettaglioAgenda(id){
@@ -5285,13 +5285,13 @@ function apriDettaglioAgenda(id){
     +'<div style="background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:520px;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 32px rgba(0,0,0,.4)">'
     +'<div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 16px"></div>'
     +'<div style="font-size:18px;font-weight:900;margin-bottom:4px">'+ctEsc(a.tit)+'</div>'
-    +'<div style="font-size:13px;color:var(--txt2);margin-bottom:14px">&#128197; '+d.getDate()+' '+mN[d.getMonth()]+' '+d.getFullYear()+(a.ora?' &nbsp;&#128336; '+a.ora:'')+'</div>'
-    +(a.luogo?'<div style="font-size:12px;color:var(--txt2);margin-bottom:8px">&#128205; '+ctEsc(a.luogo)+'</div>':'')
+    +'<div style="font-size:13px;color:var(--txt2);margin-bottom:14px">📅 '+d.getDate()+' '+mN[d.getMonth()]+' '+d.getFullYear()+(a.ora?' &nbsp;🕐 '+a.ora:'')+'</div>'
+    +(a.luogo?'<div style="font-size:12px;color:var(--txt2);margin-bottom:8px">📍 '+ctEsc(a.luogo)+'</div>':'')
     +(a.note?'<div style="font-size:12px;color:var(--txt2);margin-bottom:14px;padding:10px;background:var(--bg2);border-radius:10px">'+a.note+'</div>':'')
     +'<div style="display:flex;gap:10px;margin-top:8px">'
     +'<button class="btn btn-g" style="flex:1" onclick="document.getElementById(\'m-det-ag\').remove()">Chiudi</button>'
-    +'<button class="btn btn-p" style="flex:1" onclick="document.getElementById(\'m-det-ag\').remove();rinviaAgenda('+id+')">&#128336; Rinvia</button>'
-    +'<button class="btn btn-d btn-sm" style="width:auto" onclick="document.getElementById(\'m-det-ag\').remove();delAgenda('+id+')">&#128465;</button>'
+    +'<button class="btn btn-p" style="flex:1" onclick="document.getElementById(\'m-det-ag\').remove();rinviaAgenda('+id+')">🕐 Rinvia</button>'
+    +'<button class="btn btn-d btn-sm" style="width:auto" onclick="document.getElementById(\'m-det-ag\').remove();delAgenda('+id+')">🗑</button>'
     +'</div></div></div>';
   document.body.insertAdjacentHTML('beforeend', html);
 }
@@ -5304,15 +5304,15 @@ function apriDettaglioAgendaCondivisa(id){
   var html = '<div id="m-det-ag-cond" style="display:flex;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99999;align-items:flex-end;justify-content:center;backdrop-filter:blur(3px)">'
     +'<div style="background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:520px;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 32px rgba(0,0,0,.4)">'
     +'<div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 16px"></div>'
-    +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--blue);margin-bottom:6px">&#128101; Impegno Reparto</div>'
+    +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--blue);margin-bottom:6px">👥 Impegno Reparto</div>'
     +'<div style="font-size:18px;font-weight:900;margin-bottom:4px">'+ctEsc(a.tit)+'</div>'
-    +'<div style="font-size:13px;color:var(--txt2);margin-bottom:14px">&#128197; '+d.getDate()+' '+mN[d.getMonth()]+' '+d.getFullYear()+(a.ora?' &nbsp;&#128336; '+a.ora:'')+'</div>'
-    +(a.luogo?'<div style="font-size:12px;color:var(--txt2);margin-bottom:8px">&#128205; '+ctEsc(a.luogo)+'</div>':'')
+    +'<div style="font-size:13px;color:var(--txt2);margin-bottom:14px">📅 '+d.getDate()+' '+mN[d.getMonth()]+' '+d.getFullYear()+(a.ora?' &nbsp;🕐 '+a.ora:'')+'</div>'
+    +(a.luogo?'<div style="font-size:12px;color:var(--txt2);margin-bottom:8px">📍 '+ctEsc(a.luogo)+'</div>':'')
     +(a.note?'<div style="font-size:12px;color:var(--txt2);margin-bottom:8px;padding:10px;background:var(--bg2);border-radius:10px">'+a.note+'</div>':'')
     +(a.autore?'<div style="font-size:11px;color:var(--txt3);margin-bottom:14px">Aggiunto da: '+a.autore+'</div>':'')
     +'<div style="display:flex;gap:10px;margin-top:8px">'
     +'<button class="btn btn-g" style="flex:1" onclick="document.getElementById(\'m-det-ag-cond\').remove()">Chiudi</button>'
-    +'<button class="btn btn-p" style="flex:1" onclick="document.getElementById(\'m-det-ag-cond\').remove();rinviaAgenda('+id+')">&#128336; Rinvia</button>'
+    +'<button class="btn btn-p" style="flex:1" onclick="document.getElementById(\'m-det-ag-cond\').remove();rinviaAgenda('+id+')">🕐 Rinvia</button>'
     +'</div></div></div>';
   document.body.insertAdjacentHTML('beforeend', html);
 }
@@ -5381,14 +5381,14 @@ function renderAgendaPg(filtro) {
   } else {
     el.innerHTML = AG.map(function(a){
       var d = new Date(a.data+"T00:00:00");
-      var ora = a.ora ? '<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128336; '+a.ora+'</div>' : '';
-      var luogo = a.luogo ? '<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128205; '+ctEsc(a.luogo)+'</div>' : '';
+      var ora = a.ora ? '<div style="font-size:11px;color:var(--txt2);margin-top:2px">🕐 '+a.ora+'</div>' : '';
+      var luogo = a.luogo ? '<div style="font-size:11px;color:var(--txt2);margin-top:2px">📍 '+ctEsc(a.luogo)+'</div>' : '';
       var note = a.note ? '<div style="font-size:11px;color:var(--txt2);margin-top:2px;font-style:italic">'+a.note+'</div>' : '';
       return '<div class="ag-item" onclick="apriDettaglioAgenda('+a.id+')" style="cursor:pointer">'+
         '<div class="ag-item-date"><div class="ag-item-date-day">'+d.getDate()+'</div><div class="ag-item-date-mon">'+mN[d.getMonth()]+'</div></div>'+
         '<div class="ag-item-body"><div class="ag-item-title">'+ctEsc(a.tit)+'</div>'+ora+luogo+note+'</div>'+
-        '<div class="ag-item-snooze"><button class="ag-snooze-btn" onclick="event.stopPropagation();rinviaAgenda('+a.id+')" title="Rinvia">&#128336;</button></div>'+
-        '<button onclick="event.stopPropagation();delAgenda('+a.id+')" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:16px;appearance:none;-webkit-appearance:none;padding:10px 12px 10px 0;align-self:flex-start">&#128465;</button>'+
+        '<div class="ag-item-snooze"><button class="ag-snooze-btn" onclick="event.stopPropagation();rinviaAgenda('+a.id+')" title="Rinvia">🕐</button></div>'+
+        '<button onclick="event.stopPropagation();delAgenda('+a.id+')" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:16px;appearance:none;-webkit-appearance:none;padding:10px 12px 10px 0;align-self:flex-start">🗑</button>'+
       '</div>';
     }).join('');
   }
@@ -5399,15 +5399,15 @@ function renderAgendaPg(filtro) {
       w2.style.display='block';
       el2.innerHTML = AGcond.map(function(a){
         var d = new Date(a.data+"T00:00:00");
-        var ora = a.ora ? '<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128336; '+a.ora+'</div>' : '';
-        var luogo = a.luogo ? '<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128205; '+ctEsc(a.luogo)+'</div>' : '';
+        var ora = a.ora ? '<div style="font-size:11px;color:var(--txt2);margin-top:2px">🕐 '+a.ora+'</div>' : '';
+        var luogo = a.luogo ? '<div style="font-size:11px;color:var(--txt2);margin-top:2px">📍 '+ctEsc(a.luogo)+'</div>' : '';
         var note = a.note ? '<div style="font-size:11px;color:var(--txt2);margin-top:2px;font-style:italic">'+a.note+'</div>' : '';
-        var autore = a.autore ? '<div style="font-size:10px;color:var(--txt3);margin-top:2px">&#128100; '+a.autore+'</div>' : '';
+        var autore = a.autore ? '<div style="font-size:10px;color:var(--txt3);margin-top:2px">👤 '+a.autore+'</div>' : '';
         return '<div class="ag-item" onclick="apriDettaglioAgendaCondivisa('+a.id+')" style="cursor:pointer">'+
           '<div class="ag-item-date"><div class="ag-item-date-day">'+d.getDate()+'</div><div class="ag-item-date-mon">'+mN[d.getMonth()]+'</div></div>'+
-          '<div class="ag-item-body"><div class="ag-item-title">&#128101; '+ctEsc(a.tit)+'</div>'+ora+luogo+note+autore+'</div>'+
-          '<div class="ag-item-snooze"><button class="ag-snooze-btn" onclick="event.stopPropagation();rinviaAgenda('+a.id+')" title="Rinvia">&#128336;</button></div>'+
-          '<button onclick="event.stopPropagation();delAgendaCondivisa('+a.id+')" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:16px;appearance:none;-webkit-appearance:none;padding:10px 12px 10px 0;align-self:flex-start">&#128465;</button>'+
+          '<div class="ag-item-body"><div class="ag-item-title">👥 '+ctEsc(a.tit)+'</div>'+ora+luogo+note+autore+'</div>'+
+          '<div class="ag-item-snooze"><button class="ag-snooze-btn" onclick="event.stopPropagation();rinviaAgenda('+a.id+')" title="Rinvia">🕐</button></div>'+
+          '<button onclick="event.stopPropagation();delAgendaCondivisa('+a.id+')" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:16px;appearance:none;-webkit-appearance:none;padding:10px 12px 10px 0;align-self:flex-start">🗑</button>'+
         '</div>';
       }).join('');
     } else { w2.style.display='none'; }
@@ -5477,7 +5477,7 @@ function renderTodoAg(filtro, skipBento) {
     var done = t.done;
     var isAlta = t.prio === 'alta';
     var dataStr = '';
-    if(t.data){ var d=new Date(t.data+"T00:00:00"); dataStr='<span class="ag-todo-date">&#128197; '+d.getDate()+' '+mN[d.getMonth()]+'</span>'; }
+    if(t.data){ var d=new Date(t.data+"T00:00:00"); dataStr='<span class="ag-todo-date">📅 '+d.getDate()+' '+mN[d.getMonth()]+'</span>'; }
     var noteStr = t.note ? '<div class="ag-todo-note">'+ctEsc(t.note)+'</div>' : '';
     var prioBadge = t.prio ? '<span class="ag-todo-prio ag-todo-prio-'+t.prio+'">'+(t.prio==='alta'?'Alta':t.prio==='media'?'Media':'Bassa')+'</span>' : '';
     return '<div class="ag-todo-card'+(done?' ag-todo-done':'')+(isAlta?' ag-todo-alta':'')+'">'
@@ -5502,14 +5502,14 @@ function renderTodoAg(filtro, skipBento) {
 function renderAgenda(){
   var el=document.getElementById("agenda-list");if(!el)return;
   var AG=lsG("ct_ag",[]).filter(function(x){return x.data>=new Date().toISOString().slice(0,10);});
-  if(!AG.length){el.innerHTML='<div style="text-align:center;color:var(--txt2);padding:40px;font-size:13px">Nessun appuntamento &#128197;</div>';return;}
+  if(!AG.length){el.innerHTML='<div style="text-align:center;color:var(--txt2);padding:40px;font-size:13px">Nessun appuntamento 📅</div>';return;}
   var mN=["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
   el.innerHTML=AG.map(function(a){
     var d=new Date(a.data+"T00:00:00");
     var dayNum=d.getDate();
     var monStr=mN[d.getMonth()];
-    var ora=a.ora?'<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128336; '+a.ora+'</div>':"";
-    var luogo=a.luogo?'<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128205; '+ctEsc(a.luogo)+'</div>':"";
+    var ora=a.ora?'<div style="font-size:11px;color:var(--txt2);margin-top:2px">🕐 '+a.ora+'</div>':"";
+    var luogo=a.luogo?'<div style="font-size:11px;color:var(--txt2);margin-top:2px">📍 '+ctEsc(a.luogo)+'</div>':"";
     var note=a.note?'<div style="font-size:11px;color:var(--txt2);margin-top:2px">'+a.note+'</div>':"";
     return '<div class="ag-item">'+
       '<div class="ag-item-date"><div class="ag-item-date-day">'+dayNum+'</div><div class="ag-item-date-mon">'+monStr+'</div></div>'+
@@ -5518,9 +5518,9 @@ function renderAgenda(){
         ora+luogo+note+
       '</div>'+
       '<div class="ag-item-snooze">'+
-        '<button class="ag-snooze-btn" onclick="event.stopPropagation();rinviaAgenda('+a.id+')" title="Rinvia">&#128336;</button>'+
+        '<button class="ag-snooze-btn" onclick="event.stopPropagation();rinviaAgenda('+a.id+')" title="Rinvia">🕐</button>'+
       '</div>'+
-      '<button onclick="delAgenda('+a.id+')" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:16px;appearance:none;-webkit-appearance:none;padding:10px 12px 10px 0;align-self:flex-start">&#128465;</button>'+
+      '<button onclick="delAgenda('+a.id+')" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:16px;appearance:none;-webkit-appearance:none;padding:10px 12px 10px 0;align-self:flex-start">🗑</button>'+
     '</div>';
   }).join("");
 }
@@ -5543,28 +5543,28 @@ function renderTodoCondivisi(){
   if(!TD.length){if(wrap)wrap.style.display='none';return;}
   if(wrap)wrap.style.display='block';
   el.innerHTML=TD.map(function(t){
-    var scad=t.data?'<span style="font-size:10px;color:var(--txt2);margin-left:6px">&#128197; '+t.data.split('-').reverse().join('/')+'</span>':"";
+    var scad=t.data?'<span style="font-size:10px;color:var(--txt2);margin-left:6px">📅 '+t.data.split('-').reverse().join('/')+'</span>':"";
     var autore=t.autore?'<span style="font-size:10px;color:var(--txt2)"> — '+t.autore+'</span>':"";
     var prioCol={alta:'var(--red)',media:'var(--gold)',bassa:'var(--green)'}[t.prio]||'var(--txt2)';
     var prio=t.prio?'<span style="font-size:9px;font-weight:700;color:'+prioCol+';text-transform:uppercase;margin-left:6px">'+t.prio+'</span>':"";
     var assegn=(t.assegnatoA && t.assegnatoA.length)
-      ? '<span style="font-size:9px;font-weight:800;color:var(--blue);background:rgba(66,133,244,.14);border-radius:6px;padding:2px 6px;margin-left:6px">&#128287; '+(t.assegnatoNomi?ctEsc(t.assegnatoNomi.join(', ')):'assegnato')+'</span>' : "";
+      ? '<span style="font-size:9px;font-weight:800;color:var(--blue);background:rgba(66,133,244,.14);border-radius:6px;padding:2px 6px;margin-left:6px">🔟 '+(t.assegnatoNomi?ctEsc(t.assegnatoNomi.join(', ')):'assegnato')+'</span>' : "";
     var statoT=(t.assegnatoA && t.assegnatoA.length)
       ? (t.stato==='fatto'
-          ? '<span style="font-size:9px;font-weight:800;color:var(--green);background:rgba(6,214,160,.14);border-radius:6px;padding:2px 6px">&#10003; Fatto'+(t.fattoDa?' da '+ctEsc(t.fattoDa):'')+'</span>'
-          : '<span style="font-size:9px;font-weight:800;color:var(--gold);background:rgba(212,175,55,.14);border-radius:6px;padding:2px 6px">&#128229; Da fare</span>')
+          ? '<span style="font-size:9px;font-weight:800;color:var(--green);background:rgba(6,214,160,.14);border-radius:6px;padding:2px 6px">✓ Fatto'+(t.fattoDa?' da '+ctEsc(t.fattoDa):'')+'</span>'
+          : '<span style="font-size:9px;font-weight:800;color:var(--gold);background:rgba(212,175,55,.14);border-radius:6px;padding:2px 6px">📥 Da fare</span>')
       : "";
     return '<div class="todo-item" style="opacity:'+(t.done?.5:1)+';flex-direction:column;align-items:stretch;gap:6px">'
       +'<div style="display:flex;align-items:flex-start;gap:8px">'
-      +'<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13px">&#128101; '+ctEsc(t.tit)+autore+'</div>'
+      +'<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13px">👥 '+ctEsc(t.tit)+autore+'</div>'
       +(t.note?'<div style="font-size:11px;color:var(--txt2);margin-top:2px">'+ctEsc(t.note)+'</div>':"")
       +'<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-top:4px">'+scad+prio+assegn+statoT+'</div>'
       +'</div>'
-      +'<button onclick="delTodoCondiviso('+t.id+')" title="Completato/Elimina" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:14px;appearance:none;-webkit-appearance:none;flex-shrink:0;padding:4px">&#128465;</button>'
+      +'<button onclick="delTodoCondiviso('+t.id+')" title="Completato/Elimina" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:14px;appearance:none;-webkit-appearance:none;flex-shrink:0;padding:4px">🗑</button>'
       +'</div>'
       +'<div style="display:flex;gap:6px">'
-      +'<button onclick="rinviaTodoCondiviso('+t.id+')" style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:5px 8px;font-size:11px;font-weight:700;color:var(--blue);cursor:pointer;appearance:none;-webkit-appearance:none;">&#128336; Rinvia</button>'
-      +'<button onclick="toggleTodoCondiviso('+t.id+')" style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:5px 8px;font-size:11px;font-weight:700;color:'+(t.done?'var(--green)':'var(--txt2)')+';cursor:pointer;appearance:none;-webkit-appearance:none;">'+(t.done?'&#10003; Fatto':'&#9744; Segna fatto')+'</button>'
+      +'<button onclick="rinviaTodoCondiviso('+t.id+')" style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:5px 8px;font-size:11px;font-weight:700;color:var(--blue);cursor:pointer;appearance:none;-webkit-appearance:none;">🕐 Rinvia</button>'
+      +'<button onclick="toggleTodoCondiviso('+t.id+')" style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:5px 8px;font-size:11px;font-weight:700;color:'+(t.done?'var(--green)':'var(--txt2)')+';cursor:pointer;appearance:none;-webkit-appearance:none;">'+(t.done?'✓ Fatto':'☐ Segna fatto')+'</button>'
       +'</div>'
       +'</div>';
   }).join('');
@@ -5587,20 +5587,20 @@ function renderAgendaCondivisa(){
   var mN=["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
   el.innerHTML=AG.map(function(a){
     var d=new Date(a.data+"T00:00:00"),ds=d.getDate()+" "+mN[d.getMonth()]+" "+d.getFullYear();
-    var ora=a.ora?'<span style="margin-left:6px;color:var(--blue)">&#128336; '+a.ora+'</span>':"";
+    var ora=a.ora?'<span style="margin-left:6px;color:var(--blue)">🕐 '+a.ora+'</span>':"";
     var autore=a.autore?'<span style="font-size:10px;color:var(--txt2)"> — '+a.autore+'</span>':"";
     var assegnA=(a.assegnatoA && a.assegnatoA.length)
-      ? '<span style="font-size:9px;font-weight:800;color:var(--blue);background:rgba(66,133,244,.14);border-radius:6px;padding:2px 6px;margin-left:6px">&#128287; '+(a.assegnatoNomi?ctEsc(a.assegnatoNomi.join(', ')):'assegnato')+'</span>' : "";
+      ? '<span style="font-size:9px;font-weight:800;color:var(--blue);background:rgba(66,133,244,.14);border-radius:6px;padding:2px 6px;margin-left:6px">🔟 '+(a.assegnatoNomi?ctEsc(a.assegnatoNomi.join(', ')):'assegnato')+'</span>' : "";
     return '<div class="ag-item" style="flex-direction:column;align-items:stretch;gap:6px">'
       +'<div style="display:flex;justify-content:space-between;align-items:flex-start">'
-      +'<div><div style="font-weight:700;font-size:13px">&#128101; '+ctEsc(a.tit)+autore+assegnA+'</div>'
-      +'<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128197; '+ds+ora+'</div>'
-      +(a.luogo?'<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128205; '+ctEsc(a.luogo)+'</div>':"")
+      +'<div><div style="font-weight:700;font-size:13px">👥 '+ctEsc(a.tit)+autore+assegnA+'</div>'
+      +'<div style="font-size:11px;color:var(--txt2);margin-top:2px">📅 '+ds+ora+'</div>'
+      +(a.luogo?'<div style="font-size:11px;color:var(--txt2);margin-top:2px">📍 '+ctEsc(a.luogo)+'</div>':"")
       +(a.note?'<div style="font-size:11px;color:var(--txt2);margin-top:2px">'+a.note+'</div>':"")
       +'</div>'
-      +'<button onclick="delAgendaCondivisa('+a.id+')" title="Elimina" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:16px;appearance:none;-webkit-appearance:none">&#128465;</button>'
+      +'<button onclick="delAgendaCondivisa('+a.id+')" title="Elimina" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:16px;appearance:none;-webkit-appearance:none">🗑</button>'
       +'</div>'
-      +'<button onclick="rinviaAgenda('+a.id+')" style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:5px 8px;font-size:11px;font-weight:700;color:var(--blue);cursor:pointer;appearance:none;-webkit-appearance:none;width:100%;">&#128336; Rinvia impegno</button>'
+      +'<button onclick="rinviaAgenda('+a.id+')" style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:5px 8px;font-size:11px;font-weight:700;color:var(--blue);cursor:pointer;appearance:none;-webkit-appearance:none;width:100%;">🕐 Rinvia impegno</button>'
       +'</div>';
   }).join('');
 }
@@ -5627,7 +5627,7 @@ function toggleTodoCondiviso(id){
       t.fattoDaUid = _meF ? (_meF.uid || _meF.id) : '';
       if(t.assegnatoDaUid && String(t.assegnatoDaUid) !== String(_meF ? (_meF.uid || _meF.id) : '')){
         _cambioTurnoNotifica(t.assegnatoDaUid, 'Compito completato: ' + (t.tit||''),
-          'Completato da ' + (_nomeF || 'un militare') + '.', '&#9989;');
+          'Completato da ' + (_nomeF || 'un militare') + '.', '✅');
       }
     } else {
       t.stato = 'assegnato';
@@ -5651,7 +5651,7 @@ function rinviaTodoCondiviso(id){
     '<div id="m-rinvia-tc" style="display:flex;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99999;align-items:flex-end;justify-content:center;backdrop-filter:blur(3px)">'
     +'<div style="background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:520px;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 32px rgba(0,0,0,.4)">'
     +'<div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 14px"></div>'
-    +'<div style="font-size:15px;font-weight:800;margin-bottom:14px">&#128336; Rinvia: '+ctEsc(t.tit)+'</div>'
+    +'<div style="font-size:15px;font-weight:800;margin-bottom:14px">🕐 Rinvia: '+ctEsc(t.tit)+'</div>'
     +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'
     +'<button class="btn btn-g btn-sm" onclick="_rinviaTCRel('+id+',1)">+1 giorno</button>'
     +'<button class="btn btn-g btn-sm" onclick="_rinviaTCRel('+id+',3)">+3 giorni</button>'
@@ -5662,7 +5662,7 @@ function rinviaTodoCondiviso(id){
     +'</div>'
     +'<div style="display:flex;gap:10px;margin-top:12px">'
     +'<button class="btn btn-g" style="flex:1" onclick="document.getElementById(\'m-rinvia-tc\').remove()">Annulla</button>'
-    +'<button class="btn btn-p" style="flex:1" onclick="_rinviaTCData('+id+')">&#128336; Rinvia</button>'
+    +'<button class="btn btn-p" style="flex:1" onclick="_rinviaTCData('+id+')">🕐 Rinvia</button>'
     +'</div></div></div>';
   document.body.insertAdjacentHTML('beforeend', html);
 }
@@ -5679,7 +5679,7 @@ function _rinviaTCRel(id, giorni){
   if(window.FirebaseModule) window.FirebaseModule.saveTodoCondiviso(t).catch(function(){});
   var bs = document.getElementById('m-rinvia-tc'); if(bs) bs.remove();
   renderTodoCondivisi();
-  toast('&#128336; Rinviato al '+t.data, 'ok');
+  toast('🕐 Rinviato al '+t.data, 'ok');
 }
 function _rinviaTCData(id){
   var data = (document.getElementById('rtc-data')||{}).value;
@@ -5692,7 +5692,7 @@ function _rinviaTCData(id){
   if(window.FirebaseModule) window.FirebaseModule.saveTodoCondiviso(t).catch(function(){});
   var bs = document.getElementById('m-rinvia-tc'); if(bs) bs.remove();
   renderTodoCondivisi();
-  toast('&#128336; Rinviato al '+data, 'ok');
+  toast('🕐 Rinviato al '+data, 'ok');
 }
 function delAgendaCondivisa(id){
   // Aggiorna subito la cache locale
@@ -5721,7 +5721,7 @@ function cambiaPwd(){
   lsS("ct_u",U);
   if(ok)ok.classList.add("on");
   old.value="";nw.value="";cf.value="";
-  toast("Password aggiornata &#10003;","ok");
+  toast("Password aggiornata ✓","ok");
 }
 
 // ---- RESET ----
@@ -5856,7 +5856,7 @@ function renderRecuperi(){
     return '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg2);border-radius:11px;margin-bottom:6px;border:1px solid '+(r.usato?"var(--border)":"rgba(212,175,55,.2)")+';transition:opacity .2s;'+(r.usato?"opacity:.5":"")+'">'+
       '<input type="checkbox" '+(r.usato?"checked":"")+' onchange="toggleRecupero('+i+',this)" style="width:17px;height:17px;cursor:pointer;flex-shrink:0;accent-color:var(--gold)">'+
       '<div style="flex:1;min-width:0">'+
-        '<div style="font-size:13px;font-weight:700;color:'+colore+';margin-bottom:2px">&#127941; '+lbl+'</div>'+
+        '<div style="font-size:13px;font-weight:700;color:'+colore+';margin-bottom:2px">🏅 '+lbl+'</div>'+
         '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+
           '<span style="font-size:10px;color:var(--txt2)">'+sub+'</span>'+
           badge+
@@ -5872,7 +5872,7 @@ function toggleRecupero(idx,cb){
   lsS("ct_recuperi",REC);
   renderRecuperi();
   _syncEntitlements();
-  toast(cb.checked?"&#10003; Recupero marcato come usufruito":"Recupero riattivato","ok");
+  toast(cb.checked?"✓ Recupero marcato come usufruito":"Recupero riattivato","ok");
 }
 function delRecuperi(){
   var REC=lsG("ct_recuperi",[]);
@@ -5895,14 +5895,14 @@ function aggRecuperoManuale(){
     '<div id="m-rec-manuale" style="display:flex;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:10000;align-items:flex-end;justify-content:center;backdrop-filter:blur(3px)">'
     +'<div style="background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:520px;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 32px rgba(0,0,0,.4)">'
     +'<div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 16px"></div>'
-    +'<div style="font-size:16px;font-weight:800;margin-bottom:16px">&#127941; Aggiungi recupero manuale</div>'
+    +'<div style="font-size:16px;font-weight:800;margin-bottom:16px">🏅 Aggiungi recupero manuale</div>'
     +'<div class="fg"><label>Data del turno festivo</label>'
     +'<input type="date" id="rm-data" class="fc" value="'+oggi+'"></div>'
     +'<div class="fg"><label>Etichetta (opzionale)</label>'
     +'<input type="text" id="rm-label" class="fc" placeholder="es. Capodanno, Ferragosto\u2026" maxlength="40"></div>'
     +'<div style="display:flex;gap:10px;margin-top:4px">'
     +'<button class="btn btn-g" style="flex:1" onclick="document.getElementById(\'m-rec-manuale\').remove()">Annulla</button>'
-    +'<button class="btn btn-p" style="flex:1" onclick="_salvaRecuperoManuale()">&#43; Aggiungi</button>'
+    +'<button class="btn btn-p" style="flex:1" onclick="_salvaRecuperoManuale()">+ Aggiungi</button>'
     +'</div></div></div>';
   document.body.insertAdjacentHTML('beforeend', html);
 }
@@ -5922,14 +5922,14 @@ function _salvaRecuperoManuale(){
   renderRecuperi();
   _syncEntitlements();
   document.getElementById('m-rec-manuale').remove();
-  toast("&#127941; Recupero aggiunto","ok");
+  toast("🏅 Recupero aggiunto","ok");
 }
 
 function aggAvaPreview(ava){
   var prev=document.getElementById("pf-ava-prev");
   if(!prev)return;
   if(ava){prev.style.backgroundImage="url("+ava+")";prev.style.backgroundSize="cover";prev.innerHTML="";}
-  else{prev.style.backgroundImage="";prev.innerHTML="&#128100;";}
+  else{prev.style.backgroundImage="";prev.innerHTML="👤";}
 }
 
 // ── SISTEMA AVATAR PREIMPOSTATI ──────────────────────────────
@@ -6377,8 +6377,8 @@ function renderTurniCustom() {
         '<div style="font-size:13px;font-weight:700;color:var(--txt)">'+tc.nome+' <span style="font-size:10px;font-weight:800;background:var(--bg2);padding:2px 6px;border-radius:6px;color:var(--txt2)">'+tc.codice+'</span></div>' +
         '<div style="font-size:11px;color:var(--txt2);margin-top:2px">'+tc.oraIn+' – '+tc.oraFi+'</div>' +
       '</div>' +
-      '<button onclick="editTurnoCustom('+tc.id+')" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:16px;padding:6px;appearance:none;-webkit-appearance:none">&#9998;</button>' +
-      '<button onclick="delTurnoCustom('+tc.id+')" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:16px;padding:6px;appearance:none;-webkit-appearance:none">&#128465;</button>' +
+      '<button onclick="editTurnoCustom('+tc.id+')" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:16px;padding:6px;appearance:none;-webkit-appearance:none">✎</button>' +
+      '<button onclick="delTurnoCustom('+tc.id+')" style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:16px;padding:6px;appearance:none;-webkit-appearance:none">🗑</button>' +
     '</div>';
   }).join('');
 }
@@ -6403,10 +6403,10 @@ function salvaTurnoCustom() {
 
   if(editId) {
     TC = TC.map(function(x){ return x.id === editId ? {id:editId,nome:nome,codice:codice,oraIn:oraIn,oraFi:oraFi,emoji:emoji,col:col} : x; });
-    toast('&#9989; Turno aggiornato','ok');
+    toast('✅ Turno aggiornato','ok');
   } else {
     TC.push({id:Date.now(),nome:nome,codice:codice,oraIn:oraIn,oraFi:oraFi,emoji:emoji,col:col});
-    toast('&#9989; Turno personalizzato aggiunto','ok');
+    toast('✅ Turno personalizzato aggiunto','ok');
   }
   lsS('ct_turni_custom', TC);
 
@@ -6507,7 +6507,7 @@ function renderOrariPreset(){
   el.innerHTML = keys.map(function(k){
     var v = o[k] || _ORARI_DEFAULT[k];
     var c = colori[k] || {bg:"rgba(128,128,128,.15)",border:"rgba(128,128,128,.4)",ico:"rgba(128,128,128,.2)"};
-    var nota = note[k] ? '<div style="margin-top:10px;padding:8px 10px;background:rgba(255,255,255,.05);border-radius:8px;font-size:11px;color:var(--txt3);display:flex;align-items:center;gap:6px"><span>&#9432;</span>'+note[k]+'</div>' : '';
+    var nota = note[k] ? '<div style="margin-top:10px;padding:8px 10px;background:rgba(255,255,255,.05);border-radius:8px;font-size:11px;color:var(--txt3);display:flex;align-items:center;gap:6px"><span>ⓘ</span>'+note[k]+'</div>' : '';
     return '<div style="background:'+c.bg+';border:1.5px solid '+c.border+';border-radius:14px;padding:16px;margin-bottom:10px">'
       +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">'
         +'<div style="width:40px;height:40px;border-radius:10px;background:'+c.ico+';display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">'+_ORARI_LABELS[k].split(' ')[0]+'</div>'
@@ -6518,12 +6518,12 @@ function renderOrariPreset(){
           +'<div style="font-size:10px;font-weight:800;color:var(--txt2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">Inizio</div>'
           +'<input type="time" class="fc" id="or-in-'+k+'" value="'+v.in+'" style="padding:10px 12px;font-size:15px;font-weight:700">'
         +'</div>'
-        +'<div style="color:var(--txt3);font-size:18px;padding-top:18px">&#8594;</div>'
+        +'<div style="color:var(--txt3);font-size:18px;padding-top:18px">→</div>'
         +'<div style="flex:1;min-width:130px">'
           +'<div style="font-size:10px;font-weight:800;color:var(--txt2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">Fine</div>'
           +'<input type="time" class="fc" id="or-out-'+k+'" value="'+v.out+'" style="padding:10px 12px;font-size:15px;font-weight:700">'
         +'</div>'
-        +'<button class="btn btn-p btn-sm" style="width:auto;flex-shrink:0;margin-top:18px" onclick="salvaOrarioSingolo(\''+k+'\')">&#128190; Salva</button>'
+        +'<button class="btn btn-p btn-sm" style="width:auto;flex-shrink:0;margin-top:18px" onclick="salvaOrarioSingolo(\''+k+'\')">💾 Salva</button>'
       +'</div>'
       +nota
     +'</div>';
@@ -6574,7 +6574,7 @@ function salvaOrarioSingolo(k){
   if(arr) arr.style.transform = '';
   var ok = document.getElementById('orari-ok');
   if(ok){ ok.classList.add('on'); setTimeout(function(){ ok.classList.remove('on'); }, 2500); }
-  toast('&#9989; Orario '+_ORARI_LABELS[k].replace(/^[^\s]+\s/,'')+' salvato','ok');
+  toast('✅ Orario '+_ORARI_LABELS[k].replace(/^[^\s]+\s/,'')+' salvato','ok');
 }
 function resetOrariPreset(){
   ctConfirm('Ripristinare gli orari di default?', {title:'Reset Orari', ico:'?', ok:'Ripristina'}).then(function(ok){
@@ -6636,7 +6636,7 @@ function salvaImp(){
     var gOld=GR[u.grado]?GR[u.grado].nome:u.grado;
     var gNew=GR[nGrado.value]?GR[nGrado.value].nome:nGrado.value;
     u.grado=nGrado.value;
-    toast("Promozione: "+gOld+" &#8594; "+gNew,"ok");
+    toast("Promozione: "+gOld+" → "+gNew,"ok");
   }
   var ok1=lsS("ct_me",u);
   if(window.FirebaseModule)window.FirebaseModule.savePersonale();
@@ -6756,7 +6756,7 @@ function esportaBackup(){
   lsS("ct_last_backup", lbl);
   var el = document.getElementById("last-backup-date");
   if(el) el.textContent = lbl;
-  toast("&#128190; Backup salvato: "+nome, "ok");
+  toast("💾 Backup salvato: "+nome, "ok");
 }
 
 function importaBackup(input){
@@ -6767,7 +6767,7 @@ function importaBackup(input){
       var dati = JSON.parse(e.target.result);
       // Validazione base
       if(!dati.versione||!dati.data){
-        toast("&#10060; File non valido  non  un backup C-Turni","err"); return;
+        toast("❌ File non valido  non  un backup C-Turni","err"); return;
       }
       _backupDaConfermare = dati;
       // Mostra anteprima
@@ -6794,7 +6794,7 @@ function importaBackup(input){
       +'<div style="font-size:10px;color:var(--txt2)">Recuperi</div></div>'
         +'</div>'
       +'<div style="margin-top:10px;font-size:11px;color:var(--txt2)">'
-        +'&#128197; Salvato il: <strong style="color:var(--txt)">'+dataB+'</strong> '
+        +'📅 Salvato il: <strong style="color:var(--txt)">'+dataB+'</strong> '
         +'&nbsp;|&nbsp; Utente: <strong style="color:var(--txt)">'+( dati.utente||"")+'</strong>'
         +'</div>';
       var prev = document.getElementById("backup-preview");
@@ -6802,9 +6802,9 @@ function importaBackup(input){
       // aggiorna sub
       var sub = document.getElementById("backup-sub");
       if(sub) sub.textContent = input.files[0].name;
-      toast("&#128196; File caricato  controlla l\'anteprima","ok");
+      toast("📄 File caricato  controlla l\'anteprima","ok");
     }catch(ex){
-      toast("&#10060; Errore lettura file: "+ex.message,"err");
+      toast("❌ Errore lettura file: "+ex.message,"err");
     }
   };
   reader.readAsText(input.files[0]);
@@ -6827,7 +6827,7 @@ function confermaCricaBackup(){
     if(d.ct_notif_prefs) lsS("ct_notif_prefs", d.ct_notif_prefs);
     if(d.ct_notif_pre!==undefined) lsS("ct_notif_pre", d.ct_notif_pre);
     _backupDaConfermare = null;
-    toast("&#9989; Backup ripristinato! Ricarico...","ok");
+    toast("✅ Backup ripristinato! Ricarico...","ok");
     setTimeout(function(){location.reload();}, 1500);
   });
 }
@@ -6857,8 +6857,8 @@ function eggTap(){
   var hint=document.getElementById("egg-hint");
   var dots=document.getElementById("egg-dots");
   if(_eggTimer)clearTimeout(_eggTimer);
-  if(_eggTaps===1){if(hint)hint.textContent="Ancora...";if(dots)dots.innerHTML="&#9679;&#8226;&#8226;";}
-  else if(_eggTaps===2){if(hint)hint.textContent="Un altro...";if(dots)dots.innerHTML="&#9679;&#9679;&#8226;";}
+  if(_eggTaps===1){if(hint)hint.textContent="Ancora...";if(dots)dots.innerHTML="●••";}
+  else if(_eggTaps===2){if(hint)hint.textContent="Un altro...";if(dots)dots.innerHTML="●●•";}
   else if(_eggTaps>=3){
     _eggTaps=0;
     if(hint)hint.textContent="C-Turni v3.5.0";
@@ -6876,7 +6876,7 @@ function eggTap(){
     // badge
     var badgeEl=document.getElementById("egg-badge");
     if(badgeEl){
-      badgeEl.innerHTML=isFor?"&#127794; Carabinieri Forestali &#127794;":"&#9884; Arma dei Carabinieri &#9884;";
+      badgeEl.innerHTML=isFor?"🌲 Carabinieri Forestali 🌲":"⚜ Arma dei Carabinieri ⚜";
       badgeEl.style.color=isFor?"#6abf69":"#c8a96e";
     }
     // lampeggianti forestale = verde/arancio, CC = blu/rosso
@@ -6914,7 +6914,7 @@ function eggTap(){
   _eggTimer=setTimeout(function(){
     _eggTaps=0;
     if(hint)hint.textContent="C-Turni v3.5.0";
-    if(dots)dots.innerHTML="&#8226;&#8226;&#8226;";
+    if(dots)dots.innerHTML="•••";
   },2000);
 }
 
@@ -7025,7 +7025,7 @@ function salvaTemaInline() {
     }
   }
   var cfg=_TEMI_CFG[_temaPending]||_TEMI_CFG[""];
-  toast("&#10003; Tema \u201c"+cfg.nome+"\u201d salvato","ok");
+  toast("✓ Tema \u201c"+cfg.nome+"\u201d salvato","ok");
   _temaPending=null;
   // Aggiorna UI impostazioni
   aggTemaUI(lsG("ct_tema","")||"");
@@ -7045,7 +7045,7 @@ function salvaTema(){
   var btn=document.getElementById("btn-salva-tema");
   if(btn){btn.style.opacity=".5";btn.style.pointerEvents="none";}
   var cfg=_TEMI_CFG[_temaPending]||_TEMI_CFG[""];
-  toast("&#10003; Tema \u201c"+cfg.nome+"\u201d salvato","ok");
+  toast("✓ Tema \u201c"+cfg.nome+"\u201d salvato","ok");
   _temaPending=null;
 }
 
@@ -7065,7 +7065,7 @@ function salvaFontSize(){
   var nomi={12:"Piccolo",14:"Normale",16:"Grande",18:"XL",20:"XXL"};
   var btnS=document.getElementById("btn-salva-font");
   if(btnS){btnS.style.opacity=".5";btnS.style.pointerEvents="none";}
-  toast("&#10003; Interfaccia \u201c"+(nomi[_fontPending]||_fontPending+"px")+"\u201d salvata","ok");
+  toast("✓ Interfaccia \u201c"+(nomi[_fontPending]||_fontPending+"px")+"\u201d salvata","ok");
   _fontPending=null;
 }
 
@@ -7164,7 +7164,7 @@ function renderDatePicker() {
     var bg = isSel ? 'var(--blue)' : (isOggi ? 'var(--card2)' : 'transparent');
     var col = isSel ? '#fff' : (isOggi ? 'var(--blue)' : 'var(--txt)');
     var fw = (isSel || isOggi) ? '800' : '500';
-    html += '<div onclick="scegliDate(\''+selDate+'\')" style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:12px;background:'+bg+';color:'+col+';font-weight:'+fw+';cursor:pointer;font-size:14px;transition:all .2s" onmousedown="this.style.transform=\'scale(0.9)\'" onmouseup="this.style.transform=\'scale(1)\'">'+d+'</div>';
+    html += '<div onclick="scegliDate(\''+selDate+'\')" style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:12px;background:'+bg+';color:'+col+';font-weight:'+fw+';cursor:pointer;font-size:14px;transition:opacity .2s,transform .2s,background-color .2s,border-color .2s,color .2s,box-shadow .2s" onmousedown="this.style.transform=\'scale(0.9)\'" onmouseup="this.style.transform=\'scale(1)\'">'+d+'</div>';
   }
   html += '</div>';
   document.getElementById('dp-grid').innerHTML = html;
@@ -7346,7 +7346,7 @@ var _notifTab="tutti";
 
 function aggiungiNotifica(tipo,titolo,sub,ico,colore,extra){
   var NL=lsG("ct_notifiche",[]);
-  var n=Object.assign({id:Date.now()+Math.random(),tipo:tipo,titolo:titolo,sub:sub||"",ico:ico||"&#128276;",colore:colore||"var(--blue)",ts:new Date().toISOString(),letta:false},extra||{});
+  var n=Object.assign({id:Date.now()+Math.random(),tipo:tipo,titolo:titolo,sub:sub||"",ico:ico||"🔔",colore:colore||"var(--blue)",ts:new Date().toISOString(),letta:false},extra||{});
   NL.unshift(n);
   if(NL.length>100)NL=NL.slice(0,100);
   lsS("ct_notifiche",NL);
@@ -7415,7 +7415,7 @@ function renderNotifCenter(){
 
   if(!fl.length){
     el.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 20px;gap:12px;text-align:center">'
-      +'<div style="font-size:48px;opacity:.3">&#128276;</div>'
+      +'<div style="font-size:48px;opacity:.3">🔔</div>'
       +'<div style="font-size:15px;font-weight:700;color:var(--txt)">Nessuna notifica</div>'
       +'<div style="font-size:12px;color:var(--txt2);line-height:1.5">Le notifiche per turni, to-do e agenda appariranno qui</div>'
       +'</div>';
@@ -7424,10 +7424,10 @@ function renderNotifCenter(){
 
   // Colori e icone per tipo — M3 Expressive
   var catCfg = {
-    turni:   {label:"Turni",   bg:"rgba(41,121,255,.18)",  color:"var(--blue)",   ico:"&#128197;"},
-    todo:    {label:"To-Do",   bg:"rgba(6,214,160,.18)",   color:"var(--green)",  ico:"&#9989;"},
-    agenda:  {label:"Agenda",  bg:"rgba(212,175,55,.18)",  color:"var(--gold)",   ico:"&#128203;"},
-    sistema: {label:"Sistema", bg:"rgba(150,150,150,.15)", color:"var(--txt2)",   ico:"&#9881;"}
+    turni:   {label:"Turni",   bg:"rgba(41,121,255,.18)",  color:"var(--blue)",   ico:"📅"},
+    todo:    {label:"To-Do",   bg:"rgba(6,214,160,.18)",   color:"var(--green)",  ico:"✅"},
+    agenda:  {label:"Agenda",  bg:"rgba(212,175,55,.18)",  color:"var(--gold)",   ico:"📋"},
+    sistema: {label:"Sistema", bg:"rgba(150,150,150,.15)", color:"var(--txt2)",   ico:"⚙"}
   };
 
   el.innerHTML = fl.map(function(n){
@@ -7437,8 +7437,8 @@ function renderNotifCenter(){
     var azioni = "";
     if(n.azione === "approva_richiesta" && !n.letta){
       azioni = '<div class="notif-actions">'
-        +'<button class="notif-btn-ok" onclick="event.stopPropagation();gestisciNotifAzione(\''+n.id+'\',\'approva\')">&#10003; Approva</button>'
-        +'<button class="notif-btn-no" onclick="event.stopPropagation();gestisciNotifAzione(\''+n.id+'\',\'rifiuta\')">&#10005; Rifiuta</button>'
+        +'<button class="notif-btn-ok" onclick="event.stopPropagation();gestisciNotifAzione(\''+n.id+'\',\'approva\')">✓ Approva</button>'
+        +'<button class="notif-btn-no" onclick="event.stopPropagation();gestisciNotifAzione(\''+n.id+'\',\'rifiuta\')">✕ Rifiuta</button>'
         +'</div>';
     }
     return '<div class="notif-item'+(isNuova?' non-letta':' letta')+'" data-nid="'+n.id+'" style="max-height:200px" onclick="segnaLetta(\''+n.id+'\',this)">'
@@ -7568,7 +7568,7 @@ function segnaLetteTutte(){
     });
   }
   renderNotifCenter();aggiornaBadgeNotif();
-  toast("&#10003; Tutte segnate come lette","ok");
+  toast("✓ Tutte segnate come lette","ok");
 }
 
 function cancellaNotifLette(){
@@ -7587,7 +7587,7 @@ function cancellaNotifLette(){
     });
   }
   renderNotifCenter();aggiornaBadgeNotif();
-  toast("&#128465; "+tot+" notifiche eliminate","ok");
+  toast("🗑 "+tot+" notifiche eliminate","ok");
 }
 function segnaTutteLette(){segnaLetteTutte();}
 function salvaNuovoAnnoLic(){_confermaAggiungiAnno();}
@@ -7610,13 +7610,13 @@ function notificaTurno(pnome, tipo, data) {
   var tl={mattina:"Mattina",pomeriggio:"Pomeriggio",notte:"Notte",riposo:"Riposo",ferie:"Ferie",
     recupero:"Recupero",licenza:"Licenza",permesso:"Permesso",corso:"Corso",
     obbm:"Obbligatorio Mattina",obbp:"Obbligatorio Pomeriggio"}[tipo]||tipo;
-  aggiungiNotifica("turni","Turno assegnato",pnome+"  "+tl+" del "+ds,"&#128197;","var(--blue)");
+  aggiungiNotifica("turni","Turno assegnato",pnome+"  "+tl+" del "+ds,"📅","var(--blue)");
 }
 
 // -- Hook to-do --
 function notificaTodo(titolo,priorita){
-  var pl={alta:"Alta &#128308;",media:"Media &#129000;",bassa:"Bassa &#128994;"}[priorita]||priorita;
-  aggiungiNotifica("todo","Nuovo promemoria",titolo+"  Priorit\u00e0 "+pl,"&#9989;","var(--green)");
+  var pl={alta:"Alta 🔴",media:"Media 🟨",bassa:"Bassa 🟢"}[priorita]||priorita;
+  aggiungiNotifica("todo","Nuovo promemoria",titolo+"  Priorit\u00e0 "+pl,"✅","var(--green)");
 }
 
 // -- Hook agenda --
@@ -7624,7 +7624,7 @@ function notificaAgenda(titolo,data,ora){
   var mN=["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
   var d=new Date(data+"T00:00:00");
   var ds=d.getDate()+" "+mN[d.getMonth()];
-  aggiungiNotifica("agenda","Nuovo appuntamento",titolo+"  "+ds+(ora?" ore "+ora:""),"&#128203;","var(--gold)");
+  aggiungiNotifica("agenda","Nuovo appuntamento",titolo+"  "+ds+(ora?" ore "+ora:""),"📋","var(--gold)");
 }
 
 
@@ -7640,7 +7640,7 @@ function togPwd(id, btn) {
   if (!inp) return;
   var show = inp.type === 'password';
   inp.type = show ? 'text' : 'password';
-  if (btn) btn.innerHTML = show ? '&#128065;' : '&#128064;';
+  if (btn) btn.innerHTML = show ? '👁' : '👀';
 }
 document.addEventListener("click",function(e){
   var wrap=document.getElementById("ava-wrap");
@@ -7697,7 +7697,7 @@ function aggUI(){
         hAva.innerHTML="";
       } else {
         hAva.style.backgroundImage="";
-        hAva.innerHTML="&#128100;";
+        hAva.innerHTML="👤";
       }
     }
 
@@ -7785,7 +7785,7 @@ function aggUI(){
       // Profilo card impostazioni
     var impNome=document.getElementById('imp-nome');var impSub=document.getElementById('imp-sub');var impAva=document.getElementById('imp-ava');
     if(impNome){var _n=u.nickname||((u.nome||'')+' '+(u.cognome||'')).trim()||u.nome||'';impNome.textContent=_n||'\u2014';impNome.style.display='block';}
-    if(impSub){var _r=(u.reparto||'').replace(/_/g,' ');var _g=u.grado?(GR[u.grado]?GR[u.grado].nome:u.grado):'';var _tp=u.tipo==='for'||u.tipo==='forestale'?'Forestale':u.tipo==='spe'||u.tipo==='speciale'?'Speciale':u.tipo==='radiomobile'?'Radiomobile':u.tipo||'Territoriale';var _ruoloLbl=u.ruolo==='comandante'?'&#128081; Comandante':u.ruolo==='vice'?'&#11088; Vice Comandante':'';var _s=(_r&&_g)?_r+' \u00b7 '+_g:(_r||_g||'\u2014');_s+=_tp?' \u00b7 '+_tp:'';if(_ruoloLbl)_s+=' \u00b7 '+_ruoloLbl;impSub.innerHTML=_s;impSub.style.display='block';}
+    if(impSub){var _r=(u.reparto||'').replace(/_/g,' ');var _g=u.grado?(GR[u.grado]?GR[u.grado].nome:u.grado):'';var _tp=u.tipo==='for'||u.tipo==='forestale'?'Forestale':u.tipo==='spe'||u.tipo==='speciale'?'Speciale':u.tipo==='radiomobile'?'Radiomobile':u.tipo||'Territoriale';var _ruoloLbl=u.ruolo==='comandante'?'👑 Comandante':u.ruolo==='vice'?'⭐ Vice Comandante':'';var _s=(_r&&_g)?_r+' \u00b7 '+_g:(_r||_g||'\u2014');_s+=_tp?' \u00b7 '+_tp:'';if(_ruoloLbl)_s+=' \u00b7 '+_ruoloLbl;impSub.innerHTML=_s;impSub.style.display='block';}
     if(impAva){if(u.ava){impAva.style.backgroundImage='url('+u.ava+')';impAva.style.backgroundSize='cover';impAva.style.backgroundPosition='center';impAva.textContent='';}else{impAva.style.backgroundImage='';impAva.textContent='\u{1F464}';}}
     // Blocco layout widget: mantiene in sync il toggle e lo stato CSS
     if(typeof applyWidgetLock === 'function') applyWidgetLock();
@@ -7945,7 +7945,7 @@ function renderTurni(){
     return "<tr class=\"t-"+t.tipo+"\"><td><strong>"+t.pnome+"</strong><br>"+grado+"</td><td>"+fmtD(t.data)+"</td>"+
       "<td>"+tbdg(t.tipo,t.codice)+"</td><td style=\"font-size:11px\">"+t.orario+"</td>"+
       "<td style=\"font-size:11px;color:var(--txt2)\">"+(t.codice||"")+"</td>"+
-      "<td><button class=\"btn btn-d btn-xs\" onclick=\"delT("+t.id+")\">"+"&#128465;</button></td></tr>";
+      "<td><button class=\"btn btn-d btn-xs\" onclick=\"delT("+t.id+")\">"+"🗑</button></td></tr>";
   }).join("");
 }
 // Bollino verificato/placeholder accanto al nome
@@ -7953,11 +7953,11 @@ function renderTurni(){
 function _badgeP(p){
   if(!p) return '';
   // Ha uid diretto ? verificato
-  if(p.uid) return '<span class="badge-verificato" title="Registrato su C-Turni">&#10003;</span>';
+  if(p.uid) return '<span class="badge-verificato" title="Registrato su C-Turni">✓</span>';
   // È l'utente loggato (match per pid salvato)
   var myPid = localStorage.getItem('ct_my_pid');
   if(myPid && String(p.id) === String(myPid)){
-    return '<span class="badge-verificato" title="Registrato su C-Turni">&#10003;</span>';
+    return '<span class="badge-verificato" title="Registrato su C-Turni">✓</span>';
   }
   // Cerca in ct_u per nome — match robusto case-insensitive
   var U = lsG('ct_u', []);
@@ -7975,11 +7975,11 @@ function _badgeP(p){
     ].filter(function(v){ return v.length > 1; });
     return varianti.some(function(v){ return v === pn; });
   });
-  if(found) return '<span class="badge-verificato" title="Registrato su C-Turni">&#10003;</span>';
+  if(found) return '<span class="badge-verificato" title="Registrato su C-Turni">✓</span>';
   // È un placeholder senza uid ? non registrato
-  if(p.placeholder) return '<span class="badge-placeholder" title="Non ancora registrato su C-Turni">&#9711;</span>';
+  if(p.placeholder) return '<span class="badge-placeholder" title="Non ancora registrato su C-Turni">◯</span>';
   // Profilo importato senza corrispondenza ? non registrato
-  return '<span class="badge-placeholder" title="Non ancora registrato su C-Turni">&#9711;</span>';
+  return '<span class="badge-placeholder" title="Non ancora registrato su C-Turni">◯</span>';
 }
 
 // Sincronizza ct_my_pid: se l'utente è loggato ma ct_my_pid non è impostato,
@@ -8116,8 +8116,8 @@ function renderPers(){
     var _isVerif = p.uid || String(p.id) === String(localStorage.getItem('ct_my_pid'));
     var statoLabel = _isVerif
       ? '<span class="sb ok">Attivo</span>'
-      : '<span class="sb" style="background:rgba(255,159,67,.15);color:var(--orange)">&#9711; Non registrato</span>';
-    var delBtn = p._fromFirebase ? '' : "<button class=\"btn btn-d btn-xs\" onclick='delP("+JSON.stringify(String(p.id))+")'>&#128465;</button>";
+      : '<span class="sb" style="background:rgba(255,159,67,.15);color:var(--orange)">◯ Non registrato</span>';
+    var delBtn = p._fromFirebase ? '' : "<button class=\"btn btn-d btn-xs\" onclick='delP("+JSON.stringify(String(p.id))+")'>🗑</button>";
     return "<tr><td><strong>"+ctEsc(p.nome)+"</strong>"+_badgeP(p)+"</td><td style=\"font-size:11px\">"+ctEsc(g.nome)+"</td>"+
       "<td>"+si+"</td><td style=\"font-size:11px\">"+(p.reparto||"")+"</td>"+
       "<td>"+statoLabel+"</td><td>"+tc+"</td>"+
@@ -8287,7 +8287,7 @@ function salvaTurno(){
   } else {
     var _setP={},_setD={};
     _creati.forEach(function(_nt){ _setP[_nt.pid]=1; _setD[_nt.data]=1; });
-    aggiungiNotifica("turni","Turni assegnati",_creati.length+" turni ("+Object.keys(_setP).length+" colleghi, "+Object.keys(_setD).length+" giorni)","&#128197;","var(--blue)");
+    aggiungiNotifica("turni","Turni assegnati",_creati.length+" turni ("+Object.keys(_setP).length+" colleghi, "+Object.keys(_setD).length+" giorni)","📅","var(--blue)");
   }
   // Reschedula notifiche pre-turno con il nuovo turno aggiunto
   setTimeout(function(){
@@ -8409,9 +8409,9 @@ function aggSel(){
     var gradoSrc = _getGradeImgSrc(p.grado);
     var isMeLabel = p._isMe ? ' <span style="font-size:10px;background:rgba(91,159,255,.2);color:var(--blue);border-radius:8px;padding:1px 6px">Tu</span>' : '';
     return '<div class="pers-card" data-pid="'+p.id+'" onclick="selezionaPersona(\''+p.id+'\',\''+p.nome.replace(/'/g,"\\'")+'\',this)" style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:center;cursor:pointer;transition:background .2s">'+
-      (gradoSrc?'<img src="'+gradoSrc+'" alt="'+(p.grado||'')+'" style="height:32px;width:50px;object-fit:contain;flex-shrink:0;border-radius:3px">':'<div style="width:50px;height:32px;display:flex;align-items:center;justify-content:center;font-size:22px">&#128100;</div>')+
+      (gradoSrc?'<img src="'+gradoSrc+'" alt="'+(p.grado||'')+'" style="height:32px;width:50px;object-fit:contain;flex-shrink:0;border-radius:3px">':'<div style="width:50px;height:32px;display:flex;align-items:center;justify-content:center;font-size:22px">👤</div>')+
       '<div style="flex:1;min-width:0"><div style="font-weight:700;color:var(--txt);font-size:14px">'+ctEsc(p.nome)+isMeLabel+_badgeP(p)+'</div><div style="font-size:12px;color:var(--txt2)">'+ctEsc(gn)+'</div></div>'+
-      '<span class="pers-chk" style="display:none">&#10003;</span>'+
+      '<span class="pers-chk" style="display:none">✓</span>'+
     '</div>';
   }).join("");
   if(typeof _persPickSyncUI === 'function') _persPickSyncUI();
@@ -8459,9 +8459,9 @@ function renderCal(){
   var h="";
   h+="<div style=\"background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:12px\">";
   h+="<div style=\"padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between\">";
-  h+="<button class=\"btn btn-g btn-sm\" onclick=\"prevMese()\">&#8249;</button>";
+  h+="<button class=\"btn btn-g btn-sm\" onclick=\"prevMese()\">‹</button>";
   h+="<strong style=\"font-size:14px\">"+mN[cMO]+" "+cYR+"</strong>";
-  h+="<button class=\"btn btn-g btn-sm\" onclick=\"nextMese()\">&#8250;</button>";
+  h+="<button class=\"btn btn-g btn-sm\" onclick=\"nextMese()\">›</button>";
   h+="</div>";
   h+="<div class=\"cal-grid\" style=\"background:var(--bg2);padding:6px 6px 0\">";
   gN.forEach(function(g){h+="<div style=\"text-align:center;font-size:9px;font-weight:700;color:var(--txt2);padding:2px\">"+g+"</div>";});
@@ -8623,11 +8623,11 @@ function mostraGiorno(ds){
       gruppi[tipo].push(t);
     });
 
-    var html = '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:var(--txt2);margin-bottom:12px">&#128203; Prospetto turni</div>';
+    var html = '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:var(--txt2);margin-bottom:12px">📋 Prospetto turni</div>';
 
     if(!T.length){
       html += '<div style="font-size:13px;color:var(--txt2);text-align:center;padding:12px 0">Nessun turno inserito</div>';
-      html += '<button onclick="chiudiSheetGiorno();apriNuovoTurno(\''+ds+'\')" style="width:100%;margin-top:10px;background:var(--blue);color:#fff;border:none;border-radius:14px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;appearance:none;-webkit-appearance:none;">&#10133; Aggiungi turno</button>';
+      html += '<button onclick="chiudiSheetGiorno();apriNuovoTurno(\''+ds+'\')" style="width:100%;margin-top:10px;background:var(--blue);color:#fff;border:none;border-radius:14px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;appearance:none;-webkit-appearance:none;">➕ Aggiungi turno</button>';
     } else {
       Object.keys(gruppi).forEach(function(tipo){
         var col = colMap[tipo] || 'var(--blue)';
@@ -8646,7 +8646,7 @@ function mostraGiorno(ds){
         html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">';
         html += '<div style="width:10px;height:10px;border-radius:50%;background:'+col+';flex-shrink:0"></div>';
         html += '<div style="font-size:13px;font-weight:800;color:var(--txt)">'+lbl+'</div>';
-        if(orario) html += '<div style="font-size:11px;color:var(--txt2);margin-left:auto">&#128336; '+orario+'</div>';
+        if(orario) html += '<div style="font-size:11px;color:var(--txt2);margin-left:auto">🕐 '+orario+'</div>';
         html += '</div>';
 
         // Persone nel gruppo
@@ -8668,7 +8668,7 @@ function mostraGiorno(ds){
           if(ava){
             html += '<div style="width:24px;height:24px;border-radius:50%;background:url(\''+ava+'\') center/cover;flex-shrink:0;border:1px solid rgba(255,255,255,.3)"></div>';
           } else {
-            html += '<div style="width:24px;height:24px;border-radius:50%;background:'+(isMe?'rgba(255,255,255,.25)':'var(--bg)')+';display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0">&#128100;</div>';
+            html += '<div style="width:24px;height:24px;border-radius:50%;background:'+(isMe?'rgba(255,255,255,.25)':'var(--bg)')+';display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0">👤</div>';
           }
           html += '<div style="font-size:12px;font-weight:'+(isMe?'800':'600')+';color:'+(isMe?'#fff':'var(--txt)')+'">'+nome+(isMe?' <span style="font-size:9px;font-weight:700;opacity:.85">(tu)</span>':'')+'</div>';
           html += '</div>';
@@ -8683,10 +8683,10 @@ function mostraGiorno(ds){
           gruppi[tipo].forEach(function(t){
             var p = P.find(function(x){return x.id===t.pid;});
             var nomeBtn = t.pnome || (p ? p.nome : '') || '';
-            html += '<button onclick="apriModificaTurnoGiorno('+t.id+')" style="margin-top:6px;margin-right:6px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:10px;padding:6px 12px;font-size:11px;font-weight:700;color:'+(col==='var(--blue)'?'var(--blue)':'#fff')+';cursor:pointer;appearance:none;-webkit-appearance:none;">&#9998; '+nomeBtn+'</button>';
+            html += '<button onclick="apriModificaTurnoGiorno('+t.id+')" style="margin-top:6px;margin-right:6px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:10px;padding:6px 12px;font-size:11px;font-weight:700;color:'+(col==='var(--blue)'?'var(--blue)':'#fff')+';cursor:pointer;appearance:none;-webkit-appearance:none;">✎ '+nomeBtn+'</button>';
           });
         } else if(myT && gruppi[tipo].some(function(t){ return t.pid===myPid || (me&&t.uid&&t.uid===(me.uid||me.id)); })){
-          html += '<button onclick="apriModificaTurnoGiorno('+myT.id+')" style="margin-top:10px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:10px;padding:6px 12px;font-size:11px;font-weight:700;color:'+(col==='var(--blue)'?'var(--blue)':'#fff')+';cursor:pointer;appearance:none;-webkit-appearance:none;">&#9998; Modifica il mio turno</button>';
+          html += '<button onclick="apriModificaTurnoGiorno('+myT.id+')" style="margin-top:10px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:10px;padding:6px 12px;font-size:11px;font-weight:700;color:'+(col==='var(--blue)'?'var(--blue)':'#fff')+';cursor:pointer;appearance:none;-webkit-appearance:none;">✎ Modifica il mio turno</button>';
         }
         html += '</div>';
       });
@@ -8699,7 +8699,7 @@ function mostraGiorno(ds){
   if(mgTodoEl){
     var TD=lsG("ct_td",[]).filter(function(t){ return t.data===ds; });
     var tdHtml='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
-    tdHtml+='<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--txt2)">&#9989; To-Do del giorno</div>';
+    tdHtml+='<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--txt2)">✅ To-Do del giorno</div>';
     tdHtml+='<button onclick="chiudiSheetGiorno();openM(\'m-todo\')" style="background:none;border:none;font-size:11px;font-weight:700;color:var(--blue);cursor:pointer;padding:0;appearance:none;-webkit-appearance:none;">+ Nuovo</button>';
     tdHtml+='</div>';
     if(!TD.length){
@@ -8708,7 +8708,7 @@ function mostraGiorno(ds){
       TD.forEach(function(t){
         var prioCol={alta:'var(--red)',media:'var(--gold)',bassa:'var(--green)'}[t.prio]||'var(--txt2)';
         tdHtml+='<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">';
-        tdHtml+='<button onclick="toggleTodo('+t.id+');mostraGiorno(\''+ds+'\')" style="width:24px;height:24px;border-radius:50%;border:2px solid '+(t.done?'var(--green)':'var(--border2)')+';background:'+(t.done?'var(--green)':'none')+';color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;appearance:none;-webkit-appearance:none;">'+(t.done?'&#10003;':'')+'</button>';
+        tdHtml+='<button onclick="toggleTodo('+t.id+');mostraGiorno(\''+ds+'\')" style="width:24px;height:24px;border-radius:50%;border:2px solid '+(t.done?'var(--green)':'var(--border2)')+';background:'+(t.done?'var(--green)':'none')+';color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;appearance:none;-webkit-appearance:none;">'+(t.done?'✓':'')+'</button>';
         tdHtml+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:var(--txt);'+(t.done?'text-decoration:line-through;opacity:.5':'')+'">'+(t.tit||'')+'</div>';
         if(t.note) tdHtml+='<div style="font-size:11px;color:var(--txt2);margin-top:2px">'+(t.note)+'</div>';
         tdHtml+='<div style="font-size:10px;font-weight:700;color:'+prioCol+';margin-top:3px;text-transform:uppercase">'+t.prio+'</div>';
@@ -8720,13 +8720,13 @@ function mostraGiorno(ds){
 
   // -- Aggiorna header e data nascosta --
   var sgTit=document.getElementById('sg-tit');
-  if(sgTit) sgTit.innerHTML='&#128197; '+tit;
+  if(sgTit) sgTit.innerHTML='📅 '+tit;
   var sgData=document.getElementById('sg-data');
   if(sgData) sgData.value=ds;
 
   // -- Compatibilità: aggiorna anche i vecchi elementi se esistono --
   var mgTitOld=document.getElementById('mg-tit');
-  if(mgTitOld) mgTitOld.innerHTML='&#128197; '+tit;
+  if(mgTitOld) mgTitOld.innerHTML='📅 '+tit;
   var mtData=document.getElementById('mt-data');
   if(mtData) mtData.value=ds;
   var lblMtData=document.getElementById('lbl-mt-data');
@@ -8935,7 +8935,7 @@ function renderRepData(){
     });
     if(righe){
       h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px">';
-      h+='<div style="padding:11px 14px;border-bottom:1px solid var(--border);font-weight:700;font-size:13px">&#128101; Carico per persona</div>';
+      h+='<div style="padding:11px 14px;border-bottom:1px solid var(--border);font-weight:700;font-size:13px">👥 Carico per persona</div>';
       h+=righe+'</div>';
     }
   }
@@ -8945,7 +8945,7 @@ function renderRepData(){
   var maxV=Math.max.apply(null,keys.map(function(k){return conti[k];}));
   if(keys.length&&maxV>0){
     h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;overflow-x:auto">';
-    h+='<div style="font-size:12px;font-weight:700;margin-bottom:10px">&#128202; Distribuzione turni</div>';
+    h+='<div style="font-size:12px;font-weight:700;margin-bottom:10px">📊 Distribuzione turni</div>';
     h+='<svg viewBox="0 0 '+(pad*2+keys.length*(barW2+6))+' '+(svgH+30)+'" style="width:100%;max-width:500px">';
     keys.forEach(function(k,i){
       var bh=Math.round((conti[k]/maxV)*(svgH-10));
@@ -9202,8 +9202,8 @@ function renderStraord() {
     var _bM = null;
     _salvCalcola(tutti, _salvMeseCorrente()).mesi.forEach(function(x){ if (x.mese === mesePfx) _bM = x; });
     if (_bM && (_bM.minPagate || _bM.minRecupero)) {
-      nettoEl.innerHTML = '&#128176; ' + _minLabel(_bM.minPagate) + ' a pagamento &middot; '
-        + '&#128260; ' + _minLabel(_bM.minRecupero) + ' a recupero'
+      nettoEl.innerHTML = '💰 ' + _minLabel(_bM.minPagate) + ' a pagamento &middot; '
+        + '🔄 ' + _minLabel(_bM.minRecupero) + ' a recupero'
         + (_bM.minDaDestinare > 0 ? ' &middot; da destinare ' + _minLabel(_bM.minDaDestinare) : '');
     } else {
       nettoEl.textContent = '';
@@ -9321,10 +9321,10 @@ function renderSalvadanaio() {
       +   '<div class="wstr-bar-fill" style="width:' + segP + '%;background:var(--blue)"></div>'
       + '</div>'
       + '<div class="salv-chips">'
-      +   '<span class="salv-chip" style="--c:var(--txt)">&#128337; Lavorate <b>' + _minLabel(lav) + '</b></span>'
-      +   '<span class="salv-chip" style="--c:var(--gold)">&#127919; Da destinare <b>' + _minLabel(b ? b.minDaDestinare : 0) + '</b></span>'
-      +   '<span class="salv-chip" style="--c:var(--blue)">&#128176; A pagamento <b>' + _minLabel(pagateTot) + '</b></span>'
-      +   '<span class="salv-chip" style="--c:var(--teal)">&#127796; Giorni RO <b>' + s.giorniDisponibili + '</b></span>'
+      +   '<span class="salv-chip" style="--c:var(--txt)">🕑 Lavorate <b>' + _minLabel(lav) + '</b></span>'
+      +   '<span class="salv-chip" style="--c:var(--gold)">🎯 Da destinare <b>' + _minLabel(b ? b.minDaDestinare : 0) + '</b></span>'
+      +   '<span class="salv-chip" style="--c:var(--blue)">💰 A pagamento <b>' + _minLabel(pagateTot) + '</b></span>'
+      +   '<span class="salv-chip" style="--c:var(--teal)">🌴 Giorni RO <b>' + s.giorniDisponibili + '</b></span>'
       + '</div>'
       + '</div>';
     el1.innerHTML = dash
@@ -9332,7 +9332,7 @@ function renderSalvadanaio() {
     + '<div style="font-size:26px;font-weight:900;color:var(--teal);line-height:1.15">' + _minLabel(s.minDisponibili) + '</div>'
     + '<div style="font-size:11px;color:var(--txt2);margin-bottom:10px">= ' + s.giorniDisponibili + ' '
     +   (s.giorniDisponibili === 1 ? 'giorno' : 'giorni') + ' di licenza &middot; 1 giorno = ' + s.oreGiorno + 'h</div>'
-    + '<button class="btn btn-p btn-sm" style="width:100%" onclick="apriCreaGiornoRecupero()">&#128260; Crea giorno "Recupero ore"</button>'
+    + '<button class="btn btn-p btn-sm" style="width:100%" onclick="apriCreaGiornoRecupero()">🔄 Crea giorno "Recupero ore"</button>'
     + '<div style="display:flex;align-items:center;gap:8px;margin-top:10px">'
     +   '<span style="font-size:11px;color:var(--txt2)">Ore per 1 giorno</span>'
     +   '<input type="number" class="fc" id="salv-ore-giorno" min="1" max="12" step="1" value="' + s.oreGiorno + '" onchange="salvaOreGiorno()" style="width:72px;text-align:center">'
@@ -9364,7 +9364,7 @@ function renderSalvadanaio() {
           ? pagati.map(function(b){
               return '<div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--txt2);padding:4px 0">'
                 + '<span>' + _salvMeseLabel(b.mese) + '</span>'
-                + '<strong style="color:var(--blue)">&#128176; ' + _minLabel(b.minPagate) + '</strong></div>';
+                + '<strong style="color:var(--blue)">💰 ' + _minLabel(b.minPagate) + '</strong></div>';
             }).join('')
           : '<div style="font-size:12px;color:var(--txt2)">Nessuna ora messa a pagamento</div>');
   }
@@ -9492,8 +9492,8 @@ function apriChiusuraMese(mesePfx) {
   var ric = document.getElementById('chiusura-riepilogo');
   if (ric) {
     ric.innerHTML = 'Ore lavorate nel mese: <strong style="color:var(--txt)">' + _minLabel(b.minLavorate) + '</strong><br>'
-      + (b.minPagate   ? 'Gi&#224; a pagamento: <strong style="color:var(--blue)">' + _minLabel(b.minPagate) + '</strong><br>' : '')
-      + (b.minRecupero ? 'Gi&#224; a recupero: <strong style="color:var(--teal)">' + _minLabel(b.minRecupero) + '</strong><br>' : '')
+      + (b.minPagate   ? 'Già a pagamento: <strong style="color:var(--blue)">' + _minLabel(b.minPagate) + '</strong><br>' : '')
+      + (b.minRecupero ? 'Già a recupero: <strong style="color:var(--teal)">' + _minLabel(b.minRecupero) + '</strong><br>' : '')
       + 'Da destinare: <strong style="color:var(--gold)">' + _minLabel(b.minDaDestinare) + '</strong>';
   }
   var pEl = document.getElementById('chiusura-pagate');   if (pEl) pEl.value = '0';
@@ -9513,7 +9513,7 @@ function _chiusuraAnteprima() {
   var oreG = oreGiornoLicenza();
   var err = (pag + rec) > b.minDaDestinare;
   el.style.color = err ? 'var(--red)' : 'var(--txt2)';
-  el.innerHTML = (err ? '&#9888; Superi le ore disponibili. ' : '')
+  el.innerHTML = (err ? '⚠ Superi le ore disponibili. ' : '')
     + 'A pagamento: <strong style="color:var(--blue)">' + _minLabel(pag) + '</strong> (escono dall\'app) &middot; '
     + 'A recupero: <strong style="color:var(--teal)">' + _minLabel(rec) + '</strong>'
     + ' = ' + Math.floor(rec / (oreG * 60)) + ' giorni<br>'
@@ -9521,7 +9521,7 @@ function _chiusuraAnteprima() {
     // Avviso "minuti scoperti": se il residuo non è zero ma è minore di un'ora,
     // evidenzia che restano minuti non assegnati (tipico di assegnazioni parziali).
     + (!err && resta > 0 && resta < 60
-        ? '<br><span style="color:var(--gold)">&#9203; Restano ' + resta + ' min da destinare: usa &#8220;Tutto a pagamento&#8221; o &#8220;Tutto a recupero&#8221;.</span>'
+        ? '<br><span style="color:var(--gold)">⏳ Restano ' + resta + ' min da destinare: usa “Tutto a pagamento” o “Tutto a recupero”.</span>'
         : '');
 }
 
@@ -9564,7 +9564,7 @@ function _salvadanaioPromptAutomatico() {
     if (!candidati.length) return;
     lsS('ct_salv_prompt_ts', oggi);
     var tot = candidati.reduce(function(a, b){ return a + b.minDaDestinare; }, 0);
-    aggiungiNotifica('straord', 'Chiudi il mese di straordinari', _minLabel(tot) + ' da destinare: pagamento o recupero', '&#128022;', 'var(--teal)');
+    aggiungiNotifica('straord', 'Chiudi il mese di straordinari', _minLabel(tot) + ' da destinare: pagamento o recupero', '🐖', 'var(--teal)');
     setTimeout(function(){ apriChiusuraMese(candidati[0].mese); }, 900);
   } catch (e) { console.warn('salvadanaio prompt', e); }
 }
@@ -9907,7 +9907,7 @@ function importXL(file){
         return '<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg2);border-radius:10px;cursor:pointer;border:1px solid var(--border)">'+
           '<input type="checkbox" checked data-foglio="'+sn+'" style="width:17px;height:17px;accent-color:var(--blue);cursor:pointer;flex-shrink:0">'+
           '<div style="flex:1">'+
-            '<div style="font-weight:700;font-size:13px">&#128196; '+sn+'</div>'+
+            '<div style="font-weight:700;font-size:13px">📄 '+sn+'</div>'+
             '<div style="font-size:10px;color:var(--txt2)">'+nRighe+' righe dati</div>'+
           '</div>'+
           '<span style="font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(41,121,255,.15);color:var(--blue)">Foglio '+(i+1)+'</span>'+
@@ -10053,8 +10053,8 @@ function confermImportF(modoSost){
   var _me3=lsG('ct_me',null);
   if(_me3&&typeof renderWidgetProssimo==='function') renderWidgetProssimo(_me3);
   var modo=modoSost?"sostituiti":"aggiunti";
-  var _msgImp="&#9989; "+tot+" turni "+modo+" da "+selezionati.length+" foglio/i";
-  if(_xlsNuovePersone>0) _msgImp += " &#183; "+_xlsNuovePersone+" nuov"+( _xlsNuovePersone===1?"a persona":"e persone");
+  var _msgImp="✅ "+tot+" turni "+modo+" da "+selezionati.length+" foglio/i";
+  if(_xlsNuovePersone>0) _msgImp += " · "+_xlsNuovePersone+" nuov"+( _xlsNuovePersone===1?"a persona":"e persone");
   toast(_msgImp,"ok");
   // Reschedula notifiche con i nuovi turni
   setTimeout(function(){
@@ -10063,7 +10063,7 @@ function confermImportF(modoSost){
   }, 2000);
   // Notifica import turni
   if(tot > 0) {
-    aggiungiNotifica("turni","Turni importati","&#128229; "+tot+" turni "+modo+" da Excel ("+selezionati.length+" foglio/i)","&#128229;","var(--teal)");
+    aggiungiNotifica("turni","Turni importati","📥 "+tot+" turni "+modo+" da Excel ("+selezionati.length+" foglio/i)","📥","var(--teal)");
   }
 }
 // --- Supporto lettura Excel: date, mese/anno, matching persone ---
@@ -10641,7 +10641,7 @@ function renderGestioneNucleo() {
   if (!isCom) { wrap.innerHTML = '<p style="color:var(--txt2)">Accesso riservato al Comandante o Vice.</p>'; return; }
 
   // Usa sempre _caricaMembriFirebase (legge ct_users già aggiornato dal listener)
-  wrap.innerHTML = '<div style="text-align:center;padding:40px;color:var(--txt2)">&#128260; Caricamento...</div>';
+  wrap.innerHTML = '<div style="text-align:center;padding:40px;color:var(--txt2)">🔄 Caricamento...</div>';
   _caricaMembriFirebase(wrap, me);
 }
 
@@ -10679,7 +10679,7 @@ function _renderMembriWrap(wrap, me, U) {
 
     html += '<div style="width:42px;height:42px;border-radius:10px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">';
 
-    html += u.ava ? '<img src="'+u.ava+'" style="width:42px;height:42px;border-radius:10px;object-fit:cover">' : '&#128100;';
+    html += u.ava ? '<img src="'+u.ava+'" style="width:42px;height:42px;border-radius:10px;object-fit:cover">' : '👤';
 
     html += '</div>';
 
@@ -10725,7 +10725,7 @@ function _renderMembriWrap(wrap, me, U) {
 
   if (pending.length === 0) {
 
-    html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:center;color:var(--txt2);font-size:13px;margin-bottom:18px">Nessuna richiesta in attesa &#10003;</div>';
+    html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:center;color:var(--txt2);font-size:13px;margin-bottom:18px">Nessuna richiesta in attesa ✓</div>';
 
   } else {
 
@@ -10756,9 +10756,9 @@ function _renderMembriWrap(wrap, me, U) {
     approved.forEach(function(u) {
 
       var uid = u.uid || u.id;
-      var az = '<button class="btn btn-sm" style="background:rgba(41,121,255,.12);color:var(--blue);border:1px solid rgba(41,121,255,.3)" onclick="apriCambioGradoMembro(\''+uid+'\',\''+( u.grado||'')+'\')">&#127894; Grado</button>'
-             + '<button class="btn btn-sm" style="background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.3)" onclick="nucleoSospendi(\''+uid+'\')">&#9208; Sospendi</button>'
-             + '<button class="btn btn-d btn-sm" onclick="nucleoRimuovi(\''+uid+'\')">&#128465; Rimuovi</button>';
+      var az = '<button class="btn btn-sm" style="background:rgba(41,121,255,.12);color:var(--blue);border:1px solid rgba(41,121,255,.3)" onclick="apriCambioGradoMembro(\''+uid+'\',\''+( u.grado||'')+'\')">🎖 Grado</button>'
+             + '<button class="btn btn-sm" style="background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.3)" onclick="nucleoSospendi(\''+uid+'\')">⏸ Sospendi</button>'
+             + '<button class="btn btn-d btn-sm" onclick="nucleoRimuovi(\''+uid+'\')">🗑 Rimuovi</button>';
 
       html += cardMembro(u, az);
 
@@ -10777,9 +10777,9 @@ function _renderMembriWrap(wrap, me, U) {
     sospesi.forEach(function(u) {
 
       var uid = u.uid || u.id;
-      var az = '<button class="btn btn-p btn-sm" onclick="nucleoApprova(\''+uid+'\')">&#9654; Riattiva</button>'
+      var az = '<button class="btn btn-p btn-sm" onclick="nucleoApprova(\''+uid+'\')">▶ Riattiva</button>'
 
-             + '<button class="btn btn-d btn-sm" onclick="nucleoRimuovi(\''+uid+'\')">&#128465; Rimuovi</button>';
+             + '<button class="btn btn-d btn-sm" onclick="nucleoRimuovi(\''+uid+'\')">🗑 Rimuovi</button>';
 
       html += cardMembro(u, az);
 
@@ -10957,13 +10957,13 @@ function aggiornaRepartoId() {
       if(existing.length > 0) {
         // Reparto già esistente ? mostra info rassicurante
         var cmd = existing.find(function(u){ return (u.ruolo === 'comandante' || u.ruolo === 'vice') && u.stato === 'approved'; });
-        hint.innerHTML = '&#9989; Reparto già registrato. Potrai unirti dopo l\'approvazione del Comandante' + (cmd ? ' (<strong>' + (cmd.grado||'') + ' ' + cmd.nome + ' ' + cmd.cognome + '</strong>)' : '') + '.';
+        hint.innerHTML = '✅ Reparto già registrato. Potrai unirti dopo l\'approvazione del Comandante' + (cmd ? ' (<strong>' + (cmd.grado||'') + ' ' + cmd.nome + ' ' + cmd.cognome + '</strong>)' : '') + '.';
         hint.style.background = 'rgba(6,214,160,.08)';
         hint.style.borderColor = 'rgba(6,214,160,.3)';
         hint.style.color = 'var(--green)';
       } else {
         // Reparto nuovo ? avvisa che diventerà comandante
-        hint.innerHTML = '&#128640; Nuovo reparto: sarai il primo iscritto e diventerai automaticamente <strong>Comandante</strong>.';
+        hint.innerHTML = '🚀 Nuovo reparto: sarai il primo iscritto e diventerai automaticamente <strong>Comandante</strong>.';
         hint.style.background = 'rgba(41,121,255,.07)';
         hint.style.borderColor = 'rgba(41,121,255,.2)';
         hint.style.color = 'var(--blue)';
@@ -10990,7 +10990,7 @@ function _showPendingScreen(profile) {
   var info = document.getElementById('pending-reparto-info');
   if(info) {
     var rep = (profile.reparto || '').replace(/_/g,' ');
-    info.innerHTML = '&#128205; Reparto: <strong>' + rep + '</strong><br>&#128100; ' + (profile.nome||'') + ' ' + (profile.cognome||'') + ' &middot; ' + (profile.grado||'') + '<br>&#128336; Registrato il ' + (profile.registratoIl ? new Date(profile.registratoIl).toLocaleDateString('it-IT') : '—');
+    info.innerHTML = '📍 Reparto: <strong>' + rep + '</strong><br>👤 ' + (profile.nome||'') + ' ' + (profile.cognome||'') + ' &middot; ' + (profile.grado||'') + '<br>🕐 Registrato il ' + (profile.registratoIl ? new Date(profile.registratoIl).toLocaleDateString('it-IT') : '—');
   }
   ov.style.display = 'flex';
   var pgApp = document.getElementById('pg-app');
@@ -11144,7 +11144,7 @@ function filtra(id,q){
 }
 function tbdg(tipo,cod){
   var t=tipo||"altro";
-  if(String(cod||'').trim().toUpperCase()===_RECUPERO_ORE_COD) return "<span class=\"tb "+t+"\">&#128260; Recupero ore</span>";
+  if(String(cod||'').trim().toUpperCase()===_RECUPERO_ORE_COD) return "<span class=\"tb "+t+"\">🔄 Recupero ore</span>";
   return "<span class=\"tb "+t+"\">"+( cod||cap(tipo||""))+"</span>";
 }
 function fmtD(ds){try{return _parseDate(ds).toLocaleDateString("it-IT");}catch(e){return ds;}}
@@ -11190,7 +11190,7 @@ function toast(msg,tipo){
   var d=document.createElement("div");
   var tc=tipo==="ok"?" ok":tipo==="err"?" err":tipo==="warn"?" warn":"";
   d.className="noti"+tc;
-  var ico=tipo==="ok"?"&#10003;":tipo==="err"?"&#10007;":tipo==="warn"?"&#9888;":"&#8505;";
+  var ico=tipo==="ok"?"✓":tipo==="err"?"✗":tipo==="warn"?"⚠":"ℹ";
   d.innerHTML="<span>"+ico+"</span><span>"+msg+"</span>";
   document.getElementById("noti").appendChild(d);
   setTimeout(function(){d.style.opacity="0";},3000);
@@ -11460,7 +11460,7 @@ function _syncAvaAllSections(avaUrl){
     if (!el) return;
     if (!url) {
       el.style.backgroundImage = '';
-      el.innerHTML = '&#128100;';
+      el.innerHTML = '👤';
       return;
     }
     el.innerHTML = '<img src="'+url+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block">';
@@ -11569,14 +11569,14 @@ var _meteoPrevCache = {};
 
 /* ---------- WIDGET CONF ---------- */
 var WIDGET_DEF = {
-  'squadra-turni': { label: "&#128101; Squadra &amp; Turni",  default: true },
-  settimana:       { label: "&#128197; Turni Settimana",       default: true },
-  prossimo:        { label: "&#9203; Straordinari oggi",     default: true },
-  alert:           { label: "&#128680; Alert",                 default: true },
-  scadenze:        { label: "&#128197; Scadenze",              default: true },
-  agenda:          { label: "&#128467; Agenda oggi",           default: true },
-  todo:            { label: "&#9989; To-Do",                   default: true },
-  dino:            { label: "&#128110; Carabiniere Runner",    default: false }
+  'squadra-turni': { label: "👥 Squadra &amp; Turni",  default: true },
+  settimana:       { label: "📅 Turni Settimana",       default: true },
+  prossimo:        { label: "⏳ Straordinari oggi",     default: true },
+  alert:           { label: "🚨 Alert",                 default: true },
+  scadenze:        { label: "📅 Scadenze",              default: true },
+  agenda:          { label: "🗓 Agenda oggi",           default: true },
+  todo:            { label: "✅ To-Do",                   default: true },
+  dino:            { label: "👮 Carabiniere Runner",    default: false }
 };
 
 function getWidgetCfg() {
@@ -11630,7 +11630,7 @@ function applyWidgetLock() {
   var btn = document.getElementById('btn-dash-lock');
   if (btn) {
     btn.classList.toggle('open', !locked);
-    btn.innerHTML = locked ? '&#128274; Layout bloccato' : '&#128275; Personalizza';
+    btn.innerHTML = locked ? '🔒 Layout bloccato' : '🔓 Personalizza';
     btn.setAttribute('aria-pressed', String(locked));
     btn.title = locked ? 'Tocca per modificare la disposizione dei widget' : 'Tocca per bloccare la disposizione';
   }
@@ -11984,7 +11984,7 @@ function renderDopList() {
 
   // Selettore colonne griglia — solo 1 e 2 colonne (3 rimossa)
   var gridHtml = '<div class="dop-grid-sel">'
-    + '<span class="dop-grid-lbl">&#9783; Colonne griglia</span>'
+    + '<span class="dop-grid-lbl">☷ Colonne griglia</span>'
     + [1,2].map(function(n){
         var rects = Array(n).fill(0).map(function(_,i){
           var w = Math.floor(26/n)-2;
@@ -12026,7 +12026,7 @@ function renderDopList() {
     var titles = { compact:'Compatto', normal:'Normale', wide:'Largo', full:'Grande' };
 
     return '<div class="dop-item" draggable="true" data-wid="' + k + '">'
-      + '<span class="dop-handle">&#8801;</span>'
+      + '<span class="dop-handle">≡</span>'
       + '<span class="dop-label">' + label + '</span>'
       + '<div class="dop-presets">'
       + presets.map(function(p){
@@ -12454,21 +12454,21 @@ function renderWidgetAlert() {
   var list = document.getElementById('wale-list');
   if (!attivi.length) { if (el) el.style.display = 'none'; return; }
   if (el) el.style.display = 'block';
-  var tipoIco = { info:"&#8505;", warn:"&#9888;", danger:"&#128680;" };
+  var tipoIco = { info:"ℹ", warn:"⚠", danger:"🚨" };
   if (list) list.innerHTML = attivi.slice(0,3).map(function(a){
     return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
-      + '<span style="font-size:16px">' + (tipoIco[a.tipo]||'&#128197;') + '</span>'
+      + '<span style="font-size:16px">' + (tipoIco[a.tipo]||'📅') + '</span>'
       + '<span style="font-size:12px;color:var(--txt);flex:1">' + a.msg + '</span>'
-      + '<button onclick="delAlert(' + a.id + ')" style="background:none;border:none;color:var(--txt3);font-size:14px;cursor:pointer;padding:0;appearance:none;-webkit-appearance:none">&#128465;</button></div>';
+      + '<button onclick="delAlert(' + a.id + ')" style="background:none;border:none;color:var(--txt3);font-size:14px;cursor:pointer;padding:0;appearance:none;-webkit-appearance:none">🗑</button></div>';
   }).join('');
   // Aggiorna lista nel modale
   var alLista = document.getElementById('al-lista');
   if (alLista) alLista.innerHTML = attivi.length
     ? attivi.map(function(a){
         return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">'
-          + '<span>' + (tipoIco[a.tipo]||'&#128197;') + '</span>'
+          + '<span>' + (tipoIco[a.tipo]||'📅') + '</span>'
           + '<span style="flex:1;font-size:12px">' + a.msg + (a.fine ? ' <span style="color:var(--txt2);font-size:10px">fino ' + a.fine + '</span>' : '') + '</span>'
-          + '<button onclick="delAlert(' + a.id + ');renderWidgetAlert()" style="background:none;border:none;color:var(--red);font-size:13px;cursor:pointer;appearance:none;-webkit-appearance:none">&#128465;</button></div>';
+          + '<button onclick="delAlert(' + a.id + ');renderWidgetAlert()" style="background:none;border:none;color:var(--red);font-size:13px;cursor:pointer;appearance:none;-webkit-appearance:none">🗑</button></div>';
       }).join('')
     : '<div style="font-size:12px;color:var(--txt2)">Nessuno</div>';
 }
@@ -12511,11 +12511,11 @@ function renderWidgetScadenze() {
     var d = new Date(s.data + 'T00:00:00');
     var diff = Math.round((d - now) / 86400000);
     var col = diff <= 7 ? 'var(--red)' : diff <= 30 ? 'var(--gold)' : 'var(--txt2)';
-    var badge = diff <= 7 ? '<span style="background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:20px;margin-left:6px">&#9888; ' + diff + 'gg</span>' : '';
+    var badge = diff <= 7 ? '<span style="background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:20px;margin-left:6px">⚠ ' + diff + 'gg</span>' : '';
     return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">'
       +'<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:var(--txt)">' + s.tit + badge + '</div>'
-      + '<div style="font-size:10px;color:' + col + ';margin-top:2px">&#128197; ' + s.data + (diff === 0 ? ' oggi!' : diff === 1 ? ' domani!' : ' tra ' + diff + ' gg') + '</div></div>'
-      + '<button onclick="delScadenza(' + s.id + ')" style="background:none;border:none;color:var(--txt3);font-size:14px;cursor:pointer;padding:0;appearance:none;-webkit-appearance:none;flex-shrink:0">&#128465;</button></div>';
+      + '<div style="font-size:10px;color:' + col + ';margin-top:2px">📅 ' + s.data + (diff === 0 ? ' oggi!' : diff === 1 ? ' domani!' : ' tra ' + diff + ' gg') + '</div></div>'
+      + '<button onclick="delScadenza(' + s.id + ')" style="background:none;border:none;color:var(--txt3);font-size:14px;cursor:pointer;padding:0;appearance:none;-webkit-appearance:none;flex-shrink:0">🗑</button></div>';
   }).join('');
 }
 
@@ -12555,11 +12555,11 @@ function renderWidgetAgenda() {
   if (!AG.length) { el.innerHTML = emptyState('agenda'); return; }
   el.innerHTML = AG.map(function(a){
     var mapsLink = a.luogo
-      ? ' <a href="https://www.google.com/maps/search/' + encodeURIComponent(a.luogo) + '" target="_blank" style="font-size:10px;color:var(--blue);text-decoration:none">&#128205; Maps</a>'
+      ? ' <a href="https://www.google.com/maps/search/' + encodeURIComponent(a.luogo) + '" target="_blank" style="font-size:10px;color:var(--blue);text-decoration:none">📍 Maps</a>'
       : '';
     return '<div style="padding:6px 0;border-bottom:1px solid var(--border)">'
-      + '<div style="font-size:12px;font-weight:700;color:var(--txt)">' + ctEsc(a.tit) + (a.ora ? ' <span style="color:var(--blue);font-size:11px">&#9201; ' + ctEsc(a.ora) + '</span>' : '') + '</div>'
-      + (a.luogo ? '<div style="font-size:11px;color:var(--txt2);margin-top:2px">&#128205; ' + ctEsc(a.luogo) + mapsLink + '</div>' : '') + '</div>';
+      + '<div style="font-size:12px;font-weight:700;color:var(--txt)">' + ctEsc(a.tit) + (a.ora ? ' <span style="color:var(--blue);font-size:11px">⏱ ' + ctEsc(a.ora) + '</span>' : '') + '</div>'
+      + (a.luogo ? '<div style="font-size:11px;color:var(--txt2);margin-top:2px">📍 ' + ctEsc(a.luogo) + mapsLink + '</div>' : '') + '</div>';
   }).join('');
 }
 
@@ -12579,12 +12579,12 @@ function renderWidgetTodo() {
   var TD = lsG('ct_td', []).filter(function(t){ return !t.done; });
   TD.sort(function(a,b){ var p={alta:0,media:1,bassa:2}; return (p[a.prio]||1)-(p[b.prio]||1); });
   if (!TD.length) { el.innerHTML = emptyState('todo'); return; }
-  var pLbl = {alta:'&#128308; Alta',media:'&#128993; Media',bassa:'&#128994; Bassa'};
+  var pLbl = {alta:'🔴 Alta',media:'🟡 Media',bassa:'🟢 Bassa'};
   el.innerHTML = TD.slice(0,3).map(function(t){
     return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">'
       + '<button onclick="toggleTodo(' + t.id + ');renderWidgetTodo()" style="width:22px;height:22px;border-radius:50%;border:2px solid var(--border);background:none;cursor:pointer;appearance:none;-webkit-appearance:none;flex-shrink:0"></button>'
       +'<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:var(--txt)">' + ctEsc(t.tit) + '</div>'
-      + '<span style="font-size:9px;color:var(--txt2)">' + (pLbl[t.prio]||'') + (t.data ? ' &#128197; ' + t.data + (t.ora ? ' &#9201; ' + t.ora : '') : '') + '</span></div></div>';
+      + '<span style="font-size:9px;color:var(--txt2)">' + (pLbl[t.prio]||'') + (t.data ? ' 📅 ' + t.data + (t.ora ? ' ⏱ ' + t.ora : '') : '') + '</span></div></div>';
   }).join('');
 }
 
@@ -12821,7 +12821,7 @@ function renderFestSopp() {
     return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">'
       + '<button onclick="toggleFestSopp(' + f.id + ')" style="width:20px;height:20px;border-radius:50%;border:2px solid var(--' + (f.usato?'green':'border') + ');background:' + (f.usato?'var(--green)':'none') + ';cursor:pointer;appearance:none;-webkit-appearance:none;flex-shrink:0"></button>'
       + '<div style="flex:1;font-size:12px;color:var(--txt)">' + f.data + (f.nota ? '  ' + f.nota : '') + '</div>'
-      + '<button onclick="delFestSopp(' + f.id + ')" style="background:none;border:none;color:var(--txt3);font-size:13px;cursor:pointer;appearance:none;-webkit-appearance:none">&#128465;</button></div>';
+      + '<button onclick="delFestSopp(' + f.id + ')" style="background:none;border:none;color:var(--txt3);font-size:13px;cursor:pointer;appearance:none;-webkit-appearance:none">🗑</button></div>';
   }).join('');
 }
 
@@ -12865,14 +12865,14 @@ renderPers = function() {
   if (!pending.length) return;
   var cont = document.getElementById('tb-pers');
   if (!cont) return;
-  var header = '<tr style="background:rgba(255,180,0,.08)"><td colspan="8" style="font-size:11px;font-weight:700;color:var(--gold);padding:8px 10px">&#9203; In attesa di approvazione (' + pending.length + ')</td></tr>';
+  var header = '<tr style="background:rgba(255,180,0,.08)"><td colspan="8" style="font-size:11px;font-weight:700;color:var(--gold);padding:8px 10px">⏳ In attesa di approvazione (' + pending.length + ')</td></tr>';
   var rows = pending.map(function(u){
     return '<tr style="opacity:.75">'
       + '<td>' + u.nome + '</td><td>' + u.grado + '</td><td></td><td>' + (u.reparto||'') + '</td>'
-      + '<td><span style="background:rgba(255,180,0,.15);color:var(--gold);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">' + (u.stato==='pending_com'?'&#9203; Com. richiesto':'&#9203; Pending') + '</span></td>'
+      + '<td><span style="background:rgba(255,180,0,.15);color:var(--gold);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">' + (u.stato==='pending_com'?'⏳ Com. richiesto':'⏳ Pending') + '</span></td>'
       + '<td colspan="3" style="text-align:right">'
-      + '<button onclick="approvaUtente(' + u.id + ')" style="background:rgba(0,200,83,.15);color:var(--green);border:1px solid rgba(0,200,83,.3);border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;appearance:none;-webkit-appearance:none;margin-right:4px">&#10003; Approva</button>'
-      + '<button onclick="rifiutaUtente(' + u.id + ')" style="background:rgba(200,16,46,.1);color:var(--red);border:1px solid rgba(200,16,46,.3);border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;appearance:none;-webkit-appearance:none">&#10005; Rifiuta</button>'
+      + '<button onclick="approvaUtente(' + u.id + ')" style="background:rgba(0,200,83,.15);color:var(--green);border:1px solid rgba(0,200,83,.3);border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;appearance:none;-webkit-appearance:none;margin-right:4px">✓ Approva</button>'
+      + '<button onclick="rifiutaUtente(' + u.id + ')" style="background:rgba(200,16,46,.1);color:var(--red);border:1px solid rgba(200,16,46,.3);border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;appearance:none;-webkit-appearance:none">✕ Rifiuta</button>'
       + '</td></tr>';
   }).join('');
   cont.innerHTML = header + rows + cont.innerHTML;
@@ -13044,170 +13044,170 @@ document.addEventListener('DOMContentLoaded', function(){
 // ---- GUIDA INTERATTIVA ----
 var _GUIDE = {
   turni: {
-    titolo: "&#128197; Turni",
-    azione: {label:"&#10133; Nuovo turno", fn:"openM('m-turno')"},
+    titolo: "📅 Turni",
+    azione: {label:"➕ Nuovo turno", fn:"openM('m-turno')"},
     passi: [
-      {ico:"&#9312;", tit:"Apri il form", txt:"Vai su <strong>Dashboard</strong> e premi il pulsante <strong>+ Turno</strong>, oppure tocca un giorno nel Calendario."},
-      {ico:"&#9313;", tit:"Seleziona la persona", txt:"Scegli il collega dal menu a tendina o usa il pulsante &#128269; per cercare per nome."},
-      {ico:"&#9314;", tit:"Scegli il tipo", txt:"Usa i <strong>bottoni rapidi</strong> (M, P, N, S, RR) oppure il menu a tendina per tutti i tipi disponibili."},
-      {ico:"&#9315;", tit:"Imposta data e orario", txt:"La data è precompilata con oggi. L'orario si compila automaticamente in base al tipo scelto, ma puoi modificarlo."},
-      {ico:"&#9316;", tit:"Salva", txt:"Premi <strong>&#128190; Salva</strong>. Il turno appare subito nel calendario e nel widget della dashboard."},
-      {ico:"&#9998;", tit:"Modificare un turno", txt:"Nel Calendario tocca il giorno &#8594; tocca il turno &#8594; premi &#9998; Modifica. Puoi cambiare tipo, orario e note."},
-      {ico:"&#128465;", tit:"Eliminare un turno", txt:"Apri il turno come sopra e premi &#128465; Elimina. L'operazione è irreversibile."}
+      {ico:"①", tit:"Apri il form", txt:"Vai su <strong>Dashboard</strong> e premi il pulsante <strong>+ Turno</strong>, oppure tocca un giorno nel Calendario."},
+      {ico:"②", tit:"Seleziona la persona", txt:"Scegli il collega dal menu a tendina o usa il pulsante 🔍 per cercare per nome."},
+      {ico:"③", tit:"Scegli il tipo", txt:"Usa i <strong>bottoni rapidi</strong> (M, P, N, S, RR) oppure il menu a tendina per tutti i tipi disponibili."},
+      {ico:"④", tit:"Imposta data e orario", txt:"La data è precompilata con oggi. L'orario si compila automaticamente in base al tipo scelto, ma puoi modificarlo."},
+      {ico:"⑤", tit:"Salva", txt:"Premi <strong>💾 Salva</strong>. Il turno appare subito nel calendario e nel widget della dashboard."},
+      {ico:"✎", tit:"Modificare un turno", txt:"Nel Calendario tocca il giorno → tocca il turno → premi ✎ Modifica. Puoi cambiare tipo, orario e note."},
+      {ico:"🗑", tit:"Eliminare un turno", txt:"Apri il turno come sopra e premi 🗑 Elimina. L'operazione è irreversibile."}
     ]
   },
   persone: {
-    titolo: "&#128101; Persone",
-    azione: {label:"&#10133; Aggiungi persona", fn:"openM('m-persona')"},
+    titolo: "👥 Persone",
+    azione: {label:"➕ Aggiungi persona", fn:"openM('m-persona')"},
     passi: [
-      {ico:"&#9312;", tit:"Vai su Personale", txt:"Dal menu laterale seleziona <strong>Personale</strong>."},
-      {ico:"&#9313;", tit:"Aggiungi un collega", txt:"Premi <strong>+ Aggiungi</strong>. Inserisci nome, cognome, grado e reparto."},
-      {ico:"&#9314;", tit:"Foto profilo", txt:"Tocca l'avatar per caricare una foto. Puoi ritagliarla direttamente nell'app."},
-      {ico:"&#9315;", tit:"Salva", txt:"Premi <strong>&#128190; Salva</strong>. La persona è ora disponibile per l'assegnazione turni."},
-      {ico:"&#9998;", tit:"Modificare", txt:"Tocca la card del collega &#8594; premi &#9998;. Puoi aggiornare tutti i dati inclusa la foto."},
-      {ico:"&#128465;", tit:"Rimuovere", txt:"Tocca la card &#8594; premi &#128465; Elimina. I turni già assegnati rimangono nello storico."}
+      {ico:"①", tit:"Vai su Personale", txt:"Dal menu laterale seleziona <strong>Personale</strong>."},
+      {ico:"②", tit:"Aggiungi un collega", txt:"Premi <strong>+ Aggiungi</strong>. Inserisci nome, cognome, grado e reparto."},
+      {ico:"③", tit:"Foto profilo", txt:"Tocca l'avatar per caricare una foto. Puoi ritagliarla direttamente nell'app."},
+      {ico:"④", tit:"Salva", txt:"Premi <strong>💾 Salva</strong>. La persona è ora disponibile per l'assegnazione turni."},
+      {ico:"✎", tit:"Modificare", txt:"Tocca la card del collega → premi ✎. Puoi aggiornare tutti i dati inclusa la foto."},
+      {ico:"🗑", tit:"Rimuovere", txt:"Tocca la card → premi 🗑 Elimina. I turni già assegnati rimangono nello storico."}
     ]
   },
   ferie: {
-    titolo: "&#127958; Ferie & Licenze",
+    titolo: "🏖 Ferie & Licenze",
     azione: null,
     passi: [
-      {ico:"&#8505;", tit:"Come funziona", txt:"Ogni persona ha un <strong>pool di giorni</strong> per anno. I giorni scalano automaticamente quando assegni un turno di tipo <strong>Ferie/Licenza (L)</strong>."},
-      {ico:"&#9312;", tit:"Aggiungere giorni", txt:"Vai su <strong>Impostazioni &#8594; Ferie &amp; Licenze</strong>. Premi <strong>+ Anno</strong> e inserisci l'anno e i giorni disponibili per ogni persona."},
-      {ico:"&#9313;", tit:"Ordine di consumo", txt:"I giorni vengono scalati partendo dall'anno più vecchio (<em>FIFO</em>). Se l'anno corrente è esaurito si passa al successivo."},
-      {ico:"&#9314;", tit:"Saldo residuo", txt:"Il saldo aggiornato è visibile nella card di ogni persona in <strong>Personale</strong> e nel widget statistiche."},
-      {ico:"&#9315;", tit:"Festività soppresse", txt:"Il codice <strong>937</strong> utilizza una delle 4 festività soppresse annuali, separatamente dal monte ferie."},
-      {ico:"&#9313;", tit:"Recupero festivo", txt:"Il codice <strong>2</strong> consuma automaticamente il recupero disponibile più vecchio. Eliminando il turno, il recupero viene restituito."},
-      {ico:"&#128218;", tit:"Licenza Studio", txt:"Codice <strong>LICSTU</strong>. Non scala dal pool ferie — è un tipo separato."}
+      {ico:"ℹ", tit:"Come funziona", txt:"Ogni persona ha un <strong>pool di giorni</strong> per anno. I giorni scalano automaticamente quando assegni un turno di tipo <strong>Ferie/Licenza (L)</strong>."},
+      {ico:"①", tit:"Aggiungere giorni", txt:"Vai su <strong>Impostazioni → Ferie &amp; Licenze</strong>. Premi <strong>+ Anno</strong> e inserisci l'anno e i giorni disponibili per ogni persona."},
+      {ico:"②", tit:"Ordine di consumo", txt:"I giorni vengono scalati partendo dall'anno più vecchio (<em>FIFO</em>). Se l'anno corrente è esaurito si passa al successivo."},
+      {ico:"③", tit:"Saldo residuo", txt:"Il saldo aggiornato è visibile nella card di ogni persona in <strong>Personale</strong> e nel widget statistiche."},
+      {ico:"④", tit:"Festività soppresse", txt:"Il codice <strong>937</strong> utilizza una delle 4 festività soppresse annuali, separatamente dal monte ferie."},
+      {ico:"②", tit:"Recupero festivo", txt:"Il codice <strong>2</strong> consuma automaticamente il recupero disponibile più vecchio. Eliminando il turno, il recupero viene restituito."},
+      {ico:"📚", tit:"Licenza Studio", txt:"Codice <strong>LICSTU</strong>. Non scala dal pool ferie — è un tipo separato."}
     ]
   },
   calendario: {
-    titolo: "&#128467; Calendario",
-    azione: {label:"&#128467; Apri calendario", fn:"vai('cal',null)"},
+    titolo: "🗓 Calendario",
+    azione: {label:"🗓 Apri calendario", fn:"vai('cal',null)"},
     passi: [
-      {ico:"&#8592;&#8594;", tit:"Navigare i mesi", txt:"Usa le frecce <strong>&#8592; &#8594;</strong> in alto per spostarti tra i mesi."},
-      {ico:"&#127752;", tit:"Leggere i colori", txt:"Ogni tipo di turno ha un colore diverso. Tocca la legenda in basso per vedere la mappa colori."},
-      {ico:"&#128197;", tit:"Toccare un giorno", txt:"Tocca qualsiasi giorno per vedere i dettagli dei turni assegnati in quella data."},
-      {ico:"&#128197;", tit:"Aggiungere dal calendario", txt:"Tocca un giorno &#8594; premi <strong>+ Aggiungi turno</strong> per aprire il form precompilato con quella data."},
-      {ico:"&#128196;", tit:"Esportare in PDF", txt:"Premi il pulsante <strong>&#128196; PDF</strong> in alto a destra per esportare il mese corrente."},
-      {ico:"&#128467;", tit:"Esportare su Google Calendar", txt:"Premi <strong>&#128467; Google</strong> per esportare i turni del mese come eventi Google Calendar."}
+      {ico:"←→", tit:"Navigare i mesi", txt:"Usa le frecce <strong>← →</strong> in alto per spostarti tra i mesi."},
+      {ico:"🌈", tit:"Leggere i colori", txt:"Ogni tipo di turno ha un colore diverso. Tocca la legenda in basso per vedere la mappa colori."},
+      {ico:"📅", tit:"Toccare un giorno", txt:"Tocca qualsiasi giorno per vedere i dettagli dei turni assegnati in quella data."},
+      {ico:"📅", tit:"Aggiungere dal calendario", txt:"Tocca un giorno → premi <strong>+ Aggiungi turno</strong> per aprire il form precompilato con quella data."},
+      {ico:"📄", tit:"Esportare in PDF", txt:"Premi il pulsante <strong>📄 PDF</strong> in alto a destra per esportare il mese corrente."},
+      {ico:"🗓", tit:"Esportare su Google Calendar", txt:"Premi <strong>🗓 Google</strong> per esportare i turni del mese come eventi Google Calendar."}
     ]
   },
   widget: {
-    titolo: "&#128202; Dashboard & Widget",
-    azione: {label:"&#128202; Vai alla Dashboard", fn:"vai('dash',null)"},
+    titolo: "📊 Dashboard & Widget",
+    azione: {label:"📊 Vai alla Dashboard", fn:"vai('dash',null)"},
     passi: [
-      {ico:"&#128202;", tit:"Cosa sono i widget", txt:"I widget sono i blocchi informativi nella schermata principale: turno oggi, prossimi turni, meteo, statistiche, agenda, scadenze e to-do."},
-      {ico:"&#9881;", tit:"Attivare/disattivare", txt:"Vai su <strong>Impostazioni &#8594; Widget Dashboard</strong> e usa i toggle per mostrare o nascondere ogni widget."},
-      {ico:"&#8597;", tit:"Riordinare", txt:"Nella Dashboard premi <strong>&#9881; Organizza</strong> in alto a destra. Trascina i widget o usa i pulsanti &#8597; per cambiare l'ordine."},
-      {ico:"&#10024;", tit:"Animazioni turno", txt:"Il widget <em>Il tuo turno oggi</em> si anima in base al tipo di turno: pulse per mattina/pomeriggio, breathe per notte/riposo, shimmer per ferie, e così via."},
-      {ico:"&#128100;", tit:"Avatar e colleghi", txt:"Il widget mostra il tuo avatar, il tuo nome e in basso i colleghi che lavorano con te oggi."}
+      {ico:"📊", tit:"Cosa sono i widget", txt:"I widget sono i blocchi informativi nella schermata principale: turno oggi, prossimi turni, meteo, statistiche, agenda, scadenze e to-do."},
+      {ico:"⚙", tit:"Attivare/disattivare", txt:"Vai su <strong>Impostazioni → Widget Dashboard</strong> e usa i toggle per mostrare o nascondere ogni widget."},
+      {ico:"↕", tit:"Riordinare", txt:"Nella Dashboard premi <strong>⚙ Organizza</strong> in alto a destra. Trascina i widget o usa i pulsanti ↕ per cambiare l'ordine."},
+      {ico:"✨", tit:"Animazioni turno", txt:"Il widget <em>Il tuo turno oggi</em> si anima in base al tipo di turno: pulse per mattina/pomeriggio, breathe per notte/riposo, shimmer per ferie, e così via."},
+      {ico:"👤", tit:"Avatar e colleghi", txt:"Il widget mostra il tuo avatar, il tuo nome e in basso i colleghi che lavorano con te oggi."}
     ]
   },
   notifiche: {
-    titolo: "&#128276; Notifiche",
+    titolo: "🔔 Notifiche",
     azione: null,
     passi: [
-      {ico:"&#9312;", tit:"Abilitare le notifiche", txt:"Vai su <strong>Impostazioni &#8594; Notifiche</strong> e attiva il toggle principale. Il browser chiederà il permesso &mdash; premi <strong>Consenti</strong>."},
-      {ico:"&#9313;", tit:"Avviso pre-turno", txt:"Imposta quanti minuti prima dell'inizio turno vuoi ricevere l'avviso (15, 30, 60 minuti o personalizzato)."},
-      {ico:"&#127749;", tit:"Notifica mattutina", txt:"Ogni mattina alle 06:00 ricevi un riepilogo del tuo turno del giorno."},
-      {ico:"&#9989;", tit:"Promemoria To-Do", txt:"Attiva il toggle <em>Promemoria To-Do</em> per ricevere una notifica il giorno della scadenza alle 08:00."},
-      {ico:"&#128197;", tit:"Appuntamenti agenda", txt:"Attiva <em>Appuntamenti agenda</em> per ricevere avvisi prima di ogni appuntamento (tempo configurabile per ogni evento)."},
-      {ico:"&#127894;", tit:"Turno festivo", txt:"Attiva <em>Turno festivo rilevato</em> per ricevere una notifica quando lavori in un giorno festivo e maturare un recupero."}
+      {ico:"①", tit:"Abilitare le notifiche", txt:"Vai su <strong>Impostazioni → Notifiche</strong> e attiva il toggle principale. Il browser chiederà il permesso &mdash; premi <strong>Consenti</strong>."},
+      {ico:"②", tit:"Avviso pre-turno", txt:"Imposta quanti minuti prima dell'inizio turno vuoi ricevere l'avviso (15, 30, 60 minuti o personalizzato)."},
+      {ico:"🌅", tit:"Notifica mattutina", txt:"Ogni mattina alle 06:00 ricevi un riepilogo del tuo turno del giorno."},
+      {ico:"✅", tit:"Promemoria To-Do", txt:"Attiva il toggle <em>Promemoria To-Do</em> per ricevere una notifica il giorno della scadenza alle 08:00."},
+      {ico:"📅", tit:"Appuntamenti agenda", txt:"Attiva <em>Appuntamenti agenda</em> per ricevere avvisi prima di ogni appuntamento (tempo configurabile per ogni evento)."},
+      {ico:"🎖", tit:"Turno festivo", txt:"Attiva <em>Turno festivo rilevato</em> per ricevere una notifica quando lavori in un giorno festivo e maturare un recupero."}
     ]
   },
   todo: {
-    titolo: "&#9989; To-Do & Agenda",
-    azione: {label:"&#9989; Vai ai To-Do", fn:"vai('cal',null)"},
+    titolo: "✅ To-Do & Agenda",
+    azione: {label:"✅ Vai ai To-Do", fn:"vai('cal',null)"},
     passi: [
-      {ico:"&#9312;", tit:"Aggiungere un promemoria", txt:"Vai su <strong>To-Do</strong> &#8594; premi <strong>+ Aggiungi</strong>. Inserisci il testo, la priorità (alta/media/bassa) e una data opzionale."},
-      {ico:"&#10004;", tit:"Completare", txt:"Tocca il cerchio a sinistra del promemoria per segnarlo come fatto. Appare barrato nella lista."},
-      {ico:"&#128257;", tit:"Ricorrenza", txt:"Puoi impostare un promemoria come <em>giornaliero</em> o per un giorno specifico della settimana."},
-      {ico:"&#128197;", tit:"Agenda", txt:"Vai su <strong>Agenda</strong> per gli appuntamenti con data, ora e luogo. Puoi esportarli su Google Tasks."},
-      {ico:"&#128276;", tit:"Notifiche", txt:"Se le notifiche sono abilitate, ricevi un avviso alla scadenza del to-do e prima dell'appuntamento in agenda."}
+      {ico:"①", tit:"Aggiungere un promemoria", txt:"Vai su <strong>To-Do</strong> → premi <strong>+ Aggiungi</strong>. Inserisci il testo, la priorità (alta/media/bassa) e una data opzionale."},
+      {ico:"✔", tit:"Completare", txt:"Tocca il cerchio a sinistra del promemoria per segnarlo come fatto. Appare barrato nella lista."},
+      {ico:"🔁", tit:"Ricorrenza", txt:"Puoi impostare un promemoria come <em>giornaliero</em> o per un giorno specifico della settimana."},
+      {ico:"📅", tit:"Agenda", txt:"Vai su <strong>Agenda</strong> per gli appuntamenti con data, ora e luogo. Puoi esportarli su Google Tasks."},
+      {ico:"🔔", tit:"Notifiche", txt:"Se le notifiche sono abilitate, ricevi un avviso alla scadenza del to-do e prima dell'appuntamento in agenda."}
     ]
   },
   tesserino: {
-    titolo: "&#128100; Tesserino digitale",
-    azione: {label:"&#129338; Apri tesserino", fn:"vai('tess',null)"},
+    titolo: "👤 Tesserino digitale",
+    azione: {label:"🤺 Apri tesserino", fn:"vai('tess',null)"},
     passi: [
-      {ico:"&#9312;", tit:"Accedere al tesserino", txt:"Vai su <strong>Impostazioni &#8594; Tesserino</strong> oppure cerca il pulsante nella dashboard."},
-      {ico:"&#128247;", tit:"Aggiungere la foto", txt:"Premi sull'area foto per caricare un'immagine. Puoi ritagliarla con l'editor integrato: il ritaglio viene applicato esattamente come lo imposti."},
-      {ico:"&#127894;", tit:"Grado e dati", txt:"Il grado, nome, cognome e reparto vengono presi automaticamente dal tuo profilo. Puoi modificarli nelle impostazioni profilo."},
-      {ico:"&#128424;", tit:"Stampare / salvare", txt:"Premi <strong>&#128424; Stampa</strong> per aprire la finestra di stampa del browser. Seleziona <em>Salva come PDF</em> per ottenere il file."},
-      {ico:"&#128271;", tit:"Timbro e firma", txt:"Il tesserino include un timbro tondo sovrapposto alla firma dell'autorità rilasciante per un aspetto realistico."}
+      {ico:"①", tit:"Accedere al tesserino", txt:"Vai su <strong>Impostazioni → Tesserino</strong> oppure cerca il pulsante nella dashboard."},
+      {ico:"📷", tit:"Aggiungere la foto", txt:"Premi sull'area foto per caricare un'immagine. Puoi ritagliarla con l'editor integrato: il ritaglio viene applicato esattamente come lo imposti."},
+      {ico:"🎖", tit:"Grado e dati", txt:"Il grado, nome, cognome e reparto vengono presi automaticamente dal tuo profilo. Puoi modificarli nelle impostazioni profilo."},
+      {ico:"🖨", tit:"Stampare / salvare", txt:"Premi <strong>🖨 Stampa</strong> per aprire la finestra di stampa del browser. Seleziona <em>Salva come PDF</em> per ottenere il file."},
+      {ico:"🔏", tit:"Timbro e firma", txt:"Il tesserino include un timbro tondo sovrapposto alla firma dell'autorità rilasciante per un aspetto realistico."}
     ]
   },
   orari: {
-    titolo: "&#9200; Orari Turni",
-    azione: {label:"&#9881; Vai a Impostazioni", fn:"vaiBN('imp',3)"},
+    titolo: "⏰ Orari Turni",
+    azione: {label:"⚙ Vai a Impostazioni", fn:"vaiBN('imp',3)"},
     passi: [
-      {ico:"&#8505;", tit:"Cosa sono", txt:"Gli orari preset sono i valori di default usati quando inserisci un turno. Puoi personalizzarli per ogni tipo: Mattina, Pomeriggio, Notte, Sera, ML, PL."},
-      {ico:"&#9312;", tit:"Aprire la sezione", txt:"Vai su <strong>Impostazioni &#8594; Orari Turni</strong>. Vedrai la lista di tutti i tipi di turno con l'orario attuale."},
-      {ico:"&#128070;", tit:"Modificare un orario", txt:"Tocca la riga del turno che vuoi modificare: si espande mostrando i campi <strong>Inizio</strong> e <strong>Fine</strong>."},
-      {ico:"&#128190;", tit:"Salvare", txt:"Modifica gli orari e premi <strong>&#128190; Salva</strong> sulla riga. L'orario viene salvato immediatamente."},
-      {ico:"&#8635;", tit:"Ripristinare i default", txt:"Premi <strong>&#8635; Ripristina default</strong> in fondo alla sezione per tornare agli orari standard."}
+      {ico:"ℹ", tit:"Cosa sono", txt:"Gli orari preset sono i valori di default usati quando inserisci un turno. Puoi personalizzarli per ogni tipo: Mattina, Pomeriggio, Notte, Sera, ML, PL."},
+      {ico:"①", tit:"Aprire la sezione", txt:"Vai su <strong>Impostazioni → Orari Turni</strong>. Vedrai la lista di tutti i tipi di turno con l'orario attuale."},
+      {ico:"👆", tit:"Modificare un orario", txt:"Tocca la riga del turno che vuoi modificare: si espande mostrando i campi <strong>Inizio</strong> e <strong>Fine</strong>."},
+      {ico:"💾", tit:"Salvare", txt:"Modifica gli orari e premi <strong>💾 Salva</strong> sulla riga. L'orario viene salvato immediatamente."},
+      {ico:"↻", tit:"Ripristinare i default", txt:"Premi <strong>↻ Ripristina default</strong> in fondo alla sezione per tornare agli orari standard."}
     ]
   },
   richieste: {
-    titolo: "&#128260; Richieste cambio turno",
-    azione: {label:"&#128260; Chiedi cambio turno", fn:"apriCambioTurno()"},
+    titolo: "🔄 Richieste cambio turno",
+    azione: {label:"🔄 Chiedi cambio turno", fn:"apriCambioTurno()"},
     passi: [
-      {ico:"&#8505;", tit:"A cosa serve", txt:"Serve per <strong>scambiare due turni</strong> con un collega senza toccare a mano il calendario: la richiesta resta tracciata con chi, quando e quale turno."},
-      {ico:"&#9312;", tit:"Apri la richiesta", txt:"Vai in <strong>Calendario</strong> e premi <strong>&#128260; Chiedi cambio turno</strong>."},
-      {ico:"&#9313;", tit:"Scegli i due turni", txt:"Seleziona <strong>il tuo turno</strong>, il <strong>collega</strong> (cercalo per nome) e <strong>il suo turno</strong>. Puoi aggiungere una nota esplicativa."},
-      {ico:"&#9314;", tit:"Invia", txt:"Premi <strong>Invia richiesta</strong>. Il collega riceve una notifica con <strong>Approva / Rifiuta</strong>; se hai gi&#224; parlato a voce, spunta la conferma a voce: passer&#224; direttamente al Comando."},
-      {ico:"&#9315;", tit:"Approvazione del Comando", txt:"Dopo l'ok del collega la richiesta arriva al <strong>Comando</strong> per l'approvazione finale: al via libera i due turni vengono scambiati automaticamente."},
-      {ico:"&#128203;", tit:"Segui lo stato", txt:"In fondo al <strong>Calendario</strong> trovi <strong>Le mie richieste cambio turno</strong> con lo stato (attesa collega, attesa comando, approvata o rifiutata) e il pulsante <strong>Annulla</strong>."},
-      {ico:"&#9888;", tit:"Requisiti", txt:"Il collega deve essere <strong>collegato all'app</strong> (account approvato): senza account non pu&#242; ricevere n&#233; approvare la richiesta."}
+      {ico:"ℹ", tit:"A cosa serve", txt:"Serve per <strong>scambiare due turni</strong> con un collega senza toccare a mano il calendario: la richiesta resta tracciata con chi, quando e quale turno."},
+      {ico:"①", tit:"Apri la richiesta", txt:"Vai in <strong>Calendario</strong> e premi <strong>🔄 Chiedi cambio turno</strong>."},
+      {ico:"②", tit:"Scegli i due turni", txt:"Seleziona <strong>il tuo turno</strong>, il <strong>collega</strong> (cercalo per nome) e <strong>il suo turno</strong>. Puoi aggiungere una nota esplicativa."},
+      {ico:"③", tit:"Invia", txt:"Premi <strong>Invia richiesta</strong>. Il collega riceve una notifica con <strong>Approva / Rifiuta</strong>; se hai già parlato a voce, spunta la conferma a voce: passerà direttamente al Comando."},
+      {ico:"④", tit:"Approvazione del Comando", txt:"Dopo l'ok del collega la richiesta arriva al <strong>Comando</strong> per l'approvazione finale: al via libera i due turni vengono scambiati automaticamente."},
+      {ico:"📋", tit:"Segui lo stato", txt:"In fondo al <strong>Calendario</strong> trovi <strong>Le mie richieste cambio turno</strong> con lo stato (attesa collega, attesa comando, approvata o rifiutata) e il pulsante <strong>Annulla</strong>."},
+      {ico:"⚠", tit:"Requisiti", txt:"Il collega deve essere <strong>collegato all'app</strong> (account approvato): senza account non può ricevere né approvare la richiesta."}
     ]
   },
   comando: {
-    titolo: "&#128227; Bacheca Comando",
-    azione: {label:"&#128227; Apri Menu Comando", fn:"vaiBN('comando',0)"},
+    titolo: "📣 Bacheca Comando",
+    azione: {label:"📣 Apri Menu Comando", fn:"vaiBN('comando',0)"},
     passi: [
-      {ico:"&#8505;", tit:"Cosa contiene", txt:"Il <strong>Menu Comando</strong> raccoglie gli strumenti riservati a Comandante/Vice: avvisi, richieste cambio turno, compiti, situazione a 7 giorni, gestione turni e personale."},
-      {ico:"&#9312;", tit:"Pubblica un avviso", txt:"Apri <strong>Menu Comando &#8594; Nuovo avviso</strong>: scrivi titolo e testo e premi <strong>Pubblica</strong>."},
-      {ico:"&#9313;", tit:"Urgenza e scadenza", txt:"Spunta <strong>Urgente</strong> per portare l'avviso in cima con evidenza. Imposta una <strong>scadenza</strong>: superata quella data l'avviso sparisce da solo."},
-      {ico:"&#9314;", tit:"Dove lo vedono i militari", txt:"L'avviso compare nel widget <strong>&#128227; Bacheca</strong> della Dashboard e in <strong>Agenda</strong>, con il badge \"nuovo\" finch&#233; non viene letto."},
-      {ico:"&#9315;", tit:"Conferma di lettura", txt:"Ogni militare pu&#242; premere <strong>Confermo di aver letto</strong>. Il Comando vede in tempo reale <strong>Letto da N/totali</strong> sotto ogni avviso."},
-      {ico:"&#9998;", tit:"Modificare o eliminare", txt:"Dalla lista in <strong>Menu Comando</strong> tocca l'avviso per modificarlo o eliminarlo. Solo Comandante/Vice scrivono: gli altri lo vedono in sola lettura."}
+      {ico:"ℹ", tit:"Cosa contiene", txt:"Il <strong>Menu Comando</strong> raccoglie gli strumenti riservati a Comandante/Vice: avvisi, richieste cambio turno, compiti, situazione a 7 giorni, gestione turni e personale."},
+      {ico:"①", tit:"Pubblica un avviso", txt:"Apri <strong>Menu Comando → Nuovo avviso</strong>: scrivi titolo e testo e premi <strong>Pubblica</strong>."},
+      {ico:"②", tit:"Urgenza e scadenza", txt:"Spunta <strong>Urgente</strong> per portare l'avviso in cima con evidenza. Imposta una <strong>scadenza</strong>: superata quella data l'avviso sparisce da solo."},
+      {ico:"③", tit:"Dove lo vedono i militari", txt:"L'avviso compare nel widget <strong>📣 Bacheca</strong> della Dashboard e in <strong>Agenda</strong>, con il badge \"nuovo\" finché non viene letto."},
+      {ico:"④", tit:"Conferma di lettura", txt:"Ogni militare può premere <strong>Confermo di aver letto</strong>. Il Comando vede in tempo reale <strong>Letto da N/totali</strong> sotto ogni avviso."},
+      {ico:"✎", tit:"Modificare o eliminare", txt:"Dalla lista in <strong>Menu Comando</strong> tocca l'avviso per modificarlo o eliminarlo. Solo Comandante/Vice scrivono: gli altri lo vedono in sola lettura."}
     ]
   },
   reparti: {
-    titolo: "&#127963; Reparti e Trasferimenti",
-    azione: {label:"&#128680; Trasferimento militare", fn:"vaiBN('comando',0)"},
+    titolo: "🏛 Reparti e Trasferimenti",
+    azione: {label:"🚨 Trasferimento militare", fn:"vaiBN('comando',0)"},
     passi: [
-      {ico:"&#8505;", tit:"Come nasce un reparto", txt:"Il <strong>reparto</strong> (Tipo Struttura + Comune + numero) si imposta in fase di <strong>registrazione</strong>. Turni, persone e avvisi sono isolati per reparto: ogni struttura vede solo i propri dati."},
-      {ico:"&#9312;", tit:"Strutture supportate", txt:"Stazione, Nucleo, Compagnia, Distaccamento, Tenenza, Gruppo: la denominazione completa viene composta automaticamente dal sistema."},
-      {ico:"&#9313;", tit:"Trasferire un militare", txt:"Da <strong>Menu Comando &#8594; Trasferimento militare</strong> scegli il militare, seleziona il <strong>Tipo Struttura</strong> di destinazione, completa i campi e conferma."},
-      {ico:"&#9314;", tit:"Approvazione del destinatario", txt:"Il <strong>Comandante del reparto di destinazione</strong> deve approvare il trasferimento: fino ad allora il militare resta operativo nel reparto di origine."},
-      {ico:"&#9315;", tit:"Dati e storico", txt:"Anagrafica e storico personale seguono il militare; l'accesso ai <strong>turni del nuovo reparto</strong> parte dall'approvazione, mentre i dati del vecchio reparto restano separati."},
-      {ico:"&#9888;", tit:"Chi pu&#242; trasferire", txt:"Solo <strong>Comandante/Vice</strong> del reparto. Nessun militare pu&#242; cambiare reparto da solo: serve l'ordine inserito dal Comando."}
+      {ico:"ℹ", tit:"Come nasce un reparto", txt:"Il <strong>reparto</strong> (Tipo Struttura + Comune + numero) si imposta in fase di <strong>registrazione</strong>. Turni, persone e avvisi sono isolati per reparto: ogni struttura vede solo i propri dati."},
+      {ico:"①", tit:"Strutture supportate", txt:"Stazione, Nucleo, Compagnia, Distaccamento, Tenenza, Gruppo: la denominazione completa viene composta automaticamente dal sistema."},
+      {ico:"②", tit:"Trasferire un militare", txt:"Da <strong>Menu Comando → Trasferimento militare</strong> scegli il militare, seleziona il <strong>Tipo Struttura</strong> di destinazione, completa i campi e conferma."},
+      {ico:"③", tit:"Approvazione del destinatario", txt:"Il <strong>Comandante del reparto di destinazione</strong> deve approvare il trasferimento: fino ad allora il militare resta operativo nel reparto di origine."},
+      {ico:"④", tit:"Dati e storico", txt:"Anagrafica e storico personale seguono il militare; l'accesso ai <strong>turni del nuovo reparto</strong> parte dall'approvazione, mentre i dati del vecchio reparto restano separati."},
+      {ico:"⚠", tit:"Chi può trasferire", txt:"Solo <strong>Comandante/Vice</strong> del reparto. Nessun militare può cambiare reparto da solo: serve l'ordine inserito dal Comando."}
     ]
   },
   saldi: {
-    titolo: "&#128176; Saldi e Salvadanaio ore",
-    azione: {label:"&#128202; Apri Report", fn:"vaiBN('rep',99);switchRepTab('straord')"},
+    titolo: "💰 Saldi e Salvadanaio ore",
+    azione: {label:"📊 Apri Report", fn:"vaiBN('rep',99);switchRepTab('straord')"},
     passi: [
-      {ico:"&#9312;", tit:"Dove si trova", txt:"Vai in <strong>Report</strong> (menu laterale, Impostazioni o widget salvadanaio della Dashboard) e apri la scheda <strong>&#9201; Straordinari</strong>."},
-      {ico:"&#9313;", tit:"Seleziona il mese", txt:"Usa le frecce <strong>&#8249; / &#8250;</strong> accanto al nome del mese per consultare un periodo precedente o successivo."},
-      {ico:"&#9314;", tit:"Totale e dettaglio", txt:"In alto leggi il <strong>Totale ore straordinario</strong> del mese, suddiviso per tipo: Ordinario, Festivo, Notturno, Reperibilit&#224;."},
-      {ico:"&#9315;", tit:"Salvadanaio", txt:"Il blocco <strong>&#128022; Salvadanaio ore</strong> mostra ore disponibili, ore del mese corrente, saldi dei mesi precedenti e ore gi&#224; pagate o recuperate."},
-      {ico:"&#9316;", tit:"Aggiungere una voce", txt:"Premi <strong>+ Aggiungi</strong> in <em>Voci registrate</em> per inserire manualmente un monte ore; le voci calcolate dai turni compaiono da sole."},
-      {ico:"&#128176;", tit:"Ferie e licenze", txt:"I saldi di <strong>ferie, licenze e festivit&#224; soppresse</strong> usano il pool annuale: li trovi in <strong>Impostazioni &#8594; Ferie &amp; Licenze</strong> e nelle card di <strong>Personale</strong>."},
-      {ico:"&#128172;", tit:"Condividere", txt:"Con <strong>Condividi su WhatsApp</strong> invii il riepilogo del mese a comando o colleghi in un tap."}
+      {ico:"①", tit:"Dove si trova", txt:"Vai in <strong>Report</strong> (menu laterale, Impostazioni o widget salvadanaio della Dashboard) e apri la scheda <strong>⏱ Straordinari</strong>."},
+      {ico:"②", tit:"Seleziona il mese", txt:"Usa le frecce <strong>‹ / ›</strong> accanto al nome del mese per consultare un periodo precedente o successivo."},
+      {ico:"③", tit:"Totale e dettaglio", txt:"In alto leggi il <strong>Totale ore straordinario</strong> del mese, suddiviso per tipo: Ordinario, Festivo, Notturno, Reperibilità."},
+      {ico:"④", tit:"Salvadanaio", txt:"Il blocco <strong>🐖 Salvadanaio ore</strong> mostra ore disponibili, ore del mese corrente, saldi dei mesi precedenti e ore già pagate o recuperate."},
+      {ico:"⑤", tit:"Aggiungere una voce", txt:"Premi <strong>+ Aggiungi</strong> in <em>Voci registrate</em> per inserire manualmente un monte ore; le voci calcolate dai turni compaiono da sole."},
+      {ico:"💰", tit:"Ferie e licenze", txt:"I saldi di <strong>ferie, licenze e festività soppresse</strong> usano il pool annuale: li trovi in <strong>Impostazioni → Ferie &amp; Licenze</strong> e nelle card di <strong>Personale</strong>."},
+      {ico:"💬", tit:"Condividere", txt:"Con <strong>Condividi su WhatsApp</strong> invii il riepilogo del mese a comando o colleghi in un tap."}
     ]
   },
   backup: {
-    titolo: "&#128190; Backup & Import",
-    azione: {label:"&#128190; Vai a Backup", fn:"toggleImpSec('sec-backup','arr-bkp')"},
+    titolo: "💾 Backup & Import",
+    azione: {label:"💾 Vai a Backup", fn:"toggleImpSec('sec-backup','arr-bkp')"},
     passi: [
-      {ico:"&#128228;", tit:"Esportare il backup", txt:"Vai su <strong>Impostazioni &#8594; Dati & Backup</strong> &#8594; premi <strong>&#128228; Esporta backup</strong>. Viene scaricato un file JSON con tutti i dati."},
-      {ico:"&#128229;", tit:"Importare un backup", txt:"Premi <strong>&#128229; Importa backup</strong> e seleziona il file JSON precedentemente esportato. I dati vengono ripristinati completamente."},
-      {ico:"&#128202;", tit:"Importare da Excel", txt:"Premi <strong>&#128202; Importa da Excel</strong> per caricare un file .xlsx con i turni. Le colonne devono contenere: nome, cognome, data, tipo turno."},
-      {ico:"&#9888;", tit:"Attenzione", txt:"L'importazione <strong>sovrascrive</strong> i dati esistenti. Esegui sempre un backup prima di importare."},
-      {ico:"&#128465;", tit:"Reset completo", txt:"In <strong>Zona Pericolosa</strong> puoi eliminare tutti i dati. L'operazione è irreversibile — fai prima un backup."}
+      {ico:"📤", tit:"Esportare il backup", txt:"Vai su <strong>Impostazioni → Dati & Backup</strong> → premi <strong>📤 Esporta backup</strong>. Viene scaricato un file JSON con tutti i dati."},
+      {ico:"📥", tit:"Importare un backup", txt:"Premi <strong>📥 Importa backup</strong> e seleziona il file JSON precedentemente esportato. I dati vengono ripristinati completamente."},
+      {ico:"📊", tit:"Importare da Excel", txt:"Premi <strong>📊 Importa da Excel</strong> per caricare un file .xlsx con i turni. Le colonne devono contenere: nome, cognome, data, tipo turno."},
+      {ico:"⚠", tit:"Attenzione", txt:"L'importazione <strong>sovrascrive</strong> i dati esistenti. Esegui sempre un backup prima di importare."},
+      {ico:"🗑", tit:"Reset completo", txt:"In <strong>Zona Pericolosa</strong> puoi eliminare tutti i dati. L'operazione è irreversibile — fai prima un backup."}
     ]
   }
 };
@@ -13493,7 +13493,7 @@ function salvaTurnoRapido() {
     var tipoH = document.getElementById('r-tipo-hidden'); if(tipoH) tipoH.value='';
     document.querySelectorAll('#m-rapido .btn-r').forEach(function(b){ b.style.background=''; b.style.color=''; });
     closeM('m-rapido');
-    toast('&#9989; Turno salvato', 'ok');
+    toast('✅ Turno salvato', 'ok');
     haptic('success');
 }
 
@@ -13545,9 +13545,9 @@ function _persPickSyncUI() {
   var hint = document.getElementById('pers-picker-hint');
   if(hint) hint.style.display = multi ? 'block' : 'none';
   var mBtn = document.getElementById('pers-picker-multi');
-  if(mBtn){ mBtn.classList.toggle('sel', multi); mBtn.innerHTML = multi ? '&#9783; Multi ON' : '&#9783; Multi'; }
+  if(mBtn){ mBtn.classList.toggle('sel', multi); mBtn.innerHTML = multi ? '☷ Multi ON' : '☷ Multi'; }
   var tit = document.getElementById('pers-picker-tit');
-  if(tit) tit.textContent = multi ? '&#128101; Seleziona Colleghi' : '&#128100; Seleziona Persona';
+  if(tit) tit.textContent = multi ? '👥 Seleziona Colleghi' : '👤 Seleziona Persona';
 }
 
 // Conferma la selezione multipla e la trasferisce nel form turno
@@ -13572,7 +13572,7 @@ function _renderPersSelezionate() {
   box.style.display = 'flex';
   box.innerHTML = list.map(function(x){
     return '<span class="pers-tag">'+ctEsc(x.nome)+
-      '<button type="button" onclick="rimuoviPersSelezionata(\''+x.id+'\')" title="Rimuovi">&#10005;</button></span>';
+      '<button type="button" onclick="rimuoviPersSelezionata(\''+x.id+'\')" title="Rimuovi">✕</button></span>';
   }).join('');
 }
 
@@ -13665,7 +13665,7 @@ function _turniMultiPreview() {
   if(!pers && !window._multiGiorni){
     el.style.display = 'none';
     el.innerHTML = '';
-    if(btn) btn.innerHTML = '&#128190; Salva';
+    if(btn) btn.innerHTML = '💾 Salva';
     return;
   }
   var ds = (document.getElementById('mt-data')||{}).value || '';
@@ -13682,22 +13682,22 @@ function _turniMultiPreview() {
   el.style.display = 'block';
   if(errore){
     el.style.color = 'var(--red)';
-    el.innerHTML = '&#9888; ' + errore;
-    if(btn) btn.innerHTML = '&#128190; Salva';
+    el.innerHTML = '⚠ ' + errore;
+    if(btn) btn.innerHTML = '💾 Salva';
     return;
   }
   var tot = pers * giorni;
   if(tot > _TURNI_MULTI_MAX){
     el.style.color = 'var(--red)';
-    el.innerHTML = '&#9888; Hai selezionato <strong>'+tot+'</strong> turni. Il limite per un inserimento è '+_TURNI_MULTI_MAX+'.';
-    if(btn) btn.innerHTML = '&#128190; Salva';
+    el.innerHTML = '⚠ Hai selezionato <strong>'+tot+'</strong> turni. Il limite per un inserimento è '+_TURNI_MULTI_MAX+'.';
+    if(btn) btn.innerHTML = '💾 Salva';
     return;
   }
   el.style.color = 'var(--txt2)';
   el.innerHTML = '<strong style="color:var(--txt)">'+pers+'</strong> '+(pers===1?'collega':'colleghi')+
-    ' &#215; <strong style="color:var(--txt)">'+giorni+'</strong> '+(giorni===1?'giorno':'giorni')+
+    ' × <strong style="color:var(--txt)">'+giorni+'</strong> '+(giorni===1?'giorno':'giorni')+
     ' = <strong style="color:var(--blue)">'+tot+'</strong> '+(tot===1?'turno':'turni');
-  if(btn) btn.innerHTML = '&#128190; Salva' + (tot > 1 ? ' ('+tot+')' : '');
+  if(btn) btn.innerHTML = '💾 Salva' + (tot > 1 ? ' ('+tot+')' : '');
 }
 
 // Riporta il form turno in modalità singola
@@ -13715,7 +13715,7 @@ function _resetTurniMulti() {
   var tog = document.getElementById('mt-range-toggle'); if(tog) tog.classList.remove('sel');
   var dl = document.getElementById('mt-data-lbl'); if(dl) dl.textContent = 'Data';
   var pv = document.getElementById('mt-preview'); if(pv){ pv.style.display = 'none'; pv.innerHTML = ''; }
-  var btn = document.getElementById('mt-save-btn'); if(btn) btn.innerHTML = '&#128190; Salva';
+  var btn = document.getElementById('mt-save-btn'); if(btn) btn.innerHTML = '💾 Salva';
   _renderPersSelezionate();
   _renderGiorniSett();
   _aggiornaPersBtnLabel();
@@ -13897,7 +13897,7 @@ function apriModificaTurnoGiorno(tid) {
     var dParts = t.data ? t.data.split('-') : [];
     var dataTit = dParts.length===3 ? dParts[2]+' '+mN[parseInt(dParts[1])-1] : t.data;
     var titEl = document.querySelector('#m-mod-turno .mtit');
-    if(titEl) titEl.innerHTML = '&#9998; ' + nomeTit + ' &mdash; ' + dataTit;
+    if(titEl) titEl.innerHTML = '✎ ' + nomeTit + ' &mdash; ' + dataTit;
 }
 
 function aggOraNativaDaTipo(tipo) {
@@ -14016,7 +14016,7 @@ function confermaAvatarCrop() {
         // Aggiorna tutte le preview nell'UI
         if(typeof _syncAvaAllSections === 'function') _syncAvaAllSections(fotoUrl);
         if(typeof aggUI === 'function') aggUI();
-        toast('&#9989; Foto salvata', 'ok');
+        toast('✅ Foto salvata', 'ok');
         haptic('success');
       })
       .catch(function(e) {
@@ -14035,7 +14035,7 @@ function confermaAvatarCrop() {
     var me = lsG('ct_me', null);
     if(me) { me.ava = data; lsS('ct_me', me); }
     if(typeof aggiornaHeroCard === 'function') aggiornaHeroCard();
-    toast('&#9989; Foto ritagliata', 'ok');
+    toast('✅ Foto ritagliata', 'ok');
   }
 }
 
@@ -15101,7 +15101,7 @@ var AuthModule = (function() {
       var pending  = users.filter(function(u) { return u.stato === 'pending'; });
       var approved = users.filter(function(u) { return u.stato === 'approved' && u.email !== session.userId; });
 
-      var html = '<h3 style="margin:0 0 12px;font-size:1rem;color:var(--blue)">&#128101; Gestione Membri</h3>';
+      var html = '<h3 style="margin:0 0 12px;font-size:1rem;color:var(--blue)">👥 Gestione Membri</h3>';
 
       // -- Richieste in attesa --
       html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--txt2);margin-bottom:8px">Richieste in attesa</div>';
@@ -15117,10 +15117,10 @@ var AuthModule = (function() {
           html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">';
           html += '<div><div style="font-weight:600">' + (u.grado||'') + ' ' + u.nome + ' ' + u.cognome + '</div>';
           html += '<div style="font-size:.8rem;color:var(--txt2)">' + u.email + ' · ' + regDate + '</div>';
-          html += '<div style="font-size:.75rem;color:var(--blue);margin-top:2px">&#128205; ' + repLabel + '</div></div>';
+          html += '<div style="font-size:.75rem;color:var(--blue);margin-top:2px">📍 ' + repLabel + '</div></div>';
           html += '<div style="display:flex;gap:6px;flex-wrap:wrap">';
-          html += '<button class="btn btn-p" style="padding:6px 12px;font-size:.82rem" onclick="AuthModule._approva(\'' + uid_key + '\')">&#10003; Approva</button>';
-          html += '<button class="btn" style="padding:6px 12px;font-size:.82rem;background:rgba(200,16,46,.15);color:var(--red);border:1px solid rgba(200,16,46,.3)" onclick="AuthModule._rifiuta(\'' + uid_key + '\')">&#10005; Rifiuta</button>';
+          html += '<button class="btn btn-p" style="padding:6px 12px;font-size:.82rem" onclick="AuthModule._approva(\'' + uid_key + '\')">✓ Approva</button>';
+          html += '<button class="btn" style="padding:6px 12px;font-size:.82rem;background:rgba(200,16,46,.15);color:var(--red);border:1px solid rgba(200,16,46,.3)" onclick="AuthModule._rifiuta(\'' + uid_key + '\')">✕ Rifiuta</button>';
           html += '</div></div></div>';
         });
       }
@@ -15131,9 +15131,9 @@ var AuthModule = (function() {
         approved.forEach(function(u) {
           var uid_key = u.uid || u.email;
           var ruoloBadge = u.ruolo === 'comandante'
-            ? '<span style="font-size:10px;background:rgba(200,16,46,.15);color:var(--red);padding:2px 7px;border-radius:20px;font-weight:700">&#128081; Comandante</span>'
+            ? '<span style="font-size:10px;background:rgba(200,16,46,.15);color:var(--red);padding:2px 7px;border-radius:20px;font-weight:700">👑 Comandante</span>'
             : u.ruolo === 'vice'
-            ? '<span style="font-size:10px;background:rgba(255,159,67,.15);color:var(--orange);padding:2px 7px;border-radius:20px;font-weight:700">&#11088; Vice</span>'
+            ? '<span style="font-size:10px;background:rgba(255,159,67,.15);color:var(--orange);padding:2px 7px;border-radius:20px;font-weight:700">⭐ Vice</span>'
             : '<span style="font-size:10px;background:rgba(91,159,255,.12);color:var(--blue);padding:2px 7px;border-radius:20px;font-weight:700">Addetto</span>';
           html += '<div style="background:var(--bg2);border-radius:12px;padding:10px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">';
           html += '<div><div style="font-weight:600;font-size:.9rem">' + (u.grado||'') + ' ' + u.nome + ' ' + u.cognome + '</div>';
@@ -15142,14 +15142,14 @@ var AuthModule = (function() {
           if (ruoloMe === 'comandante' && u.ruolo !== 'comandante') {
             html += '<select onchange="AuthModule._cambiaRuolo(\'' + uid_key + '\',this.value)" style="padding:5px 8px;border-radius:8px;background:var(--card);border:1px solid var(--border);color:var(--txt);font-size:.82rem;cursor:pointer">';
             html += '<option value="">-- Cambia ruolo --</option>';
-            html += '<option value="vice"' + (u.ruolo==='vice'?' selected':'') + '>&#11088; Vice Comandante</option>';
+            html += '<option value="vice"' + (u.ruolo==='vice'?' selected':'') + '>⭐ Vice Comandante</option>';
             html += '<option value="addetto"' + (u.ruolo==='addetto'?' selected':'') + '>Addetto</option>';
-            html += '<option value="comandante">&#128081; Trasferisci Comando</option>';
+            html += '<option value="comandante">👑 Trasferisci Comando</option>';
             html += '</select>';
           }
           // FIX: il Comandante può eliminare qualsiasi membro (non se stesso)
           if (ruoloMe === 'comandante' && u.ruolo !== 'comandante') {
-            html += '<button class="btn btn-sm" style="padding:6px 10px;font-size:.78rem;background:rgba(200,16,46,.12);color:var(--red);border:1px solid rgba(200,16,46,.25);margin-left:4px" onclick="AuthModule._eliminaMembro(\'' + uid_key + '\')">&#128465; Elimina</button>';
+            html += '<button class="btn btn-sm" style="padding:6px 10px;font-size:.78rem;background:rgba(200,16,46,.12);color:var(--red);border:1px solid rgba(200,16,46,.25);margin-left:4px" onclick="AuthModule._eliminaMembro(\'' + uid_key + '\')">🗑 Elimina</button>';
           }
           html += '</div>';
         });
@@ -15238,7 +15238,7 @@ var AuthModule = (function() {
         lsS('ct_me', me);
       }
 
-      toast(nomeTarget + ' &#8594; ' + (nuovoRuolo === 'comandante' ? 'Comandante' : nuovoRuolo === 'vice' ? 'Vice Comandante' : 'Addetto'), 'ok');
+      toast(nomeTarget + ' → ' + (nuovoRuolo === 'comandante' ? 'Comandante' : nuovoRuolo === 'vice' ? 'Vice Comandante' : 'Addetto'), 'ok');
       AuthModule.renderGestioneMemebri();
       if(typeof aggUI === 'function') aggUI();
     },

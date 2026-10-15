@@ -61,7 +61,7 @@
     var btn = _getBioBtn();
     if (!btn) return;
     var nome = cred.nome ? cred.nome.split(' ')[0] : '';
-    btn.innerHTML = '&#129535; ' + (nome ? 'Accedi come ' + nome : 'Accedi con biometria');
+    btn.innerHTML = '🧿 ' + (nome ? 'Accedi come ' + nome : 'Accedi con biometria');
     btn.style.display = 'flex';
     var rem = _getRemoveBtn();
     if (rem) rem.style.display = 'block';
@@ -177,7 +177,7 @@
 
         global._biometricPending = null;
         _showBioBtn(_loadCred());
-        _toast('&#129535; Accesso biometrico abilitato', 'ok');
+        _toast('🧿 Accesso biometrico abilitato', 'ok');
         // Aggiorna UI impostazioni
         if (typeof _updateBioSettingsUI === 'function') _updateBioSettingsUI();
 

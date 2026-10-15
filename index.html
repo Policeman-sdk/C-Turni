@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="C-Turni">
 <meta name="theme-color" content="#0d1b2a" id="theme-color-meta">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230d1b2a'/%3E%3Cpolygon points='50,12 56,32 76,32 60,44 66,64 50,52 34,64 40,44 24,32 44,32' fill='%23c8a84b'/%3E%3Ctext x='50' y='88' text-anchor='middle' font-size='28' font-weight='900' font-family='Arial,sans-serif' fill='%23ffffff' letter-spacing='2'%3ECT%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="style.css?v=5.0.0">
+<link rel="stylesheet" href="style.css?v=5.0.1">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
@@ -122,7 +122,7 @@
 <!-- ═══ AUTH OVERLAY ═══ -->
 
 
-<div id="debug-banner">&#128295; Modalit&agrave; Debug &ndash; account admin attivo <button onclick="AuthModule.logout()" style="margin-left:12px;padding:2px 10px;border-radius:6px;border:1px solid #000;background:transparent;cursor:pointer;font-size:.75rem">Logout</button></div>
+<div id="debug-banner">🔧 Modalit&agrave; Debug &ndash; account admin attivo <button onclick="AuthModule.logout()" style="margin-left:12px;padding:2px 10px;border-radius:6px;border:1px solid #000;background:transparent;cursor:pointer;font-size:.75rem">Logout</button></div>
 
 <div id="auth-overlay" style="display:flex">
 
@@ -132,7 +132,7 @@
 
     <div class="auth-logo">
 
-      <div class="auth-logo-ico">&#128737;</div>
+      <div class="auth-logo-ico">🛡</div>
 
       <div>
 
@@ -185,25 +185,25 @@
         <div style="position:relative">
         <input type="password" class="fc" id="auth-pass"
 
-          placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" autocomplete="current-password"
+          placeholder="••••••••" autocomplete="current-password"
 
           onkeydown="if(event.key==='Enter')AuthModule.login(document.getElementById('auth-email').value,document.getElementById('auth-pass').value)"
           style="padding-right:44px">
-        <button type="button" onclick="togPwd('auth-pass',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--txt2);padding:4px;appearance:none;-webkit-appearance:none">&#128065;</button>
+        <button type="button" onclick="togPwd('auth-pass',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--txt2);padding:4px;appearance:none;-webkit-appearance:none">👁</button>
         </div>
 
       </div>
 
       <button class="btn btn-p" style="width:100%;padding:14px;font-size:15px;font-weight:700;border-radius:14px"
         onclick="AuthModule.login(document.getElementById('auth-email').value,document.getElementById('auth-pass').value)">
-        &#128274; Accedi
+        🔒 Accedi
       </button>
 
       <!-- Pulsante login biometrico (visibile solo se credenziale salvata) -->
       <button id="btn-biometric-login" class="btn btn-g"
         style="display:none;width:100%;padding:13px;font-size:14px;font-weight:700;border-radius:14px;margin-top:10px;gap:8px;align-items:center;justify-content:center"
-        onclick="(function(btn){btn.disabled=true;btn.innerHTML='&#129535; Verifica in corso...';BiometricModule.authenticate().then(function(r){AuthModule.loginWithBiometric(r.userId,r.email);}).catch(function(e){btn.disabled=false;btn.innerHTML='&#129535; Accedi con Face ID / Impronta';if(e.name==='NotAllowedError')toast('Biometria annullata','err');else toast('Biometria non riuscita: '+( e.message||e.name),'err');});})(this)">
-        &#129535; Accedi con Face ID / Impronta
+        onclick="(function(btn){btn.disabled=true;btn.innerHTML='🧿 Verifica in corso...';BiometricModule.authenticate().then(function(r){AuthModule.loginWithBiometric(r.userId,r.email);}).catch(function(e){btn.disabled=false;btn.innerHTML='🧿 Accedi con Face ID / Impronta';if(e.name==='NotAllowedError')toast('Biometria annullata','err');else toast('Biometria non riuscita: '+( e.message||e.name),'err');});})(this)">
+        🧿 Accedi con Face ID / Impronta
       </button>
 
       <div style="text-align:center;margin-top:10px">
@@ -218,7 +218,7 @@
     <!-- Banner enrollment biometrico (appare dopo login riuscito) -->
     <div id="biometric-enroll-banner" style="display:none;position:fixed;bottom:calc(80px + env(safe-area-inset-bottom,0px));left:12px;right:12px;z-index:9999;background:var(--card);border:1px solid var(--border);border-radius:18px;padding:16px 18px;box-shadow:0 8px 32px rgba(0,0,0,.25)">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-        <span style="font-size:26px">&#129535;</span>
+        <span style="font-size:26px">🧿</span>
         <div>
           <div style="font-size:14px;font-weight:800;color:var(--txt)">Abilita accesso biometrico</div>
           <div style="font-size:12px;color:var(--txt2)">Accedi con Face ID o impronta per <strong id="biometric-enroll-name"></strong></div>
@@ -231,7 +231,7 @@
         </button>
         <button class="btn btn-p" style="flex:1;padding:10px;font-size:13px;font-weight:700;border-radius:12px"
           onclick="BiometricModule.enroll()">
-          &#129535; Abilita
+          🧿 Abilita
         </button>
       </div>
     </div>
@@ -244,7 +244,7 @@
 
       <!-- BANNER INVITO (visibile solo se ?join= presente) -->
       <div id="reg-invite-banner" style="display:none;margin-bottom:14px;padding:12px 14px;background:rgba(41,121,255,.1);border:1px solid rgba(41,121,255,.3);border-radius:12px">
-        <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:2px">&#128279; Invito reparto</div>
+        <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:2px">🔗 Invito reparto</div>
         <div style="font-size:12px;color:var(--txt2)">Stai per iscriverti al reparto: <strong id="reg-invite-rep-nome" style="color:var(--txt)">—</strong></div>
       </div>
 
@@ -274,8 +274,8 @@
         <label>Password *</label>
 
         <div style="position:relative"><input type="password" class="fc" id="reg-pass"
-          placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" autocomplete="new-password" style="padding-right:44px">
-        <button type="button" onclick="togPwd('reg-pass',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--txt2);padding:4px;appearance:none;-webkit-appearance:none">&#128065;</button></div>
+          placeholder="••••••••" autocomplete="new-password" style="padding-right:44px">
+        <button type="button" onclick="togPwd('reg-pass',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--txt2);padding:4px;appearance:none;-webkit-appearance:none">👁</button></div>
 
       </div>
 
@@ -283,13 +283,13 @@
       <div id="reg-step2" style="display:none">
         <div style="font-size:13px;font-weight:700;color:var(--txt);margin-bottom:12px;text-align:center">Come vuoi usare C-Turni?</div>
         <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">
-          <div id="reg-card-privato" onclick="regScegliModalita('privato')" style="padding:16px;border-radius:14px;border:2px solid var(--border);cursor:pointer;transition:all .2s;background:var(--bg2)">
-            <div style="font-size:22px;margin-bottom:6px">&#128100;</div>
+          <div id="reg-card-privato" onclick="regScegliModalita('privato')" style="padding:16px;border-radius:14px;border:2px solid var(--border);cursor:pointer;transition:opacity .2s,transform .2s,background-color .2s,border-color .2s,color .2s,box-shadow .2s;background:var(--bg2)">
+            <div style="font-size:22px;margin-bottom:6px">👤</div>
             <div style="font-size:14px;font-weight:800;color:var(--txt);margin-bottom:4px">Solo per me</div>
             <div style="font-size:12px;color:var(--txt2);line-height:1.5">Gestisci i tuoi turni in privato. Potrai unirti al tuo reparto in qualsiasi momento.</div>
           </div>
-          <div id="reg-card-reparto" onclick="regScegliModalita('reparto')" style="padding:16px;border-radius:14px;border:2px solid var(--border);cursor:pointer;transition:all .2s;background:var(--bg2)">
-            <div style="font-size:22px;margin-bottom:6px">&#127968;</div>
+          <div id="reg-card-reparto" onclick="regScegliModalita('reparto')" style="padding:16px;border-radius:14px;border:2px solid var(--border);cursor:pointer;transition:opacity .2s,transform .2s,background-color .2s,border-color .2s,color .2s,box-shadow .2s;background:var(--bg2)">
+            <div style="font-size:22px;margin-bottom:6px">🏠</div>
             <div style="font-size:14px;font-weight:800;color:var(--txt);margin-bottom:4px">Unisciti a un Reparto</div>
             <div style="font-size:12px;color:var(--txt2);line-height:1.5">Connettiti con i colleghi, condividi i turni e le assenze.</div>
           </div>
@@ -336,7 +336,7 @@
             <div id="reg-reparto-preview" style="font-size:13px;font-weight:700;color:var(--blue);font-family:monospace">—</div>
             <input type="hidden" id="reg-reparto" value="">
           </div>
-          <div id="reg-reparto-hint" style="display:none;margin-bottom:10px;padding:9px 12px;border-radius:10px;border:1px solid;font-size:12px;line-height:1.5;transition:all .3s"></div>
+          <div id="reg-reparto-hint" style="display:none;margin-bottom:10px;padding:9px 12px;border-radius:10px;border:1px solid;font-size:12px;line-height:1.5;transition:opacity .3s,transform .3s,background-color .3s,border-color .3s,color .3s,box-shadow .3s"></div>
         </div>
       </div>
 
@@ -347,14 +347,14 @@
           <input type="hidden" id="reg-grado" value="">
           <button type="button" class="fc" style="text-align:left;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="apriGradoPicker('reg-grado')" id="btn-reg-grado">
             <span id="lbl-reg-grado" style="font-weight:600;color:var(--txt2)">Tocca per scegliere...</span>
-            <span style="font-size:14px">&#8250;</span>
+            <span style="font-size:14px">›</span>
           </button>
         </div>
 
         <div class="fg" style="margin-bottom:0">
           <label>Ruolo</label>
           <div style="padding:10px 12px;background:rgba(41,121,255,.07);border-radius:10px;border:1px solid rgba(41,121,255,.15);font-size:12px;color:var(--txt2)">
-            &#128161; Il ruolo viene assegnato automaticamente: il primo iscritto del reparto diventa <strong>Comandante</strong>, gli altri sono <strong>Addetti</strong> in attesa di approvazione.
+            💡 Il ruolo viene assegnato automaticamente: il primo iscritto del reparto diventa <strong>Comandante</strong>, gli altri sono <strong>Addetti</strong> in attesa di approvazione.
           </div>
         </div>
 
@@ -379,12 +379,12 @@
 
       <button class="btn btn-p" style="width:100%;padding:14px;font-size:15px;font-weight:700;border-radius:14px" id="reg-btn-avanza"
         onclick="regAvanzaStep2()">
-        Continua &#8250;
+        Continua ›
       </button>
 
       <button class="btn btn-p" style="width:100%;padding:14px;font-size:15px;font-weight:700;border-radius:14px;display:none" id="reg-btn-crea"
         onclick="regConferma()">
-        &#10004; Crea Account
+        ✔ Crea Account
       </button>
 
     </div>
@@ -400,8 +400,8 @@
   <div class="mbox" style="max-width:400px; border-radius:24px 24px 0 0; position:fixed; bottom:0; left:0; right:0; margin:0 auto;">
     <div class="mhan"></div>
     <div class="mhd">
-      <div class="mtit">&#9889; Inserimento Rapido</div>
-      <button class="mcl" onclick="closeM('m-rapido')">&#10005;</button>
+      <div class="mtit">⚡ Inserimento Rapido</div>
+      <button class="mcl" onclick="closeM('m-rapido')">✕</button>
     </div>
     <div class="mbod">
       <input type="hidden" id="r-tipo-hidden" value="">
@@ -443,7 +443,7 @@
     </div>
     <div class="hdr-r">
       
-        <button class="bico" id="btn-notif" onclick="apriNotifCenter()" style="position:relative">&#128276;<span id="notif-badge" style="display:none;position:absolute;top:2px;right:2px;min-width:16px;height:16px;background:var(--red);color:#fff;border-radius:50%;font-size:9px;font-weight:800;line-height:16px;text-align:center;padding:0 3px">0</span></button>
+        <button class="bico" id="btn-notif" onclick="apriNotifCenter()" style="position:relative">🔔<span id="notif-badge" style="display:none;position:absolute;top:2px;right:2px;min-width:16px;height:16px;background:var(--red);color:#fff;border-radius:50%;font-size:9px;font-weight:800;line-height:16px;text-align:center;padding:0 3px">0</span></button>
 </div>
   </header>
 
@@ -475,7 +475,7 @@
 
     <!-- FAB centrale — 3° elemento -->
     <div class="nav-fab-slot">
-      <button id="btn-nav-add" class="nav-fab" onclick="apriFabSheet()" aria-label="Aggiungi">&#10133;</button>
+      <button id="btn-nav-add" class="nav-fab" onclick="apriFabSheet()" aria-label="Aggiungi">➕</button>
     </div>
 
     <button class="bn-item" id="bn-ag" onclick="vaiBN('ag',3)" aria-label="Agenda">
@@ -520,31 +520,31 @@
         <div style="font-size:11px;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Accesso rapido dalla schermata home</div>
       </div>
       <button onclick="pwaInstall()" style="background:var(--blue);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;appearance:none;-webkit-appearance:none;white-space:nowrap">Installa</button>
-      <button onclick="localStorage.setItem('ct_pwa_dismissed','1');document.getElementById('pwa-install-banner').classList.remove('on')" style="background:none;border:none;color:rgba(255,255,255,.5);font-size:18px;cursor:pointer;padding:4px;appearance:none;-webkit-appearance:none;flex-shrink:0">&#10005;</button>
+      <button onclick="localStorage.setItem('ct_pwa_dismissed','1');document.getElementById('pwa-install-banner').classList.remove('on')" style="background:none;border:none;color:rgba(255,255,255,.5);font-size:18px;cursor:pointer;padding:4px;appearance:none;-webkit-appearance:none;flex-shrink:0">✕</button>
     </div>
 
     <!-- Modal istruzioni installazione PWA -->
     <div id="m-pwa-install" class="modal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.7);align-items:center;justify-content:center">
       <div style="background:var(--bg,#0a1628);color:var(--txt,#fff);border-radius:20px;padding:24px;max-width:340px;width:92%;box-sizing:border-box;position:relative">
-        <button onclick="document.getElementById('m-pwa-install').style.display='none'" style="position:absolute;top:12px;right:14px;background:none;border:none;color:rgba(255,255,255,.5);font-size:20px;cursor:pointer">&#10005;</button>
-        <div style="font-size:28px;text-align:center;margin-bottom:8px">&#128241;</div>
+        <button onclick="document.getElementById('m-pwa-install').style.display='none'" style="position:absolute;top:12px;right:14px;background:none;border:none;color:rgba(255,255,255,.5);font-size:20px;cursor:pointer">✕</button>
+        <div style="font-size:28px;text-align:center;margin-bottom:8px">📱</div>
         <div style="font-weight:800;font-size:16px;text-align:center;margin-bottom:16px">Come installare C-Turni</div>
         <!-- iOS -->
         <div style="background:rgba(255,255,255,.07);border-radius:12px;padding:14px;margin-bottom:12px">
-          <div style="font-weight:700;font-size:13px;margin-bottom:8px">&#63743; iPhone / iPad (Safari)</div>
+          <div style="font-weight:700;font-size:13px;margin-bottom:8px"> iPhone / iPad (Safari)</div>
           <div style="font-size:12px;line-height:1.7;opacity:.85">
             1. Apri questa pagina in <strong>Safari</strong><br>
-            2. Tocca il pulsante <strong>Condividi &#9650;</strong> in basso<br>
+            2. Tocca il pulsante <strong>Condividi ▲</strong> in basso<br>
             3. Scorri e tocca <strong>"Aggiungi a schermata Home"</strong><br>
             4. Premi <strong>Aggiungi</strong> in alto a destra
           </div>
         </div>
         <!-- Android -->
         <div style="background:rgba(255,255,255,.07);border-radius:12px;padding:14px">
-          <div style="font-weight:700;font-size:13px;margin-bottom:8px">&#129419; Android (Chrome)</div>
+          <div style="font-weight:700;font-size:13px;margin-bottom:8px">🦋 Android (Chrome)</div>
           <div style="font-size:12px;line-height:1.7;opacity:.85">
             1. Apri questa pagina in <strong>Chrome</strong><br>
-            2. Tocca il menu <strong>&#8942;</strong> in alto a destra<br>
+            2. Tocca il menu <strong>⋮</strong> in alto a destra<br>
             3. Tocca <strong>"Aggiungi a schermata Home"</strong> o <strong>"Installa app"</strong><br>
             4. Conferma con <strong>Aggiungi</strong>
           </div>
@@ -565,7 +565,7 @@
 
       <!-- SALUTO — fuori dalla Hero Card, sopra -->
       <div class="dash-greeting">
-        <div class="hero-user-ava" id="hero-user-ava" onclick="apriProfilo()" style="cursor:pointer" title="Il mio profilo">&#128100;</div>
+        <div class="hero-user-ava" id="hero-user-ava" onclick="apriProfilo()" style="cursor:pointer" title="Il mio profilo">👤</div>
         <div class="dash-greeting-text">
           <div class="hero-greeting-sub" id="hero-greeting-sub">Buongiorno</div>
           <div class="dash-greeting-name-row">
@@ -720,7 +720,7 @@
               </text>
               <path id="ts-bot" d="M 5,29 A 24,24 0 0,0 53,29" fill="none"/>
               <text font-size="4.8" font-weight="700" fill="#1a237e" font-family="Arial Narrow,Arial,sans-serif" letter-spacing="1.5">
-                <textPath href="#ts-bot" startOffset="18%">COMANDO CARABINIERI &#8226; REPVBBLICA ITALIANA</textPath>
+                <textPath href="#ts-bot" startOffset="18%">COMANDO CARABINIERI • REPVBBLICA ITALIANA</textPath>
               </text>
               <polygon points="29,17 31.2,23.5 38,23.5 32.5,27.5 34.7,34 29,30 23.3,34 25.5,27.5 20,23.5 26.8,23.5" fill="#1a237e"/>
               <text x="29" y="37" text-anchor="middle" font-size="4" font-weight="700" fill="#1a237e" font-family="Arial,sans-serif" letter-spacing="1">2024</text>
@@ -742,12 +742,12 @@
         <input type="file" id="xi" accept=".xlsx,.xls" onchange="importXL(this.files[0])" style="display:none">
         <!-- BARRA LAYOUT DASHBOARD — Blocco/Sblocco (sostituisce il vecchio "Organizza") -->
         <div style="display:flex;align-items:center;justify-content:flex-end;margin-top:14px;margin-bottom:4px">
-          <button id="btn-dash-lock" onclick="toggleWidgetLock()" aria-pressed="true" title="Blocca o sblocca la disposizione dei widget">&#128274; Layout bloccato</button>
+          <button id="btn-dash-lock" onclick="toggleWidgetLock()" aria-pressed="true" title="Blocca o sblocca la disposizione dei widget">🔒 Layout bloccato</button>
         </div>
         <!-- PANNELLO PERSONALIZZAZIONE WIDGET (visibile solo a layout sbloccato) -->
         <div id="dash-organizza-panel">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-            <div style="font-size:12px;font-weight:700;color:var(--txt)">&#9776; Ordine widget</div>
+            <div style="font-size:12px;font-weight:700;color:var(--txt)">☰ Ordine widget</div>
             <div style="font-size:10px;color:var(--txt2)">Trascina o usa ↕ per riordinare</div>
           </div>
           <div id="dop-list"></div>
@@ -761,10 +761,10 @@
           <div class="wdg-drag-handle"></div>
           <div class="wdg-body">
             <div class="wdg-hdr">
-              <span class="wdg-lbl">&#128101; Squadra &amp; Turni di Oggi</span>
+              <span class="wdg-lbl">👥 Squadra &amp; Turni di Oggi</span>
               <div class="wdg-mv-btns">
-                <button onclick="moveWidget('squadra-turni',-1)" class="wdg-mv-btn">&#8593;</button>
-                <button onclick="moveWidget('squadra-turni',+1)" class="wdg-mv-btn">&#8595;</button>
+                <button onclick="moveWidget('squadra-turni',-1)" class="wdg-mv-btn">↑</button>
+                <button onclick="moveWidget('squadra-turni',+1)" class="wdg-mv-btn">↓</button>
               </div>
             </div>
             <!-- Avatar colleghi -->
@@ -786,10 +786,10 @@
           <div class="wdg-drag-handle"></div>
           <div class="wdg-body">
             <div class="wdg-hdr">
-              <span class="wdg-lbl">&#128197; Turni della Settimana</span>
+              <span class="wdg-lbl">📅 Turni della Settimana</span>
               <div class="wdg-mv-btns">
-                <button onclick="moveWidget('settimana',-1)" class="wdg-mv-btn">&#8593;</button>
-                <button onclick="moveWidget('settimana',+1)" class="wdg-mv-btn">&#8595;</button>
+                <button onclick="moveWidget('settimana',-1)" class="wdg-mv-btn">↑</button>
+                <button onclick="moveWidget('settimana',+1)" class="wdg-mv-btn">↓</button>
               </div>
             </div>
             <div id="w-settimana-list"></div>
@@ -803,8 +803,8 @@
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
               <span class="wdg-lbl">⏱️ Straordinari oggi</span>
               <div class="wdg-mv-btns">
-                <button onclick="moveWidget('prossimo',-1)" class="wdg-mv-btn">&#8593;</button>
-                <button onclick="moveWidget('prossimo',+1)" class="wdg-mv-btn">&#8595;</button>
+                <button onclick="moveWidget('prossimo',-1)" class="wdg-mv-btn">↑</button>
+                <button onclick="moveWidget('prossimo',+1)" class="wdg-mv-btn">↓</button>
               </div>
             </div>
             <!-- Ore accumulate oggi -->
@@ -827,7 +827,7 @@
             </div>
             <!-- Salvadanaio ore straordinario -->
             <div id="wstr-salv-row" onclick="vaiBN('rep',99);switchRepTab('straord')" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer">
-              <span style="font-size:11px;color:var(--txt2)">&#128022; Salvadanaio</span>
+              <span style="font-size:11px;color:var(--txt2)">🐖 Salvadanaio</span>
               <span id="wstr-salv-val" style="font-size:11px;font-weight:800;color:var(--teal)">0h</span>
             </div>
           </div>
@@ -837,7 +837,7 @@
         <div id="widget-alert" class="wdg-wrap m3-card" data-wid="alert" onclick="if(navigator.vibrate)navigator.vibrate(15)">
           <div class="wdg-drag-handle"></div>
           <div id="widget-alert-inner" class="wdg-body" style="border-left:3px solid var(--red)">
-            <div class="wdg-hdr"><span class="wdg-lbl" style="color:var(--red)">&#128680; Alert attivi</span><div class="wdg-mv-btns"><button onclick="moveWidget('alert',-1)" class="wdg-mv-btn">&#8593;</button><button onclick="moveWidget('alert',+1)" class="wdg-mv-btn">&#8595;</button></div></div>
+            <div class="wdg-hdr"><span class="wdg-lbl" style="color:var(--red)">🚨 Alert attivi</span><div class="wdg-mv-btns"><button onclick="moveWidget('alert',-1)" class="wdg-mv-btn">↑</button><button onclick="moveWidget('alert',+1)" class="wdg-mv-btn">↓</button></div></div>
             <div id="wale-list"></div>
             <button class="btn btn-sm" onclick="openM('m-alert')" style="width:auto;font-size:11px;margin-top:8px;background:rgba(200,16,46,.12);color:var(--red);border-color:rgba(200,16,46,.3)">Gestisci alert</button>
           </div>
@@ -847,7 +847,7 @@
         <div id="widget-scadenze" class="wdg-wrap m3-card" data-wid="scadenze" onclick="if(navigator.vibrate)navigator.vibrate(15)">
           <div class="wdg-drag-handle"></div>
           <div class="wdg-body">
-            <div class="wdg-hdr"><span class="wdg-lbl">&#128197; Scadenze</span><button class="btn btn-sm" onclick="openM('m-scadenza')" style="width:auto;font-size:10px;padding:3px 10px">+ Aggiungi</button></div>
+            <div class="wdg-hdr"><span class="wdg-lbl">📅 Scadenze</span><button class="btn btn-sm" onclick="openM('m-scadenza')" style="width:auto;font-size:10px;padding:3px 10px">+ Aggiungi</button></div>
             <div id="wsc-list"><div style="font-size:12px;color:var(--txt2)">Nessuna scadenza</div></div>
           </div>
         </div>
@@ -856,7 +856,7 @@
         <div id="widget-agenda" class="wdg-wrap m3-card" data-wid="agenda" onclick="if(navigator.vibrate)navigator.vibrate(15)">
           <div class="wdg-drag-handle"></div>
           <div class="wdg-body">
-            <div class="wdg-hdr"><span class="wdg-lbl">&#128467; Agenda oggi</span><button class="btn btn-sm" onclick="vaiAgenda()" style="width:auto;font-size:10px;padding:3px 10px">Vedi tutto</button></div>
+            <div class="wdg-hdr"><span class="wdg-lbl">🗓 Agenda oggi</span><button class="btn btn-sm" onclick="vaiAgenda()" style="width:auto;font-size:10px;padding:3px 10px">Vedi tutto</button></div>
             <div id="wag-list"><div style="font-size:12px;color:var(--txt2)">Nessun appuntamento oggi</div></div>
           </div>
         </div>
@@ -866,7 +866,7 @@
           <div class="wdg-drag-handle"></div>
           <div class="wdg-body">
             <div class="wdg-hdr">
-              <span class="wdg-lbl">&#9989; To-Do aperti</span>
+              <span class="wdg-lbl">✅ To-Do aperti</span>
               <div style="display:flex;gap:6px">
                 <button class="btn btn-sm" onclick="openM('m-todo')" style="width:auto;font-size:10px;padding:3px 10px">+ Nuovo</button>
                 <button class="btn btn-sm" onclick="vaiTodo()" style="width:auto;font-size:10px;padding:3px 10px">Vedi tutto</button>
@@ -880,10 +880,10 @@
         <div id="widget-dino-dash" class="wdg-wrap" data-wid="dino" style="display:none">
           <div style="border-radius:14px;padding:14px;background:rgba(13,21,32,.92);border:1px solid rgba(91,159,255,.2)">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:rgba(255,255,255,.6)">&#128110; Carabiniere Runner</div>
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:rgba(255,255,255,.6)">👮 Carabiniere Runner</div>
               <div style="display:flex;gap:4px">
-                <button onclick="moveWidget('dino',-1)" class="wdg-mv-btn" style="background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.2)">&#8593;</button>
-                <button onclick="moveWidget('dino',+1)" class="wdg-mv-btn" style="background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.2)">&#8595;</button>
+                <button onclick="moveWidget('dino',-1)" class="wdg-mv-btn" style="background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.2)">↑</button>
+                <button onclick="moveWidget('dino',+1)" class="wdg-mv-btn" style="background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.2)">↓</button>
               </div>
             </div>
             <canvas id="dino-canvas" width="320" height="260" style="width:100%;height:260px;border-radius:12px;background:#050d1a;display:block;cursor:pointer;touch-action:manipulation" aria-label="Carabiniere Runner"></canvas>
@@ -909,7 +909,7 @@
           <div class="th2"><div class="ttit">Tutti i Turni</div>
             <div class="tact">
               <div class="srcw"><input type="search" placeholder="Cerca..." oninput="filtra('tb-turni',this.value)"></div>
-              <button class="btn btn-p btn-sm" onclick="openM('m-turno')" style="width:auto">&#10133;</button>
+              <button class="btn btn-p btn-sm" onclick="openM('m-turno')" style="width:auto">➕</button>
             </div>
           </div>
           <div class="tscr"><table>
@@ -921,19 +921,19 @@
 
       <!-- PERSONALE -->
       <div id="pag-pers" class="pag">
-        <button onclick="vaiBN('imp',4)" style="display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--blue);font-size:14px;font-weight:600;cursor:pointer;padding:0 0 10px;appearance:none;-webkit-appearance:none">&#8592; Indietro</button>
+        <button onclick="vaiBN('imp',4)" style="display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--blue);font-size:14px;font-weight:600;cursor:pointer;padding:0 0 10px;appearance:none;-webkit-appearance:none">← Indietro</button>
         <h1 class="ptit">Personale</h1><p class="psub">Gestisci il personale del reparto</p>
 
         <!-- STATO COMANDO (solo Comandante/Vice) -->
         <div id="sec-stato-comando" style="display:none;margin-bottom:14px">
           <div style="border-radius:14px;border:1px solid var(--border);overflow:hidden">
             <div style="padding:12px 14px;background:rgba(41,121,255,.06);border-bottom:1px solid var(--border)">
-              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--txt2);margin-bottom:8px">&#128081; Gestione Comando</div>
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--txt2);margin-bottom:8px">👑 Gestione Comando</div>
               <div id="stato-comando-info" style="font-size:13px;color:var(--txt2);margin-bottom:10px"></div>
               <div style="display:flex;gap:8px;flex-wrap:wrap">
-                <button id="btn-passa-comando" class="btn btn-sm" style="width:auto;font-size:12px" onclick="apriPassaComando()">&#128081; Passa il Comando</button>
-                <button id="btn-promuovi-vice" class="btn btn-sm" style="width:auto;font-size:12px" onclick="apriPromuoviVice()">&#11088; Promuovi Vice</button>
-                <button id="btn-degrada-vice" class="btn btn-sm" style="width:auto;font-size:12px;display:none;background:rgba(200,16,46,.1);color:var(--red);border-color:rgba(200,16,46,.3)" onclick="degradaVice()">&#128683; Rimuovi Vice</button>
+                <button id="btn-passa-comando" class="btn btn-sm" style="width:auto;font-size:12px" onclick="apriPassaComando()">👑 Passa il Comando</button>
+                <button id="btn-promuovi-vice" class="btn btn-sm" style="width:auto;font-size:12px" onclick="apriPromuoviVice()">⭐ Promuovi Vice</button>
+                <button id="btn-degrada-vice" class="btn btn-sm" style="width:auto;font-size:12px;display:none;background:rgba(200,16,46,.1);color:var(--red);border-color:rgba(200,16,46,.3)" onclick="degradaVice()">🚫 Rimuovi Vice</button>
               </div>
             </div>
             <!-- Form passa comando -->
@@ -943,7 +943,7 @@
                 <option value="">-- Seleziona membro --</option>
               </select>
               <div style="display:flex;gap:8px">
-                <button class="btn btn-p btn-sm" style="width:auto" onclick="confermaPassaComando()">&#10004; Conferma</button>
+                <button class="btn btn-p btn-sm" style="width:auto" onclick="confermaPassaComando()">✔ Conferma</button>
                 <button class="btn btn-sm" style="width:auto" onclick="document.getElementById('form-passa-comando').style.display='none'">Annulla</button>
               </div>
             </div>
@@ -954,7 +954,7 @@
                 <option value="">-- Seleziona membro --</option>
               </select>
               <div style="display:flex;gap:8px">
-                <button class="btn btn-p btn-sm" style="width:auto" onclick="confermaPromuoviVice()">&#10004; Conferma</button>
+                <button class="btn btn-p btn-sm" style="width:auto" onclick="confermaPromuoviVice()">✔ Conferma</button>
                 <button class="btn btn-sm" style="width:auto" onclick="document.getElementById('form-promuovi-vice').style.display='none'">Annulla</button>
               </div>
             </div>
@@ -964,11 +964,11 @@
           <div class="th2"><div class="ttit">Personale</div>
             <div class="tact">
               <div class="srcw"><input type="search" placeholder="Cerca..." oninput="filtra('tb-pers',this.value)"></div>
-              <button class="btn btn-p btn-sm" onclick="openM('m-persona')" style="width:auto">&#10133;</button>
+              <button class="btn btn-p btn-sm" onclick="openM('m-persona')" style="width:auto">➕</button>
             </div>
           </div>
           <div class="tscr"><table>
-            <thead><tr><th>Nome</th><th>Grado</th><th>Insegna</th><th>Reparto</th><th>Stato</th><th>Turni</th><th>Ferie&#127958;</th><th></th></tr></thead>
+            <thead><tr><th>Nome</th><th>Grado</th><th>Insegna</th><th>Reparto</th><th>Stato</th><th>Turni</th><th>Ferie🏖</th><th></th></tr></thead>
             <tbody id="tb-pers"><tr><td colspan="7" class="empty">Nessuna persona inserita</td></tr></tbody>
           </table></div>
         </div>
@@ -978,23 +978,23 @@
       <div id="pag-cal" class="pag">
         <h1 class="ptit">Calendario</h1><p class="psub">Tocca un giorno per vedere i turni</p>
         <!-- RICHIESTE CAMBIO TURNO (Blocco 2) -->
-        <button onclick="apriCambioTurno()" class="btn btn-p" style="width:100%;margin-bottom:12px;font-size:13px">&#128260; Chiedi cambio turno</button>
+        <button onclick="apriCambioTurno()" class="btn btn-p" style="width:100%;margin-bottom:12px;font-size:13px">🔄 Chiedi cambio turno</button>
         <div id="mie-richieste-wrap" style="display:none;margin-bottom:14px">
-          <div class="m3-list-group-title">&#128260; Le mie richieste cambio turno</div>
+          <div class="m3-list-group-title">🔄 Le mie richieste cambio turno</div>
           <div class="m3-list-group" id="mie-richieste-list"></div>
         </div>
         <div id="cal-wrap"></div>
 
         <!-- Condividi turni su WhatsApp -->
         <button onclick="condividiTurniWA()" style="width:100%;padding:14px 16px;border-radius:14px;background:linear-gradient(135deg,#25d366,#128c7e);border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:14px;appearance:none;-webkit-appearance:none;box-shadow:0 4px 16px rgba(37,211,102,.3)">
-          <span style="font-size:20px">&#128172;</span>
+          <span style="font-size:20px">💬</span>
           Condividi turni settimanali su WhatsApp
         </button>
       </div>
 
       <!-- AGENDA (pagina dedicata) -->
       <div id="pag-ag" class="pag">
-        <h1 class="ptit">&#128203; Agenda</h1>
+        <h1 class="ptit">📋 Agenda</h1>
         <p class="psub">Appuntamenti e promemoria</p>
 
         <!-- HERO CARD — Avvisi del Comandante (in cima all'Agenda, visibili a tutto il reparto) -->
@@ -1008,7 +1008,7 @@
               </svg>
             </div>
             <div class="ag-hero-titles">
-              <div class="ag-hero-kicker">&#128227; Avvisi del Comandante <span id="ag-avvisi-count"></span></div>
+              <div class="ag-hero-kicker">📣 Avvisi del Comandante <span id="ag-avvisi-count"></span></div>
               <div class="ag-hero-sub">Disposizioni di servizio del reparto</div>
             </div>
             <button id="ag-avvisi-nuovo" onclick="apriBacheca()" style="display:none;align-items:center;gap:6px;background:var(--blue);color:#fff;border:none;border-radius:20px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;appearance:none;-webkit-appearance:none;box-shadow:0 2px 10px rgba(91,159,255,.35);flex-shrink:0">
@@ -1022,7 +1022,7 @@
         <!-- BENTO BOX riepilogo -->
         <div class="ag-bento-grid" id="ag-bento">
           <div class="ag-bento-card ag-bento-card-app" style="border:none;position:relative;overflow:hidden">
-            <div class="ag-bento-card-lbl" style="color:rgba(255,255,255,.75)">&#128197; Appuntamenti</div>
+            <div class="ag-bento-card-lbl" style="color:rgba(255,255,255,.75)">📅 Appuntamenti</div>
             <div class="ag-bento-card-val" id="ag-bento-n-app" style="color:#fff">—</div>
             <div class="ag-bento-card-sub" style="color:rgba(255,255,255,.6)">in programma</div>
             <!-- Icona filigrana -->
@@ -1035,7 +1035,7 @@
             </svg>
           </div>
           <div class="ag-bento-card ag-bento-card-todo" style="border:none;position:relative;overflow:hidden">
-            <div class="ag-bento-card-lbl" style="color:rgba(255,255,255,.75)">&#9989; Compiti</div>
+            <div class="ag-bento-card-lbl" style="color:rgba(255,255,255,.75)">✅ Compiti</div>
             <div class="ag-bento-card-val" id="ag-bento-n-todo" style="color:#fff">—</div>
             <div class="ag-bento-card-sub" style="color:rgba(255,255,255,.6)">da completare</div>
             <!-- Icona filigrana -->
@@ -1045,7 +1045,7 @@
             </svg>
           </div>
           <div class="ag-bento-card ag-bento-full" id="ag-bento-prossimo" style="flex-direction:row;align-items:center;gap:14px;min-height:60px">
-            <div style="font-size:28px;flex-shrink:0">&#9200;</div>
+            <div style="font-size:28px;flex-shrink:0">⏰</div>
             <div>
               <div class="ag-bento-card-lbl">Prossimo</div>
               <div style="font-size:14px;font-weight:700;color:var(--txt)" id="ag-bento-prossimo-tit">Nessun evento imminente</div>
@@ -1056,17 +1056,17 @@
 
         <!-- Filter Chips -->
         <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:10px;margin-bottom:16px;-webkit-overflow-scrolling:touch;scrollbar-width:none;">
-          <button id="chip-ag-tutto"   class="ag-chip on" onclick="filtraAgendaPg('tutto',this)">&#128203; Tutti</button>
-          <button id="chip-ag-agenda"  class="ag-chip"    onclick="filtraAgendaPg('agenda',this)">&#128197; Appuntamenti</button>
-          <button id="chip-ag-compiti" class="ag-chip"    onclick="filtraAgendaPg('compiti',this)">&#9989; Compiti</button>
-          <button id="chip-ag-avvisi"  class="ag-chip"    onclick="filtraAgendaPg('avvisi',this)">&#128227; Avvisi</button>
+          <button id="chip-ag-tutto"   class="ag-chip on" onclick="filtraAgendaPg('tutto',this)">📋 Tutti</button>
+          <button id="chip-ag-agenda"  class="ag-chip"    onclick="filtraAgendaPg('agenda',this)">📅 Appuntamenti</button>
+          <button id="chip-ag-compiti" class="ag-chip"    onclick="filtraAgendaPg('compiti',this)">✅ Compiti</button>
+          <button id="chip-ag-avvisi"  class="ag-chip"    onclick="filtraAgendaPg('avvisi',this)">📣 Avvisi</button>
         </div>
 
         <!-- Sezione Appuntamenti -->
         <div id="ag-section-agenda">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--txt2)">&#128197; Appuntamenti</div>
-            <button class="btn btn-p btn-sm" style="width:auto;font-size:11px" onclick="openM('m-agenda')">&#43; Nuovo</button>
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--txt2)">📅 Appuntamenti</div>
+            <button class="btn btn-p btn-sm" style="width:auto;font-size:11px" onclick="openM('m-agenda')">+ Nuovo</button>
           </div>
           <div id="agenda-list-pg"><div class="ag-empty-state">
             <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1082,7 +1082,7 @@
             <div class="ag-empty-sub">Aggiungi il tuo primo appuntamento</div>
           </div></div>
           <div id="agenda-condivisa-wrap-pg" style="display:none;margin-top:12px">
-            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--txt2);margin-bottom:8px">&#128101; Dal reparto</div>
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--txt2);margin-bottom:8px">👥 Dal reparto</div>
             <div id="agenda-condivisa-list-pg"></div>
           </div>
         </div>
@@ -1091,7 +1091,7 @@
         <div id="ag-section-compiti" style="margin-top:20px">
           <!-- Header con tasto nuovo -->
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-            <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:var(--txt2)">&#9989; Compiti</div>
+            <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:var(--txt2)">✅ Compiti</div>
             <button onclick="openM('m-todo')" style="display:flex;align-items:center;gap:6px;background:var(--blue);color:#fff;border:none;border-radius:20px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;appearance:none;-webkit-appearance:none;box-shadow:0 2px 10px rgba(91,159,255,.35);transition:transform .15s">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
               Nuovo
@@ -1100,8 +1100,8 @@
           <!-- Filter chips M3 pill -->
           <div style="display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px">
             <button id="tf-tutti-ag" onclick="filtraTodoAg('tutti')" class="ag-filter-chip on">Tutti</button>
-            <button id="tf-oggi-ag"  onclick="filtraTodoAg('oggi')"  class="ag-filter-chip">&#128197; Oggi</button>
-            <button id="tf-alta-ag"  onclick="filtraTodoAg('alta')"  class="ag-filter-chip">&#128308; Alta priorità</button>
+            <button id="tf-oggi-ag"  onclick="filtraTodoAg('oggi')"  class="ag-filter-chip">📅 Oggi</button>
+            <button id="tf-alta-ag"  onclick="filtraTodoAg('alta')"  class="ag-filter-chip">🔴 Alta priorità</button>
           </div>
           <div id="todo-list-ag"><div class="ag-empty-state">
             <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1139,9 +1139,9 @@
         <div id="rep-tab-straord" style="display:none">
           <!-- Selettore mese -->
           <div class="rep-straord-mese">
-            <button class="btn btn-sm btn-g" onclick="straordCambiaMese(-1)" style="width:36px;height:36px;padding:0;flex-shrink:0">&#8249;</button>
+            <button class="btn btn-sm btn-g" onclick="straordCambiaMese(-1)" style="width:36px;height:36px;padding:0;flex-shrink:0">‹</button>
             <div id="straord-mese-lbl" style="flex:1;text-align:center;font-weight:700;font-size:15px"></div>
-            <button class="btn btn-sm btn-g" onclick="straordCambiaMese(+1)" style="width:36px;height:36px;padding:0;flex-shrink:0">&#8250;</button>
+            <button class="btn btn-sm btn-g" onclick="straordCambiaMese(+1)" style="width:36px;height:36px;padding:0;flex-shrink:0">›</button>
           </div>
 
           <!-- Riepilogo mese -->
@@ -1157,7 +1157,7 @@
           <!-- SALVADANAIO ORE STRAORDINARIO -->
           <div class="m3-list-group" style="margin-top:14px">
             <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border)">
-              <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--txt2)">&#128022; Salvadanaio ore</span>
+              <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--txt2)">🐖 Salvadanaio ore</span>
               <span id="salv-hd-tot" style="font-size:11px;font-weight:800;color:var(--teal)">0h</span>
             </div>
             <div id="salv-disponibili" style="padding:14px 16px;border-bottom:1px solid var(--border)"></div>
@@ -1187,13 +1187,13 @@
 
       <!-- GESTIONE NUCLEO (solo Comandante) -->
       <div id="pag-membri" class="pag">
-        <button onclick="vaiBN('imp',4)" style="display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--blue);font-size:14px;font-weight:600;cursor:pointer;padding:0 0 10px;appearance:none;-webkit-appearance:none">&#8592; Indietro</button>
-        <h1 class="ptit">&#128101; Gestione Membri</h1>
+        <button onclick="vaiBN('imp',4)" style="display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--blue);font-size:14px;font-weight:600;cursor:pointer;padding:0 0 10px;appearance:none;-webkit-appearance:none">← Indietro</button>
+        <h1 class="ptit">👥 Gestione Membri</h1>
         <p class="psub">Richieste di accesso e gestione del nucleo</p>
         <div id="admin-info-card" style="display:none;max-width:600px;margin:0 auto 18px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px 18px">
-          <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--txt2);margin-bottom:10px">&#128081; Profilo Amministratore</div>
+          <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--txt2);margin-bottom:10px">👑 Profilo Amministratore</div>
           <div style="display:flex;align-items:center;gap:14px">
-            <div style="width:48px;height:48px;border-radius:12px;background:var(--teal,#0d9488);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">&#128081;</div>
+            <div style="width:48px;height:48px;border-radius:12px;background:var(--teal,#0d9488);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">👑</div>
             <div>
               <div id="admin-info-nome" style="font-weight:700;font-size:15px;color:var(--txt)"></div>
               <div id="admin-info-sub" style="font-size:12px;color:var(--txt2);margin-top:2px"></div>
@@ -1205,8 +1205,8 @@
 
       <!-- PAGINA COMANDO (solo Comandante/Vice) -->
       <div id="pag-comando" class="pag">
-        <button onclick="vaiBN('imp',4)" style="display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--blue);font-size:14px;font-weight:600;cursor:pointer;padding:0 0 10px;appearance:none;-webkit-appearance:none">&#8592; Indietro</button>
-        <h1 class="ptit">&#128081; Menu Comando</h1>
+        <button onclick="vaiBN('imp',4)" style="display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--blue);font-size:14px;font-weight:600;cursor:pointer;padding:0 0 10px;appearance:none;-webkit-appearance:none">← Indietro</button>
+        <h1 class="ptit">👑 Menu Comando</h1>
         <p class="psub">Gestione del personale e dell'ufficio</p>
         <div id="pg-comando-wrap" style="max-width:600px;margin:0 auto"></div>
       </div>
@@ -1216,17 +1216,17 @@
       <!-- IMPOSTAZIONI -->
       <div id="pag-imp" class="pag">
         <!-- ═══ ISOLA 1: PROFILO E REPARTO ═══ -->
-        <div class="m3-list-group-title">&#128100; Profilo e Reparto</div>
+        <div class="m3-list-group-title">👤 Profilo e Reparto</div>
         <div class="m3-list-group">
 
           <!-- Profilo card -->
           <div id="imp-profilo-card" class="m3-row tap" onclick="toggleImpProfilo()" style="gap:14px">
-            <div id="imp-ava" class="av imp-profilo-ava" style="width:44px;height:44px;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:20px;overflow:hidden;flex-shrink:0;border:2px solid var(--blue)">&#128100;</div>
+            <div id="imp-ava" class="av imp-profilo-ava" style="width:44px;height:44px;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:20px;overflow:hidden;flex-shrink:0;border:2px solid var(--blue)">👤</div>
             <div class="m3-row-body">
               <div class="m3-row-title" id="imp-nome">Caricamento...</div>
               <div class="m3-row-sub" id="imp-sub"></div>
             </div>
-            <div class="m3-row-right" id="imp-profilo-chevron">&#8250;</div>
+            <div class="m3-row-right" id="imp-profilo-chevron">›</div>
           </div>
 
           <!-- Sezione espandibile modifica profilo -->
@@ -1266,20 +1266,20 @@
                   <input type="hidden" id="pf-grado" value="">
                   <button class="fc" style="text-align:left;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="apriGradoPicker('pf-grado')" id="btn-pf-grado">
                     <span id="lbl-pf-grado" style="font-weight:600;color:var(--txt2)">Tocca per scegliere...</span>
-                    <span style="font-size:14px">&#8250;</span>
+                    <span style="font-size:14px">›</span>
                   </button>
                 </div>
               </div>
               <div id="pf-err" class="emsg">Errore salvataggio</div>
-              <div id="pf-ok" class="smsg">&#10003; Salvato!</div>
+              <div id="pf-ok" class="smsg">✓ Salvato!</div>
               <div style="display:flex;gap:8px;flex-wrap:wrap">
-                <button class="btn btn-p btn-sm" style="width:auto" onclick="salvaImp()">&#128190; Salva</button>
-                <button class="btn btn-g btn-sm" style="width:auto" id="btn-invita-collega" onclick="invitaCollega()">&#128279; Invita Collega</button>
+                <button class="btn btn-p btn-sm" style="width:auto" onclick="salvaImp()">💾 Salva</button>
+                <button class="btn btn-g btn-sm" style="width:auto" id="btn-invita-collega" onclick="invitaCollega()">🔗 Invita Collega</button>
               </div>
 
               <!-- TESSERINO ATE — Task 6: spostato qui da Dashboard -->
               <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px">
-                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--txt2);margin-bottom:10px">&#127959; Tesserino ATE</div>
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--txt2);margin-bottom:10px">🏗 Tesserino ATE</div>
                 <div id="tess-sticky-imp" class="tess-card" style="margin:0"></div>
               </div>
             </div>
@@ -1287,29 +1287,29 @@
 
           <!-- Password -->
           <div class="m3-row tap" onclick="toggleImpSec('sec-pwd','arr-pwd')">
-            <div class="m3-row-ico" style="background:rgba(200,16,46,.12)">&#128274;</div>
+            <div class="m3-row-ico" style="background:rgba(200,16,46,.12)">🔒</div>
             <div class="m3-row-body"><div class="m3-row-title">Password</div><div class="m3-row-sub">Cambia la password di accesso</div></div>
-            <div class="m3-row-right" id="arr-pwd">&#8250;</div>
+            <div class="m3-row-right" id="arr-pwd">›</div>
           </div>
           <div id="sec-pwd" class="imp-sub">
             <div style="padding:14px;border-top:1px solid var(--border)">
               <div class="fg" style="margin-bottom:10px"><label>Password attuale</label>
-                <div style="position:relative"><input type="password" class="fc" id="p-old" placeholder="" style="padding-right:44px"><button type="button" onclick="togPwd('p-old',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--txt2);padding:4px;appearance:none;-webkit-appearance:none">&#128065;</button></div></div>
+                <div style="position:relative"><input type="password" class="fc" id="p-old" placeholder="" style="padding-right:44px"><button type="button" onclick="togPwd('p-old',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--txt2);padding:4px;appearance:none;-webkit-appearance:none">👁</button></div></div>
               <div class="fg" style="margin-bottom:10px"><label>Nuova password</label>
-                <div style="position:relative"><input type="password" class="fc" id="p-new" placeholder="" style="padding-right:44px"><button type="button" onclick="togPwd('p-new',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--txt2);padding:4px;appearance:none;-webkit-appearance:none">&#128065;</button></div></div>
+                <div style="position:relative"><input type="password" class="fc" id="p-new" placeholder="" style="padding-right:44px"><button type="button" onclick="togPwd('p-new',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--txt2);padding:4px;appearance:none;-webkit-appearance:none">👁</button></div></div>
               <div class="fg" style="margin-bottom:10px"><label>Conferma</label>
-                <div style="position:relative"><input type="password" class="fc" id="p-cf" placeholder="" style="padding-right:44px"><button type="button" onclick="togPwd('p-cf',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--txt2);padding:4px;appearance:none;-webkit-appearance:none">&#128065;</button></div></div>
+                <div style="position:relative"><input type="password" class="fc" id="p-cf" placeholder="" style="padding-right:44px"><button type="button" onclick="togPwd('p-cf',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--txt2);padding:4px;appearance:none;-webkit-appearance:none">👁</button></div></div>
               <div id="pwd-err" class="emsg">Errore</div>
-              <div id="pwd-ok" class="smsg">&#10003; Password aggiornata!</div>
-              <button class="btn btn-p btn-sm" style="width:auto" onclick="cambiaPwd()">&#128274; Aggiorna</button>
+              <div id="pwd-ok" class="smsg">✓ Password aggiornata!</div>
+              <button class="btn btn-p btn-sm" style="width:auto" onclick="cambiaPwd()">🔒 Aggiorna</button>
             </div>
           </div>
 
           <!-- Accesso Biometrico -->
           <div class="m3-row tap" id="row-biometric" onclick="toggleImpSec('sec-biometric','arr-biometric')" style="display:none">
-            <div class="m3-row-ico" style="background:rgba(41,121,255,.12)">&#129535;</div>
+            <div class="m3-row-ico" style="background:rgba(41,121,255,.12)">🧿</div>
             <div class="m3-row-body"><div class="m3-row-title">Accesso Biometrico</div><div class="m3-row-sub" id="bio-settings-sub">Face ID / Impronta digitale</div></div>
-            <div class="m3-row-right" id="arr-biometric">&#8250;</div>
+            <div class="m3-row-right" id="arr-biometric">›</div>
           </div>
           <div id="sec-biometric" class="imp-sub">
             <div style="padding:14px;border-top:1px solid var(--border)">
@@ -1319,8 +1319,8 @@
               </div>
               <div style="display:flex;gap:8px;flex-wrap:wrap">
                 <button id="btn-bio-enable" class="btn btn-p btn-sm" style="display:none"
-                  onclick="(function(btn){btn.disabled=true;btn.textContent='⏳ Attendi...';BiometricModule.enroll().finally(function(){btn.disabled=false;btn.innerHTML='&#129535; Abilita biometria';_updateBioSettingsUI();});})(this)">
-                  &#129535; Abilita biometria
+                  onclick="(function(btn){btn.disabled=true;btn.textContent='⏳ Attendi...';BiometricModule.enroll().finally(function(){btn.disabled=false;btn.innerHTML='🧿 Abilita biometria';_updateBioSettingsUI();});})(this)">
+                  🧿 Abilita biometria
                 </button>
                 <button id="btn-bio-disable" class="btn btn-g btn-sm" style="display:none"
                   onclick="BiometricModule.removeCredential(); _updateBioSettingsUI()">
@@ -1333,97 +1333,97 @@
         </div><!-- /isola profilo -->
 
         <!-- ═══ ISOLA 2: ASPETTO ═══ -->
-        <div class="m3-list-group-title">&#127912; Aspetto</div>
+        <div class="m3-list-group-title">🎨 Aspetto</div>
         <div class="m3-list-group">
 
           <!-- Tasto Cambia Tema (espande le card) -->
           <div class="m3-row tap" onclick="toggleImpSec('sec-temi','arr-temi')">
-            <div class="m3-row-ico" style="background:rgba(41,121,255,.12)" id="tema-ico">&#127769;</div>
+            <div class="m3-row-ico" style="background:rgba(41,121,255,.12)" id="tema-ico">🌙</div>
             <div class="m3-row-body">
               <div class="m3-row-title">Tema interfaccia</div>
               <div class="m3-row-sub" id="tema-desc">Notte (predefinito)</div>
             </div>
-            <div class="m3-row-right" id="arr-temi">&#8250;</div>
+            <div class="m3-row-right" id="arr-temi">›</div>
           </div>
           <!-- Card temi — nascoste di default, si espandono al click -->
           <div id="sec-temi" class="imp-sub">
             <!-- TEMI NOTTE -->
-            <div class="tema-section-lbl"><span style="color:var(--gold)">&#127769;</span> TEMI NOTTE</div>
+            <div class="tema-section-lbl"><span style="color:var(--gold)">🌙</span> TEMI NOTTE</div>
             <div class="tema-grid-2">
               <div class="tema-card-big" id="tcb-notte"    onclick="prevTemaInline('')"           style="background:linear-gradient(135deg,#0d1b2a 0%,#1a3a5c 100%)">
-                <div class="tcb-emoji">&#127769;</div>
+                <div class="tcb-emoji">🌙</div>
                 <div class="tcb-nome">Notte</div>
                 <div class="tcb-dots"><span style="background:#0d1b2a;border:1px solid rgba(255,255,255,.3)"></span><span style="background:#2979ff"></span><span style="background:#e8edf5"></span></div>
-                <div class="tcb-check">&#10003;</div>
+                <div class="tcb-check">✓</div>
               </div>
               <div class="tema-card-big" id="tcb-rosa"     onclick="prevTemaInline('rosa')"        style="background:linear-gradient(135deg,#2a0a18 0%,#8a2040 60%,#c0304a 100%)">
-                <div class="tcb-emoji">&#127800;</div>
+                <div class="tcb-emoji">🌸</div>
                 <div class="tcb-nome" style="color:#fff0f4">Rosa</div>
                 <div class="tcb-dots"><span style="background:#2a0a18;border:1px solid rgba(255,255,255,.3)"></span><span style="background:#ff4d80"></span><span style="background:#fff0f4"></span></div>
-                <div class="tcb-check">&#10003;</div>
+                <div class="tcb-check">✓</div>
               </div>
               <div class="tema-card-big" id="tcb-forestale" onclick="prevTemaInline('forestale')"  style="background:linear-gradient(135deg,#1c2b1c 0%,#2e402e 100%)">
-                <div class="tcb-emoji">&#127794;</div>
+                <div class="tcb-emoji">🌲</div>
                 <div class="tcb-nome" style="color:#e8ede8">Forestale</div>
                 <div class="tcb-dots"><span style="background:#1c1f1c;border:1px solid rgba(255,255,255,.3)"></span><span style="background:#6abf69"></span><span style="background:#e8ede8"></span></div>
-                <div class="tcb-check">&#10003;</div>
+                <div class="tcb-check">✓</div>
               </div>
               <div class="tema-card-big" id="tcb-carabinieri" onclick="prevTemaInline('carabinieri')" style="background:linear-gradient(135deg,#080b10 0%,#111828 100%)">
-                <div class="tcb-emoji">&#9878;&#65039;</div>
+                <div class="tcb-emoji">⚖️</div>
                 <div class="tcb-nome" style="color:#c8a96e">Carabinieri</div>
                 <div class="tcb-dots"><span style="background:#080b10;border:1px solid rgba(255,255,255,.3)"></span><span style="background:#8b0000"></span><span style="background:#c8a96e"></span></div>
-                <div class="tcb-check">&#10003;</div>
+                <div class="tcb-check">✓</div>
               </div>
             </div>
 
             <!-- TEMI GIORNO -->
-            <div class="tema-section-lbl" style="margin-top:16px"><span style="color:var(--gold)">&#9728;&#65039;</span> TEMI GIORNO</div>
+            <div class="tema-section-lbl" style="margin-top:16px"><span style="color:var(--gold)">☀️</span> TEMI GIORNO</div>
             <div class="tema-grid-2">
               <div class="tema-card-big" id="tcb-light"    onclick="prevTemaInline('light')"       style="background:linear-gradient(135deg,#f0f4f8 0%,#dce8f0 100%)">
-                <div class="tcb-emoji">&#9728;&#65039;</div>
+                <div class="tcb-emoji">☀️</div>
                 <div class="tcb-nome" style="color:#0d1b2a;text-shadow:none">Giorno</div>
                 <div class="tcb-dots"><span style="background:#f0f4f8;border:1px solid #c5d5e8"></span><span style="background:#1565c0"></span><span style="background:#0d1b2a"></span></div>
-                <div class="tcb-check" style="color:#0d1b2a">&#10003;</div>
+                <div class="tcb-check" style="color:#0d1b2a">✓</div>
               </div>
               <div class="tema-card-big" id="tcb-rosa-light" onclick="prevTemaInline('rosa-light')" style="background:linear-gradient(135deg,#fff5f8 0%,#ffe0ea 100%)">
-                <div class="tcb-emoji">&#127864;</div>
+                <div class="tcb-emoji">🍸</div>
                 <div class="tcb-nome" style="color:#3a0a18;text-shadow:none">Rosa Giorno</div>
                 <div class="tcb-dots"><span style="background:#fff5f8;border:1px solid #f0b0c8"></span><span style="background:#d63070"></span><span style="background:#3a0a18"></span></div>
-                <div class="tcb-check" style="color:#3a0a18">&#10003;</div>
+                <div class="tcb-check" style="color:#3a0a18">✓</div>
               </div>
               <div class="tema-card-big" id="tcb-forestale-light" onclick="prevTemaInline('forestale-light')" style="background:linear-gradient(135deg,#f4f8f4 0%,#e4ede4 100%)">
-                <div class="tcb-emoji">&#127807;</div>
+                <div class="tcb-emoji">🌿</div>
                 <div class="tcb-nome" style="color:#0a1f0a;text-shadow:none">Forestale Giorno</div>
                 <div class="tcb-dots"><span style="background:#f4f8f4;border:1px solid #b0d0b0"></span><span style="background:#2e7d32"></span><span style="background:#2e7d32"></span></div>
-                <div class="tcb-check" style="color:#0a1f0a">&#10003;</div>
+                <div class="tcb-check" style="color:#0a1f0a">✓</div>
               </div>
               <div class="tema-card-big" id="tcb-carabinieri-light" onclick="prevTemaInline('carabinieri-light')" style="background:linear-gradient(135deg,#f5f5f0 0%,#eaeae0 100%)">
-                <div class="tcb-emoji">&#127963;&#65039;</div>
+                <div class="tcb-emoji">🏛️</div>
                 <div class="tcb-nome" style="color:#1a1208;text-shadow:none">Carabinieri Giorno</div>
                 <div class="tcb-dots"><span style="background:#f5f5f0;border:1px solid #c8b89a"></span><span style="background:#8b0000"></span><span style="background:#c8a96e"></span></div>
-                <div class="tcb-check" style="color:#1a1208">&#10003;</div>
+                <div class="tcb-check" style="color:#1a1208">✓</div>
               </div>
             </div>
 
             <!-- Tasto Salva -->
             <div style="padding:12px 0 4px">
-              <button class="btn btn-p" id="btn-salva-tema-inline" onclick="salvaTemaInline()" style="width:100%;border-radius:16px">&#10003; Applica tema</button>
+              <button class="btn btn-p" id="btn-salva-tema-inline" onclick="salvaTemaInline()" style="width:100%;border-radius:16px">✓ Applica tema</button>
             </div>
 
             <!-- Comportamento tema (spostato dentro il menu Tema interfaccia) -->
             <div style="border-top:1px solid var(--border);padding:14px 0 4px;margin-top:12px">
-              <div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:10px">&#9881; Comportamento tema</div>
+              <div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:10px">⚙ Comportamento tema</div>
               <div style="display:flex;flex-direction:column;gap:8px" id="tema-comp-btns">
-                <button id="tcb-manuale" class="tema-comp-btn on" onclick="setTemaComportamento('manuale')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;border:2px solid var(--blue);background:rgba(41,121,255,.1);cursor:pointer;appearance:none;-webkit-appearance:none;text-align:left;transition:all .2s">
-                  <span style="font-size:18px">&#9998;</span>
+                <button id="tcb-manuale" class="tema-comp-btn on" onclick="setTemaComportamento('manuale')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;border:2px solid var(--blue);background:rgba(41,121,255,.1);cursor:pointer;appearance:none;-webkit-appearance:none;text-align:left;transition:opacity .2s,transform .2s,background-color .2s,border-color .2s,color .2s,box-shadow .2s">
+                  <span style="font-size:18px">✎</span>
                   <div><div style="font-size:13px;font-weight:700;color:var(--txt)">Manuale</div><div style="font-size:11px;color:var(--txt2)">Scelgo io il tema</div></div>
                 </button>
-                <button id="tcb-sistema" class="tema-comp-btn" onclick="setTemaComportamento('sistema')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;border:2px solid var(--border);background:var(--bg2);cursor:pointer;appearance:none;-webkit-appearance:none;text-align:left;transition:all .2s">
-                  <span style="font-size:18px">&#128241;</span>
+                <button id="tcb-sistema" class="tema-comp-btn" onclick="setTemaComportamento('sistema')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;border:2px solid var(--border);background:var(--bg2);cursor:pointer;appearance:none;-webkit-appearance:none;text-align:left;transition:opacity .2s,transform .2s,background-color .2s,border-color .2s,color .2s,box-shadow .2s">
+                  <span style="font-size:18px">📱</span>
                   <div><div style="font-size:13px;font-weight:700;color:var(--txt)">Segui sistema</div><div style="font-size:11px;color:var(--txt2)">Chiaro/scuro automatico</div></div>
                 </button>
-                <button id="tcb-orario" class="tema-comp-btn" onclick="setTemaComportamento('orario')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;border:2px solid var(--border);background:var(--bg2);cursor:pointer;appearance:none;-webkit-appearance:none;text-align:left;transition:all .2s">
-                  <span style="font-size:18px">&#127769;</span>
+                <button id="tcb-orario" class="tema-comp-btn" onclick="setTemaComportamento('orario')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;border:2px solid var(--border);background:var(--bg2);cursor:pointer;appearance:none;-webkit-appearance:none;text-align:left;transition:opacity .2s,transform .2s,background-color .2s,border-color .2s,color .2s,box-shadow .2s">
+                  <span style="font-size:18px">🌙</span>
                   <div><div style="font-size:13px;font-weight:700;color:var(--txt)">Segui orario</div><div style="font-size:11px;color:var(--txt2)">Scuro 19:00–07:00</div></div>
                 </button>
               </div>
@@ -1454,7 +1454,7 @@
             <div style="border-top:1px solid var(--border);padding:14px 0 4px;margin-top:12px">
               <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
                 <div>
-                  <div style="font-size:13px;font-weight:700;color:var(--txt)">&#128680; Effetto Lampeggiante Logo</div>
+                  <div style="font-size:13px;font-weight:700;color:var(--txt)">🚨 Effetto Lampeggiante Logo</div>
                   <div style="font-size:11px;color:var(--txt2);margin-top:2px">LED blu/rosso animato accanto a C-Turni</div>
                 </div>
                 <label class="m3-switch">
@@ -1471,12 +1471,12 @@
         </div><!-- /isola aspetto -->
 
         <!-- ═══ ISOLA 3: DASHBOARD E NOTIFICHE ═══ -->
-        <div class="m3-list-group-title">&#128202; Dashboard e Notifiche</div>
+        <div class="m3-list-group-title">📊 Dashboard e Notifiche</div>
         <div class="m3-list-group">
 
           <!-- Toggle Smart Snooze -->
           <div class="m3-row" style="border-top:1px solid var(--border)">
-            <div class="m3-row-ico" style="background:rgba(255,159,67,.12)">&#128336;</div>
+            <div class="m3-row-ico" style="background:rgba(255,159,67,.12)">🕐</div>
             <div class="m3-row-body"><div class="m3-row-title">Smart Snooze</div><div class="m3-row-sub">Suggerisce rinvio to-do scaduti</div></div>
             <label class="m3-switch">
               <input type="checkbox" id="tog-snooze" onchange="(function(v){var s=lsG('ct_prefs',{});s.snooze=v;lsS('ct_prefs',s);if(typeof aggiornaFocus==='function')aggiornaFocus();})(this.checked)">
@@ -1486,7 +1486,7 @@
 
           <!-- Toggle Dino Game -->
           <div class="m3-row">
-            <div class="m3-row-ico" style="background:rgba(6,214,160,.12)">&#128110;</div>
+            <div class="m3-row-ico" style="background:rgba(6,214,160,.12)">👮</div>
             <div class="m3-row-body"><div class="m3-row-title">Abilita Carabiniere Runner</div><div class="m3-row-sub">Minigioco nella Dashboard</div></div>
             <label class="m3-switch">
               <input type="checkbox" id="tog-dino">
@@ -1496,7 +1496,7 @@
 
           <!-- Toggle Suoni UI -->
           <div class="m3-row">
-            <div class="m3-row-ico" style="background:rgba(255,159,67,.12)">&#128266;</div>
+            <div class="m3-row-ico" style="background:rgba(255,159,67,.12)">🔊</div>
             <div class="m3-row-body"><div class="m3-row-title">Suoni UI</div><div class="m3-row-sub">Feedback sonoro per azioni e notifiche</div></div>
             <label class="m3-switch">
               <input type="checkbox" id="tog-suoni" onchange="(function(v){var s=lsG('ct_prefs',{});s.suoni=v;lsS('ct_prefs',s);})(this.checked)">
@@ -1506,7 +1506,7 @@
 
           <!-- Toggle Vibrazione -->
           <div class="m3-row">
-            <div class="m3-row-ico" style="background:rgba(124,77,255,.12)">&#128243;</div>
+            <div class="m3-row-ico" style="background:rgba(124,77,255,.12)">📳</div>
             <div class="m3-row-body"><div class="m3-row-title">Vibrazione</div><div class="m3-row-sub">Feedback aptico per azioni e notifiche</div></div>
             <label class="m3-switch">
               <input type="checkbox" id="tog-vibra" onchange="(function(v){var s=lsG('ct_prefs',{});s.vibra=v;lsS('ct_prefs',s);})(this.checked)">
@@ -1516,7 +1516,7 @@
 
           <!-- Toggle Confetti To-Do -->
           <div class="m3-row">
-            <div class="m3-row-ico" style="background:rgba(200,168,75,.12)">&#127881;</div>
+            <div class="m3-row-ico" style="background:rgba(200,168,75,.12)">🎉</div>
             <div class="m3-row-body"><div class="m3-row-title">Confetti To-Do</div><div class="m3-row-sub">Animazione festa al completamento compiti</div></div>
             <label class="m3-switch">
               <input type="checkbox" id="tog-confetti" onchange="(function(v){var s=lsG('ct_prefs',{});s.confetti=v;lsS('ct_prefs',s);})(this.checked)">
@@ -1526,7 +1526,7 @@
 
           <!-- Toggle Notifiche Turni -->
           <div class="m3-row">
-            <div class="m3-row-ico" style="background:rgba(0,200,83,.12)">&#128276;</div>
+            <div class="m3-row-ico" style="background:rgba(0,200,83,.12)">🔔</div>
             <div class="m3-row-body"><div class="m3-row-title">Notifiche Turni</div><div class="m3-row-sub" id="notif-status-txt">Tocca per abilitare</div></div>
             <label class="m3-switch">
               <input type="checkbox" id="tog-notif-master" onchange="toggleNotifMaster()">
@@ -1536,16 +1536,16 @@
 
           <!-- Widget Dashboard (espandibile) -->
           <div class="m3-row tap" onclick="toggleImpSec('sec-widget','arr-wdg');caricaImpostazioniMeteo();">
-            <div class="m3-row-ico" style="background:rgba(41,121,255,.12)">&#128202;</div>
+            <div class="m3-row-ico" style="background:rgba(41,121,255,.12)">📊</div>
             <div class="m3-row-body"><div class="m3-row-title">Widget Dashboard</div><div class="m3-row-sub">Attiva o disattiva i widget visibili</div></div>
-            <div class="m3-row-right" id="arr-wdg">&#8250;</div>
+            <div class="m3-row-right" id="arr-wdg">›</div>
           </div>
           <div id="sec-widget" class="imp-sub">
             <div style="padding:14px;border-top:1px solid var(--border)">
-              <div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:8px">&#127781; Città meteo</div>
+              <div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:8px">🌥 Città meteo</div>
               <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
                 <input type="text" class="fc" id="imp-meteo-citta" placeholder="Es. Roma, Milano..." style="flex:1;font-size:13px" oninput="aggiornaPreviewMeteo(this.value)">
-                <button class="btn btn-p btn-sm" onclick="salvaMeteoCity()" style="width:auto;flex-shrink:0">&#128190; Salva</button>
+                <button class="btn btn-p btn-sm" onclick="salvaMeteoCity()" style="width:auto;flex-shrink:0">💾 Salva</button>
               </div>
               <div id="imp-meteo-preview" style="font-size:11px;color:var(--txt3);margin-bottom:10px"></div>
               <div id="dash-widget-toggles"></div>
@@ -1554,30 +1554,30 @@
 
           <!-- Notifiche avanzate (espandibile) -->
           <div class="m3-row tap" onclick="toggleImpSec('sec-notif','arr-ntf')">
-            <div class="m3-row-ico" style="background:rgba(255,109,0,.12)">&#9200;</div>
+            <div class="m3-row-ico" style="background:rgba(255,109,0,.12)">⏰</div>
             <div class="m3-row-body"><div class="m3-row-title">Notifiche avanzate</div><div class="m3-row-sub">Pre-turno, mattina, to-do, agenda</div></div>
-            <div class="m3-row-right" id="arr-ntf">&#8250;</div>
+            <div class="m3-row-right" id="arr-ntf">›</div>
           </div>
           <div id="sec-notif" class="imp-sub">
             <div style="padding:14px;border-top:1px solid var(--border)">
               <div class="m3-row" style="padding:0 0 10px;border-bottom:1px solid var(--border);margin-bottom:10px">
-                <div class="m3-row-ico" style="background:rgba(255,109,0,.12)">&#9728;</div>
+                <div class="m3-row-ico" style="background:rgba(255,109,0,.12)">☀</div>
                 <div class="m3-row-body"><div class="m3-row-title">Turno del giorno</div><div class="m3-row-sub">Ogni mattina alle 06:00</div></div>
                 <label class="m3-switch"><input type="checkbox" id="tog-notif-mattina" onchange="toggleNotifPref('mattina',this)"><span class="m3-switch-track"></span></label>
               </div>
               <div class="m3-row" style="padding:0 0 10px;border-bottom:1px solid var(--border);margin-bottom:10px">
-                <div class="m3-row-ico" style="background:rgba(41,121,255,.12)">&#128197;</div>
+                <div class="m3-row-ico" style="background:rgba(41,121,255,.12)">📅</div>
                 <div class="m3-row-body"><div class="m3-row-title">Notifiche To-Do</div></div>
                 <label class="m3-switch"><input type="checkbox" id="tog-notif-todo" onchange="toggleNotifPref('todo',this)"><span class="m3-switch-track"></span></label>
               </div>
               <div class="m3-row" style="padding:0">
-                <div class="m3-row-ico" style="background:rgba(0,188,212,.12)">&#128203;</div>
+                <div class="m3-row-ico" style="background:rgba(0,188,212,.12)">📋</div>
                 <div class="m3-row-body"><div class="m3-row-title">Notifiche Agenda</div></div>
                 <label class="m3-switch"><input type="checkbox" id="tog-notif-agenda" onchange="toggleNotifPref('agenda',this)"><span class="m3-switch-track"></span></label>
               </div>
               <!-- Anticipo notifica pre-turno -->
               <div style="border-top:1px solid var(--border);padding:14px 0 4px">
-                <div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:10px">&#9200; Anticipo notifica pre-turno</div>
+                <div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:10px">⏰ Anticipo notifica pre-turno</div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap">
                   <button class="btn btn-g btn-sm notif-pre-btn" data-min="60"   onclick="setNotifPre(60)"   id="npb-60">1h prima</button>
                   <button class="btn btn-g btn-sm notif-pre-btn" data-min="360"  onclick="setNotifPre(360)"  id="npb-360">6h prima</button>
@@ -1592,92 +1592,92 @@
         </div><!-- /isola dashboard notifiche -->
 
         <!-- ═══ ISOLA 4: DATI E ORARI ═══ -->
-        <div class="m3-list-group-title">&#128197; Dati e Orari</div>
+        <div class="m3-list-group-title">📅 Dati e Orari</div>
         <div class="m3-list-group">
 
           <!-- Ferie & Licenze -->
           <div class="m3-row tap" onclick="toggleImpSec('sec-ferie','arr-ferie');renderPermessiStudio();">
-            <div class="m3-row-ico" style="background:rgba(0,188,212,.12)">&#127958;</div>
+            <div class="m3-row-ico" style="background:rgba(0,188,212,.12)">🏖</div>
             <div class="m3-row-body"><div class="m3-row-title">Ferie &amp; Licenze</div><div class="m3-row-sub">Gestisci il saldo giorni disponibili</div></div>
-            <div class="m3-row-right" id="arr-ferie">&#8250;</div>
+            <div class="m3-row-right" id="arr-ferie">›</div>
           </div>
           <div id="sec-ferie" class="imp-sub">
             <div style="padding:14px;border-top:1px solid var(--border)">
               <div style="padding:8px 0;background:rgba(41,121,255,.06);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:var(--txt2);line-height:1.6">
-                &#9432; Le licenze scalano <strong>solo</strong> con turno <strong>Ferie/Licenza</strong>. Si usano prima gli anni più vecchi <em>(FIFO)</em>.
+                ⓘ Le licenze scalano <strong>solo</strong> con turno <strong>Ferie/Licenza</strong>. Si usano prima gli anni più vecchi <em>(FIFO)</em>.
               </div>
               <div id="ferie-pool-list" style="margin-bottom:10px"></div>
               <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg2);border-radius:11px;margin-bottom:12px">
-                <div style="font-size:12px;font-weight:700;color:var(--txt2)">&#128197; Totale disponibile</div>
+                <div style="font-size:12px;font-weight:700;color:var(--txt2)">📅 Totale disponibile</div>
                 <div style="font-size:22px;font-weight:900;color:var(--teal)" id="ferie-totale">0 gg</div>
               </div>
-              <button onclick="apriAggiungiAnno()" style="width:100%;padding:12px;border-radius:11px;background:var(--blue);color:#fff;border:none;font-size:14px;font-weight:700;cursor:pointer;appearance:none;-webkit-appearance:none;margin-bottom:8px">&#43; Aggiungi anno</button>
-              <button onclick="apriScalaManuale()" style="width:100%;padding:11px;border-radius:11px;background:rgba(0,188,212,.12);color:var(--teal);border:1px solid rgba(0,188,212,.3);font-size:13px;font-weight:700;cursor:pointer;appearance:none;-webkit-appearance:none;margin-bottom:12px">&#8722; Scala giorni manualmente</button>
+              <button onclick="apriAggiungiAnno()" style="width:100%;padding:12px;border-radius:11px;background:var(--blue);color:#fff;border:none;font-size:14px;font-weight:700;cursor:pointer;appearance:none;-webkit-appearance:none;margin-bottom:8px">+ Aggiungi anno</button>
+              <button onclick="apriScalaManuale()" style="width:100%;padding:11px;border-radius:11px;background:rgba(0,188,212,.12);color:var(--teal);border:1px solid rgba(0,188,212,.3);font-size:13px;font-weight:700;cursor:pointer;appearance:none;-webkit-appearance:none;margin-bottom:12px">− Scala giorni manualmente</button>
               <div id="studio-card" style="padding:14px;background:linear-gradient(135deg,rgba(41,121,255,.13),rgba(0,188,212,.08));border:1px solid rgba(41,121,255,.25);border-radius:13px;margin-bottom:12px">
                 <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
-                  <div><div style="font-size:13px;font-weight:800;color:var(--txt)">&#127891; Permessi studio <span id="studio-anno"></span></div><div style="font-size:11px;color:var(--txt2);margin-top:3px">Ogni turno PSTUDIO utilizza 6 ore.</div></div>
+                  <div><div style="font-size:13px;font-weight:800;color:var(--txt)">🎓 Permessi studio <span id="studio-anno"></span></div><div style="font-size:11px;color:var(--txt2);margin-top:3px">Ogni turno PSTUDIO utilizza 6 ore.</div></div>
                   <div style="text-align:right"><div id="studio-rimanenti" style="font-size:25px;font-weight:900;color:var(--blue)">0 h</div><div style="font-size:10px;color:var(--txt2)">rimanenti</div></div>
                 </div>
                 <div style="height:7px;background:var(--bg);border-radius:10px;overflow:hidden;margin:12px 0 7px"><div id="studio-progress" style="height:100%;width:0;background:linear-gradient(90deg,var(--blue),var(--teal));border-radius:10px;transition:width .25s"></div></div>
                 <div id="studio-dettaglio" style="font-size:11px;color:var(--txt2);margin-bottom:10px">Monte ore non attivato.</div>
-                <button id="studio-attiva-btn" onclick="attivaPermessiStudio()" style="width:100%;padding:11px;border-radius:11px;background:var(--blue);color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;appearance:none;-webkit-appearance:none">&#43; Aggiungi 150 ore per quest'anno</button>
+                <button id="studio-attiva-btn" onclick="attivaPermessiStudio()" style="width:100%;padding:11px;border-radius:11px;background:var(--blue);color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;appearance:none;-webkit-appearance:none">+ Aggiungi 150 ore per quest'anno</button>
               </div>
               <div id="popup-anno" style="display:none;background:var(--bg2);border-radius:13px;border:1px solid var(--border);padding:14px;margin-bottom:12px">
-                <div style="font-size:13px;font-weight:700;color:var(--txt);margin-bottom:10px;text-align:center">&#9998; <span id="popup-anno-label">Anno</span></div>
+                <div style="font-size:13px;font-weight:700;color:var(--txt);margin-bottom:10px;text-align:center">✎ <span id="popup-anno-label">Anno</span></div>
                 <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:6px">
-                  <button onclick="stepAnnoEdit(-5)" style="padding:6px 10px;border-radius:20px;background:rgba(200,16,46,.1);border:1px solid rgba(200,16,46,.3);color:var(--red);font-size:12px;cursor:pointer;appearance:none;-webkit-appearance:none">&#8722;5</button>
-                  <button onclick="stepAnnoEdit(-1)" style="width:42px;height:42px;border-radius:50%;background:rgba(200,16,46,.15);border:2px solid rgba(200,16,46,.4);color:var(--red);font-size:22px;cursor:pointer;appearance:none;-webkit-appearance:none">&#8722;</button>
+                  <button onclick="stepAnnoEdit(-5)" style="padding:6px 10px;border-radius:20px;background:rgba(200,16,46,.1);border:1px solid rgba(200,16,46,.3);color:var(--red);font-size:12px;cursor:pointer;appearance:none;-webkit-appearance:none">−5</button>
+                  <button onclick="stepAnnoEdit(-1)" style="width:42px;height:42px;border-radius:50%;background:rgba(200,16,46,.15);border:2px solid rgba(200,16,46,.4);color:var(--red);font-size:22px;cursor:pointer;appearance:none;-webkit-appearance:none">−</button>
                   <div style="text-align:center;min-width:54px"><div style="font-size:44px;font-weight:900;line-height:1" id="popup-anno-n">0</div><div style="font-size:10px;color:var(--txt2)">giorni</div></div>
-                  <button onclick="stepAnnoEdit(+1)" style="width:42px;height:42px;border-radius:50%;background:rgba(0,200,83,.15);border:2px solid rgba(0,200,83,.4);color:var(--green);font-size:22px;cursor:pointer;appearance:none;-webkit-appearance:none">&#43;</button>
-                  <button onclick="stepAnnoEdit(+5)" style="padding:6px 10px;border-radius:20px;background:rgba(0,200,83,.1);border:1px solid rgba(0,200,83,.3);color:var(--green);font-size:12px;cursor:pointer;appearance:none;-webkit-appearance:none">&#43;5</button>
+                  <button onclick="stepAnnoEdit(+1)" style="width:42px;height:42px;border-radius:50%;background:rgba(0,200,83,.15);border:2px solid rgba(0,200,83,.4);color:var(--green);font-size:22px;cursor:pointer;appearance:none;-webkit-appearance:none">+</button>
+                  <button onclick="stepAnnoEdit(+5)" style="padding:6px 10px;border-radius:20px;background:rgba(0,200,83,.1);border:1px solid rgba(0,200,83,.3);color:var(--green);font-size:12px;cursor:pointer;appearance:none;-webkit-appearance:none">+5</button>
                 </div>
                 <div style="display:flex;gap:8px;margin-top:10px">
-                  <button onclick="salvaAnnoEdit()" style="flex:1;padding:11px;border-radius:10px;background:var(--blue);color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;appearance:none;-webkit-appearance:none">&#128190; Salva</button>
+                  <button onclick="salvaAnnoEdit()" style="flex:1;padding:11px;border-radius:10px;background:var(--blue);color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;appearance:none;-webkit-appearance:none">💾 Salva</button>
                   <button onclick="chiudiPopupAnno()" style="flex:1;padding:11px;border-radius:10px;background:var(--bg);color:var(--txt2);border:1px solid var(--border);font-size:13px;cursor:pointer;appearance:none;-webkit-appearance:none">Annulla</button>
                 </div>
               </div>
               <div style="margin-bottom:12px">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-                  <div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px">&#127941; Recuperi festivi</div>
+                  <div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px">🏅 Recuperi festivi</div>
                   <div style="font-size:20px;font-weight:900;color:var(--gold)" id="rec-extra-n">0</div>
                 </div>
                 <div id="rec-list" style="max-height:200px;overflow-y:auto"></div>
                 <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
-                  <button class="btn btn-sm" style="width:auto;font-size:11px" onclick="aggRecuperoManuale()">&#43; Aggiungi manuale</button>
-                  <button class="btn btn-sm" style="width:auto;font-size:11px" onclick="delRecuperi()">&#128465; Elimina smarcati</button>
+                  <button class="btn btn-sm" style="width:auto;font-size:11px" onclick="aggRecuperoManuale()">+ Aggiungi manuale</button>
+                  <button class="btn btn-sm" style="width:auto;font-size:11px" onclick="delRecuperi()">🗑 Elimina smarcati</button>
                 </div>
               </div>
               <div style="margin-bottom:12px">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-                  <div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px">&#127881; Festivit&agrave; Soppresse</div>
+                  <div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px">🎉 Festivit&agrave; Soppresse</div>
                   <div style="font-size:20px;font-weight:900;color:var(--teal)" id="fest-sopp-n">0</div>
                 </div>
                 <div style="font-size:11px;color:var(--txt2);margin-bottom:8px;line-height:1.5">4 giorni l'anno da recuperare (art. 18 CCNL).</div>
                 <div id="fest-sopp-list"></div>
-                <button class="btn btn-sm" onclick="aggFestSopp()" style="width:auto;font-size:11px;margin-top:6px">&#43; Aggiungi fruizione</button>
+                <button class="btn btn-sm" onclick="aggFestSopp()" style="width:auto;font-size:11px;margin-top:6px">+ Aggiungi fruizione</button>
               </div>
-              <div id="ferie-ok" class="smsg">&#10003; Saldo salvato!</div>
+              <div id="ferie-ok" class="smsg">✓ Saldo salvato!</div>
             </div>
           </div>
 
           <!-- Esporta PDF -->
           <div class="m3-row tap" onclick="esportaPDF()">
-            <div class="m3-row-ico" style="background:rgba(242,69,61,.12)">&#128196;</div>
+            <div class="m3-row-ico" style="background:rgba(242,69,61,.12)">📄</div>
             <div class="m3-row-body"><div class="m3-row-title">Esporta PDF</div><div class="m3-row-sub">Stampa o salva il registro turni</div></div>
-            <div class="m3-row-right">&#8250;</div>
+            <div class="m3-row-right">›</div>
           </div>
 
           <!-- Backup & Ripristino -->
           <div class="m3-row tap" onclick="toggleImpSec('sec-backup','arr-bk')">
-            <div class="m3-row-ico" style="background:rgba(41,121,255,.12)">&#128190;</div>
+            <div class="m3-row-ico" style="background:rgba(41,121,255,.12)">💾</div>
             <div class="m3-row-body"><div class="m3-row-title">Backup &amp; Ripristino</div><div class="m3-row-sub" id="last-backup-lbl">Nessun backup</div></div>
-            <div class="m3-row-right" id="arr-bk">&#8250;</div>
+            <div class="m3-row-right" id="arr-bk">›</div>
           </div>
           <div id="sec-backup" class="imp-sub">
             <div style="padding:14px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:10px">
-              <button class="btn btn-p btn-sm" style="width:100%" onclick="esportaBackup()">&#128190; Esporta backup JSON</button>
-              <label class="btn btn-g btn-sm" style="width:100%;cursor:pointer;text-align:center">&#128229; Importa backup<input type="file" accept=".json" onchange="importaBackup(this.files[0])" style="display:none"></label>
-              <button class="btn btn-sm" style="width:100%;background:rgba(200,16,46,.1);color:var(--red);border-color:rgba(200,16,46,.3)" onclick="resetAll('all')">&#128465; Reset totale dati</button>
+              <button class="btn btn-p btn-sm" style="width:100%" onclick="esportaBackup()">💾 Esporta backup JSON</button>
+              <label class="btn btn-g btn-sm" style="width:100%;cursor:pointer;text-align:center">📥 Importa backup<input type="file" accept=".json" onchange="importaBackup(this.files[0])" style="display:none"></label>
+              <button class="btn btn-sm" style="width:100%;background:rgba(200,16,46,.1);color:var(--red);border-color:rgba(200,16,46,.3)" onclick="resetAll('all')">🗑 Reset totale dati</button>
             </div>
           </div>
 
@@ -1685,35 +1685,35 @@
 
         <!-- ═══ ISOLA 5: STATO COMANDO (solo Comandante/Vice) ═══ -->
         <div id="isola-gestione-comando" style="display:none">
-          <div class="m3-list-group-title">&#128081; Gestione Comando</div>
+          <div class="m3-list-group-title">👑 Gestione Comando</div>
           <div class="m3-list-group">
             <div class="m3-row tap" onclick="vaiBN('comando',0)">
-              <div class="m3-row-ico" style="background:rgba(200,169,110,.12)">&#128737;</div>
+              <div class="m3-row-ico" style="background:rgba(200,169,110,.12)">🛡</div>
               <div class="m3-row-body"><div class="m3-row-title">Menu Comando</div><div class="m3-row-sub">Richieste cambio turno, compiti, bacheca e situazione reparto</div></div>
               <div class="m3-row-right">
                 <span id="badge-comando-aperte" style="display:none;background:var(--red);color:#fff;border-radius:10px;min-width:20px;height:20px;font-size:11px;font-weight:800;line-height:20px;text-align:center;padding:0 5px">0</span>
-                <span style="margin-left:6px">&#8250;</span>
+                <span style="margin-left:6px">›</span>
               </div>
             </div>
             <div class="m3-row tap" onclick="vaiBN('pers',4)">
-              <div class="m3-row-ico" style="background:rgba(200,169,110,.12)">&#128081;</div>
+              <div class="m3-row-ico" style="background:rgba(200,169,110,.12)">👑</div>
               <div class="m3-row-body"><div class="m3-row-title">Ruoli e passaggio del comando</div><div class="m3-row-sub">Apri Personale per gestire Comandante, Vice e membri</div></div>
-              <div class="m3-row-right">&#8250;</div>
+              <div class="m3-row-right">›</div>
             </div>
           </div>
         </div>
         <!-- ═══ ISOLA 6: GESTIONE REPARTO ═══ -->
-        <div class="m3-list-group-title">&#8505; Info</div>
+        <div class="m3-list-group-title">ℹ Info</div>
         <div class="m3-list-group">
           <div class="m3-row tap" onclick="vaiBN('rep',99)">
-            <div class="m3-row-ico" style="background:rgba(41,121,255,.12)">&#128202;</div>
+            <div class="m3-row-ico" style="background:rgba(41,121,255,.12)">📊</div>
             <div class="m3-row-body"><div class="m3-row-title">Report &amp; Statistiche</div><div class="m3-row-sub">Analisi turni e ore lavorate</div></div>
-            <div class="m3-row-right">&#8250;</div>
+            <div class="m3-row-right">›</div>
           </div>
           <div class="m3-row tap" onclick="toggleImpSec('sec-changelog','arr-cl')">
-            <div class="m3-row-ico" style="background:rgba(100,100,255,.12)">&#128221;</div>
+            <div class="m3-row-ico" style="background:rgba(100,100,255,.12)">📝</div>
             <div class="m3-row-body"><div class="m3-row-title">Changelog</div><div class="m3-row-sub">Novit&agrave; per versione</div></div>
-            <div class="m3-row-right" id="arr-cl">&#8250;</div>
+            <div class="m3-row-right" id="arr-cl">›</div>
           </div>
           <div id="sec-changelog" class="imp-sub">
             <div style="padding:14px;border-top:1px solid var(--border);font-size:12px;color:var(--txt2)">
@@ -1729,45 +1729,45 @@
                 <div>⚡ <strong>Zero Reflow & GPU Motion</strong> — Animazioni e transizioni ottimizzate per le massime prestazioni a 60 FPS senza impatto sulla batteria.</div>
               </div>
               <!-- v4.2 -->
-              <div style="font-weight:800;color:var(--gold);margin-bottom:6px;font-size:13px">v4.2 — Apr 2026 &#127381;</div>
+              <div style="font-weight:800;color:var(--gold);margin-bottom:6px;font-size:13px">v4.2 — Apr 2026 🆕</div>
               <div style="padding-left:10px;border-left:2px solid var(--gold);margin-bottom:14px;line-height:1.7">
-                <div>&#127894; <strong>Avatar PNG reali</strong> — Addio SVG: picker completamente ridisegnato con immagini PNG per Truppa, Ufficiali e Forestali (uomini e donne)</div>
-                <div>&#11088; <strong>Picker avatar M3 Expressive</strong> — Chip bar con contatore, griglia 4 colonne, check overlay animato, transizione fluida tra categorie</div>
-                <div>&#127894; <strong>Gradi come immagini</strong> — 19 PNG realistici per tutti i gradi, visibili nella dashboard affianco al nome e nel picker impostazioni</div>
-                <div>&#128100; <strong>Avatar in dashboard</strong> — Foto profilo 64px nella hero card, sincronizzata su Firebase tramite path relativo (niente base64)</div>
-                <div>&#9203; <strong>Widget Straordinari</strong> — Sostituisce "Prossimo turno": mostra ore del giorno, totale mese, barra progresso. Pulsante + per aggiunta rapida</div>
-                <div>&#128202; <strong>Report — tab Straordinari</strong> — Sezione dedicata con selettore mese, cards per tipo, lista modificabile ed eliminabile voce per voce</div>
-                <div>&#128172; <strong>Fix condivisione WhatsApp</strong> — Rimossi orari hardcoded dai tipi turno, testo più pulito, nessun preset forzato</div>
-                <div>&#127381; <strong>Carabiniere Runner</strong> — Minigioco ridisegnato: protagonista con cappello e giubbotto, coni stradali, auto civette, droni, skyline urbano in parallasse, "ARRESTATO!" e luci sirena</div>
-                <div>&#127782; <strong>Meteo — icone SVG</strong> — Corretta visualizzazione nella Hero Card (prima mostrava 🗑️ di fallback)</div>
-                <div>&#9989; <strong>Fix bootloop</strong> — Rimosso il doppio hook su aggUI che causava un loop infinito renderDash → renderDashWidgetToggles</div>
-                <div>&#9989; <strong>Fix turni multi-device</strong> — Merge intelligente al login: i turni Firebase non sovrascrivono più quelli locali recenti</div>
-                <div>&#9989; <strong>Fix grado dashboard</strong> — Immagine grado ora affianco al nome, senza label testo ridondante, allineamento verticale corretto</div>
+                <div>🎖 <strong>Avatar PNG reali</strong> — Addio SVG: picker completamente ridisegnato con immagini PNG per Truppa, Ufficiali e Forestali (uomini e donne)</div>
+                <div>⭐ <strong>Picker avatar M3 Expressive</strong> — Chip bar con contatore, griglia 4 colonne, check overlay animato, transizione fluida tra categorie</div>
+                <div>🎖 <strong>Gradi come immagini</strong> — 19 PNG realistici per tutti i gradi, visibili nella dashboard affianco al nome e nel picker impostazioni</div>
+                <div>👤 <strong>Avatar in dashboard</strong> — Foto profilo 64px nella hero card, sincronizzata su Firebase tramite path relativo (niente base64)</div>
+                <div>⏳ <strong>Widget Straordinari</strong> — Sostituisce "Prossimo turno": mostra ore del giorno, totale mese, barra progresso. Pulsante + per aggiunta rapida</div>
+                <div>📊 <strong>Report — tab Straordinari</strong> — Sezione dedicata con selettore mese, cards per tipo, lista modificabile ed eliminabile voce per voce</div>
+                <div>💬 <strong>Fix condivisione WhatsApp</strong> — Rimossi orari hardcoded dai tipi turno, testo più pulito, nessun preset forzato</div>
+                <div>🆕 <strong>Carabiniere Runner</strong> — Minigioco ridisegnato: protagonista con cappello e giubbotto, coni stradali, auto civette, droni, skyline urbano in parallasse, "ARRESTATO!" e luci sirena</div>
+                <div>🌦 <strong>Meteo — icone SVG</strong> — Corretta visualizzazione nella Hero Card (prima mostrava 🗑️ di fallback)</div>
+                <div>✅ <strong>Fix bootloop</strong> — Rimosso il doppio hook su aggUI che causava un loop infinito renderDash → renderDashWidgetToggles</div>
+                <div>✅ <strong>Fix turni multi-device</strong> — Merge intelligente al login: i turni Firebase non sovrascrivono più quelli locali recenti</div>
+                <div>✅ <strong>Fix grado dashboard</strong> — Immagine grado ora affianco al nome, senza label testo ridondante, allineamento verticale corretto</div>
               </div>
 
               <!-- v4.1 -->
               <div style="font-weight:800;color:var(--blue);margin-bottom:6px;font-size:13px">v4.1 — Apr 2026</div>
               <div style="padding-left:10px;border-left:2px solid var(--blue);margin-bottom:14px;line-height:1.7">
-                <div>&#127775; <strong>M3 Expressive Solid</strong> — Superfici solide, niente glassmorphism, ambient glow radiale per ogni tipo di turno</div>
-                <div>&#128100; <strong>Hero Card ridisegnata</strong> — Saluto personale con foto profilo, sigla turno gigante, Active Ring temporale, meteo integrato</div>
-                <div>&#128101; <strong>Widget Squadra + Turni</strong> — Avatar grandi con pulse live, tabella turni del giorno fusa in un unico widget</div>
-                <div>&#128197; <strong>Widget Turni Settimana</strong> — Griglia 7 giorni con chip colorati per tipo turno</div>
-                <div>&#128202; <strong>Ridimensionamento widget</strong> — Ogni widget è ridimensionabile S/M/L dal pannello Organizza</div>
-                <div>&#127781; <strong>Meteo in Hero Card</strong> — Temperatura, città e dettagli meteo direttamente nella card principale</div>
-                <div>&#128247; <strong>Foto profilo riscritta</strong> — Flusso semplificato: selezione → crop automatico → upload Firebase Storage</div>
-                <div>&#128260; <strong>Trasferimento reparto</strong> — Spostato in Opzioni Avanzate per evitare click accidentali</div>
-                <div>&#127959; <strong>Tesserino ATE</strong> — Spostato in Impostazioni &gt; Profilo</div>
-                <div>&#9989; <strong>Fix sincronizzazione turni</strong> — Listener Firebase riavviato correttamente dopo trasferimento reparto</div>
-                <div>&#9989; <strong>Fix profilo reparto</strong> — Auto-ripristino profilo se eliminato accidentalmente da Firestore</div>
-                <div>&#9989; <strong>Fix duplicati picker</strong> — Nessun profilo duplicato all'apertura del selettore persona</div>
+                <div>🌟 <strong>M3 Expressive Solid</strong> — Superfici solide, niente glassmorphism, ambient glow radiale per ogni tipo di turno</div>
+                <div>👤 <strong>Hero Card ridisegnata</strong> — Saluto personale con foto profilo, sigla turno gigante, Active Ring temporale, meteo integrato</div>
+                <div>👥 <strong>Widget Squadra + Turni</strong> — Avatar grandi con pulse live, tabella turni del giorno fusa in un unico widget</div>
+                <div>📅 <strong>Widget Turni Settimana</strong> — Griglia 7 giorni con chip colorati per tipo turno</div>
+                <div>📊 <strong>Ridimensionamento widget</strong> — Ogni widget è ridimensionabile S/M/L dal pannello Organizza</div>
+                <div>🌥 <strong>Meteo in Hero Card</strong> — Temperatura, città e dettagli meteo direttamente nella card principale</div>
+                <div>📷 <strong>Foto profilo riscritta</strong> — Flusso semplificato: selezione → crop automatico → upload Firebase Storage</div>
+                <div>🔄 <strong>Trasferimento reparto</strong> — Spostato in Opzioni Avanzate per evitare click accidentali</div>
+                <div>🏗 <strong>Tesserino ATE</strong> — Spostato in Impostazioni &gt; Profilo</div>
+                <div>✅ <strong>Fix sincronizzazione turni</strong> — Listener Firebase riavviato correttamente dopo trasferimento reparto</div>
+                <div>✅ <strong>Fix profilo reparto</strong> — Auto-ripristino profilo se eliminato accidentalmente da Firestore</div>
+                <div>✅ <strong>Fix duplicati picker</strong> — Nessun profilo duplicato all'apertura del selettore persona</div>
               </div>
 
               <!-- v4.0 -->
               <div style="font-weight:800;color:var(--teal);margin-bottom:6px;font-size:13px">v4.0 — Material 3 Expressive</div>
               <div style="padding-left:10px;border-left:2px solid var(--teal);margin-bottom:14px;line-height:1.7">
-                <div>&#127775; Design M3 Expressive, navbar pillola, FAB squircle, 9 temi</div>
-                <div>&#128203; Agenda dedicata, calendario pulito, Dino Game, turni personalizzati</div>
-                <div>&#128081; Multi-Vice Comandante, sicurezza Firestore, notifiche push FCM</div>
+                <div>🌟 Design M3 Expressive, navbar pillola, FAB squircle, 9 temi</div>
+                <div>📋 Agenda dedicata, calendario pulito, Dino Game, turni personalizzati</div>
+                <div>👑 Multi-Vice Comandante, sicurezza Firestore, notifiche push FCM</div>
               </div>
 
               <!-- v3.5.1 -->
@@ -1785,47 +1785,47 @@
             </div>
           </div>
           <div class="m3-row tap" onclick="toggleImpSec('sec-guida','arr-guida')">
-            <div class="m3-row-ico" style="background:rgba(0,188,212,.12)">&#128218;</div>
+            <div class="m3-row-ico" style="background:rgba(0,188,212,.12)">📚</div>
             <div class="m3-row-body"><div class="m3-row-title">Guida interattiva</div><div class="m3-row-sub">Tutorial e aiuto per le funzioni</div></div>
-            <div class="m3-row-right" id="arr-guida">&#8250;</div>
+            <div class="m3-row-right" id="arr-guida">›</div>
           </div>
           <div id="sec-guida" class="imp-sub" style="padding:0">
-            <div onclick="guidaApri('turni')"       class="m3-row tap" style="border-top:1px solid var(--border)"><div class="m3-row-ico" style="background:rgba(41,121,255,.12)">&#128197;</div><div class="m3-row-body"><div class="m3-row-title">Turni</div><div class="m3-row-sub">Come aggiungere e gestire i turni</div></div><div class="m3-row-right">&#8250;</div></div>
-            <div onclick="guidaApri('persone')"     class="m3-row tap" style="border-top:1px solid var(--border)"><div class="m3-row-ico" style="background:rgba(0,200,83,.12)">&#128101;</div><div class="m3-row-body"><div class="m3-row-title">Persone</div><div class="m3-row-sub">Aggiungere colleghi al reparto</div></div><div class="m3-row-right">&#8250;</div></div>
-            <div onclick="guidaApri('ferie')"       class="m3-row tap" style="border-top:1px solid var(--border)"><div class="m3-row-ico" style="background:rgba(0,188,212,.12)">&#127958;</div><div class="m3-row-body"><div class="m3-row-title">Ferie &amp; Licenze</div><div class="m3-row-sub">Gestione saldo e pool licenze</div></div><div class="m3-row-right">&#8250;</div></div>
-            <div onclick="guidaApri('calendario')"  class="m3-row tap" style="border-top:1px solid var(--border)"><div class="m3-row-ico" style="background:rgba(124,77,255,.12)">&#128467;</div><div class="m3-row-body"><div class="m3-row-title">Calendario</div><div class="m3-row-sub">Navigare e leggere il calendario</div></div><div class="m3-row-right">&#8250;</div></div>
-            <div onclick="guidaApri('widget')"      class="m3-row tap" style="border-top:1px solid var(--border)"><div class="m3-row-ico" style="background:rgba(255,109,0,.12)">&#128202;</div><div class="m3-row-body"><div class="m3-row-title">Dashboard &amp; Widget</div><div class="m3-row-sub">Personalizzare la schermata principale</div></div><div class="m3-row-right">&#8250;</div></div>
-            <div onclick="guidaApri('notifiche')"   class="m3-row tap" style="border-top:1px solid var(--border)"><div class="m3-row-ico" style="background:rgba(0,200,83,.12)">&#128276;</div><div class="m3-row-body"><div class="m3-row-title">Notifiche</div><div class="m3-row-sub">Abilitare avvisi e promemoria</div></div><div class="m3-row-right">&#8250;</div></div>
-            <div onclick="guidaApri('todo')"        class="m3-row tap" style="border-top:1px solid var(--border)"><div class="m3-row-ico" style="background:rgba(212,175,55,.12)">&#9989;</div><div class="m3-row-body"><div class="m3-row-title">To-Do &amp; Agenda</div><div class="m3-row-sub">Promemoria e appuntamenti</div></div><div class="m3-row-right">&#8250;</div></div>
-            <div onclick="guidaApri('tesserino')"   class="m3-row tap" style="border-top:1px solid var(--border)"><div class="m3-row-ico" style="background:rgba(200,169,110,.12)">&#128100;</div><div class="m3-row-body"><div class="m3-row-title">Tesserino digitale</div><div class="m3-row-sub">Generare il tesserino identificativo</div></div><div class="m3-row-right">&#8250;</div></div>
-            <div onclick="guidaApri('backup')"      class="m3-row tap" style="border-top:1px solid var(--border)"><div class="m3-row-ico" style="background:rgba(100,100,255,.12)">&#128190;</div><div class="m3-row-body"><div class="m3-row-title">Backup &amp; Import</div><div class="m3-row-sub">Esportare, importare e ripristinare dati</div></div><div class="m3-row-right">&#8250;</div></div>
-            <div onclick="guidaApri('orari')"       class="m3-row tap" style="border-top:1px solid var(--border)"><div class="m3-row-ico" style="background:rgba(0,188,212,.12)">&#9200;</div><div class="m3-row-body"><div class="m3-row-title">Orari Turni</div><div class="m3-row-sub">Personalizzare gli orari preset</div></div><div class="m3-row-right">&#8250;</div></div>
-            <div onclick="guidaApri('richieste')"   class="m3-row tap" style="border-top:1px solid var(--border)"><div class="m3-row-ico" style="background:rgba(255,109,0,.12)">&#128260;</div><div class="m3-row-body"><div class="m3-row-title">Richieste cambio turno</div><div class="m3-row-sub">Scambiare turni con un collega</div></div><div class="m3-row-right">&#8250;</div></div>
-            <div onclick="guidaApri('comando')"     class="m3-row tap" style="border-top:1px solid var(--border)"><div class="m3-row-ico" style="background:rgba(212,175,55,.12)">&#128227;</div><div class="m3-row-body"><div class="m3-row-title">Bacheca Comando</div><div class="m3-row-sub">Avvisi, urgenze e conferme di lettura</div></div><div class="m3-row-right">&#8250;</div></div>
-            <div onclick="guidaApri('reparti')"     class="m3-row tap" style="border-top:1px solid var(--border)"><div class="m3-row-ico" style="background:rgba(0,200,83,.12)">&#127963;</div><div class="m3-row-body"><div class="m3-row-title">Gestione Reparti</div><div class="m3-row-sub">Strutture e trasferimenti militari</div></div><div class="m3-row-right">&#8250;</div></div>
-            <div onclick="guidaApri('saldi')"       class="m3-row tap" style="border-top:1px solid var(--border)"><div class="m3-row-ico" style="background:rgba(0,188,212,.12)">&#128176;</div><div class="m3-row-body"><div class="m3-row-title">Saldi &amp; Salvadanaio ore</div><div class="m3-row-sub">Straordinari, ferie e residui</div></div><div class="m3-row-right">&#8250;</div></div>
+            <div onclick="guidaApri('turni')"       class="m3-row tap" style="border-top:1px solid var(--border)"><div class="m3-row-ico" style="background:rgba(41,121,255,.12)">📅</div><div class="m3-row-body"><div class="m3-row-title">Turni</div><div class="m3-row-sub">Come aggiungere e gestire i turni</div></div><div class="m3-row-right">›</div></div>
+            <div onclick="guidaApri('persone')"     class="m3-row tap" style="border-top:1px solid var(--border)"><div class="m3-row-ico" style="background:rgba(0,200,83,.12)">👥</div><div class="m3-row-body"><div class="m3-row-title">Persone</div><div class="m3-row-sub">Aggiungere colleghi al reparto</div></div><div class="m3-row-right">›</div></div>
+            <div onclick="guidaApri('ferie')"       class="m3-row tap" style="border-top:1px solid var(--border)"><div class="m3-row-ico" style="background:rgba(0,188,212,.12)">🏖</div><div class="m3-row-body"><div class="m3-row-title">Ferie &amp; Licenze</div><div class="m3-row-sub">Gestione saldo e pool licenze</div></div><div class="m3-row-right">›</div></div>
+            <div onclick="guidaApri('calendario')"  class="m3-row tap" style="border-top:1px solid var(--border)"><div class="m3-row-ico" style="background:rgba(124,77,255,.12)">🗓</div><div class="m3-row-body"><div class="m3-row-title">Calendario</div><div class="m3-row-sub">Navigare e leggere il calendario</div></div><div class="m3-row-right">›</div></div>
+            <div onclick="guidaApri('widget')"      class="m3-row tap" style="border-top:1px solid var(--border)"><div class="m3-row-ico" style="background:rgba(255,109,0,.12)">📊</div><div class="m3-row-body"><div class="m3-row-title">Dashboard &amp; Widget</div><div class="m3-row-sub">Personalizzare la schermata principale</div></div><div class="m3-row-right">›</div></div>
+            <div onclick="guidaApri('notifiche')"   class="m3-row tap" style="border-top:1px solid var(--border)"><div class="m3-row-ico" style="background:rgba(0,200,83,.12)">🔔</div><div class="m3-row-body"><div class="m3-row-title">Notifiche</div><div class="m3-row-sub">Abilitare avvisi e promemoria</div></div><div class="m3-row-right">›</div></div>
+            <div onclick="guidaApri('todo')"        class="m3-row tap" style="border-top:1px solid var(--border)"><div class="m3-row-ico" style="background:rgba(212,175,55,.12)">✅</div><div class="m3-row-body"><div class="m3-row-title">To-Do &amp; Agenda</div><div class="m3-row-sub">Promemoria e appuntamenti</div></div><div class="m3-row-right">›</div></div>
+            <div onclick="guidaApri('tesserino')"   class="m3-row tap" style="border-top:1px solid var(--border)"><div class="m3-row-ico" style="background:rgba(200,169,110,.12)">👤</div><div class="m3-row-body"><div class="m3-row-title">Tesserino digitale</div><div class="m3-row-sub">Generare il tesserino identificativo</div></div><div class="m3-row-right">›</div></div>
+            <div onclick="guidaApri('backup')"      class="m3-row tap" style="border-top:1px solid var(--border)"><div class="m3-row-ico" style="background:rgba(100,100,255,.12)">💾</div><div class="m3-row-body"><div class="m3-row-title">Backup &amp; Import</div><div class="m3-row-sub">Esportare, importare e ripristinare dati</div></div><div class="m3-row-right">›</div></div>
+            <div onclick="guidaApri('orari')"       class="m3-row tap" style="border-top:1px solid var(--border)"><div class="m3-row-ico" style="background:rgba(0,188,212,.12)">⏰</div><div class="m3-row-body"><div class="m3-row-title">Orari Turni</div><div class="m3-row-sub">Personalizzare gli orari preset</div></div><div class="m3-row-right">›</div></div>
+            <div onclick="guidaApri('richieste')"   class="m3-row tap" style="border-top:1px solid var(--border)"><div class="m3-row-ico" style="background:rgba(255,109,0,.12)">🔄</div><div class="m3-row-body"><div class="m3-row-title">Richieste cambio turno</div><div class="m3-row-sub">Scambiare turni con un collega</div></div><div class="m3-row-right">›</div></div>
+            <div onclick="guidaApri('comando')"     class="m3-row tap" style="border-top:1px solid var(--border)"><div class="m3-row-ico" style="background:rgba(212,175,55,.12)">📣</div><div class="m3-row-body"><div class="m3-row-title">Bacheca Comando</div><div class="m3-row-sub">Avvisi, urgenze e conferme di lettura</div></div><div class="m3-row-right">›</div></div>
+            <div onclick="guidaApri('reparti')"     class="m3-row tap" style="border-top:1px solid var(--border)"><div class="m3-row-ico" style="background:rgba(0,200,83,.12)">🏛</div><div class="m3-row-body"><div class="m3-row-title">Gestione Reparti</div><div class="m3-row-sub">Strutture e trasferimenti militari</div></div><div class="m3-row-right">›</div></div>
+            <div onclick="guidaApri('saldi')"       class="m3-row tap" style="border-top:1px solid var(--border)"><div class="m3-row-ico" style="background:rgba(0,188,212,.12)">💰</div><div class="m3-row-body"><div class="m3-row-title">Saldi &amp; Salvadanaio ore</div><div class="m3-row-sub">Straordinari, ferie e residui</div></div><div class="m3-row-right">›</div></div>
           </div>
           <div class="m3-row">
-            <div class="m3-row-ico" style="background:rgba(41,121,255,.12)">&#128736;</div>
+            <div class="m3-row-ico" style="background:rgba(41,121,255,.12)">🛠</div>
             <div class="m3-row-body"><div class="m3-row-title">Versione</div><div class="m3-row-sub">C-TURNI v5.0 beta — Emanuele Di Leo</div></div>
           </div>
 
           <!-- Sezione legale -->
           <div class="m3-row tap" onclick="apriModaleTermini()" style="border-top:1px solid var(--border)">
-            <div class="m3-row-ico" style="background:rgba(212,175,55,.12)">&#128203;</div>
+            <div class="m3-row-ico" style="background:rgba(212,175,55,.12)">📋</div>
             <div class="m3-row-body"><div class="m3-row-title">Termini di Servizio</div><div class="m3-row-sub">Leggi le condizioni d'uso</div></div>
-            <div class="m3-row-right">&#8250;</div>
+            <div class="m3-row-right">›</div>
           </div>
           <div class="m3-row tap" onclick="apriModalePrivacy()" style="border-top:1px solid var(--border)">
-            <div class="m3-row-ico" style="background:rgba(200,16,46,.12)">&#128274;</div>
+            <div class="m3-row-ico" style="background:rgba(200,16,46,.12)">🔒</div>
             <div class="m3-row-body"><div class="m3-row-title">Privacy Policy</div><div class="m3-row-sub">Informativa sul trattamento dei dati</div></div>
-            <div class="m3-row-right">&#8250;</div>
+            <div class="m3-row-right">›</div>
           </div>
 
           <div class="m3-row tap" onclick="if(typeof AuthModule!=='undefined')AuthModule.logout()" style="border-top:1px solid var(--border)">
-            <div class="m3-row-ico" style="background:rgba(200,16,46,.12)">&#128682;</div>
+            <div class="m3-row-ico" style="background:rgba(200,16,46,.12)">🚪</div>
             <div class="m3-row-body"><div class="m3-row-title" style="color:var(--red)">Logout</div><div class="m3-row-sub">Esci dall'account</div></div>
-            <div class="m3-row-right">&#8250;</div>
+            <div class="m3-row-right">›</div>
           </div>
         </div><!-- /isola info -->
 
@@ -1835,11 +1835,11 @@
 
 <!-- OVERLAY PENDING APPROVAZIONE -->
 <div id="overlay-pending" style="display:none;position:fixed;inset:0;z-index:99999;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center">
-  <div style="font-size:64px;margin-bottom:16px">&#9203;</div>
+  <div style="font-size:64px;margin-bottom:16px">⏳</div>
   <div style="font-size:20px;font-weight:800;color:var(--txt);margin-bottom:8px">In attesa di approvazione</div>
   <div style="font-size:14px;color:var(--txt2);line-height:1.7;max-width:320px;margin-bottom:24px">Il tuo account è stato creato con successo.<br>Il <strong>Comandante del reparto</strong> deve approvarti prima che tu possa accedere ai turni.</div>
   <div id="pending-reparto-info" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 20px;margin-bottom:24px;font-size:13px;color:var(--txt2)"></div>
-  <button onclick="AuthModule.logout()" style="padding:12px 28px;border-radius:var(--radius-pill);background:var(--blue);color:#fff;border:none;font-size:14px;font-weight:700;cursor:pointer;appearance:none;-webkit-appearance:none">&#128682; Esci</button>
+  <button onclick="AuthModule.logout()" style="padding:12px 28px;border-radius:var(--radius-pill);background:var(--blue);color:#fff;border:none;font-size:14px;font-weight:700;cursor:pointer;appearance:none;-webkit-appearance:none">🚪 Esci</button>
 </div>
 
 <!-- MODAL GUIDA -->
@@ -1848,7 +1848,7 @@
     <div class="mhan"></div>
     <div class="mhd">
       <div class="mtit" id="guida-titolo">Guida</div>
-      <button class="mcl" onclick="closeM('m-guida')">&#10005;</button>
+      <button class="mcl" onclick="closeM('m-guida')">✕</button>
     </div>
     <div class="mbod" id="guida-corpo" style="font-size:13px;line-height:1.7;color:var(--txt)"></div>
     <div class="mfoo">
@@ -1861,7 +1861,7 @@
 <!-- MODAL TODO -->
 <div id="m-todo" class="modal"><div class="mbox">
   <div class="mhan"></div>
-  <div class="mhd"><div class="mtit">&#9989; Nuovo Promemoria</div><button class="mcl" onclick="closeM('m-todo')">&#10005;</button></div>
+  <div class="mhd"><div class="mtit">✅ Nuovo Promemoria</div><button class="mcl" onclick="closeM('m-todo')">✕</button></div>
   <div class="mbod"><div style="display:grid;gap:12px">
     <div id="todo-err" class="emsg">Inserisci il titolo</div>
     <div class="fg" style="margin-bottom:0"><label>Titolo *</label>
@@ -1870,27 +1870,27 @@
       <textarea class="fc app-fc" id="td-note" rows="2" style="resize:none" placeholder="Dettagli..."></textarea></div>
     <div class="g2">
       <div class="fg" style="margin-bottom:0">
-        <label>&#128197; Data scadenza</label>
+        <label>📅 Data scadenza</label>
         <button class="fc" id="td-data-btn" style="text-align:left;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="apriDatePicker('td-data','td-data-btn-lbl')">
           <span id="td-data-btn-lbl" style="font-weight:600;color:var(--txt2)">Seleziona...</span>
-          <span>&#128197;</span>
+          <span>📅</span>
         </button>
         <input type="hidden" id="td-data" value="">
       </div>
       <div class="fg" style="margin-bottom:0">
-        <label>&#9201; Sveglia (ora)</label>
+        <label>⏱ Sveglia (ora)</label>
         <button class="fc" id="td-ora-btn" style="text-align:left;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="apriTimePicker('td-ora','td-ora-btn-lbl','Ora sveglia')">
           <span id="td-ora-btn-lbl" style="font-weight:600;color:var(--txt2)">—</span>
-          <span>&#9200;</span>
+          <span>⏰</span>
         </button>
         <input type="hidden" id="td-ora" value="">
       </div>
     </div>
-    <div class="fg" style="margin-bottom:0"><label>Priorit&#224;</label>
+    <div class="fg" style="margin-bottom:0"><label>Priorità</label>
       <div style="display:flex;gap:8px">
-        <button type="button" id="td-prio-bassa" class="tipo-rep-btn sel" onclick="setTdPrio('bassa',this)" style="flex:1">&#128994; Bassa</button>
-        <button type="button" id="td-prio-media" class="tipo-rep-btn" onclick="setTdPrio('media',this)" style="flex:1">&#128993; Media</button>
-        <button type="button" id="td-prio-alta"  class="tipo-rep-btn" onclick="setTdPrio('alta',this)"  style="flex:1">&#128308; Alta</button>
+        <button type="button" id="td-prio-bassa" class="tipo-rep-btn sel" onclick="setTdPrio('bassa',this)" style="flex:1">🟢 Bassa</button>
+        <button type="button" id="td-prio-media" class="tipo-rep-btn" onclick="setTdPrio('media',this)" style="flex:1">🟡 Media</button>
+        <button type="button" id="td-prio-alta"  class="tipo-rep-btn" onclick="setTdPrio('alta',this)"  style="flex:1">🔴 Alta</button>
       </div>
       <input type="hidden" id="td-prio" value="bassa">
     </div>
@@ -1898,22 +1898,22 @@
       <select class="fc app-fc" id="td-ricor">
         <option value="">Nessuna</option>
         <option value="daily">Ogni giorno</option>
-        <option value="1">Ogni Luned&#236;</option>
-        <option value="2">Ogni Marted&#236;</option>
-        <option value="3">Ogni Mercoled&#236;</option>
-        <option value="4">Ogni Gioved&#236;</option>
-        <option value="5">Ogni Venerd&#236;</option>
+        <option value="1">Ogni Lunedì</option>
+        <option value="2">Ogni Martedì</option>
+        <option value="3">Ogni Mercoledì</option>
+        <option value="4">Ogni Giovedì</option>
+        <option value="5">Ogni Venerdì</option>
         <option value="6">Ogni Sabato</option>
         <option value="0">Ogni Domenica</option>
       </select></div>
     <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(66,133,244,.08);border:1px solid rgba(66,133,244,.25);border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;color:var(--blue)">
       <input type="checkbox" id="td-condividi" style="width:18px;height:18px;accent-color:var(--blue);cursor:pointer">
-      &#128101; Condividi con il reparto
+      👥 Condividi con il reparto
     </label>
     <!-- ASSEGNA A MILITARI (Blocco 3, solo Comando) -->
     <div id="td-assegna-wrap" style="display:none">
       <button type="button" class="btn btn-sm btn-g" onclick="apriAssegna('td')" style="width:100%;font-size:12px;font-weight:700">
-        &#128287; Assegna a militari del reparto
+        🔟 Assegna a militari del reparto
       </button>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
         <label style="margin:0;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--txt2)">Destinatari</label>
@@ -1924,14 +1924,14 @@
   </div></div>
   <div class="mfoo">
     <button class="btn btn-g btn-sm" onclick="closeM('m-todo')">Annulla</button>
-    <button class="btn btn-p btn-sm" onclick="salvaTodo()" style="width:auto">&#128190; Salva</button>
+    <button class="btn btn-p btn-sm" onclick="salvaTodo()" style="width:auto">💾 Salva</button>
   </div>
 </div></div>
 
 <!-- MODAL AGENDA -->
 <div id="m-agenda" class="modal"><div class="mbox">
   <div class="mhan"></div>
-  <div class="mhd"><div class="mtit">&#128467; Nuovo Appuntamento</div><button class="mcl" onclick="closeM('m-agenda')">&#10005;</button></div>
+  <div class="mhd"><div class="mtit">🗓 Nuovo Appuntamento</div><button class="mcl" onclick="closeM('m-agenda')">✕</button></div>
   <div class="mbod"><div style="display:grid;gap:12px">
     <div id="agenda-err" class="emsg">Compila titolo e data</div>
     <div class="fg" style="margin-bottom:0"><label>Titolo *</label>
@@ -1941,7 +1941,7 @@
         <label>Data *</label>
         <button class="fc" id="ag-data-btn" style="text-align:left;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="apriDatePicker('ag-data','ag-data-btn-lbl')">
           <span id="ag-data-btn-lbl" style="font-weight:600;color:var(--txt2)">Seleziona...</span>
-          <span>&#128197;</span>
+          <span>📅</span>
         </button>
         <input type="hidden" id="ag-data" value="">
       </div>
@@ -1949,7 +1949,7 @@
         <label>Ora</label>
         <button class="fc" id="ag-ora-btn" style="text-align:left;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="apriTimePicker('ag-ora','ag-ora-btn-lbl','Ora appuntamento')">
           <span id="ag-ora-btn-lbl" style="font-weight:600;color:var(--txt2)">—</span>
-          <span>&#9200;</span>
+          <span>⏰</span>
         </button>
         <input type="hidden" id="ag-ora" value="">
       </div>
@@ -1972,12 +1972,12 @@
     </div>
     <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(66,133,244,.08);border:1px solid rgba(66,133,244,.25);border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;color:var(--blue)">
       <input type="checkbox" id="ag-condividi" style="width:18px;height:18px;accent-color:var(--blue);cursor:pointer">
-      &#128101; Condividi con il reparto
+      👥 Condividi con il reparto
     </label>
     <!-- ASSEGNA A MILITARI (Blocco 3, solo Comando) -->
     <div id="ag-assegna-wrap" style="display:none">
       <button type="button" class="btn btn-sm btn-g" onclick="apriAssegna('ag')" style="width:100%;font-size:12px;font-weight:700">
-        &#128209; Assegna a militari del reparto
+        📑 Assegna a militari del reparto
       </button>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
         <label style="margin:0;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--txt2)">Destinatari</label>
@@ -1988,23 +1988,23 @@
   </div></div>
   <div class="mfoo">
     <button class="btn btn-g btn-sm" onclick="closeM('m-agenda')">Annulla</button>
-    <button class="btn btn-p btn-sm" onclick="salvaAgenda()" style="width:auto">&#128190; Salva</button>
+    <button class="btn btn-p btn-sm" onclick="salvaAgenda()" style="width:auto">💾 Salva</button>
   </div>
 </div></div>
 <!-- MODAL CAMBIO TURNO (Blocco 2) -->
 <div id="m-cambio-turno" class="modal"><div class="mbox">
   <div class="mhan"></div>
-  <div class="mhd"><div class="mtit">&#128260; Chiedi cambio turno</div><button class="mcl" onclick="closeM('m-cambio-turno')">&#10005;</button></div>
+  <div class="mhd"><div class="mtit">🔄 Chiedi cambio turno</div><button class="mcl" onclick="closeM('m-cambio-turno')">✕</button></div>
   <div class="mbod"><div id="ct-cambio-body" style="display:grid;gap:14px"></div></div>
   <div class="mfoo">
     <button class="btn btn-g btn-sm" onclick="closeM('m-cambio-turno')">Annulla</button>
-    <button class="btn btn-p btn-sm" onclick="creaRichiestaCambio()" style="width:auto">&#128257; Invia richiesta</button>
+    <button class="btn btn-p btn-sm" onclick="creaRichiestaCambio()" style="width:auto">🔁 Invia richiesta</button>
   </div>
 </div></div>
 <!-- MODAL BACHECA (Blocco 4) -->
 <div id="m-bacheca" class="modal"><div class="mbox">
   <div class="mhan"></div>
-  <div class="mhd"><div class="mtit" id="bc-title">&#128227; Nuovo avviso</div><button class="mcl" onclick="closeM('m-bacheca')">&#10005;</button></div>
+  <div class="mhd"><div class="mtit" id="bc-title">📣 Nuovo avviso</div><button class="mcl" onclick="closeM('m-bacheca')">✕</button></div>
   <div class="mbod">
     <div id="bc-err" class="emsg">Compila i campi obbligatori</div>
     <div class="fg"><label>Titolo *</label><input type="text" class="fc app-fc" id="bc-titolo" placeholder="Es. Controllo armi domani..."></div>
@@ -2014,18 +2014,18 @@
       <input type="date" class="fc app-fc" id="bc-scade">
     </div>
     <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--txt2);margin-top:10px;cursor:pointer">
-      <input type="checkbox" id="bc-urgente"> &#128680; Urgente (notifica push a tutti i membri)
+      <input type="checkbox" id="bc-urgente"> 🚨 Urgente (notifica push a tutti i membri)
     </label>
   </div>
   <div class="mfoo">
     <button class="btn btn-g btn-sm" onclick="closeM('m-bacheca')">Annulla</button>
-    <button class="btn btn-p btn-sm" onclick="salvaBacheca()" style="width:auto">&#128227; Pubblica</button>
+    <button class="btn btn-p btn-sm" onclick="salvaBacheca()" style="width:auto">📣 Pubblica</button>
   </div>
 </div></div>
 <!-- MODAL SCADENZA -->
 <div id="m-scadenza" class="modal"><div class="mbox">
   <div class="mhan"></div>
-  <div class="mhd"><div class="mtit">&#128197; Scadenza</div><button class="mcl" onclick="closeM('m-scadenza')">&#10005;</button></div>
+  <div class="mhd"><div class="mtit">📅 Scadenza</div><button class="mcl" onclick="closeM('m-scadenza')">✕</button></div>
   <div class="mbod">
     <div id="scad-err" class="emsg">Compila i campi obbligatori</div>
     <div class="fg"><label>Titolo *</label><input type="text" class="fc app-fc" id="sc-tit" placeholder="Es. Rinnovo patente..."></div>
@@ -2051,14 +2051,14 @@
   </div>
   <div class="mfoo">
     <button class="btn btn-g btn-sm" onclick="closeM('m-scadenza')">Annulla</button>
-    <button class="btn btn-p btn-sm" onclick="salvaScadenza()" style="width:auto">&#128190; Salva</button>
+    <button class="btn btn-p btn-sm" onclick="salvaScadenza()" style="width:auto">💾 Salva</button>
   </div>
 </div></div>
 
 <!-- MODAL ALERT -->
 <div id="m-alert" class="modal"><div class="mbox">
   <div class="mhan"></div>
-  <div class="mhd"><div class="mtit">&#128680; Alert</div><button class="mcl" onclick="closeM('m-alert')">&#10005;</button></div>
+  <div class="mhd"><div class="mtit">🚨 Alert</div><button class="mcl" onclick="closeM('m-alert')">✕</button></div>
   <div class="mbod">
     <div id="alert-err" class="emsg">Inserisci il messaggio</div>
     <div class="fg"><label>Messaggio *</label><input type="text" class="fc app-fc" id="al-msg" placeholder="Es. Scadenza documento..."></div>
@@ -2066,9 +2066,9 @@
     <div class="fg" style="margin-bottom:10px">
       <label>Tipo</label>
       <div style="display:flex;gap:8px;margin-top:6px">
-        <button type="button" class="straord-tipo-pill active" data-tipo="info"   onclick="alertSetTipo('info',this)"   style="flex:1">&#8505;&#65039; Info</button>
-        <button type="button" class="straord-tipo-pill"        data-tipo="warn"   onclick="alertSetTipo('warn',this)"   style="flex:1">&#9888;&#65039; Attenzione</button>
-        <button type="button" class="straord-tipo-pill"        data-tipo="danger" onclick="alertSetTipo('danger',this)" style="flex:1">&#128680; Urgente</button>
+        <button type="button" class="straord-tipo-pill active" data-tipo="info"   onclick="alertSetTipo('info',this)"   style="flex:1">ℹ️ Info</button>
+        <button type="button" class="straord-tipo-pill"        data-tipo="warn"   onclick="alertSetTipo('warn',this)"   style="flex:1">⚠️ Attenzione</button>
+        <button type="button" class="straord-tipo-pill"        data-tipo="danger" onclick="alertSetTipo('danger',this)" style="flex:1">🚨 Urgente</button>
       </div>
       <input type="hidden" id="al-tipo" value="info">
     </div>
@@ -2088,14 +2088,14 @@
   </div>
   <div class="mfoo">
     <button class="btn btn-g btn-sm" onclick="closeM('m-alert')">Chiudi</button>
-    <button class="btn btn-p btn-sm" onclick="salvaAlert()" style="width:auto">&#43; Aggiungi</button>
+    <button class="btn btn-p btn-sm" onclick="salvaAlert()" style="width:auto">+ Aggiungi</button>
   </div>
 </div></div>
 
 <!-- MODAL MODIFICA ORARIO TURNO -->
 <div id="m-mod-turno" class="modal"><div class="mbox">
   <div class="mhan"></div>
-  <div class="mhd"><div class="mtit">&#9998; Modifica turno</div><button class="mcl" onclick="closeM('m-mod-turno')">&#10005;</button></div>
+  <div class="mhd"><div class="mtit">✎ Modifica turno</div><button class="mcl" onclick="closeM('m-mod-turno')">✕</button></div>
   <div class="mbod" style="display:grid;gap:12px">
     <input type="hidden" id="mmt-id">
     <input type="hidden" id="mmt-tipo" value="mattina">
@@ -2137,11 +2137,11 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <button class="fc" id="mmt-ora-in-btn" style="text-align:left;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="apriTimePicker('mmt-ora-in','mmt-ora-in-btn-lbl','Ora inizio')">
           <span id="mmt-ora-in-btn-lbl" style="font-weight:600;color:var(--txt2)">Inizio</span>
-          <span>&#9200;</span>
+          <span>⏰</span>
         </button>
         <button class="fc" id="mmt-ora-fi-btn" style="text-align:left;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="apriTimePicker('mmt-ora-fi','mmt-ora-fi-btn-lbl','Ora fine')">
           <span id="mmt-ora-fi-btn-lbl" style="font-weight:600;color:var(--txt2)">Fine</span>
-          <span>&#9200;</span>
+          <span>⏰</span>
         </button>
       </div>
       <input type="hidden" id="mmt-ora-in" value="">
@@ -2151,16 +2151,16 @@
     <div class="fg" style="margin-bottom:0"><label>Note</label><input type="text" class="fc app-fc" id="mmt-note" placeholder="Note..."></div>
   </div>
   <div class="mfoo">
-    <button class="btn btn-d btn-sm" onclick="eliminaTurnoMod()" style="width:auto">&#128465; Elimina</button>
+    <button class="btn btn-d btn-sm" onclick="eliminaTurnoMod()" style="width:auto">🗑 Elimina</button>
     <button class="btn btn-g btn-sm" onclick="closeM('m-mod-turno')">Annulla</button>
-    <button class="btn btn-p btn-sm" onclick="salvaModTurno()" style="width:auto">&#128190; Salva</button>
+    <button class="btn btn-p btn-sm" onclick="salvaModTurno()" style="width:auto">💾 Salva</button>
   </div>
 </div></div>
 
 <!-- MODAL PROFILO -->
 <div id="m-profilo" class="modal"><div class="mbox">
   <div class="mhan"></div>
-  <div class="mhd"><div class="mtit">&#128100; Il mio profilo</div><button class="mcl" onclick="closeM('m-profilo')">&#10005;</button></div>
+  <div class="mhd"><div class="mtit">👤 Il mio profilo</div><button class="mcl" onclick="closeM('m-profilo')">✕</button></div>
   <div class="mbod" style="display:grid;gap:14px">
 
     <!-- Avatar -->
@@ -2184,7 +2184,7 @@
         <input type="text" class="fc app-fc" id="mpf-nome" placeholder="Nome" autocomplete="name" maxlength="40">
         <input type="text" class="fc app-fc" id="mpf-cognome" placeholder="Cognome" autocomplete="family-name" maxlength="40">
       </div>
-      <div class="mp-anag-note"><span>&#8505;</span><span>Registrato come: <b id="mpf-nome-reale">—</b></span></div>
+      <div class="mp-anag-note"><span>ℹ</span><span>Registrato come: <b id="mpf-nome-reale">—</b></span></div>
     </div>
 
     <!-- Nickname (solo locale — NON tocca il nome anagrafico) -->
@@ -2203,7 +2203,7 @@
       <input type="hidden" id="mpf-grado" value="">
       <button type="button" class="fc" style="text-align:left;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="apriGradoPicker('mpf-grado')">
         <span id="lbl-mpf-grado" style="font-weight:600;color:var(--txt2)">Tocca per scegliere...</span>
-        <span style="font-size:14px">&#8250;</span>
+        <span style="font-size:14px">›</span>
       </button>
     </div>
 
@@ -2211,27 +2211,27 @@
   </div>
   <div class="mfoo">
     <button class="btn btn-g btn-sm" onclick="closeM('m-profilo')">Annulla</button>
-    <button class="btn btn-p btn-sm" onclick="salvaProfilo()" style="width:auto">&#128190; Salva</button>
+    <button class="btn btn-p btn-sm" onclick="salvaProfilo()" style="width:auto">💾 Salva</button>
   </div>
 </div></div><!-- MODAL TEMA PICKER -->
 <div id="m-tema" class="modal" style="z-index: 100000 !important;">
   <div class="mbox" style="max-width:380px">
     <div class="mhan"><div></div></div>
     <div class="mhd">
-      <div class="mtit">&#127775; Scegli tema</div>
-      <button class="mcl" onclick="closeM('m-tema')">&#10005;</button>
+      <div class="mtit">🌟 Scegli tema</div>
+      <button class="mcl" onclick="closeM('m-tema')">✕</button>
     </div>
     <div class="mbod" style="padding:8px 0 4px">
-      <div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.6px;padding:0 16px 10px">&#127769; Temi Notte</div>
+      <div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.6px;padding:0 16px 10px">🌙 Temi Notte</div>
       <div id="tema-grid-notte" class="tema-picker-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:0 12px 14px"></div>
-      <div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.6px;padding:0 16px 10px;border-top:1px solid var(--border);margin-top:4px">&#9728;&#65039; Temi Giorno</div>
+      <div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.6px;padding:0 16px 10px;border-top:1px solid var(--border);margin-top:4px">☀️ Temi Giorno</div>
       <div id="tema-grid-giorno" class="tema-picker-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:0 12px 14px"></div>
-      <div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.6px;padding:0 16px 10px;border-top:1px solid var(--border);margin-top:4px">&#128247; Automatico</div>
+      <div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.6px;padding:0 16px 10px;border-top:1px solid var(--border);margin-top:4px">📷 Automatico</div>
       <div id="tema-grid-speciali" class="tema-picker-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:0 12px 14px"></div>
     </div>
     <div class="mfoo">
       <button class="btn btn-g btn-sm" onclick="closeM('m-tema')">Chiudi</button>
-      <button class="btn btn-p btn-sm" id="btn-salva-tema" onclick="salvaTema()" style="width:auto">&#10003; Applica</button>
+      <button class="btn btn-p btn-sm" id="btn-salva-tema" onclick="salvaTema()" style="width:auto">✓ Applica</button>
     </div>
   </div>
 </div>
@@ -2241,8 +2241,8 @@
   <div class="mbox" style="max-width:420px">
     <div class="mhan"><div></div></div>
     <div class="mhd">
-      <div class="mtit">&#127894; Scegli Grado</div>
-      <button class="mcl" onclick="closeM('m-grado-picker')">&#10005;</button>
+      <div class="mtit">🎖 Scegli Grado</div>
+      <button class="mcl" onclick="closeM('m-grado-picker')">✕</button>
     </div>
     <div class="mbod" style="padding:12px 16px;max-height:60vh;overflow-y:auto">
       <div id="grado-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px"></div>
@@ -2258,8 +2258,8 @@
   <div class="mbox" style="max-width:320px;border-radius:24px 24px 0 0;position:fixed;bottom:0;left:0;right:0;margin:0 auto">
     <div class="mhan"></div>
     <div class="mhd">
-      <div class="mtit" id="m-time-picker-title">&#9200; Seleziona Orario</div>
-      <button class="mcl" onclick="closeM('m-time-picker')">&#10005;</button>
+      <div class="mtit" id="m-time-picker-title">⏰ Seleziona Orario</div>
+      <button class="mcl" onclick="closeM('m-time-picker')">✕</button>
     </div>
     <div class="mbod" style="padding:16px">
       <div style="text-align:center;font-size:52px;font-weight:900;color:var(--txt);letter-spacing:-2px;margin-bottom:16px">
@@ -2278,22 +2278,22 @@
       <div style="display:grid;grid-template-columns:1fr 24px 1fr;gap:8px;align-items:center">
         <div style="text-align:center">
           <div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Ore</div>
-          <button onclick="tpChangeH(+1)" class="tp-arrow">&#8593;</button>
+          <button onclick="tpChangeH(+1)" class="tp-arrow">↑</button>
           <div id="tp-h" style="font-size:32px;font-weight:900;color:var(--txt);margin:6px 0">00</div>
-          <button onclick="tpChangeH(-1)" class="tp-arrow">&#8595;</button>
+          <button onclick="tpChangeH(-1)" class="tp-arrow">↓</button>
         </div>
         <div style="font-size:28px;font-weight:900;color:var(--txt2);text-align:center;padding-bottom:2px">:</div>
         <div style="text-align:center">
           <div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Minuti</div>
-          <button onclick="tpChangeM(+5)" class="tp-arrow">&#8593;</button>
+          <button onclick="tpChangeM(+5)" class="tp-arrow">↑</button>
           <div id="tp-m" style="font-size:32px;font-weight:900;color:var(--txt);margin:6px 0">00</div>
-          <button onclick="tpChangeM(-5)" class="tp-arrow">&#8595;</button>
+          <button onclick="tpChangeM(-5)" class="tp-arrow">↓</button>
         </div>
       </div>
     </div>
     <div class="mfoo">
       <button class="btn btn-g btn-sm" onclick="closeM('m-time-picker')">Annulla</button>
-      <button class="btn btn-p btn-sm" onclick="tpConferma()" style="width:auto">&#10003; Conferma</button>
+      <button class="btn btn-p btn-sm" onclick="tpConferma()" style="width:auto">✓ Conferma</button>
     </div>
   </div>
 </div>
@@ -2303,9 +2303,9 @@
   <div class="mbox" style="max-width:340px">
     <div class="mhan"></div>
     <div class="mhd" style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px">
-      <button class="btn btn-g btn-sm" onclick="dpMese(-1)" style="padding:4px 12px;font-size:16px;width:auto">&#8249;</button>
+      <button class="btn btn-g btn-sm" onclick="dpMese(-1)" style="padding:4px 12px;font-size:16px;width:auto">‹</button>
       <div class="mtit" id="dp-month-year" style="flex:1;text-align:center;font-size:14px;letter-spacing:1px;color:var(--txt)"></div>
-      <button class="btn btn-g btn-sm" onclick="dpMese(1)" style="padding:4px 12px;font-size:16px;width:auto">&#8250;</button>
+      <button class="btn btn-g btn-sm" onclick="dpMese(1)" style="padding:4px 12px;font-size:16px;width:auto">›</button>
     </div>
     <div class="mbod" style="padding:16px" id="dp-grid">
     </div>
@@ -2320,8 +2320,8 @@
   <div class="mbox" style="max-width:480px">
     <div class="mhan"></div>
     <div class="mhd">
-      <div class="mtit">&#128197; Turni Personalizzati</div>
-      <button class="mcl" onclick="closeM('m-turni-custom')">&#10005;</button>
+      <div class="mtit">📅 Turni Personalizzati</div>
+      <button class="mcl" onclick="closeM('m-turni-custom')">✕</button>
     </div>
     <div class="mbod">
       <!-- Lista turni custom esistenti -->
@@ -2329,7 +2329,7 @@
 
       <!-- Form nuovo turno custom -->
       <div style="background:var(--bg2);border-radius:16px;padding:14px;border:1px solid var(--border)">
-        <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:var(--txt2);margin-bottom:12px">&#10133; Nuovo tipo turno</div>
+        <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:var(--txt2);margin-bottom:12px">➕ Nuovo tipo turno</div>
         <input type="hidden" id="tc-edit-id" value="">
         <div class="g2" style="margin-bottom:10px">
           <div class="fg" style="margin-bottom:0">
@@ -2369,7 +2369,7 @@
           </div>
           <input type="hidden" id="tc-col-sel" value="mattina">
         </div>
-        <button class="btn btn-p" onclick="salvaTurnoCustom()" style="width:100%">&#128190; Salva Tipo Turno</button>
+        <button class="btn btn-p" onclick="salvaTurnoCustom()" style="width:100%">💾 Salva Tipo Turno</button>
       </div>
     </div>
   </div>
@@ -2380,10 +2380,10 @@
   <div class="mbox" style="max-width:400px">
     <div class="mhan"></div>
     <div class="mhd">
-      <div class="mtit" id="pers-picker-tit">&#128100; Seleziona Persona</div>
+      <div class="mtit" id="pers-picker-tit">👤 Seleziona Persona</div>
       <div style="display:flex;align-items:center;gap:8px">
-        <button class="btn btn-g btn-xs" id="pers-picker-multi" onclick="_persPickerToggleMulti()" style="width:auto">&#9783; Multi</button>
-        <button class="mcl" onclick="closeM('m-pers-picker')">&#10005;</button>
+        <button class="btn btn-g btn-xs" id="pers-picker-multi" onclick="_persPickerToggleMulti()" style="width:auto">☷ Multi</button>
+        <button class="mcl" onclick="closeM('m-pers-picker')">✕</button>
       </div>
     </div>
     <div id="pers-picker-hint" style="display:none;padding:8px 16px;font-size:11px;color:var(--txt2);background:var(--bg2);border-bottom:1px solid var(--border)">Tocca i colleghi per selezionarli, poi premi Conferma.</div>
@@ -2391,7 +2391,7 @@
     </div>
     <div class="mfoo">
       <button class="btn btn-g btn-sm" onclick="closeM('m-pers-picker')">Annulla</button>
-      <button class="btn btn-p btn-sm" id="pers-picker-ok" style="display:none;width:auto" onclick="confermaPersMulti()">&#10004; Conferma (<span id="pers-picker-count">0</span>)</button>
+      <button class="btn btn-p btn-sm" id="pers-picker-ok" style="display:none;width:auto" onclick="confermaPersMulti()">✔ Conferma (<span id="pers-picker-count">0</span>)</button>
     </div>
   </div>
 </div>
@@ -2399,18 +2399,18 @@
 <!-- MODAL TURNO -->
 <div id="m-turno" class="modal"><div class="mbox">
   <div class="mhan"></div>
-  <div class="mhd"><div class="mtit">&#10133; Nuovo Turno</div><button class="mcl" onclick="closeM('m-turno')">&#10005;</button></div>
+  <div class="mhd"><div class="mtit">➕ Nuovo Turno</div><button class="mcl" onclick="closeM('m-turno')">✕</button></div>
   <div class="mbod"><div style="display:grid;gap:14px">
 
     <!-- Persona — picker in-app (selezione singola o multipla) -->
     <div class="fg" style="margin-bottom:0">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px">
         <label style="margin-bottom:0">Persona</label>
-        <button type="button" class="btn btn-g btn-xs" style="width:auto" onclick="apriPersPickerMulti('mt-pers','mt-pers-btn-lbl')">&#43; Pi&#249; colleghi</button>
+        <button type="button" class="btn btn-g btn-xs" style="width:auto" onclick="apriPersPickerMulti('mt-pers','mt-pers-btn-lbl')">+ Più colleghi</button>
       </div>
       <button class="fc" id="mt-pers-btn" style="text-align:left;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="apriPersPicker('mt-pers','mt-pers-btn-lbl')">
         <span id="mt-pers-btn-lbl" style="font-weight:600;color:var(--txt2)">Scegli collega...</span>
-        <span style="font-size:14px">&#8250;</span>
+        <span style="font-size:14px">›</span>
       </button>
       <input type="hidden" id="mt-pers" value="">
       <input type="hidden" id="mt-turno-codice" value="">
@@ -2423,14 +2423,14 @@
       <label id="mt-data-lbl">Data</label>
       <button class="fc" id="mt-data-btn" style="text-align:left;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="apriDatePicker('mt-data','mt-data-btn-lbl')">
         <span id="mt-data-btn-lbl" style="font-weight:600;color:var(--txt2)">Seleziona data...</span>
-        <span style="font-size:14px">&#128197;</span>
+        <span style="font-size:14px">📅</span>
       </button>
       <input type="hidden" id="mt-data" value="">
 
       <!-- Turni su più giorni: attiva il periodo Dal / Al -->
       <button type="button" class="day-chip" id="mt-range-toggle" onclick="toggleMultiGiorni()" style="width:100%;margin-top:10px;display:flex;justify-content:space-between;align-items:center;text-align:left">
-        <span id="mt-range-toggle-lbl">Pi&#249; giorni (periodo)</span>
-        <span id="mt-range-toggle-ico">&#128197;</span>
+        <span id="mt-range-toggle-lbl">Più giorni (periodo)</span>
+        <span id="mt-range-toggle-ico">📅</span>
       </button>
       <div id="mt-range-box" style="display:none;grid-template-columns:1fr;gap:12px;margin-top:12px">
         <div class="g2">
@@ -2438,7 +2438,7 @@
             <label>Al giorno</label>
             <button class="fc" id="mt-data-fine-btn" style="text-align:left;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="apriDatePicker('mt-data-fine','mt-data-fine-btn-lbl')">
               <span id="mt-data-fine-btn-lbl" style="font-weight:600;color:var(--txt2)">Seleziona...</span>
-              <span style="font-size:14px">&#128197;</span>
+              <span style="font-size:14px">📅</span>
             </button>
             <input type="hidden" id="mt-data-fine" value="">
           </div>
@@ -2491,11 +2491,11 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <button class="fc" id="mt-ora-in-btn" style="text-align:left;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="apriTimePicker('mt-ora-in','mt-ora-in-btn-lbl','Ora inizio')">
           <span id="mt-ora-in-btn-lbl" style="font-weight:600;color:var(--txt2)">Inizio</span>
-          <span>&#9200;</span>
+          <span>⏰</span>
         </button>
         <button class="fc" id="mt-ora-fi-btn" style="text-align:left;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="apriTimePicker('mt-ora-fi','mt-ora-fi-btn-lbl','Ora fine')">
           <span id="mt-ora-fi-btn-lbl" style="font-weight:600;color:var(--txt2)">Fine</span>
-          <span>&#9200;</span>
+          <span>⏰</span>
         </button>
       </div>
       <input type="hidden" id="mt-ora-in" value="">
@@ -2510,14 +2510,14 @@
   </div></div>
   <div class="mfoo">
     <button class="btn btn-g btn-sm" onclick="closeM('m-turno')">Annulla</button>
-    <button class="btn btn-p btn-sm" id="mt-save-btn" onclick="salvaTurno()" style="width:auto">&#128190; Salva</button>
+    <button class="btn btn-p btn-sm" id="mt-save-btn" onclick="salvaTurno()" style="width:auto">💾 Salva</button>
   </div>
 </div></div>
 
 <!-- MODAL PERSONA — fix bug grado -->
 <div id="m-persona" class="modal"><div class="mbox">
   <div class="mhan"></div>
-  <div class="mhd"><div class="mtit">&#128100; Aggiungi Persona</div><button class="mcl" onclick="closeM('m-persona')">&#10005;</button></div>
+  <div class="mhd"><div class="mtit">👤 Aggiungi Persona</div><button class="mcl" onclick="closeM('m-persona')">✕</button></div>
   <div class="mbod"><div style="display:grid;gap:14px">
     <div class="fg" style="margin-bottom:0"><label>Nome Completo</label>
       <input type="text" class="fc" id="mp-nome" placeholder="Es. Rossi Mario"></div>
@@ -2526,7 +2526,7 @@
       <input type="hidden" id="mp-grado" value="">
       <button class="fc app-fc" style="text-align:left;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="apriGradoPicker('mp-grado')" id="btn-mp-grado">
         <span id="lbl-mp-grado" style="font-weight:600;color:var(--txt2)">Seleziona grado...</span>
-        <span style="font-size:14px">&#8250;</span>
+        <span style="font-size:14px">›</span>
       </button>
     </div>
     <div class="fg" style="margin-bottom:0"><label>Reparto</label>
@@ -2534,7 +2534,7 @@
   </div></div>
   <div class="mfoo">
     <button class="btn btn-g btn-sm" onclick="closeM('m-persona')">Annulla</button>
-    <button class="btn btn-p btn-sm" onclick="salvaPersona()" style="width:auto">&#128190; Salva</button>
+    <button class="btn btn-p btn-sm" onclick="salvaPersona()" style="width:auto">💾 Salva</button>
   </div>
 </div></div>
 
@@ -2542,13 +2542,13 @@
 <div id="m-giorno" class="modal"><div class="mbox">
   <div class="mhan"></div>
   <div class="mhd">
-    <div class="mtit" id="mg-tit">&#128197; Giorno</div>
-    <button class="mcl" onclick="closeM('m-giorno')">&#10005;</button>
+    <div class="mtit" id="mg-tit">📅 Giorno</div>
+    <button class="mcl" onclick="closeM('m-giorno')">✕</button>
   </div>
   <div class="mbod" id="mg-body">Nessun turno</div>
   <div class="mfoo">
     <button class="btn btn-g btn-sm" onclick="closeM('m-giorno')">Chiudi</button>
-    <button class="btn btn-p btn-sm" style="width:auto" onclick="apriNuovoTurno(document.getElementById('mt-data').value)">&#10133; Aggiungi Turno</button>
+    <button class="btn btn-p btn-sm" style="width:auto" onclick="apriNuovoTurno(document.getElementById('mt-data').value)">➕ Aggiungi Turno</button>
   </div>
 </div></div>
 
@@ -2558,19 +2558,19 @@
 <div class="mbox" style="max-width:420px">
 <div class="mhan"></div>
 <div class="mhd">
-<div class="mtit">&#128196; Seleziona fogli da importare</div>
-<button class="mcl" onclick="closeM('m-fogli')">&#10005;</button>
+<div class="mtit">📄 Seleziona fogli da importare</div>
+<button class="mcl" onclick="closeM('m-fogli')">✕</button>
 </div>
 <div class="mbod" style="padding:14px">
 <div style="font-size:12px;color:var(--txt2);margin-bottom:12px">
 Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ignorati.
 </div>
 <div id="fogli-lista" style="display:flex;flex-direction:column;gap:8px;max-height:260px;overflow-y:auto;margin-bottom:14px"></div>
-<button class="btn" style="width:100%;font-size:12px;background:var(--bg2);margin-bottom:10px" onclick="toggleTuttiF()">&#9745; Tutti / Nessuno</button>
-<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--txt2);margin-bottom:8px">Modalit&#224; importazione</div>
+<button class="btn" style="width:100%;font-size:12px;background:var(--bg2);margin-bottom:10px" onclick="toggleTuttiF()">☑ Tutti / Nessuno</button>
+<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--txt2);margin-bottom:8px">Modalità importazione</div>
 <div style="display:flex;gap:8px">
-  <button class="btn" style="flex:1;font-size:12px;background:rgba(200,16,46,.1);color:var(--red);border-color:rgba(200,16,46,.3)" onclick="confermImportF(true)">&#128465; Sostituisci mese</button>
-  <button class="btn btn-p" style="flex:1;font-size:12px" onclick="confermImportF(false)">&#10133; Aggiungi</button>
+  <button class="btn" style="flex:1;font-size:12px;background:rgba(200,16,46,.1);color:var(--red);border-color:rgba(200,16,46,.3)" onclick="confermImportF(true)">🗑 Sostituisci mese</button>
+  <button class="btn btn-p" style="flex:1;font-size:12px" onclick="confermImportF(false)">➕ Aggiungi</button>
 </div>
 <div style="font-size:10px;color:var(--txt3);margin-top:8px;line-height:1.5"><strong>Sostituisci</strong>: elimina i turni esistenti del mese e inserisce i nuovi.<br><strong>Aggiungi</strong>: aggiunge senza eliminare quelli esistenti.</div>
 </div>
@@ -2590,24 +2590,24 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
   <!-- Header M3 -->
   <div style="display:flex;align-items:center;justify-content:space-between;padding:0 18px 12px">
     <div style="display:flex;align-items:center;gap:10px">
-      <div style="width:40px;height:40px;border-radius:14px;background:rgba(91,159,255,.15);display:flex;align-items:center;justify-content:center;font-size:20px">&#128276;</div>
+      <div style="width:40px;height:40px;border-radius:14px;background:rgba(91,159,255,.15);display:flex;align-items:center;justify-content:center;font-size:20px">🔔</div>
       <div>
         <div style="font-size:17px;font-weight:900;color:var(--txt);letter-spacing:-.3px">Notifiche</div>
         <div id="nd-count" style="font-size:11px;color:var(--txt2);font-weight:600"></div>
       </div>
     </div>
     <div style="display:flex;gap:6px">
-      <button onclick="segnaTutteLette()" style="padding:8px 14px;border-radius:20px;border:1.5px solid var(--border2);background:var(--card);color:var(--txt2);font-size:12px;font-weight:700;cursor:pointer;appearance:none;-webkit-appearance:none;transition:all .2s">&#10003; Lette</button>
-      <button onclick="cancellaNotifLette()" style="padding:8px 14px;border-radius:20px;border:1.5px solid rgba(242,69,61,.3);background:rgba(242,69,61,.08);color:var(--red);font-size:12px;font-weight:700;cursor:pointer;appearance:none;-webkit-appearance:none;transition:all .2s">&#128465; Pulisci</button>
+      <button onclick="segnaTutteLette()" style="padding:8px 14px;border-radius:20px;border:1.5px solid var(--border2);background:var(--card);color:var(--txt2);font-size:12px;font-weight:700;cursor:pointer;appearance:none;-webkit-appearance:none;transition:opacity .2s,transform .2s,background-color .2s,border-color .2s,color .2s,box-shadow .2s">✓ Lette</button>
+      <button onclick="cancellaNotifLette()" style="padding:8px 14px;border-radius:20px;border:1.5px solid rgba(242,69,61,.3);background:rgba(242,69,61,.08);color:var(--red);font-size:12px;font-weight:700;cursor:pointer;appearance:none;-webkit-appearance:none;transition:opacity .2s,transform .2s,background-color .2s,border-color .2s,color .2s,box-shadow .2s">🗑 Pulisci</button>
     </div>
   </div>
   <!-- Tab pills M3 -->
   <div style="display:flex;gap:8px;padding:0 14px 12px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none">
-    <button id="nt-tutti" class="notif-pill sel" onclick="switchNotifTab('tutti',this)">&#127381; Tutte</button>
-    <button id="nt-turni" class="notif-pill" onclick="switchNotifTab('turni',this)">&#128197; Turni</button>
-    <button id="nt-todo" class="notif-pill" onclick="switchNotifTab('todo',this)">&#9989; To-Do</button>
-    <button id="nt-agenda" class="notif-pill" onclick="switchNotifTab('agenda',this)">&#128203; Agenda</button>
-    <button id="nt-sistema" class="notif-pill" onclick="switchNotifTab('sistema',this)">&#9881; Sistema</button>
+    <button id="nt-tutti" class="notif-pill sel" onclick="switchNotifTab('tutti',this)">🆕 Tutte</button>
+    <button id="nt-turni" class="notif-pill" onclick="switchNotifTab('turni',this)">📅 Turni</button>
+    <button id="nt-todo" class="notif-pill" onclick="switchNotifTab('todo',this)">✅ To-Do</button>
+    <button id="nt-agenda" class="notif-pill" onclick="switchNotifTab('agenda',this)">📋 Agenda</button>
+    <button id="nt-sistema" class="notif-pill" onclick="switchNotifTab('sistema',this)">⚙ Sistema</button>
   </div>
   <!-- Lista notifiche -->
   <div id="notif-center-list" style="overflow-y:auto;flex:1;padding:0 14px 20px;-webkit-overflow-scrolling:touch"></div>
@@ -2616,8 +2616,8 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
 <div id="m-anno-lic" class="modal"><div class="mbox">
   <div class="mhan"></div>
   <div class="mhd">
-    <div class="mtit" id="m-anno-lic-tit">&#127958; Aggiungi anno</div>
-    <button class="mcl" onclick="closeM('m-anno-lic')">&#10005;</button>
+    <div class="mtit" id="m-anno-lic-tit">🏖 Aggiungi anno</div>
+    <button class="mcl" onclick="closeM('m-anno-lic')">✕</button>
   </div>
   <div class="mbod" style="display:grid;gap:14px;padding-top:4px">
     <div class="fg" style="margin-bottom:0"><label>Anno</label><input type="number" class="fc" id="m-anno-lic-year" placeholder="es. 2026" min="2000" max="2100"></div>
@@ -2625,7 +2625,7 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
   </div>
   <div class="mfoo">
     <button class="btn btn-g" onclick="closeM('m-anno-lic')">Annulla</button>
-    <button class="btn btn-p" onclick="salvaNuovoAnnoLic()" style="width:auto">&#10133; Aggiungi</button>
+    <button class="btn btn-p" onclick="salvaNuovoAnnoLic()" style="width:auto">➕ Aggiungi</button>
   </div>
 </div></div>
 
@@ -2636,8 +2636,8 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
   <div class="mbox" style="max-width:360px">
     <div class="mhan"></div>
     <div class="mhd">
-      <div class="mtit">&#9999; Ritaglia Foto</div>
-      <button class="mcl" onclick="closeM('m-avatar-editor')">&#10005;</button>
+      <div class="mtit">✏ Ritaglia Foto</div>
+      <button class="mcl" onclick="closeM('m-avatar-editor')">✕</button>
     </div>
     <div class="mbod" style="padding:0">
       <div style="position:relative;width:300px;height:300px;margin:0 auto;overflow:hidden;border-radius:12px;background:#111;touch-action:none">
@@ -2653,11 +2653,11 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
           </svg>
         </div>
       </div>
-      <p style="font-size:11px;color:var(--txt2);text-align:center;margin:10px 0 4px">&#128073; Trascina &nbsp; &#129295; Pizzica per zoomare</p>
+      <p style="font-size:11px;color:var(--txt2);text-align:center;margin:10px 0 4px">👉 Trascina &nbsp; 🤏 Pizzica per zoomare</p>
     </div>
     <div class="mfoo">
       <button class="btn btn-g btn-sm" onclick="closeM('m-avatar-editor')">Annulla</button>
-      <button class="btn btn-p btn-sm" onclick="confermaAvatarCrop()" style="width:auto">&#10003; Conferma</button>
+      <button class="btn btn-p btn-sm" onclick="confermaAvatarCrop()" style="width:auto">✓ Conferma</button>
     </div>
   </div>
 </div>
@@ -2668,7 +2668,7 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
     <div class="mhan"></div>
     <div class="mhd">
       <div class="mtit" id="m-straord-titolo">⏱️ Aggiungi Straordinario</div>
-      <button class="mcl" onclick="closeM('m-straord')">&#10005;</button>
+      <button class="mcl" onclick="closeM('m-straord')">✕</button>
     </div>
     <div class="mbod" style="padding:16px;display:grid;gap:16px">
       <input type="hidden" id="straord-edit-id" value="">
@@ -2728,7 +2728,7 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
     </div>
     <div class="mfoo">
       <button class="btn btn-g btn-sm" onclick="closeM('m-straord')">Annulla</button>
-      <button class="btn btn-p btn-sm" onclick="salvaStraord()" style="width:auto">&#10003; Salva</button>
+      <button class="btn btn-p btn-sm" onclick="salvaStraord()" style="width:auto">✓ Salva</button>
     </div>
   </div>
 </div>
@@ -2738,8 +2738,8 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
   <div class="mbox">
     <div class="mhan"></div>
     <div class="mhd">
-      <div class="mtit" id="chiusura-titolo">&#128022; Chiusura mese</div>
-      <button class="mcl" onclick="closeM('m-chiusura-straord')">&#10005;</button>
+      <div class="mtit" id="chiusura-titolo">🐖 Chiusura mese</div>
+      <button class="mcl" onclick="closeM('m-chiusura-straord')">✕</button>
     </div>
     <div class="mbod">
       <div id="chiusura-riepilogo" style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:16px;font-size:13px;color:var(--txt2);line-height:1.6"></div>
@@ -2755,15 +2755,15 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
       </div>
       <!-- Assegnazione rapida: esaurisce le ore senza lasciare minuti scoperti -->
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-        <button type="button" class="btn btn-sm" style="width:auto;font-size:11px" onclick="chiusuraAssegnaTutto('pag')">&#128176; Tutto a pagamento</button>
-        <button type="button" class="btn btn-sm" style="width:auto;font-size:11px" onclick="chiusuraAssegnaTutto('rec')">&#128260; Tutto a recupero</button>
+        <button type="button" class="btn btn-sm" style="width:auto;font-size:11px" onclick="chiusuraAssegnaTutto('pag')">💰 Tutto a pagamento</button>
+        <button type="button" class="btn btn-sm" style="width:auto;font-size:11px" onclick="chiusuraAssegnaTutto('rec')">🔄 Tutto a recupero</button>
       </div>
       <div id="chiusura-anteprima" style="font-size:12px;color:var(--txt2);margin-top:12px;line-height:1.6"></div>
       <div id="chiusura-err" class="emsg" style="display:none"></div>
     </div>
     <div class="mfoo">
-      <button class="btn btn-g btn-sm" onclick="closeM('m-chiusura-straord')">Pi&#249; tardi</button>
-      <button class="btn btn-p btn-sm" onclick="salvaChiusuraMese()" style="width:auto">&#10003; Conferma</button>
+      <button class="btn btn-g btn-sm" onclick="closeM('m-chiusura-straord')">Più tardi</button>
+      <button class="btn btn-p btn-sm" onclick="salvaChiusuraMese()" style="width:auto">✓ Conferma</button>
     </div>
   </div>
 </div>
@@ -2780,7 +2780,7 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
   <div style="background:var(--card,#111d2b);border:1px solid rgba(91,159,255,.2);border-radius:28px;max-width:460px;width:100%;padding:28px 24px;box-shadow:0 24px 64px rgba(0,0,0,.7)">
     <!-- Icona -->
     <div style="text-align:center;margin-bottom:16px">
-      <div style="width:56px;height:56px;border-radius:50%;background:rgba(91,159,255,.12);border:2px solid rgba(91,159,255,.3);display:inline-flex;align-items:center;justify-content:center;font-size:26px">&#128274;</div>
+      <div style="width:56px;height:56px;border-radius:50%;background:rgba(91,159,255,.12);border:2px solid rgba(91,159,255,.3);display:inline-flex;align-items:center;justify-content:center;font-size:26px">🔒</div>
     </div>
     <!-- Titolo -->
     <div style="font-size:18px;font-weight:900;color:var(--txt,#e8edf5);text-align:center;margin-bottom:10px">Aggiornamento Termini di Servizio</div>
@@ -2803,7 +2803,7 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
     <input type="hidden" id="fp-condividi" value="true">
     <!-- Bottone — disabilitato finché TOS non è spuntato -->
     <button id="fp-btn-accetta" onclick="accettaForzaPrivacy()" disabled
-      style="width:100%;padding:15px;border:none;border-radius:var(--radius-pill,50px);font-size:15px;font-weight:800;cursor:not-allowed;appearance:none;-webkit-appearance:none;background:rgba(91,159,255,.25);color:rgba(255,255,255,.4);transition:all .2s">
+      style="width:100%;padding:15px;border:none;border-radius:var(--radius-pill,50px);font-size:15px;font-weight:800;cursor:not-allowed;appearance:none;-webkit-appearance:none;background:rgba(91,159,255,.25);color:rgba(255,255,255,.4);transition:opacity .2s,transform .2s,background-color .2s,border-color .2s,color .2s,box-shadow .2s">
       Accetta e Continua
     </button>
   </div>
@@ -2814,8 +2814,8 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
   <div class="mbox" style="max-width:480px">
     <div class="mhan"></div>
     <div class="mhd">
-      <div class="mtit">&#128274; Privacy Policy</div>
-      <button class="mcl" onclick="closeM('m-privacy')">&#10005;</button>
+      <div class="mtit">🔒 Privacy Policy</div>
+      <button class="mcl" onclick="closeM('m-privacy')">✕</button>
     </div>
     <div class="mbod" style="padding:16px 20px;max-height:65vh;overflow-y:auto;font-size:13px;color:var(--txt2);line-height:1.7">
       <h3 style="color:var(--txt);font-size:15px;margin-bottom:12px">Informativa sul Trattamento dei Dati Personali</h3>
@@ -2832,7 +2832,7 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
       <p style="margin-top:10px"><strong style="color:var(--txt)">Diritti:</strong> L'utente può eliminare l'account e tutti i dati in qualsiasi momento dalle Impostazioni. L'eliminazione è irreversibile.</p>
     </div>
     <div class="mfoo">
-      <button class="btn btn-p" onclick="closeM('m-privacy')" style="width:100%">&#10004; Ho capito</button>
+      <button class="btn btn-p" onclick="closeM('m-privacy')" style="width:100%">✔ Ho capito</button>
     </div>
   </div>
 </div>
@@ -2842,8 +2842,8 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
   <div class="mbox" style="max-width:480px">
     <div class="mhan"></div>
     <div class="mhd">
-      <div class="mtit">&#128203; Termini di Servizio</div>
-      <button class="mcl" onclick="closeM('m-termini')">&#10005;</button>
+      <div class="mtit">📋 Termini di Servizio</div>
+      <button class="mcl" onclick="closeM('m-termini')">✕</button>
     </div>
     <div class="mbod" style="padding:16px 20px;max-height:65vh;overflow-y:auto;font-size:13px;color:var(--txt2);line-height:1.7">
       <h3 style="color:var(--txt);font-size:15px;margin-bottom:12px">Termini e Condizioni d'Uso</h3>
@@ -2852,7 +2852,7 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
       <p style="margin-top:10px"><strong style="color:var(--txt)">Esclusione di Responsabilità:</strong> Lo sviluppatore non risponde di errori nel calcolo dei turni, ferie o mancati avvisi. L'utente deve verificare i dati con i fogli di servizio ufficiali.</p>
     </div>
     <div class="mfoo">
-      <button class="btn btn-p" onclick="closeM('m-termini')" style="width:100%">&#10004; Ho capito</button>
+      <button class="btn btn-p" onclick="closeM('m-termini')" style="width:100%">✔ Ho capito</button>
     </div>
   </div>
 </div>
@@ -2862,21 +2862,21 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
   <div class="mbox" style="max-width:420px">
     <div class="mhan"></div>
     <div class="mhd">
-      <div class="mtit">&#127775; Novità in C-TURNI v5.0 beta</div>
+      <div class="mtit">🌟 Novità in C-TURNI v5.0 beta</div>
     </div>
     <div class="mbod" style="padding:16px;max-height:65vh;overflow-y:auto">
       <div style="font-size:13px;color:var(--txt2);margin-bottom:16px;line-height:1.6">Benvenuto in <strong style="color:var(--gold)">C-TURNI v5.0 beta</strong> — nuovo design Fluid Bento Tech, sfondi istituzionali dinamici e agenda rigenerata. Ecco le novità:</div>
       <div style="display:flex;flex-direction:column;gap:12px;font-size:13px;color:var(--txt)">
-        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#128142;</span><div><strong>Design System Fluid Bento Tech</strong><br><span style="font-size:12px;color:var(--txt2)">Bordi ultra-sottili da 1px, raggi tecnici compatti e superfici scure satinate su tutta l'app.</span></div></div>
-        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#127912;</span><div><strong>Nuovi Sfondi Istituzionali</strong><br><span style="font-size:12px;color:var(--txt2)">8 artwork dedicati con texture volumetriche, reticoli tattici e filigrane ufficiali per tutti i temi scuri e chiari.</span></div></div>
-        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#128467;&#65039;</span><div><strong>Pop-up Giorno &amp; Colleghi</strong><br><span style="font-size:12px;color:var(--txt2)">Colleghi in servizio divisi per fascia oraria (Mattina, Pomeriggio, Notte, Riposo), con spaziatura ottimizzata sopra la navbar.</span></div></div>
-        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#128203;</span><div><strong>Agenda &amp; Appuntamenti</strong><br><span style="font-size:12px;color:var(--txt2)">Card eventi più spaziose e confortevoli, con cifre numeriche tabulari.</span></div></div>
-        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#128737;&#65039;</span><div><strong>Tesserino Militare Integrato</strong><br><span style="font-size:12px;color:var(--txt2)">Tessera di riconoscimento in stile Bento Glass direttamente nella sezione profilo.</span></div></div>
-        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">&#9889;</span><div><strong>Zero Reflow &amp; GPU Motion</strong><br><span style="font-size:12px;color:var(--txt2)">Animazioni e transizioni ottimizzate per 60 FPS senza impatto sulla batteria.</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">💎</span><div><strong>Design System Fluid Bento Tech</strong><br><span style="font-size:12px;color:var(--txt2)">Bordi ultra-sottili da 1px, raggi tecnici compatti e superfici scure satinate su tutta l'app.</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">🎨</span><div><strong>Nuovi Sfondi Istituzionali</strong><br><span style="font-size:12px;color:var(--txt2)">8 artwork dedicati con texture volumetriche, reticoli tattici e filigrane ufficiali per tutti i temi scuri e chiari.</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">🗓️</span><div><strong>Pop-up Giorno &amp; Colleghi</strong><br><span style="font-size:12px;color:var(--txt2)">Colleghi in servizio divisi per fascia oraria (Mattina, Pomeriggio, Notte, Riposo), con spaziatura ottimizzata sopra la navbar.</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">📋</span><div><strong>Agenda &amp; Appuntamenti</strong><br><span style="font-size:12px;color:var(--txt2)">Card eventi più spaziose e confortevoli, con cifre numeriche tabulari.</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">🛡️</span><div><strong>Tesserino Militare Integrato</strong><br><span style="font-size:12px;color:var(--txt2)">Tessera di riconoscimento in stile Bento Glass direttamente nella sezione profilo.</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">⚡</span><div><strong>Zero Reflow &amp; GPU Motion</strong><br><span style="font-size:12px;color:var(--txt2)">Animazioni e transizioni ottimizzate per 60 FPS senza impatto sulla batteria.</span></div></div>
       </div>
     </div>
     <div class="mfoo">
-      <button class="btn btn-p" style="width:100%" onclick="chiudiNovita()">&#10004; Scopri v5.0 beta</button>
+      <button class="btn btn-p" style="width:100%" onclick="chiudiNovita()">✔ Scopri v5.0 beta</button>
     </div>
   </div>
 </div>
@@ -2887,20 +2887,20 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
     <div class="mhan" style="background:rgba(212,175,55,.2)"></div>
     <!-- Lampeggianti -->
     <div style="display:flex;justify-content:center;gap:10px;padding:14px 0 8px">
-      <div class="egg-lamp" style="width:14px;height:14px;border-radius:50%;background:#0022ff;box-shadow:0 0 12px #0022ff;transition:all .3s"></div>
-      <div class="egg-lamp" style="width:14px;height:14px;border-radius:50%;background:#8b0000;box-shadow:0 0 12px #8b0000;transition:all .3s"></div>
-      <div class="egg-lamp" style="width:14px;height:14px;border-radius:50%;background:#0022ff;box-shadow:0 0 12px #0022ff;transition:all .3s"></div>
+      <div class="egg-lamp" style="width:14px;height:14px;border-radius:50%;background:#0022ff;box-shadow:0 0 12px #0022ff;transition:opacity .3s,transform .3s,background-color .3s,border-color .3s,color .3s,box-shadow .3s"></div>
+      <div class="egg-lamp" style="width:14px;height:14px;border-radius:50%;background:#8b0000;box-shadow:0 0 12px #8b0000;transition:opacity .3s,transform .3s,background-color .3s,border-color .3s,color .3s,box-shadow .3s"></div>
+      <div class="egg-lamp" style="width:14px;height:14px;border-radius:50%;background:#0022ff;box-shadow:0 0 12px #0022ff;transition:opacity .3s,transform .3s,background-color .3s,border-color .3s,color .3s,box-shadow .3s"></div>
     </div>
     <!-- Auto CC -->
-    <div style="text-align:center;font-size:52px;line-height:1;padding:4px 0" id="egg-car" title="Autovettura CC">&#128661;</div>
+    <div style="text-align:center;font-size:52px;line-height:1;padding:4px 0" id="egg-car" title="Autovettura CC">🚕</div>
     <!-- Badge -->
-    <div id="egg-badge" style="text-align:center;font-size:13px;font-weight:800;color:#c8a96e;letter-spacing:1px;padding:6px 0">&#9884; Arma dei Carabinieri &#9884;</div>
+    <div id="egg-badge" style="text-align:center;font-size:13px;font-weight:800;color:#c8a96e;letter-spacing:1px;padding:6px 0">⚜ Arma dei Carabinieri ⚜</div>
     <!-- Motto -->
-    <div id="egg-motto" style="text-align:center;font-size:11px;color:rgba(255,255,255,.6);font-style:italic;padding:0 20px 10px">&#171;Nei Secoli Fedele&#187;</div>
+    <div id="egg-motto" style="text-align:center;font-size:11px;color:rgba(255,255,255,.6);font-style:italic;padding:0 20px 10px">«Nei Secoli Fedele»</div>
     <!-- Versione -->
     <div style="text-align:center;font-size:10px;color:rgba(212,175,55,.7);padding-bottom:14px;letter-spacing:2px">C-TURNI v5.0 beta</div>
     <div class="mfoo" style="background:rgba(0,0,0,.3);border-top:1px solid rgba(212,175,55,.2)">
-      <button class="btn btn-g btn-sm" onclick="closeM('m-egg');document.body.style.overflow=''" style="width:100%">&#10005; Chiudi</button>
+      <button class="btn btn-g btn-sm" onclick="closeM('m-egg');document.body.style.overflow=''" style="width:100%">✕ Chiudi</button>
     </div>
   </div>
 </div>
@@ -2925,7 +2925,7 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
 
       <!-- Nuovo Turno -->
       <button onclick="chiudiFabSheet();openM('m-turno')" style="display:flex;align-items:center;gap:16px;width:100%;padding:14px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:20px;cursor:pointer;appearance:none;-webkit-appearance:none;text-align:left;transition:background .15s;">
-        <span style="width:44px;height:44px;border-radius:14px;background:rgba(91,159,255,.15);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">&#9200;</span>
+        <span style="width:44px;height:44px;border-radius:14px;background:rgba(91,159,255,.15);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">⏰</span>
         <div>
           <div style="font-size:14px;font-weight:700;color:var(--txt);">Nuovo Turno</div>
           <div style="font-size:11px;color:var(--txt2);margin-top:2px;">Inserisci un turno manualmente</div>
@@ -2934,7 +2934,7 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
 
       <!-- Importa Excel -->
       <button onclick="chiudiFabSheet();document.getElementById('xi').click()" style="display:flex;align-items:center;gap:16px;width:100%;padding:14px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:20px;cursor:pointer;appearance:none;-webkit-appearance:none;text-align:left;transition:background .15s;">
-        <span style="width:44px;height:44px;border-radius:14px;background:rgba(0,229,255,.12);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">&#128229;</span>
+        <span style="width:44px;height:44px;border-radius:14px;background:rgba(0,229,255,.12);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">📥</span>
         <div>
           <div style="font-size:14px;font-weight:700;color:var(--txt);">Importa Excel</div>
           <div style="font-size:11px;color:var(--txt2);margin-top:2px;">Carica un file .xlsx con i turni</div>
@@ -2943,7 +2943,7 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
 
       <!-- Esporta PDF -->
       <button onclick="chiudiFabSheet();esportaPDF()" style="display:flex;align-items:center;gap:16px;width:100%;padding:14px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:20px;cursor:pointer;appearance:none;-webkit-appearance:none;text-align:left;transition:background .15s;">
-        <span style="width:44px;height:44px;border-radius:14px;background:rgba(242,69,61,.12);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">&#128196;</span>
+        <span style="width:44px;height:44px;border-radius:14px;background:rgba(242,69,61,.12);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">📄</span>
         <div>
           <div style="font-size:14px;font-weight:700;color:var(--txt);">Esporta PDF</div>
           <div style="font-size:11px;color:var(--txt2);margin-top:2px;">Stampa o salva il registro turni</div>
@@ -2952,7 +2952,7 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
 
       <!-- Nuovo Evento / To-Do -->
       <button onclick="chiudiFabSheet();openM('m-todo')" style="display:flex;align-items:center;gap:16px;width:100%;padding:14px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:20px;cursor:pointer;appearance:none;-webkit-appearance:none;text-align:left;transition:background .15s;">
-        <span style="width:44px;height:44px;border-radius:14px;background:rgba(255,209,102,.12);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">&#128203;</span>
+        <span style="width:44px;height:44px;border-radius:14px;background:rgba(255,209,102,.12);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">📋</span>
         <div>
           <div style="font-size:14px;font-weight:700;color:var(--txt);">Nuovo Evento / To-Do</div>
           <div style="font-size:11px;color:var(--txt2);margin-top:2px;">Aggiungi un promemoria o attività</div>
@@ -2961,7 +2961,7 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
 
       <!-- Condividi Turni WA -->
       <button onclick="chiudiFabSheet();apriSheetWA()" style="display:flex;align-items:center;gap:16px;width:100%;padding:14px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:20px;cursor:pointer;appearance:none;-webkit-appearance:none;text-align:left;transition:background .15s;">
-        <span style="width:44px;height:44px;border-radius:14px;background:rgba(6,214,160,.12);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">&#128242;</span>
+        <span style="width:44px;height:44px;border-radius:14px;background:rgba(6,214,160,.12);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">📲</span>
         <div>
           <div style="font-size:14px;font-weight:700;color:var(--txt);">Condividi Turni WA</div>
           <div style="font-size:11px;color:var(--txt2);margin-top:2px;">Invia il turno su WhatsApp</div>
@@ -2981,10 +2981,10 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
 
     <!-- Header: data + chiudi + aggiungi turno -->
     <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 4px 12px;flex-shrink:0;">
-      <div id="sg-tit" style="font-size:18px;font-weight:800;color:var(--txt,#e8edf5);">&#128197; Giorno</div>
+      <div id="sg-tit" style="font-size:18px;font-weight:800;color:var(--txt,#e8edf5);">📅 Giorno</div>
       <div style="display:flex;gap:8px;align-items:center;">
-        <button onclick="var d=document.getElementById('sg-data').value;chiudiSheetGiorno();apriNuovoTurno(d);" style="background:var(--blue,#5b9fff);color:#fff;border:none;border-radius:12px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;appearance:none;-webkit-appearance:none;">&#10133; Turno</button>
-        <button onclick="chiudiSheetGiorno()" style="background:var(--bg2,rgba(255,255,255,.08));border:none;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--txt2,#8faac8);cursor:pointer;appearance:none;-webkit-appearance:none;">&#10005;</button>
+        <button onclick="var d=document.getElementById('sg-data').value;chiudiSheetGiorno();apriNuovoTurno(d);" style="background:var(--blue,#5b9fff);color:#fff;border:none;border-radius:12px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;appearance:none;-webkit-appearance:none;">➕ Turno</button>
+        <button onclick="chiudiSheetGiorno()" style="background:var(--bg2,rgba(255,255,255,.08));border:none;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--txt2,#8faac8);cursor:pointer;appearance:none;-webkit-appearance:none;">✕</button>
       </div>
     </div>
     <input type="hidden" id="sg-data" value="">
@@ -3000,7 +3000,7 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
 
     <!-- Bottone WhatsApp -->
     <button class="btn btn-p" onclick="apriSheetWA()" style="width:100%;border-radius:50px;padding:16px;font-size:15px;font-weight:700;background:linear-gradient(135deg,#25D366,#128C7E);border:none;color:#fff;cursor:pointer;appearance:none;-webkit-appearance:none;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:8px;">
-      &#128242; Condividi su WhatsApp
+      📲 Condividi su WhatsApp
     </button>
 
   </div>
@@ -3108,7 +3108,7 @@ function chiudiSheetGiorno() {
 <script src="state.js?v=1.0.0"></script>
 <script src="biometric.js?v=1.0.0"></script>
 <script src="Game/carabiniere-runner.js?v=2.0.0"></script>
-<script src="app.js?v=5.0.0"></script>
+<script src="app.js?v=5.0.1"></script>
 <script type="module" src="firebase-manager.js?v=4.3.0"></script>
 
 <!-- MODAL CONFIRM CUSTOM -->
