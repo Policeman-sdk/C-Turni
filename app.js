@@ -7229,8 +7229,11 @@ function apriTimePicker(hiddenId, lblId, title) {
     _tp.h = 0; _tp.m = 0;
   }
   var titleEl = document.getElementById('m-time-picker-title');
-  if(titleEl) titleEl.textContent = '? ' + _tp.title;
+  if(titleEl) titleEl.textContent = '⏰ ' + _tp.title;
   _tpRender();
+  // §21 — Assicurarsi che il pannello sia in primo piano, fuori da contenitori
+  // che potrebbero intrappolarlo (era figlio di #pg-app) e cliccabile.
+  _nfPinPicker(document.getElementById('m-time-picker'), NF_PICKER_Z['m-time-picker']);
   openM('m-time-picker');
 }
 function _tpRender() {
@@ -13245,13 +13248,44 @@ function guidaApri(id) {
 
 var _zTop = 19000;
 
+/* §21 — Fascia rigida dei picker secondari: restano FUORI dall'ascensore.
+   `_zTop` sale di 10 a ogni apertura: senza questa separazione bastano ~105
+   aperture perché superi il vecchio pin `!important` e il picker finisca
+   dietro il modale padre (bug #m-time-picker sotto #m-turno). */
+var NF_PICKER_Z = { 'm-time-picker':100080, 'm-datepicker':100080, 'm-pers-picker':100080, 'm-grado-picker':100080 };
+var NF_Z_CEIL  = 100070;   /* soffitto ascensore: mai dentro la fascia picker */
+
+/* I modali sono overlay `position:fixed` a tutto schermo: un antenato con
+   transform/contain/backdrop-filter li intrappolerebbe nel suo stacking
+   context (e ne sposterebbe il containing block rispetto alla viewport).
+   Devono quindi essere sempre figli diretti di <body>. */
+function _nfInBody(el) {
+    if (el && el.parentNode !== document.body) document.body.appendChild(el);
+    return el;
+}
+
+/* Livello fisso + interattività garantita per un picker secondario. */
+function _nfPinPicker(el, z) {
+    if (!el) return;
+    _nfInBody(el);
+    el.style.zIndex = String(z);
+    el.style.pointerEvents = 'auto';
+}
+
 // Funzione Universale Apertura Modali (L'Ascensore)
 function openM(id) {
     var m = document.getElementById(id);
     if (!m) return;
-    // Assegna z-index crescente — ogni modal aperto sta sopra il precedente
-    _zTop += 10;
-    m.style.zIndex = _zTop;
+    var _pz = NF_PICKER_Z[id];
+    if (_pz) {
+      // Picker secondario: livello rigido, sopra qualunque modale (§21)
+      _nfPinPicker(m, _pz);
+    } else {
+      // Assegna z-index crescente — ogni modal aperto sta sopra il precedente
+      _zTop += 10;
+      if (_zTop > NF_Z_CEIL) _zTop = NF_Z_CEIL;
+      m.style.zIndex = _zTop;
+    }
     m.classList.add('on');
     // Suono e vibrazione apertura modal
     if(id !== 'm-egg' && id !== 'm-novita') {
@@ -13408,7 +13442,11 @@ function chiudiMenuRapido() {
 window.addEventListener('DOMContentLoaded', function() {
 
     // 1. Forza i picker e le notifiche in primo piano
-    var ids = ['m-datepicker', 'm-pers-picker', 'm-grado-picker', 'm-tema', 'm-fogli', 'm-avatar-editor', 'm-giorno', 'm-turno', 'm-todo', 'm-agenda', 'm-turni-custom', 'm-chiusura-straord', 'm-profilo', 'notif-drawer', 'notif-overlay'];
+    //    + §21: i modali rimasti figli di #pg-app vengono riportati su <body>
+    //    (un transform/contain sul contenitore li intrappolerebbe). #m-time-picker
+    //    per ultimo: a parità di livello vince nell'ordine di paint sui fratelli.
+    var ids = ['m-datepicker', 'm-pers-picker', 'm-grado-picker', 'm-tema', 'm-fogli', 'm-avatar-editor', 'm-giorno', 'm-turno', 'm-todo', 'm-agenda', 'm-turni-custom', 'm-chiusura-straord', 'm-profilo', 'notif-drawer', 'notif-overlay',
+               'm-mod-turno', 'm-scadenza', 'm-alert', 'm-bacheca', 'm-cambio-turno', 'm-persona', 'm-guida', 'm-time-picker'];
     ids.forEach(function(id) {
         var el = document.getElementById(id);
         if (el) {

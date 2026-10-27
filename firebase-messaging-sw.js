@@ -2,10 +2,10 @@
 importScripts('https://www.gstatic.com/firebasejs/11.8.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/11.8.1/firebase-messaging-compat.js');
 
-const CACHE_NAME = 'c-turni-v5.0.1'; /* v5.0.1: cache invalidata dopo il fix rendering/GPU (style.css + app.js) */
+const CACHE_NAME = 'c-turni-v5.0.2'; /* v5.0.2: cache invalidata dopo il fix z-index picker (#m-time-picker sopra #m-turno) */
 const APP_SHELL = [
-  './', './index.html', './style.css?v=5.0.1', './db.js?v=1.0.0',
-  './state.js?v=1.0.0', './biometric.js?v=1.0.0', './app.js?v=5.0.1',
+  './', './index.html', './style.css?v=5.0.2', './db.js?v=1.0.0',
+  './state.js?v=1.0.0', './biometric.js?v=1.0.0', './app.js?v=5.0.2',
   './manifest.json', './icon-192.png', './icon-512.png',
   './Game/carabiniere-runner.js?v=2.0.0'
 ];

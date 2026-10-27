@@ -671,7 +671,9 @@ tbody tr:last-child td{border-bottom:none}
    che intrappolano i modal position:fixed rendendoli invisibili o inaccessibili.
    Soluzione: rimuovere queste proprietà dagli elementi che contengono i modal
    oppure assicurarsi che i modal abbiano z-index abbastanza alto.
-   Usiamo z-index molto alti per i modal secondari (picker). */
+   ATTENZIONE: i valori qui sotto sono SUPERATI da §21 (fascia picker 100080),
+   che è l'unica fonte di verità per la gerarchia dei picker. Restano come
+   storico/documentazione dei livelli intermedi. */
 #m-pers-picker  { z-index: 20010 !important; }
 #m-datepicker   { z-index: 20020 !important; }
 #m-grado-picker { z-index: 20030 !important; }
@@ -697,8 +699,8 @@ tbody tr:last-child td{border-bottom:none}
 .hero-card.frost-reveal {
   filter: none !important;
 }
-#m-grado-picker { z-index: 100001 !important; }
-#m-grado-picker .mbox { z-index: 100002 !important; }
+#m-grado-picker { z-index: 100001 !important; }   /* superato da §21 (100080) */
+#m-grado-picker .mbox { z-index: 100002 !important; }   /* superato da §21 (100081) */
 .mbox{background:var(--card);border-radius:var(--radius) var(--radius) 0 0;width:100%;max-width:520px;
   max-height:calc(85vh - env(safe-area-inset-bottom,0px));overflow-y:auto;-webkit-overflow-scrolling:touch;
   box-shadow:var(--m3-shadow-lg);animation:mUp .28s var(--motion-decel)}
@@ -7182,3 +7184,65 @@ nav#bottom-nav.bottom-bar,nav#bottom-nav.bottom-bar[class],
   overflow:visible!important;
   max-width:none!important;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   §21 · GERARCHIA Z-INDEX DI MODALI E PICKER SECONDARI
+   Bug: `openM()` impila i modali con z-index inline crescenti
+   (`_zTop += 10` da 19000, dichiarazione NON `!important`), mentre i
+   picker erano ancorati da regole `!important` (20010…20040): superata
+   quota ~20040 (≈105 aperture in una sessione) il picker finiva DIETRO
+   il modale padre. Misurato in Chrome: `#m-time-picker`=20040 contro
+   `#m-turno`=21260, e `elementsFromPoint()` sul pulsante "Conferma"
+   restituiva `#mt-ora-fi-btn` (un bottone del form turno).
+   In più `#m-time-picker` era l'unico modale rimasto figlio di `#pg-app`
+   invece che di `<body>`: un domani un `transform`/`contain` sul
+   contenitore lo intrappolerebbe nel suo stacking context (e ne
+   sposterebbe il containing block: il bottom-sheet finirebbe fuori
+   schermo).
+   Scala dei livelli (ogni fascia è rigida):
+     9999    #bottom-nav                                 (§19.0)
+     10000   .modal — livello base (m-turno, m-mod-turno)  ← 21.3
+     10010+  ascensore `openM()` per i modali aperti sopra altri modali,
+             con soffitto 100070: non può MAI entrare nella fascia picker
+     100080  picker secondari (time/date/pers/grado)       ← 21.1
+     100090  #m-confirm (deve poter stare sopra un picker aperto)  ← 21.2
+     100099  #ct-spinner (overlay bloccante)                        ← 21.2
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 21.1 · Picker secondari: sopra QUALSIASI modale attivo ─────────────
+   `pointer-events:auto` garantisce che nessuna regola precedente possa
+   rendere il pannello inerte; il backdrop del `.modal` resta cliccabile. */
+#m-time-picker,
+#m-datepicker,
+#m-pers-picker,
+#m-grado-picker{
+  z-index:100080!important;
+  pointer-events:auto!important;
+}
+/* Contenitore interno del pannello. In questo codice è `.mbox` (non
+   esistono `.modal-dialog`/`.m-content`): è l'unico figlio diretto del
+   picker. `position:relative` NON è `!important` di proposito: il `.mbox`
+   del time picker ha `position:fixed` inline (bottom-sheet) e l'inline
+   non-`!important` deve continuare a vincere. Sugli altri picker `.mbox`
+   è statico → senza `position` lo `z-index` sarebbe ignorato. */
+#m-time-picker > div,
+#m-datepicker > div,
+#m-pers-picker > div,
+#m-grado-picker > div{
+  position:relative;
+  z-index:100081!important;
+}
+
+/* ── 21.2 · Livelli superiori: conferma e spinner ─────────────────────
+   `#m-confirm` era a 20060 (sotto la nuova fascia picker): un confirm
+   aperto DA un picker sarebbe finito dietro il pannello. */
+#m-confirm{z-index:100090!important}
+#ct-spinner{z-index:100099!important}
+
+/* ── 21.3 · Livello base dei modali del turno ─────────────────────────
+   Livello standard di modale (10000). Senza `!important` di proposito:
+   `openM()` deve poterli alzare quando vengono aperti SOPRA un altro
+   modale (es. guida interattiva → "➕ Nuovo turno"); assegnare
+   `!important` qui li bloccherebbe dietro la guida. */
+#m-turno,#m-mod-turno{z-index:10000}
+
