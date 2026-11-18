@@ -6986,9 +6986,13 @@ html[data-theme="chiaro"] #nf-bg-art{background-image:url("assets/bg/bg-chiaro-l
 }
 .nf-bg-scrim{
   position:absolute;inset:0;pointer-events:none;
+  /* §23: il cursore "Trasparenza sfondo" alleggerisce/rinforza il velo */
+  opacity:var(--nf-bg-scrim-k,1);
+  transition:opacity .18s linear;
   background:linear-gradient(180deg,
     rgba(4,7,11,.50) 0%,rgba(4,7,11,.18) 32%,rgba(4,7,11,.30) 68%,rgba(4,7,11,.64) 100%);
 }
+html[data-motion="off"] .nf-bg-scrim{transition:none}
 /* il vecchio rect di base opaco dell'SVG mesh coprirebbe l'artwork */
 #nf-bg .nf-bg-base{display:none!important}
 /* varianti GIORNO: velo chiaro, artwork un filo piu leggero */
@@ -7000,6 +7004,37 @@ html[data-theme$="-light"] .nf-bg-scrim{
     rgba(255,255,255,.60) 0%,rgba(255,255,255,.30) 34%,rgba(255,255,255,.44) 70%,rgba(255,255,255,.68) 100%);
 }
 html[data-motion="off"] #nf-bg-art{transition:none}
+
+/* ═══════════════════════════════════════════════════════════════
+   §23 · TRASPARENZA DELLO SFONDO — Impostazioni ▸ Aspetto
+   Lo slider (`_applicaTraspSfondo`) scrive due variabili su <html>:
+     --nf-bg-scrim-k   1  = velo di contrasto pieno (aspetto storico)
+                       ↓  alleggerendolo l'artwork emerge di più
+     --nf-bg-solid-k   0  = nessun velo pieno (aspetto storico)
+                       ↑  rende il fondo più solido (meno trasparente)
+   Valore 50 (default) = identico all'aspetto precedente: nessun cambio
+   visivo per chi non tocca il cursore. La trama dell'artwork resta quella
+   del tema attivo; qui si regola solo quanto il fondo "lascia passare".
+   ═══════════════════════════════════════════════════════════════ */
+
+/* colore del velo pieno: segue il tema (scuro/chiaro) */
+html{ --nf-bg-solid:#070a0e; }
+html[data-theme="light"],
+html[data-theme="chiaro"],
+html[data-theme$="-light"]{ --nf-bg-solid:#e9eff7; }
+@media (prefers-color-scheme: light){
+  html[data-theme="auto"]{ --nf-bg-solid:#e9eff7; }
+}
+/* Velo pieno: si sovrappone ad artwork, scrim e mesh (::after è l'ultimo
+   figlio dipinto). Solo opacity → nessun costo di layout/paint (layer GPU). */
+#nf-bg::after{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:var(--nf-bg-solid,#070a0e);
+  opacity:var(--nf-bg-solid-k,0);
+  transition:opacity .18s linear;
+}
+html[data-motion="off"] #nf-bg::after{transition:none}
+
 /* ── 19.19 · POP-UP GIORNO (#sheet-giorno) ────────────────────────────
    Il contenuto (compreso «Condividi su WhatsApp») deve restare sempre
    visibile: padding inferiore di sicurezza pari all'ingombro della bottom

@@ -21,6 +21,17 @@ try{var t=JSON.parse(localStorage.getItem("ct_tema"));if(t===null||t===undefined
 // Lampeggiante logo: ripristina lo stato salvato prima del primo paint (no flicker)
 try{var _hf=JSON.parse(localStorage.getItem("ct_prefs"));if(_hf&&_hf.lampeggiante===false)document.documentElement.setAttribute("data-hf","off");}catch(e){}
 
+// Trasparenza sfondo (§23): applica le variabili PRIMA del primo paint.
+// `_bgTrVars` è una function declaration → già disponibile (hoisting).
+try{
+  var _bt=localStorage.getItem("ct_bg_tr");
+  if(_bt!==null && _bt!==''){
+    var _btv=_bgTrVars(_bt);
+    document.documentElement.style.setProperty("--nf-bg-solid-k", String(_btv.solid));
+    document.documentElement.style.setProperty("--nf-bg-scrim-k", String(_btv.scrim));
+  }
+}catch(e){}
+
 // ---- GRADI ----
 var GR={
   "Car.":{nome:"Carabiniere",col:"#2979ff",svg:"data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2060%2036%22%3E%3Crect%20x%3D%221%22%20y%3D%221%22%20width%3D%2258%22%20height%3D%2234%22%20rx%3D%224%22%20fill%3D%22%230e1f3a%22%20stroke%3D%22%23d4af37%22%20stroke-width%3D%221.5%22/%3E%3Crect%20x%3D%227%22%20y%3D%2215.5%22%20width%3D%2246%22%20height%3D%222%22%20rx%3D%221.5%22%20fill%3D%22%23cc1020%22/%3E%3Ctext%20x%3D%2230%22%20y%3D%2229%22%20font-size%3D%227%22%20fill%3D%22%238faac8%22%20text-anchor%3D%22middle%22%20font-family%3D%22serif%22%3ECC%3C/text%3E%3C/svg%3E"},
@@ -2420,6 +2431,7 @@ window.addEventListener("DOMContentLoaded",function(){
   });
   scheduleNotifMattutina();
   caricaTema();
+  caricaTraspSfondo();   // §23 — ripristina la trasparenza sfondo scelta
   aggiornaBadgeNotif();
   // Fallback: nascondi splash dopo 6s se Firebase non risponde
   setTimeout(function(){
@@ -2641,7 +2653,10 @@ function aggiornaContatore(){
 
 function getLicenzePool(pid){
   var P=lsG("ct_p",[]);
-  var p=P.find(function(x){return x.id===pid;});
+  // Confronto per id/uid con coerzione di tipo: `x.id===pid` falliva quando
+  // l'id era numerico e il pid una stringa (o viceversa) → il pool risultava
+  // vuoto e il contatore licenze non mostrava nulla.
+  var p=P.find(function(x){return String(x.id)===String(pid)||(x.uid&&String(x.uid)===String(pid));});
   if(!p)return[];
   var pool=p.licenzePool||[];
   pool.sort(function(a,b){return a.anno-b.anno;});
@@ -2660,7 +2675,7 @@ function aggiungiRimanenzaAnnoUtente(){
   if(isNaN(giorni)||giorni<1||giorni>365){toast("Numero giorni non valido","err");return;}
   var P=lsG("ct_p",[]);
   for(var i=0;i<P.length;i++){
-    if(P[i].id===me.id){
+    if(String(P[i].id)===String(me.id)||(me.uid&&String(P[i].uid)===String(me.uid))){
       var pool=P[i].licenzePool||[];
       var es=pool.find(function(x){return x.anno===anno;});
       if(es){
@@ -2694,11 +2709,11 @@ function rimuoviRimanenzaAnno(pid,anno){
     if(!ok) return;
     var P=lsG("ct_p",[]);
     for(var i=0;i<P.length;i++){
-      if(P[i].id===pid){
+      if(String(P[i].id)===String(pid)||(P[i].uid&&String(P[i].uid)===String(pid))){
         P[i].licenzePool=(P[i].licenzePool||[]).filter(function(x){return x.anno!==anno;});
         P[i].ferieRes=P[i].licenzePool.reduce(function(s,x){return s+x.giorni;},0);
         var me=lsG("ct_me",null);
-        if(me&&me.id===pid){me.ferie=P[i].ferieRes;lsS("ct_me",me);}
+        if(me&&(String(me.id)===String(pid)||(me.uid&&String(me.uid)===String(pid)))){me.ferie=P[i].ferieRes;lsS("ct_me",me);}
         break;
       }
     }
@@ -2801,6 +2816,13 @@ function saveFeriePool(pid,pool){
   if(fs){fs.textContent=tot;fs.style.color=tot<5?"var(--red)":tot<15?"var(--gold)":"var(--green)";}
   var ft=document.getElementById("ferie-totale");
   if(ft){ft.textContent=tot+" gg";ft.style.color=tot<=5?"var(--red)":tot<=15?"var(--gold)":"var(--teal)";}
+  // Aggiorna ANCHE il dettaglio per anno: senza questo il contatore restava
+  // fermo al valore precedente dopo l'immissione/il consumo di un giorno
+  // (bug "il contatore licenze non calcola quando vengono immesse").
+  try {
+    if (typeof renderFeriePool === 'function') renderFeriePool();
+    if (typeof caricaPoolLicenzeMe === 'function') caricaPoolLicenzeMe();
+  } catch(e){}
   // Sync Firebase
   _syncFerieFirebase();
 }
@@ -3032,11 +3054,16 @@ function salvaFerie(){
   lsS("ct_me",me);
   // Aggiorna anche in ct_u
   var U=lsG("ct_u",[]);
-  for(var i=0;i<U.length;i++){if(U[i].nome===me.nome){U[i].ferieRes=_ferieTemp;break;}}
+  for(var i=0;i<U.length;i++){
+    if(String(U[i].id)===String(me.id)||(me.uid&&String(U[i].uid)===String(me.uid))){U[i].ferieRes=_ferieTemp;break;}
+  }
   lsS("ct_u",U);
-  // Aggiorna anche in ct_p se esiste
+  // Aggiorna anche in ct_p se esiste (per id/uid: MAI per nome — un collega
+  // con lo stesso nome avrebbe ricevuto il saldo dell'utente loggato)
   var P=lsG("ct_p",[]);
-  for(var i=0;i<P.length;i++){if(P[i].nome===me.nome){P[i].ferieRes=_ferieTemp;break;}}
+  for(var i=0;i<P.length;i++){
+    if(String(P[i].id)===String(me.id)||(me.uid&&String(P[i].uid)===String(me.uid))){P[i].ferieRes=_ferieTemp;break;}
+  }
   lsS("ct_p",P);
   renderPers();
   if(okEl){okEl.classList.add("on");setTimeout(function(){okEl.classList.remove("on");},3000);}
@@ -3188,12 +3215,121 @@ function _nomeOmonimi(me){
 // -- Helper STRICT ANTI-OMONIMIA ---------------------------------------
 // (definita più sotto, dopo _isMyTurno — vedi _isMioTurnoStrict)
 
+// -- AMBIGUITÀ DEL NOME (nome di battesimo condiviso) -------------------
+// `_nomeOmonimi` conta solo i NOMI COMPLETI identici. Il caso reale che ha
+// causato i turni/notifiche di un altro collega sul proprio account è però
+// "stesso NOME, cognome diverso": per il matching per nome anche quel caso è
+// ambiguo, perché un turno può riportare solo il nome di battesimo.
+function _nomeAmbigui(me){
+  try{
+    if(!me || !me.nome) return false;
+    if(_nomeOmonimi(me) > 1) return true;                 // nome completo duplicato
+    var mio = _nomeFullNorm((me.nome||'') + ' ' + (me.cognome||''));
+    var primo = _nomeFullNorm(me.nome).split(' ')[0] || '';
+    if(!primo) return false;
+    var P = lsG('ct_p', []).concat(lsG('ct_users', []));
+    for(var i=0;i<P.length;i++){
+      var p = P[i]; if(!p) continue;
+      var pn = _nomeFullNorm((p.nome||'') + ' ' + (p.cognome||''));
+      if(!pn || pn === mio) continue;                     // sono io / mia copia
+      if(_nomeFullNorm(p.nome).split(' ')[0] === primo) return true;  // omonimo di nome
+    }
+    return false;
+  } catch(e){ return true; }   // in dubbio: non fidarsi del nome
+}
+
+// Il nome della persona contiene il mio nome E il mio cognome (ordine libero)?
+// Serve a distinguere due record che rivendicano lo stesso uid o a validare un
+// pid che punta a una persona senza uid.
+function _nfNomeCombacia(p, me){
+  var a = _nomeFullNorm(((p && p.nome) || '') + ' ' + ((p && p.cognome) || ''));
+  var n = _nomeFullNorm((me && me.nome) || '');
+  var c = _nomeFullNorm((me && me.cognome) || '');
+  if(!a || (!n && !c)) return true;            // niente su cui discriminare
+  if(n && a.indexOf(n) === -1) return false;   // il mio nome non compare
+  if(c && a.indexOf(c) === -1) return false;   // il mio cognome non compare
+  return true;
+}
+
+// -- IDENTITÀ: il pid salvato deve appartenere DAVVERO all'utente -------
+// `ct_my_pid` veniva scritto dalle vecchie build quando il match avveniva per
+// nome: con un collega omonimo il pid salvato poteva essere il SUO, e da quel
+// momento dashboard e notifiche pescavano i suoi turni. Qui il pid viene
+// validato contro l'uid e il nome completo; se non è dimostrabile, si scarta.
+function _nfPidValido(pid, me){
+  if(pid === undefined || pid === null || pid === '') return false;
+  if(!me) return false;
+  if(String(me.uid||'') && String(pid) === String(me.uid)) return true;
+  var P = lsG('ct_p', []).concat(lsG('ct_users', []));
+  var p = null;
+  for(var i=0;i<P.length;i++){
+    var c = P[i]; if(!c) continue;
+    if(String(c.id) === String(pid) || (c.uid && String(c.uid) === String(pid))) { p = c; break; }
+  }
+  if(!p) return true;                       // pid non risolvibile: non smentibile
+  if(me.uid && p.uid) return String(p.uid) === String(me.uid) && _nfNomeCombacia(p, me);
+  // record senza uid (import Excel): confronto sul nome completo, se noto
+  return _nfNomeCombacia(p, me);
+}
+
+// pid dell'utente loggato: solo se validato (mai un pid "ereditato" altrui).
+// Memoizzato: `_isMyTurno` viene chiamata per ogni turno a ogni render.
+var _nfPidCache = { key: null, val: '' };
+function _nfMioPid(me){
+  var cand = (me && me.myPid) || localStorage.getItem('ct_my_pid') || '';
+  if(!cand) return '';
+  var key = String(cand) + '|' + String((me && me.uid) || '') + '|' + lsG('ct_p', []).length + '|' + lsG('ct_users', []).length;
+  if(_nfPidCache.key === key) return _nfPidCache.val;
+  var out = '';
+  if(_nfPidValido(cand, me)) out = String(cand);
+  else {
+    try { localStorage.removeItem('ct_my_pid'); } catch(e){}
+    if(me && me.myPid){ try { delete me.myPid; lsS('ct_me', me); } catch(e){} }
+  }
+  _nfPidCache = { key: key, val: out };
+  return out;
+}
+
+// Ripara all'avvio un `ct_my_pid` sbagliato (eredità di build precedenti),
+// ricavandolo dalla rubrica SOLO tramite uid, mai tramite nome.
+function _nfSanificaIdentita(){
+  try{
+    var me = lsG('ct_me', null); if(!me) return;
+    var ls = localStorage.getItem('ct_my_pid');
+    if(ls && _nfPidValido(ls, me)) return;
+    if(ls){ localStorage.removeItem('ct_my_pid'); }
+    if(me.myPid && !_nfPidValido(me.myPid, me)){ delete me.myPid; lsS('ct_me', me); }
+    if(me.uid){
+      var P = lsG('ct_p', []);
+      var cands = P.filter(function(x){ return x && String(x.uid) === String(me.uid); });
+      var p = null;
+      if(cands.length === 1) p = cands[0];
+      else if(cands.length > 1){
+        // Più record rivendicano lo stesso uid: scelgo quello il cui nome
+        // contiene nome E cognome dell'utente; se resta ambiguo NON indovino.
+        var combaci = cands.filter(function(x){ return _nfNomeCombacia(x, me); });
+        if(combaci.length === 1) p = combaci[0];
+        else if(!combaci.length){
+          var byId = cands.filter(function(x){ return me.id !== undefined && String(x.id) === String(me.id); });
+          p = byId.length === 1 ? byId[0] : null;
+        }
+      }
+      if(p && p.id !== undefined && p.id !== null && p.id !== ''){
+        localStorage.setItem('ct_my_pid', String(p.id));
+        me.myPid = p.id; lsS('ct_me', me);
+      }
+    }
+  } catch(e){}
+}
+
 // -- Helper: riconosce se un turno appartiene all'utente loggato --
 // Controlla pid numerico, uid Firebase, ct_my_pid, e — solo in casi non
 // ambigui — il nome completo (mai con omonimi in reparto).
 function _isMyTurno(t, me) {
   if(!t || !me) return false;
-  var myPid = me.myPid || localStorage.getItem('ct_my_pid');
+  // pid SOLO se validato: un `ct_my_pid` ereditato da build precedenti (match per
+  // nome) poteva appartenere a un collega omonimo e faceva "propri" i suoi turni.
+  var myPid = _nfMioPid(me);
   var owner=String(t.ownerUid||t.uid||t.userId||'');
   if(me.uid&&owner&&owner===String(me.uid))return true;
   // Confronto pid SOLO se realmente valorizzato (evita il falso positivo "undefined"==="undefined")
@@ -3212,28 +3348,18 @@ function _isMyTurno(t, me) {
       if(_pMe && String(_pMe.id)===tPid) return true;
     }
   }
-  // Fallback per vecchie importazioni: SOLO con nome E cognome completi.
-  // Mai col solo nome/cognome: con un omonimo (stesso nome, cognome diverso)
-  // aggancerebbe i turni della persona sbagliata.
-  // ANTI-OMONIMIA: con 2+ persone con lo stesso nome completo in rubrica il
-  // match per nome è inaffidabile → nessun aggancio (solo uid/pid contano).
-  if(_nomeOmonimi(me) > 1) return false;
-  if(t.pnome && me.nome && me.cognome) {
+  // Fallback per vecchie importazioni: SOLO con nome E cognome completi e SOLO
+  // se il turno non dichiara alcuna identità (pid/uid). Se il turno ha un pid,
+  // quello è l'autorità: il nome non deve mai sovrascriverlo.
+  // ANTI-OMONIMIA: nessun omonimo (nemmeno di solo nome) → il nome è ambiguo.
+  if(tPid || owner) return false;
+  if(_nomeAmbigui(me)) return false;
+  if(t.pnome && me.nome) {
     var norm=function(v){return (v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();};
     var pn=norm(t.pnome),n=norm(me.nome),c=norm(me.cognome);
     if(pn&&[norm(c+' '+n),norm(n+' '+c)].indexOf(pn)!==-1) {
-      // Salva il pid per i prossimi confronti (localStorage + Firebase profilo)
-      var pidStr = String(t.pid);
-      localStorage.setItem('ct_my_pid', pidStr);
-      if(!me.myPid || me.myPid !== pidStr) {
-        me.myPid = pidStr;
-        lsS('ct_me', me);
-        // Persiste su Firebase in background
-        var _sess = (typeof lsG === 'function') ? lsG('ct_session', null) : null;
-        if(_sess && _sess.userId && window.FirebaseModule) {
-          window.FirebaseModule.saveUserProfile(_sess.userId, me, me.reparto).catch(function(){});
-        }
-      }
+      // NIENTE `localStorage.setItem('ct_my_pid', ...)`: scrivere un pid dedotto
+      // dal nome è ciò che rendeva "mia" l'identità di un collega omonimo.
       return true;
     }
   }
@@ -3244,7 +3370,7 @@ function _isMyTurno(t, me) {
 //    solo pid / uid / ownerUid, NESSUN fallback sul nome → niente omonimie.
 function _isMioTurnoStrict(t, me){
   if(!t || !me) return false;
-  var myPid = me.myPid || localStorage.getItem('ct_my_pid') || '';
+  var myPid = _nfMioPid(me);                              // validato (§ identità)
   var myUid = me.uid || me.id || '';                       // come il calendario
   var meId  = (me.id===undefined||me.id===null||me.id==='') ? '' : String(me.id);
   var tPid  = (t.pid===undefined||t.pid===null||t.pid==='') ? '' : String(t.pid);
@@ -3274,7 +3400,8 @@ function _isMioTurnoReport(t, me){
   if(!t || !me) return false;
   if(_isMyTurno(t, me)) return true;
   if(!me.nome && !me.cognome) return false;
-  if(_nomeOmonimi(me) > 1) return false;   // omonimia → contano solo uid/pid
+  if(t.pid || t.uid || t.ownerUid) return false;   // identità dichiarata: fa fede il pid
+  if(_nomeAmbigui(me)) return false;               // omonimia (anche di solo nome) → contano solo uid/pid
   var meN  = ((me.cognome||'')+' '+(me.nome||'')).toLowerCase().replace(/\s+/g,' ').trim();
   var meN2 = ((me.nome||'')+' '+(me.cognome||'')).toLowerCase().replace(/\s+/g,' ').trim();
   var tN   = String(t.pnome||'').toLowerCase().replace(/\s+/g,' ').trim();
@@ -6919,6 +7046,56 @@ function eggTap(){
 }
 
 
+// ---- TRASPARENZA SFONDO (§23 · Impostazioni ▸ Aspetto) ----
+// 0 = fondo solido · 50 = aspetto storico · 100 = massima trasparenza (vetro)
+var _BG_TR_DEFAULT = 50;
+
+// Mappatura pura: usata anche dal bootstrap che gira prima del primo paint.
+function _bgTrVars(pct){
+  var t = Number(pct);
+  if(isNaN(t)) t = _BG_TR_DEFAULT;
+  t = Math.min(100, Math.max(0, t)) / 100;
+  // lato "opaco" (0 → 50): velo pieno del colore di base, fino al 55%
+  var solid = t < 0.5 ? ((0.5 - t) / 0.5) * 0.55 : 0;
+  // lato "vetro" (50 → 100): velo di contrasto da 1 a .55 (artwork più vivo)
+  var scrim = t > 0.5 ? 1 - ((t - 0.5) / 0.5) * 0.45 : 1;
+  return { solid: Math.round(solid * 100) / 100, scrim: Math.round(scrim * 100) / 100 };
+}
+function _bgTrLabel(pct){
+  var v = Math.min(100, Math.max(0, Number(pct) || 0));
+  if(v <= 12) return 'Opaco';
+  if(v < 38)  return 'Bassa';
+  if(v <= 62) return 'Media';
+  if(v < 88)  return 'Alta';
+  return 'Massima';
+}
+function _applicaTraspSfondo(pct){
+  var v = Math.min(100, Math.max(0, Number(pct) || 0));
+  var m = _bgTrVars(v);
+  var root = document.documentElement;
+  root.style.setProperty('--nf-bg-solid-k', String(m.solid));
+  root.style.setProperty('--nf-bg-scrim-k', String(m.scrim));
+  var lbl = document.getElementById('bg-tr-lbl-live');
+  if(lbl) lbl.textContent = _bgTrLabel(v);
+  var sl = document.getElementById('bg-tr-slider');
+  if(sl && String(sl.value) !== String(v)) sl.value = v;
+  return m;
+}
+// Anteprima immediata mentre si trascina (nessun salvataggio)
+function prevTraspSfondo(pct){ _applicaTraspSfondo(pct); }
+// Al rilascio: salva la preferenza
+function salvaTraspSfondo(pct){
+  var v = Math.min(100, Math.max(0, Number(pct) || 0));
+  _applicaTraspSfondo(v);
+  lsS('ct_bg_tr', v);
+  if(navigator.vibrate) navigator.vibrate(8);
+}
+function caricaTraspSfondo(){
+  var v = lsG('ct_bg_tr', _BG_TR_DEFAULT);
+  if(v === null || v === '' || isNaN(Number(v))) v = _BG_TR_DEFAULT;
+  _applicaTraspSfondo(v);
+}
+
 // ---- GRANDEZZA CARATTERI ----
 function setFontSize(px, btn){
   var map={12:"sm",14:"md",16:"lg",18:"xl"};
@@ -7652,6 +7829,8 @@ document.addEventListener("click",function(e){
 // -------------------------------------------------
 function aggUI(){
   try{
+    // § identità: ripara `ct_my_pid` anche dopo login/sync (non solo al boot).
+    try { if(typeof _nfSanificaIdentita === 'function') _nfSanificaIdentita(); } catch(e0){}
     var u = lsG("ct_me", null);
     if(!u) return;
     // Recupero foto robusto: ct_me ? ct_session ? ct_p ? ct_users
@@ -7661,7 +7840,7 @@ function aggUI(){
         u.ava = _sess.ava || _sess.fotoURL;
     }
     if(!u.ava || !u.ava.startsWith('http')) {
-      var _myPidAv = localStorage.getItem('ct_my_pid');
+      var _myPidAv = _nfMioPid(u);   // § identità: pid validato
       var _Pav = lsG('ct_p', []);
       var _pMeAv = _Pav.find(function(p){ return p.uid === u.uid || String(p.id) === String(_myPidAv); });
       if(_pMeAv && _pMeAv.ava && _pMeAv.ava.startsWith('http')) u.ava = _pMeAv.ava;
@@ -8010,8 +8189,8 @@ function _syncMyPid(){
     var byUid = P.find(function(p){ return p.uid && (p.uid === uid || p.uid === me.uid); });
     if(byUid){ localStorage.setItem('ct_my_pid', String(byUid.id)); return; }
     // ANTI-OMONIMIA: il pid si deduce dal nome SOLO se il nome completo
-    // identifica una sola persona del reparto (nessun omonimo).
-    if(_nomeOmonimi(me) > 1) return;
+    // identifica una sola persona del reparto e non esiste un omonimo di nome.
+    if(_nomeAmbigui(me)) return;
     // Cerca per nome+cognome (match robusto)
     var n = (me.nome||'').toLowerCase().trim();
     var c = (me.cognome||'').toLowerCase().trim();
@@ -8431,7 +8610,13 @@ function _calSyncSel(){
     c.classList.toggle('sel', !!_calSel && oc.indexOf("'"+_calSel+"'")!==-1);
   });
 }
+// Rete di sicurezza: un singolo turno malformato non deve più bloccare
+// l'intero calendario (e con esso la navigazione tra i mesi).
 function renderCal(){
+  try { _renderCalInterno(); }
+  catch(e){ console.warn('renderCal:', e && e.message); }
+}
+function _renderCalInterno(){
   var mN=["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno",
           "Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
   var gN=["Lun","Mar","Mer","Gio","Ven","Sab","Dom"];
@@ -8440,7 +8625,7 @@ function renderCal(){
   var off=(new Date(cYR,cMO,1).getDay()+6)%7;
   var T=lsG("ct_t",[]);
   var me=lsG("ct_me",null);
-  var myPid=parseInt(localStorage.getItem("ct_my_pid")||"0");
+  var myPid=parseInt(_nfMioPid(me)||'0');   // § identità: pid validato (mai ereditato)
   var myUid=(me&&(me.uid||me.id))||null;
   // Giorno selezionato: default su oggi alla prima apertura
   var _todayDs=og.getFullYear()+"-"+pad(og.getMonth()+1)+"-"+pad(og.getDate());
@@ -8515,9 +8700,14 @@ function renderCal(){
     if(tg.length>0){
       // 1. Badge del turno dell'utente — sempre in primo piano, evidenziato
       if(mioTurno){
-        var _isRO = _isRecuperoOreTurno(mioTurno);
-        var c=_isRO ? cols.recuperoOre : (cols[mioTurno.tipo]||'#8faac8');
-        var lbl=_isRO ? _RECUPERO_ORE_SHORT : (labels[mioTurno.tipo]||mioTurno.tipo.slice(0,2).toUpperCase());
+        // Tipo canonico e sigla SEMPRE definiti: un turno importato può non
+        // avere `tipo` e faceva crashare `renderCal` (undefined.slice), così
+        // i mesi precedenti con turni "mutilati" non si aprivano più.
+        var _tipoMio = _tipoEffettivoTurno(mioTurno);
+        var _isRO = (_tipoMio === 'recuperoOre') || _isRecuperoOreTurno(mioTurno);
+        var c=_isRO ? cols.recuperoOre : (cols[_tipoMio]||'#8faac8');
+        var _sigla = String(mioTurno.codice || _tipoMio || '?').trim();
+        var lbl=_isRO ? _RECUPERO_ORE_SHORT : (labels[_tipoMio]||(_sigla.slice(0,2)||'?').toUpperCase());
         h+="<div class=\"cal-badge\" style=\"background:"+c+"33;color:"+c+";border:1px solid "+c+"88;font-weight:900\">"
           +"<span class=\"cal-badge-dot\" style=\"background:"+c+"\"></span>"
           +"<span>"+lbl+"</span>"
@@ -8588,7 +8778,7 @@ function mostraGiorno(ds){
   var T=lsG("ct_t",[]).filter(function(t){return t.data===ds;});
   var P=lsG("ct_p",[]);
   var me=lsG("ct_me",null);
-  var myPid=parseInt(localStorage.getItem("ct_my_pid")||"0");
+  var myPid=parseInt(_nfMioPid(me)||'0');   // § identità: pid validato
 
   // Ordina per grado
   T.sort(function(a,b){
@@ -9038,13 +9228,21 @@ function _salvCalcola(tutti, meseCorrente) {
     b.minRecupero += (Number(c.minRecupero) || 0);
     b.chiuso = true;
     if (c.chiusoIl) b.chiusoIl = c.chiusoIl;
+    // Ore lavorate al momento della chiusura: serve a capire se DOPO sono
+    // state aggiunte nuove ore al mese (che tornano "da destinare").
+    if (c.minLavorate !== undefined) b.minLavorateChiusura = Number(c.minLavorate) || 0;
   });
   var mesi = Object.keys(perMese).map(function(k){ return perMese[k]; })
     .sort(function(a, b){ return a.mese.localeCompare(b.mese); });
   var minRecuperoTot = 0, minPagateTot = 0;
   mesi.forEach(function(b) {
     b.minDaDestinare = Math.max(0, b.minLavorate - b.minPagate - b.minRecupero);
-    b.daChiedere = b.minDaDestinare > 0 && !b.chiuso;   // mese mai gestito: l'app deve chiedere
+    // Mese mai gestito → l'app deve chiedere. Mese GIÀ chiuso ma con nuove ore
+    // aggiunte dopo la chiusura → deve richiedere anche lui (altrimenti restano
+    // ore "da destinare" che l'utente non riesce più a smistare).
+    b.nuoveOreDopoChiusura = b.chiuso && b.minLavorateChiusura !== undefined
+      ? Math.max(0, b.minLavorate - b.minLavorateChiusura) : 0;
+    b.daChiedere = b.minDaDestinare > 0 && (!b.chiuso || b.nuoveOreDopoChiusura > 0);
     minRecuperoTot += b.minRecupero;
     minPagateTot   += b.minPagate;
   });
@@ -9091,23 +9289,31 @@ function _salvConsumoRemove(movId, turnoId) {
   _salvSalva(out);
 }
 
-// Chiude (o modifica la chiusura di) un mese: ore a pagamento + ore a recupero
+// Chiude (o aggiorna la chiusura di) un mese: ore a pagamento + ore a recupero.
+// `minPagate`/`minRecupero` sono i TOTALI del mese (non i delta): quando il mese
+// è già chiuso e sono state aggiunte nuove ore, il tetto non è il residuo ma il
+// totale lavorato — altrimenti l'utente non riesce più a modificare le ore e il
+// mese resta con ore "da destinare" impossibili da smistare.
 function salvadanaioChiudi(mesePfx, minPagate, minRecupero) {
   var s = _salvCalcola(lsG('ct_straord', []), _salvMeseCorrente());
   var b = null;
   s.mesi.forEach(function(x){ if (x.mese === mesePfx) b = x; });
   var daDestinare = b ? b.minDaDestinare : 0;
+  var limite = (b && b.chiuso) ? b.minLavorate : daDestinare;
   var pag = Math.max(0, Math.round(Number(minPagate) || 0));
   var rec = Math.max(0, Math.round(Number(minRecupero) || 0));
   if (pag + rec <= 0)          return { ok: false, err: 'Inserisci almeno un\'ora da pagare o da mettere a recupero.' };
-  if (pag + rec > daDestinare) return { ok: false, err: 'Troppe ore: ne restano ' + _minLabel(daDestinare) + ' da destinare.' };
+  if (pag + rec > limite)      return { ok: false, err: 'Troppe ore: il mese ha ' + _minLabel(limite) + ' lavorate in totale.' };
   var tutti = lsG('ct_straord', []).filter(function(v){ return !(v && v.kind === 'chiusura' && v.mese === mesePfx); });
   tutti.push({
     id: 'k' + Date.now(), kind: 'chiusura', mese: mesePfx,
-    minPagate: pag, minRecupero: rec, chiusoIl: new Date().toISOString()
+    minPagate: pag, minRecupero: rec, chiusoIl: new Date().toISOString(),
+    // fotografia delle ore lavorate: permette di distinguere le ore aggiunte
+    // dopo la chiusura dalle ore già smistate.
+    minLavorate: b ? b.minLavorate : 0
   });
   _salvSalva(tutti);
-  return { ok: true, minPagate: pag, minRecupero: rec, minResiduo: daDestinare - (pag + rec) };
+  return { ok: true, minPagate: pag, minRecupero: rec, minResiduo: Math.max(0, (b ? b.minLavorate : 0) - (pag + rec)) };
 }
 
 // Riapre un mese chiuso: le ore tornano "da destinare"
@@ -9116,17 +9322,26 @@ function salvadanaioRiapriMese(mesePfx) {
   var s = _salvCalcola(tutti, _salvMeseCorrente());
   var b = null;
   s.mesi.forEach(function(x){ if (x.mese === mesePfx) b = x; });
-  if (b && b.minRecupero > 0 && s.minConsumati > 0) {
-    return { ok: false, err: 'Ci sono giorni "Recupero ore" già generati con quelle ore: elimina prima quei giorni dal calendario.' };
+  // Il blocco vale solo per i giorni "Recupero ore" generati DA QUEL mese:
+  // prima si guardavano i consumi di TUTTI i mesi e la riapertura falliva
+  // anche quando le ore recuperate erano di un altro periodo.
+  if (b && b.minRecupero > 0) {
+    var consumiMese = _salvConsumi(tutti).filter(function(c){
+      return String(c.mese || String(c.data || '').slice(0, 7)) === String(mesePfx);
+    }).reduce(function(a, c){ return a + (Number(c.min) || 0); }, 0);
+    if (consumiMese > 0) {
+      return { ok: false, err: 'Ci sono giorni "Recupero ore" già generati con le ore di questo mese: elimina prima quei giorni dal calendario.' };
+    }
   }
   _salvSalva(tutti.filter(function(v){ return !(v && v.kind === 'chiusura' && v.mese === mesePfx); }));
   return { ok: true };
 }
 
 function _salvMioPid() {
-  var pid = parseInt(localStorage.getItem('ct_my_pid') || '0', 10);
+  var me0 = lsG('ct_me', null);
+  var pid = parseInt(_nfMioPid(me0) || '0', 10);   // § identità: pid validato
   if (pid) return pid;
-  var me = lsG('ct_me', null);
+  var me = me0;
   if (!me) return 0;
   var p = lsG('ct_p', []).find(function(x) {
     return String(x.id) === String(me.id) || (me.uid && String(x.uid) === String(me.uid));
@@ -9499,8 +9714,13 @@ function apriChiusuraMese(mesePfx) {
       + (b.minRecupero ? 'Già a recupero: <strong style="color:var(--teal)">' + _minLabel(b.minRecupero) + '</strong><br>' : '')
       + 'Da destinare: <strong style="color:var(--gold)">' + _minLabel(b.minDaDestinare) + '</strong>';
   }
-  var pEl = document.getElementById('chiusura-pagate');   if (pEl) pEl.value = '0';
-  var rEl = document.getElementById('chiusura-recupero'); if (rEl) rEl.value = '0';
+  var pEl = document.getElementById('chiusura-pagate');
+  var rEl = document.getElementById('chiusura-recupero');
+  // Prefill con i valori GIÀ assegnati: i campi rappresentano i totali del mese,
+  // non solo il residuo. Prima ripartivano da 0 e salvando "il resto" si
+  // perdevano le ore già destinate (il mese tornava con ore da destinare).
+  if (pEl) pEl.value = b.minPagate   ? String(b.minPagate / 60)   : '0';
+  if (rEl) rEl.value = b.minRecupero ? String(b.minRecupero / 60) : '0';
   var err = document.getElementById('chiusura-err'); if (err) { err.style.display = 'none'; err.textContent = ''; }
   _chiusuraAnteprima();
   openM('m-chiusura-straord');
@@ -9512,11 +9732,14 @@ function _chiusuraAnteprima() {
   var b = _salvDaDestinare(_salvMeseInChiusura);
   var pag = _minDaOre((document.getElementById('chiusura-pagate') || {}).value);
   var rec = _minDaOre((document.getElementById('chiusura-recupero') || {}).value);
-  var resta = b.minDaDestinare - pag - rec;
+  // Tetto dei totali: mese già chiuso → tutte le ore lavorate; mese nuovo → il
+  // residuo (che coincide con le ore lavorate perché nulla è ancora assegnato).
+  var limite = b.chiuso ? b.minLavorate : b.minDaDestinare;
+  var resta = limite - pag - rec;
   var oreG = oreGiornoLicenza();
-  var err = (pag + rec) > b.minDaDestinare;
+  var err = (pag + rec) > limite;
   el.style.color = err ? 'var(--red)' : 'var(--txt2)';
-  el.innerHTML = (err ? '⚠ Superi le ore disponibili. ' : '')
+  el.innerHTML = (err ? '⚠ Superi le ' + _minLabel(limite) + ' lavorate nel mese. ' : '')
     + 'A pagamento: <strong style="color:var(--blue)">' + _minLabel(pag) + '</strong> (escono dall\'app) &middot; '
     + 'A recupero: <strong style="color:var(--teal)">' + _minLabel(rec) + '</strong>'
     + ' = ' + Math.floor(rec / (oreG * 60)) + ' giorni<br>'
@@ -9528,10 +9751,12 @@ function _chiusuraAnteprima() {
         : '');
 }
 
-// Assegna in un tap TUTTE le ore residue, senza lasciare minuti scoperti.
+// Assegna in un tap TUTTE le ore del mese, senza lasciare minuti scoperti.
 function chiusuraAssegnaTutto(quale) {
   var b = _salvDaDestinare(_salvMeseInChiusura);
-  var da = b.minDaDestinare || 0;
+  // Totale del mese (non il solo residuo): il salvataggio sostituisce la
+  // chiusura precedente, quindi il valore da scrivere è minLavorate.
+  var da = b.chiuso ? (b.minLavorate || 0) : (b.minDaDestinare || 0);
   var pEl = document.getElementById('chiusura-pagate');
   var rEl = document.getElementById('chiusura-recupero');
   var err = document.getElementById('chiusura-err');
@@ -10456,15 +10681,24 @@ function parseSheet(rows, sn) {
       var _me2 = null; try { _me2 = JSON.parse(localStorage.getItem('ct_me')||'null'); } catch(e){}
       var _n2 = ((_sess2&&_sess2.nome)||(_me2&&_me2.nome)||'').toLowerCase().trim();
       var _c2 = ((_sess2&&_sess2.cognome)||(_me2&&_me2.cognome)||'').toLowerCase().trim();
-      var varianti = [
-        loggedFullName.replace(/\s+/g,' ').trim(),  // cognome nome (da session)
-        (_n2+' '+_c2).replace(/\s+/g,' ').trim(),   // nome cognome
-        (_c2+' '+_n2).replace(/\s+/g,' ').trim(),   // cognome nome
-        _n2, _c2                                     // solo nome o solo cognome
-      ].filter(function(v){ return v.length > 1; });
-      var matched = varianti.some(function(v){
-        return excelName === v || excelName.indexOf(v) !== -1 || v.indexOf(excelName) !== -1;
-      });
+      // ANTI-OMONIMIA: "sono io" richiede NOME E COGNOME completi e UGUAGLIANZA
+      // ESATTA (nei due ordini). Prima si accettavano anche le varianti col solo
+      // nome e il match parziale (`indexOf`): con un collega che ha lo stesso
+      // nome e cognome diverso ("Mario Bianchi" vs "Mario Rossi") la riga Excel
+      // veniva riconosciuta come "me", assegnando il SUO pid a ct_my_pid e
+      // collegando a me la sua persona (linkPersonaToUser): da lì i suoi turni
+      // comparivano su dashboard e notifiche, mentre il calendario restava giusto.
+      var matched = false;
+      if(_n2 && _c2){
+        var _p1 = (_n2+' '+_c2).replace(/\s+/g,' ').trim();
+        var _p2 = (_c2+' '+_n2).replace(/\s+/g,' ').trim();
+        matched = (excelName === _p1 || excelName === _p2);
+      } else {
+        // senza cognome si può confrontare solo il nome COMPLETO dichiarato
+        matched = !!loggedFullName && excelName === loggedFullName.replace(/\s+/g,' ').trim();
+      }
+      // Non "rubare" l'identità di una persona già collegata a un altro utente
+      if(matched && persona && persona.uid && String(persona.uid) !== String(loggedUid)) matched = false;
       if(matched){
         localStorage.setItem('ct_my_pid', String(persona.id));
         localStorage.setItem('ct_my_uid', loggedUid);
@@ -13441,9 +13675,14 @@ function chiudiMenuRapido() {
 // Inizializzazione al caricamento del documento
 window.addEventListener('DOMContentLoaded', function() {
 
+    // 0. Identità: ripara un `ct_my_pid` ereditato che punta a un ALTRO
+    //    collega (era la causa dei turni/notifiche di un omonimo sul proprio
+    //    account). Va eseguito prima di qualunque render di turni.
+    try { _nfSanificaIdentita(); } catch(e) {}
+
     // 1. Forza i picker e le notifiche in primo piano
     //    + §21: i modali rimasti figli di #pg-app vengono riportati su <body>
-    //    (un transform/contain sul contenitore li intrappolerebbe). #m-time-picker
+    //    (un transform/contain sul contenitore li intrappolerebbe); #m-time-picker
     //    per ultimo: a parità di livello vince nell'ordine di paint sui fratelli.
     var ids = ['m-datepicker', 'm-pers-picker', 'm-grado-picker', 'm-tema', 'm-fogli', 'm-avatar-editor', 'm-giorno', 'm-turno', 'm-todo', 'm-agenda', 'm-turni-custom', 'm-chiusura-straord', 'm-profilo', 'notif-drawer', 'notif-overlay',
                'm-mod-turno', 'm-scadenza', 'm-alert', 'm-bacheca', 'm-cambio-turno', 'm-persona', 'm-guida', 'm-time-picker'];
