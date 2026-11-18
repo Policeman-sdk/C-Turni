@@ -492,36 +492,40 @@ function _applyJoinParam(repartoId){
 function _collegaPlaceholder(nome, cognome, uid, reparto) {
   try {
     var P = lsG('ct_p', []);
-    var varianti = [
-      (cognome + ' ' + nome).toLowerCase().trim(),
-      (nome + ' ' + cognome).toLowerCase().trim(),
-      cognome.toLowerCase().trim(),
-      nome.toLowerCase().trim()
-    ].filter(function(v){ return v.length > 1; });
+    // §26 — ANTI-OMONIMIA: vietato il match per solo nome/cognome e vietato
+    // `indexOf` parziale. L'aggancio avviene SOLO per uid esatto oppure per
+    // Nome+Cognome COMPLETI identici (nei due ordini).
+    var sp = function(v){ return String(v||'').replace(/\s+/g,' ').trim().toLowerCase(); };
+    var full1 = sp(String(cognome||'') + ' ' + String(nome||''));
+    var full2 = sp(String(nome||'') + ' ' + String(cognome||''));
+    var idxFound = -1;
 
-    var found = false;
-    P = P.map(function(p) {
-      if (p.uid) return p; // già collegato
-      var pn = (p.nome || '').toLowerCase().trim();
-      var match = varianti.some(function(v) {
-        return pn === v || pn.indexOf(v) !== -1 || v.indexOf(pn) !== -1;
-      });
-      if (match && !found) {
-        found = true;
-        console.log('[C-Turni] Placeholder collegato:', p.nome, '-> uid', uid);
-        return Object.assign({}, p, { uid: uid, reparto: reparto });
+    // 0) persona già collegata a questo stesso uid
+    for (var i0 = 0; i0 < P.length; i0++) {
+      if (P[i0] && uid && String(P[i0].uid) === String(uid)) { idxFound = i0; break; }
+    }
+    // 1) altrimenti solo nome+cognome completi (serve almeno uno spazio → no solo nome)
+    if (idxFound < 0 && full1 && full1.indexOf(' ') !== -1) {
+      for (var i = 0; i < P.length; i++) {
+        var p = P[i]; if (!p || p.uid) continue;
+        var pn = sp(p.nome);
+        if (pn && (pn === full1 || pn === full2)) { idxFound = i; break; }
       }
-      return p;
-    });
+    }
 
-    if (found) {
-      lsS('ct_p', P);
-      localStorage.setItem('ct_my_pid', String(P.find(function(p){ return p.uid === uid; }).id));
+    if (idxFound >= 0) {
+      if (!P[idxFound].uid) {
+        P[idxFound] = Object.assign({}, P[idxFound], { uid: uid, reparto: reparto });
+        lsS('ct_p', P);
+        console.log('[C-Turni] Persona collegata (nome completo esatto):', P[idxFound].nome, '-> uid', uid);
+      }
+      localStorage.setItem('ct_my_pid', String(P[idxFound].id));
       if (window.FirebaseModule) {
         window.FirebaseModule.savePersona().catch(function(){});
       }
+      if (typeof window._sanitizeMyPid === 'function') window._sanitizeMyPid(lsG('ct_me', null));
     } else {
-      // Nessun placeholder trovato ? crea nuova voce in ct_p per questo utente
+      // Nessun placeholder trovato → crea nuova voce in ct_p per questo utente
       var nuovaPersona = {
         id: Date.now(),
         nome: (cognome + ' ' + nome).trim(),
@@ -2549,6 +2553,7 @@ function _turniMieiUnici(T, me){
 function controllaNotifiche(){
   if(Notification.permission!=="granted")return;
   var me=lsG("ct_me",null);if(!me)return;
+  if(typeof window._sanitizeMyPid === 'function') window._sanitizeMyPid(me);   // §26
   var prefs=lsG("ct_notif_prefs",{mattina:true,todo:true,agenda:true,festivi:true,preturno:true});
   if(prefs.preturno===false)return;
   var preMin=lsG("ct_notif_pre",60);
@@ -2588,6 +2593,7 @@ function schedulaPreTurniFirebase(){
   var sess=lsG("ct_session",null);
   if(!sess||!sess.userId||!window.FirebaseModule)return;
   var me=lsG("ct_me",null);if(!me)return;
+  if(typeof window._sanitizeMyPid === 'function') window._sanitizeMyPid(me);   // §26
   var prefs=lsG("ct_notif_prefs",{preturno:true});
   if(prefs.preturno===false)return;
   var preMin=lsG("ct_notif_pre",60);if(preMin<=0)return;
@@ -3272,7 +3278,97 @@ function _nfPidValido(pid, me){
   return _nfNomeCombacia(p, me);
 }
 
-// pid dell'utente loggato: solo se validato (mai un pid "ereditato" altrui).
+// ══ §26 · IDENTITÀ — sanificazione forzata del pid + nome completo ═══════
+// `_sanitizeMyPid(me)` è la FONTE DI VERITÀ dell'identità: allinea sempre
+// ct_my_pid/me.myPid alla persona con lo stesso uid (o, senza uid, all'unica
+// persona con nome+cognome COMPLETI identici) e scarta un pid che appartenga a
+// un omonimo con cognome diverso. Va chiamata prima di ogni lettura di turni
+// "miei" (widget, hero card, notifiche, schedulazioni push).
+window._sanitizeMyPid = function(me) {
+  if (!me) return '';
+  var P = lsG('ct_p', []);
+  var norm = function(v){ return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim(); };
+  var n = norm(me.nome), c = norm(me.cognome);
+  var full1 = (c && n) ? (c + ' ' + n) : '';
+  var full2 = (c && n) ? (n + ' ' + c) : '';
+
+  // 1. persona collegata allo STESSO uid (match esatto)
+  var pMatch = me.uid ? P.find(function(p){ return p && p.uid && String(p.uid) === String(me.uid); }) : null;
+
+  // 2. senza uid: solo nome+cognome completi ed esatti, e solo se il candidato è UNICO
+  if (!pMatch && full1) {
+    var cands = P.filter(function(p){
+      var pn = norm(p && p.nome);
+      return pn && (pn === full1 || pn === full2);
+    });
+    if (cands.length === 1) pMatch = cands[0];
+  }
+
+  // 3. il ct_my_pid salvato appartiene per errore a un omonimo? lo elimino
+  var curPid = localStorage.getItem('ct_my_pid');
+  if (curPid) {
+    var pCur = P.find(function(p){ return p && String(p.id) === String(curPid); });
+    if (pCur) {
+      var pCurNorm = norm(pCur.nome);
+      var uidMismatch  = pCur.uid && me.uid && String(pCur.uid) !== String(me.uid);
+      var nameMismatch = full1 && pCurNorm !== full1 && pCurNorm !== full2;
+      if (uidMismatch || nameMismatch) {
+        localStorage.removeItem('ct_my_pid');
+        curPid = '';
+        _nfPidCache = { key: null, val: '' };
+      }
+    }
+  }
+
+  // 4. allineo al match affidabile
+  if (pMatch && pMatch.id != null) {
+    var cleanPid = String(pMatch.id);
+    localStorage.setItem('ct_my_pid', cleanPid);
+    if (String(me.myPid || '') !== cleanPid) { me.myPid = cleanPid; lsS('ct_me', me); }
+    _nfPidCache = { key: null, val: '' };
+    return cleanPid;
+  }
+  return curPid || '';
+};
+
+// Nome + Cognome SEMPRE completi (nickname solo come ultima risorsa).
+// Se `me.cognome` è vuoto lo recupera da ct_users e poi da ct_p (stesso uid).
+window._getNomeCognomeUtente = function(me) {
+  if (!me) return '—';
+  var n = String(me.nome || '').trim();
+  var c = String(me.cognome || '').trim();
+  if (!c && me.uid) {
+    var u = (lsG('ct_users', []) || []).find(function(x){ return x && x.uid === me.uid; });
+    if (u && u.cognome) c = String(u.cognome).trim();
+  }
+  if (!c && me.uid) {
+    var p = (lsG('ct_p', []) || []).find(function(x){ return x && x.uid === me.uid; });
+    if (p) {
+      var pn = String(p.nome || '').trim();
+      if (pn && n && pn.toLowerCase().indexOf(n.toLowerCase()) === 0) {
+        var resto = pn.slice(n.length).trim();   // "Mario Rossi" → "Rossi"
+        if (resto) c = resto;
+      }
+    }
+  }
+  var full = ((n + ' ' + c).trim());
+  if (full) return full;
+  return me.nickname || n || '—';
+};
+
+// Guardia anti-omonimo sui turni: se il turno dichiara un nome completo che non
+// è il mio (cognome diverso), non può essere mio QUALUNQUE sia il pid.
+function _nfTurnoDiAltroNome(t, me){
+  if(!t || !me || !t.pnome || !me.nome || !me.cognome) return false;
+  var norm = function(v){ return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim(); };
+  var pn = norm(t.pnome);
+  if(!pn || pn.indexOf(' ') === -1) return false;   // solo nome di battesimo: non discriminante
+  var n = norm(me.nome), c = norm(me.cognome);
+  if(!n || !c) return false;
+  return pn !== norm(c + ' ' + n) && pn !== norm(n + ' ' + c);
+}
+
+
 // Memoizzato: `_isMyTurno` viene chiamata per ogni turno a ogni render.
 var _nfPidCache = { key: null, val: '' };
 function _nfMioPid(me){
@@ -3347,6 +3443,9 @@ function _isMyTurno(t, me) {
 //    solo pid / uid / ownerUid, NESSUN fallback sul nome → niente omonimie.
 function _isMioTurnoStrict(t, me){
   if(!t || !me) return false;
+  // §26 — Guardia anti-omonimo: un turno che dichiara un nome completo diverso
+  // dal mio (stesso nome, cognome diverso) non è mio, qualunque pid riporti.
+  if(_nfTurnoDiAltroNome(t, me)) return false;
   var myPid = _nfMioPid(me);                              // validato (§ identità)
   var myUid = me.uid || me.id || '';                       // come il calendario
   var meId  = (me.id===undefined||me.id===null||me.id==='') ? '' : String(me.id);
@@ -3406,6 +3505,7 @@ function _mioTurnoDelGiorno(T, me, ds){
 
 function aggiornaWidget(){
   var me=lsG("ct_me",null);
+  if(me && typeof window._sanitizeMyPid === 'function') window._sanitizeMyPid(me);   // §26
   var w=document.getElementById("widget-oggi");
   if(!me||!w)return;
   var _now=new Date();
@@ -3429,7 +3529,9 @@ function aggiornaWidget(){
     }
   }
   var wNome=document.getElementById("w-nome-utente");
-  if(wNome) wNome.textContent=me.nickname || (((me.nome||"")+" "+(me.cognome||"")).trim()||me.nome||"");
+  if(wNome) wNome.textContent = (typeof window._getNomeCognomeUtente === 'function')
+    ? window._getNomeCognomeUtente(me)
+    : (me.nickname || (((me.nome||"")+" "+(me.cognome||"")).trim()||me.nome||""));
 
   var titoloTipoMap={
     mattina:"Mattina",ml:"Mattina Lunga",pomeriggio:"Pomeriggio",pl:"Pomeriggio Lungo",
@@ -3544,6 +3646,7 @@ var _TURNO_SIGLA = {
 function aggiornaHeroCard(){
   var me = lsG('ct_me', null);
   if(!me) return;
+  if(typeof window._sanitizeMyPid === 'function') window._sanitizeMyPid(me);   // §26
 
   // -- Recupero foto robusto: ct_me → ct_session → ct_p --
   var ava = me.ava || me.fotoURL || null;
@@ -3571,7 +3674,9 @@ function aggiornaHeroCard(){
   // Saluto contestuale
   var h = now.getHours();
   var saluto = h < 12 ? 'Buongiorno' : h < 18 ? 'Buon pomeriggio' : 'Buonasera';
-  var nomeCompleto = me.nickname || (((me.nome || '') + ' ' + (me.cognome || '')).trim()) || '—';
+  var nomeCompleto = (typeof window._getNomeCognomeUtente === 'function')
+    ? window._getNomeCognomeUtente(me)
+    : (me.nickname || (((me.nome || '') + ' ' + (me.cognome || '')).trim()) || '—');
   var greetSub = document.getElementById('hero-greeting-sub');
   var greetName = document.getElementById('hero-greeting-name');
   if(greetSub) greetSub.textContent = saluto;

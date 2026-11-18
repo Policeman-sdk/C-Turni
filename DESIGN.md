@@ -541,3 +541,69 @@ collega `false`, proprio `true`, turno legacy senza identità `false`.
 Cache-bust `5.0.6`, service worker `c-turni-v5.0.6`.
 
 
+## §26 · iOS 27 Liquid Glass, pagine iOS opache e identità rigorosa (v5.0.7)
+
+**PARTE 1 — Identità utente (bug omonimia)**
+- **Vietati i match per nome parziale.** In `firebase-manager.js` `syncUsers()`
+  usava `uNome.indexOf(pn)`/`pn.indexOf(uNome)`: agganciava `ct_p` alla persona
+  sbagliata quando il nome coincide e il cognome no, e da lì tutti i suoi turni
+  diventavano "miei" (match per `uid`). Ora il legame avviene **solo** con
+  nome+cognome completi ed esatti, **un solo candidato**, niente `indexOf`.
+- `_collegaPlaceholder()` (app.js): rimossi i match per solo nome/cognome e i
+  confronti parziali; aggancia solo per uid esatto o nome+cognome completi.
+- **`window._sanitizeMyPid(me)`**: fonte di verità dell'identità. Allinea
+  sempre `ct_my_pid`/`me.myPid` alla persona con lo stesso `uid` (o all'unica
+  con nome+cognome completi), **cancella** un pid che appartenga a un omonimo
+  con cognome diverso e invalida la cache. Chiamata in `aggiornaWidget()`,
+  `aggiornaHeroCard()`, `controllaNotifiche()`, `schedulaPreTurniFirebase()` e
+  dopo ogni sync profilo (`_setMeSanitized()` in firebase-manager, usata in
+  login, restore sessione e snapshot `utenti/{uid}`).
+- **Guardia anti-omonimo nei turni** (`_nfTurnoDiAltroNome`): se un turno
+  dichiara un nome completo diverso dal mio, `_isMyTurno`/`_isMioTurnoStrict`
+  rispondono **false** anche se il `pid` coincide (difesa sui dati incoerenti).
+- **`window._getNomeCognomeUtente(me)`**: Nome+Cognome sempre completi, con
+  recupero del cognome da `ct_users` e poi da `ct_p` se `me.cognome` è vuoto;
+  usata in `#hero-greeting-name`, `#w-nome-utente` e nel benvenuto del login.
+
+**PARTE 2 — Design iOS 27**
+- **Token `--ios-*` per gli 8 temi**: `--ios-grouped-bg`, `--ios-card-bg`,
+  `--ios-card-elevated`, `--ios-sep`, `--lg-pill-bg` (Notte `#000/#1C1C1E/#2C2C2E`,
+  Carabinieri `#07090E/#121621/#1C2233`, Forestale `#060D08/#101E14/#192D1F`,
+  Rosa `#0F050A/#1F0D16/#2E1522`; chiari `#F2F2F7/#FFF/#FFF`, con avorio
+  `#F5F3EE` (Carabinieri) e salvia `#EFF5F0` (Forestale)).
+- **Pagine opache**: Impostazioni, Agenda, Calendario, Report, Comando,
+  Personale, Membri e Turni hanno sfondo solido (`!important`, per superare la
+  shell storica `background:transparent!important`) con copertura completa via
+  `.cont:has(> .pag.on:not(#pag-dash))` e `#pg-app:has(#pag-*.on)`. La
+  **Dashboard** resta trasparente e conserva il vetro (§24).
+- **Inset Grouped List iOS**: gruppi `--ios-card-bg`, 18px, hairline 0.5px,
+  separatori rientrati a 56px con `::after` (niente doppie cornici), righe
+  min 52px / padding 11-16, titoli 12px/600 uppercase, icone app 32×32 raggio 8
+  con micro-riflesso, sottosezioni `--ios-card-elevated`.
+- **Account card**: avatar 60×60 con anello, nome 19px/700 (-0.4px), sottotitolo
+  13px `--ios-label2`, chevron; corpo espandibile in stile iOS.
+- **Selettore temi**: swatch a pillola con anello speculare e checkmark
+  circolare blu iOS `#007AFF` sulla card attiva.
+- **Liquid Glass iOS 27**: tab bar `--lg-pill-bg` + `blur(28px) saturate(200%)`
+  con doppio inset (edge ring + top highlight) e capsula attiva; `.btn-p` blu
+  iOS a 14px con riflesso e `scale(.97)`; chip in vetro satinato (segmented);
+  modali/sheet con 32px in alto, `blur(32px) saturate(190%)` e grabber 36×5.
+  Nei temi chiari la Dashboard mantiene il vetro (`.m3-card` a
+  `--glass-blur-soft`) nonostante la regola legacy delle superfici solide.
+
+**Pulizia CSS**: rimossi i selettori morti `.modal-dialog`/`.m-content` (non
+esistono nel DOM) e consolidati in §26 i layer vetro duplicati di §24 per nav,
+modali, liste e righe (una sola dichiarazione efficace per componente). Le
+sezioni storiche di tema e di performance (§19/§20) restano: non sono duplicati
+grafici ma vincoli GPU/z-index ancora attivi (blur annidati = 0 misurato).
+
+**Verifica.** `iosprobe`: 8 temi × (pagina+shell+card opache, lista 18px/riga
+52/icona 32/raggio 8/titolo 12, nome 19px/700, Dashboard trasparente) = 32 PASS
++ nav 28px/pill/inset + swatch check + modale 32px/grabber + **blur 14 superfici,
+0 annidati**. `glassprobe` (32 PASS) aggiornato alla nuova architettura;
+`nftest` (28 asserzioni) verde, incluse `_sanitizeMyPid` (pid sporco 2 → 1),
+`_getNomeCognomeUtente` e guardia anti-omonimo; `npm test` verde,
+`node --check` su app.js e firebase-manager.js OK, graffe CSS 1841/1841.
+Evidenze: `shot-ios-imp-notte.png`, `shot-ios-imp-light.png`.
+
+

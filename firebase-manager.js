@@ -181,6 +181,18 @@ function _ripristinaDatiPersonali(prof, uid, id, oldMe){
 }
 
 // ── Avvia onSnapshot per turni, todo, personale, utenti ─────────
+// §26 — Scrive il profilo e riallinea SUBITO l'identità (ct_my_pid/me.myPid)
+// alla persona collegata all'uid: un pid sporco non deve sopravvivere al sync.
+function _setMeSanitized(me){
+  try{
+    localStorage.setItem('ct_me', JSON.stringify(me));
+    if(me && typeof window._sanitizeMyPid === 'function'){
+      window._sanitizeMyPid(me);
+      localStorage.setItem('ct_me', JSON.stringify(me));   // myPid corretto persistito
+    }
+  }catch(e){ try{ localStorage.setItem('ct_me', JSON.stringify(me)); }catch(e2){} }
+}
+
 function _startListeners(reparto) {
   _stopListeners();
   if(!reparto) return;
@@ -304,7 +316,7 @@ function _startListeners(reparto) {
         // usando la copia locale catturata in `oldMe` PRIMA di sovrascrivere ct_me.
         // Senza questo ordine, un doc Firestore incompleto azzererebbe ferie/licenze.
         var _recuperatoPersonali = _ripristinaDatiPersonali(prof, prof.uid, prof.id, oldMe);
-        localStorage.setItem('ct_me', JSON.stringify(prof));
+        _setMeSanitized(prof);
         // Straordinari dal cloud → salvadanaio disponibile anche sui nuovi dispositivi
         if (typeof window._straordLoadFirebase === 'function') {
           try { window._straordLoadFirebase(prof); } catch(e) { console.warn('straord load:', e.message); }
@@ -443,6 +455,7 @@ function _startListeners(reparto) {
             _mergedMe[_mk2] = myProfile[_mk2];
           }
           localStorage.setItem('ct_me', JSON.stringify(_mergedMe));
+          if(typeof window._sanitizeMyPid === 'function'){ window._sanitizeMyPid(_mergedMe); localStorage.setItem('ct_me', JSON.stringify(_mergedMe)); }
           if(myProfile.ruolo !== session.ruolo || myProfile.stato !== session.stato) {
             session.ruolo = myProfile.ruolo;
             session.stato = myProfile.stato || session.stato;
@@ -643,7 +656,7 @@ window.FirebaseModule = {
         if(_ripristinaDatiPersonali(prof, uid, prof.id)) {
           if(window.FirebaseModule && prof.uid) window.FirebaseModule.saveUserProfile(prof.uid, prof, prof.reparto).catch(function(){});
         }
-        localStorage.setItem('ct_me', JSON.stringify(prof));
+        _setMeSanitized(prof);
         // Verifica TOS
         await window.FirebaseModule.verificaEForzaPrivacy(uid, prof);
         if(typeof aggUI === 'function') aggUI();
@@ -660,7 +673,9 @@ window.FirebaseModule = {
       var _mn = '';
       try {
         var _mep = JSON.parse(localStorage.getItem('ct_me') || 'null') || {};
-        var _nomeB = String(_mep.nickname || _mep.nome || '').trim();
+        var _nomeB = (typeof window._getNomeCognomeUtente === 'function')
+          ? window._getNomeCognomeUtente(_mep)
+          : String(_mep.nickname || _mep.nome || '').trim();
         _mn = [String(_mep.grado || '').trim(), _nomeB].filter(Boolean).join(' ');
       } catch(e2) {}
       _toast('Benvenuto' + (_mn ? ', ' + _mn : ''), 'ok');
@@ -734,7 +749,7 @@ window.FirebaseModule = {
         }
         // Ripristina pool ferie/licenze e monte permessi studio se Firestore non li ha
         var _recuperatoLocali = _ripristinaDatiPersonali(prof, uid, prof.id, _lm);
-        localStorage.setItem('ct_me', JSON.stringify(prof));
+        _setMeSanitized(prof);
         // Verifica TOS
         await window.FirebaseModule.verificaEForzaPrivacy(uid, prof);
         if(_recuperatoLocali && prof.uid) window.FirebaseModule.saveUserProfile(prof.uid, prof, prof.reparto).catch(function(){});
@@ -770,7 +785,7 @@ window.FirebaseModule = {
           prof.licenzePool = _licenzeLocali;
           prof.ferieRes    = _ferieLocali || 30;
           // Aggiorna ct_me con le licenze locali
-          localStorage.setItem('ct_me', JSON.stringify(prof));
+          _setMeSanitized(prof);
           // Aggiorna ct_u
           var _U2loc = lsG('ct_u', []); var _f2 = false;
           for(var _j=0; _j<_U2loc.length; _j++){
@@ -870,25 +885,29 @@ window.FirebaseModule = {
       snap.forEach(function(d){ arr.push(d.data()); });
       if(arr.length > 0) {
         if(window.CDB) { CDB.set('ct_users', arr); } else { localStorage.setItem('ct_users', JSON.stringify(arr)); }
-        // Collega automaticamente uid Firebase ai profili ct_p per nome
+        // Collega automaticamente uid Firebase ai profili ct_p.
+        // §26 — ANTI-OMONIMIA: SOLO nome+cognome COMPLETI ed esatti (due versi)
+        // e solo se il candidato è UNICO. Vietati i match parziali (`indexOf`),
+        // che agganciavano la persona sbagliata quando il nome coincide e il
+        // cognome no (finendo per attribuire a me i suoi turni via uid).
         var P = lsG('ct_p', []);
         var changed = false;
         arr.forEach(function(u) {
           if(!u.uid || !u.nome) return;
-          var uNome = ((u.nome||'')+' '+(u.cognome||'')).toLowerCase().trim();
-          var uNomeInv = ((u.cognome||'')+' '+(u.nome||'')).toLowerCase().trim();
-          P.forEach(function(p) {
-            if(p.uid) return; // già collegato
-            var pn = (p.nome||'').toLowerCase().trim();
-            if(pn === uNome || pn === uNomeInv ||
-               uNome.indexOf(pn) !== -1 || pn.indexOf(uNome) !== -1 ||
-               uNomeInv.indexOf(pn) !== -1) {
-              p.uid = u.uid;
-              if(u.grado && !p.grado) p.grado = u.grado;
-              if(u.ava && !p.ava) p.ava = u.ava;
-              changed = true;
-            }
+          var uNome = ((u.nome||'')+' '+(u.cognome||'')).replace(/\s+/g,' ').trim().toLowerCase();
+          var uNomeInv = ((u.cognome||'')+' '+(u.nome||'')).replace(/\s+/g,' ').trim().toLowerCase();
+          if(!uNome || uNome.indexOf(' ') === -1) return;   // serve nome+cognome
+          var cands = P.filter(function(p) {
+            if(!p || p.uid) return false;
+            var pn = (p.nome||'').replace(/\s+/g,' ').trim().toLowerCase();
+            return pn && (pn === uNome || pn === uNomeInv);
           });
+          if(cands.length !== 1) return;                    // 0 o >1 → non aggancio
+          var p = cands[0];
+          p.uid = u.uid;
+          if(u.grado && !p.grado) p.grado = u.grado;
+          if(u.ava && !p.ava) p.ava = u.ava;
+          changed = true;
         });
         if(changed) {
           lsS('ct_p', P);

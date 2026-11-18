@@ -7769,8 +7769,6 @@ html[data-theme="rosa-light"] .fc{ box-shadow: inset 0 1px 2px rgba(15, 23, 42, 
 
 /* ── Modali, bottom sheet, picker e drawer ────────────────────────────── */
 .modal .mbox,
-.modal-dialog,
-.m-content,
 #sheet-giorno > div,
 #notif-drawer{
   background: var(--glass-bg-elevated) !important;
@@ -7835,5 +7833,406 @@ html[data-theme="carabinieri-light"] .sett-title,
 html[data-theme="forestale-light"] .sett-title,
 html[data-theme="rosa-light"] .sett-title{
   color: color-mix(in srgb, var(--txt2) 78%, #000 22%);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   §26 · iOS 27 LIQUID GLASS — pagine opache + componenti nativi
+   ----------------------------------------------------------------------
+   Due livelli distinti:
+   · PAGINE "di servizio" (Impostazioni, Agenda, Calendario, Report, Comando,
+     Personale, Membri, Turni) → sfondo SOLIDO nativo iOS (--ios-grouped-bg):
+     l'artwork #nf-bg non si vede, leggibilità assoluta.
+   · DASHBOARD (#pag-dash) → resta l'unica pagina con l'ambient glow sotto le
+     card Liquid Glass (§24).
+   Solo proprietà visive: nessun id/JS toccato.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── 26.1 · TOKEN iOS 27 — temi scuri ─────────────────────────────────── */
+:root{
+  --ios-grouped-bg: #000000;
+  --ios-card-bg: #1C1C1E;
+  --ios-card-elevated: #2C2C2E;
+  --ios-sep: rgba(255, 255, 255, 0.14);
+  --ios-blue: #007AFF;
+  --ios-label2: rgba(235, 235, 245, 0.62);
+  --lg-pill-bg: rgba(28, 28, 30, 0.62);
+}
+html[data-theme="carabinieri"],
+html[data-theme="arma"],
+html[data-theme="arma-dark"],
+html[data-theme="carabinieri-dark"]{
+  --ios-grouped-bg: #07090E;
+  --ios-card-bg: #121621;
+  --ios-card-elevated: #1C2233;
+  --ios-sep: rgba(212, 175, 55, 0.18);
+  --lg-pill-bg: rgba(18, 22, 33, 0.64);
+}
+html[data-theme="forestale"],
+html[data-theme="forestale-dark"]{
+  --ios-grouped-bg: #060D08;
+  --ios-card-bg: #101E14;
+  --ios-card-elevated: #192D1F;
+  --ios-sep: rgba(106, 191, 105, 0.18);
+  --lg-pill-bg: rgba(16, 30, 20, 0.64);
+}
+html[data-theme="rosa"],
+html[data-theme="rosa-dark"]{
+  --ios-grouped-bg: #0F050A;
+  --ios-card-bg: #1F0D16;
+  --ios-card-elevated: #2E1522;
+  --ios-sep: rgba(255, 128, 171, 0.18);
+  --lg-pill-bg: rgba(31, 13, 22, 0.64);
+}
+
+/* ── 26.2 · TOKEN iOS 27 — temi chiari ────────────────────────────────── */
+html[data-theme="light"]{
+  --ios-grouped-bg: #F2F2F7;
+  --ios-card-bg: #FFFFFF;
+  --ios-card-elevated: #FFFFFF;
+  --ios-sep: rgba(60, 60, 67, 0.18);
+  --ios-blue: #007AFF;
+  --ios-label2: rgba(60, 60, 67, 0.6);
+  --lg-pill-bg: rgba(255, 255, 255, 0.72);
+}
+html[data-theme="carabinieri-light"]{
+  --ios-grouped-bg: #F5F3EE;   /* avorio */
+  --ios-card-bg: #FFFFFF;
+  --ios-card-elevated: #FFFFFF;
+  --ios-sep: rgba(90, 64, 32, 0.16);
+  --ios-label2: rgba(90, 64, 32, 0.62);
+  --lg-pill-bg: rgba(255, 255, 255, 0.74);
+}
+html[data-theme="forestale-light"]{
+  --ios-grouped-bg: #EFF5F0;   /* salvia */
+  --ios-card-bg: #FFFFFF;
+  --ios-card-elevated: #FFFFFF;
+  --ios-sep: rgba(46, 96, 48, 0.16);
+  --ios-label2: rgba(46, 96, 48, 0.62);
+  --lg-pill-bg: rgba(255, 255, 255, 0.74);
+}
+html[data-theme="rosa-light"]{
+  --ios-grouped-bg: #F2F2F7;
+  --ios-card-bg: #FFFFFF;
+  --ios-card-elevated: #FFFFFF;
+  --ios-sep: rgba(138, 48, 85, 0.16);
+  --ios-label2: rgba(138, 48, 85, 0.6);
+  --lg-pill-bg: rgba(255, 255, 255, 0.74);
+}
+@media (prefers-color-scheme: light){
+  html[data-theme="auto"]{
+    --ios-grouped-bg: #F2F2F7;
+    --ios-card-bg: #FFFFFF;
+    --ios-card-elevated: #FFFFFF;
+    --ios-sep: rgba(60, 60, 67, 0.18);
+    --ios-label2: rgba(60, 60, 67, 0.6);
+    --lg-pill-bg: rgba(255, 255, 255, 0.72);
+  }
+}
+@media (prefers-color-scheme: dark){
+  html[data-theme="auto"]{
+    --ios-grouped-bg: #000000;
+    --ios-card-bg: #1C1C1E;
+    --ios-card-elevated: #2C2C2E;
+  }
+}
+
+/* ── 26.3 · PAGINE OPACHE (l'artwork non si vede) ─────────────────────── */
+/* NB: la shell storica forza `background:transparent!important` (§19.x, per
+   lasciar vedere l'atmosfera in Dashboard): qui la si supera SOLO per le
+   pagine "di servizio", lasciando la Dashboard trasparente. */
+#pag-imp,
+#pag-ag,
+#pag-cal,
+#pag-rep,
+#pag-comando,
+#pag-pers,
+#pag-membri,
+#pag-turni{
+  background: var(--ios-grouped-bg) !important;
+  min-height: 100%;
+}
+/* Copertura completa (padding di .cont e area sotto la tab bar) */
+.cont:has(> .pag.on:not(#pag-dash)){
+  background: var(--ios-grouped-bg) !important;
+}
+#pg-app:has(#pag-imp.on),
+#pg-app:has(#pag-ag.on),
+#pg-app:has(#pag-cal.on),
+#pg-app:has(#pag-rep.on),
+#pg-app:has(#pag-comando.on),
+#pg-app:has(#pag-pers.on),
+#pg-app:has(#pag-membri.on),
+#pg-app:has(#pag-turni.on){
+  background: var(--ios-grouped-bg) !important;
+}
+/* La Dashboard è l'unica che lascia trasparire l'ambient glow */
+#pag-dash{ background: transparent !important; }
+
+
+/* ── 26.4 · iOS 27 INSET GROUPED LIST (Impostazioni e menu) ───────────── */
+/* Gruppo = card raggruppata opaca, angoli 18, hairline esterna */
+.m3-list-group{
+  background: var(--ios-card-bg) !important;
+  border: 0.5px solid var(--ios-sep) !important;
+  border-radius: 18px !important;
+  overflow: hidden !important;
+  margin-bottom: 20px !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+/* Titolo di sezione in stile iOS */
+.m3-list-group-title{
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.4px !important;
+  color: var(--txt2) !important;
+  padding: 0 16px 6px !important;
+  margin-bottom: 0 !important;
+}
+/* Riga di menu: 52px minimi, padding 11/16, separatore rientrato a 56px */
+.m3-list-group > .m3-row{
+  background: var(--ios-card-bg) !important;
+  min-height: 52px !important;
+  padding: 11px 16px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  position: relative;
+  align-items: center;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+.m3-list-group > .m3-row::after{
+  content: "";
+  position: absolute; left: 56px; right: 0; bottom: 0; height: 0.5px;
+  background: var(--ios-sep);
+  pointer-events: none;
+}
+.m3-list-group > .m3-row:last-child::after{ display: none; }
+.m3-list-group > .m3-row.tap:active{
+  background: color-mix(in srgb, var(--ios-card-bg) 88%, var(--txt) 12%) !important;
+}
+/* Icona di menu: app-icon iOS (32x32, raggio 8, micro-riflesso) */
+.m3-row-ico{
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  border-radius: 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 16px !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25),
+              inset 0 0 0 0.5px rgba(255, 255, 255, 0.12) !important;
+  filter: saturate(1.15);
+}
+.m3-row-title{ font-size: 15px !important; font-weight: 600 !important; letter-spacing: -0.2px; }
+.m3-row-sub{ font-size: 12.5px !important; color: var(--ios-label2) !important; }
+.m3-row-right{ color: var(--ios-label2) !important; font-size: 18px !important; }
+/* Sottosezioni espandibili */
+.imp-sub,
+.imp-profilo-body{
+  background: var(--ios-card-elevated) !important;
+  padding: 16px !important;
+  border-top: 0.5px solid var(--ios-sep) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.imp-sub .m3-row,
+.imp-profilo-body .m3-row{ background: transparent !important; }
+
+/* ── 26.5 · ACCOUNT CARD (stile Apple ID in cima alle Impostazioni) ───── */
+#imp-profilo-card{
+  min-height: 84px !important;
+  padding: 14px 16px !important;
+  gap: 14px !important;
+  background: var(--ios-card-bg) !important;
+}
+#imp-profilo-card .imp-profilo-ava{
+  width: 60px !important;
+  height: 60px !important;
+  border-radius: 50% !important;
+  font-size: 26px !important;
+  border: 0 !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.30),
+              0 0 0 3px rgba(0, 0, 0, 0.10),
+              0 6px 16px rgba(0, 0, 0, 0.28) !important;
+}
+#imp-nome{
+  font-size: 19px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.4px !important;
+  line-height: 1.2 !important;
+}
+#imp-sub{
+  font-size: 13px !important;
+  color: var(--ios-label2) !important;
+  margin-top: 2px !important;
+}
+#imp-profilo-chevron{ font-size: 20px !important; color: var(--ios-label2) !important; }
+
+/* ── 26.6 · SELETTORE TEMI: swatch pill iOS 27 ────────────────────────── */
+.tema-card-big{
+  border-radius: 9999px !important;
+  min-height: 54px !important;
+  padding: 8px 46px 8px 9px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  border: 1px solid var(--ios-sep) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.30),
+              0 2px 10px rgba(0, 0, 0, 0.18) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+.tema-card-big .tcb-emoji{
+  width: 36px !important; height: 36px !important;
+  border-radius: 50% !important;
+  display: flex !important; align-items: center !important; justify-content: center !important;
+  font-size: 16px !important;
+  background: rgba(255, 255, 255, 0.16) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.40),
+              inset 0 1px 0 rgba(255, 255, 255, 0.55) !important;
+  flex-shrink: 0;
+}
+.tema-card-big .tcb-nome{
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.2px !important;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+}
+.tema-card-big .tcb-dots{ display: none !important; }
+.tema-card-big .tcb-check{
+  display: none !important;
+  position: absolute !important; right: 8px !important; top: 50% !important;
+  transform: translateY(-50%) !important;
+  width: 24px !important; height: 24px !important;
+  border-radius: 50% !important;
+  background: var(--ios-blue) !important;
+  color: #fff !important;
+  align-items: center !important; justify-content: center !important;
+  font-size: 13px !important; font-weight: 900 !important;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.28), 0 2px 6px rgba(0, 0, 0, 0.30) !important;
+}
+.tema-card-big.sel{ border-color: var(--ios-blue) !important; }
+.tema-card-big.sel .tcb-check{ display: flex !important; }
+
+
+/* ── 26.7 · LIQUID GLASS iOS 27: tab bar, tasti, chip, modali ─────────── */
+/* Ricetta: tint + saturate 190/200% + edge ring 1px + top specular highlight */
+nav#bottom-nav.bottom-bar .bn-items[class],
+#bottom-nav.bottom-bar .bn-items[class],
+#bottom-nav .bn-items[class],
+#bottom-nav .bn-items{
+  background: var(--lg-pill-bg) !important;
+  backdrop-filter: blur(28px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(200%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 9999px !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.28),
+              inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+              0 10px 30px rgba(0, 0, 0, 0.35) !important;
+}
+/* Indicatore attivo: capsula di vetro luminosa dietro icona+testo */
+#bottom-nav .bn-item.on,
+#bottom-nav .bn-item.active{
+  background: rgba(255, 255, 255, 0.14) !important;
+  border-radius: 9999px !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.30),
+              inset 0 0 0 1px rgba(255, 255, 255, 0.10) !important;
+}
+html[data-theme="light"] #bottom-nav .bn-item.on,
+html[data-theme="light"] #bottom-nav .bn-item.active,
+html[data-theme="carabinieri-light"] #bottom-nav .bn-item.on,
+html[data-theme="forestale-light"] #bottom-nav .bn-item.on,
+html[data-theme="rosa-light"] #bottom-nav .bn-item.on{
+  background: rgba(0, 122, 255, 0.14) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55),
+              inset 0 0 0 1px rgba(0, 122, 255, 0.18) !important;
+}
+
+/* Tasti primari: pillola/14px, riflesso alto, scale al tocco */
+.btn-p{
+  background: var(--ios-blue, var(--accent)) !important;
+  border-radius: 14px !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35),
+              0 6px 18px color-mix(in srgb, var(--ios-blue, var(--accent)) 34%, transparent) !important;
+}
+.btn:active{ transform: scale(0.97) !important; }
+
+/* Chip e filtri: UISegmentedControl in vetro satinato */
+.ag-chip,
+.notif-pill{
+  background: var(--ios-card-elevated) !important;
+  border: 0.5px solid var(--ios-sep) !important;
+  border-radius: 10px !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+  transition: transform .14s var(--motion-standard), background-color .14s var(--motion-standard);
+}
+.ag-chip.sel,
+.notif-pill.sel{
+  background: var(--ios-blue, var(--accent)) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+}
+.ag-chip:active,
+.notif-pill:active{ transform: scale(0.96); }
+
+/* Modali e bottom sheet: 32px in alto + grabber iOS */
+.modal .mbox{
+  border-radius: 32px 32px 0 0 !important;
+  backdrop-filter: blur(32px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(190%) !important;
+}
+#sheet-giorno > div{
+  border-radius: 32px 32px 0 0 !important;
+  backdrop-filter: blur(32px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(190%) !important;
+}
+.mhan{
+  width: 36px !important;
+  height: 5px !important;
+  border-radius: 3px !important;
+  background: rgba(255, 255, 255, 0.28) !important;
+  margin: 10px auto 4px !important;
+}
+html[data-theme="light"] .mhan,
+html[data-theme="carabinieri-light"] .mhan,
+html[data-theme="forestale-light"] .mhan,
+html[data-theme="rosa-light"] .mhan{
+  background: rgba(60, 60, 67, 0.30) !important;
+}
+
+
+/* ── 26.8 · DASHBOARD: vetro anche nei temi chiari ─────────────────────
+   Esiste una regola legacy `:root[data-theme=light] .m3-card{background:
+   var(--card)!important}` (superfici solide v4): sulla Dashboard il vetro
+   deve restare, quindi la si supera con specificità maggiore. Le liste in
+   Impostazioni restano invece opache iOS (§26.4). */
+html[data-theme="light"] #pag-dash .m3-card,
+html[data-theme="rosa-light"] #pag-dash .m3-card,
+html[data-theme="forestale-light"] #pag-dash .m3-card,
+html[data-theme="carabinieri-light"] #pag-dash .m3-card,
+html[data-theme="light"] #pag-dash .bento-card,
+html[data-theme="rosa-light"] #pag-dash .bento-card,
+html[data-theme="forestale-light"] #pag-dash .bento-card,
+html[data-theme="carabinieri-light"] #pag-dash .bento-card,
+html[data-theme="light"] #pag-dash .hero-card,
+html[data-theme="rosa-light"] #pag-dash .hero-card,
+html[data-theme="forestale-light"] #pag-dash .hero-card,
+html[data-theme="carabinieri-light"] #pag-dash .hero-card{
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--glass-shadow), var(--glass-highlight) !important;
+}
+html[data-theme="light"] #pag-dash .m3-card,
+html[data-theme="rosa-light"] #pag-dash .m3-card,
+html[data-theme="forestale-light"] #pag-dash .m3-card,
+html[data-theme="carabinieri-light"] #pag-dash .m3-card{
+  backdrop-filter: var(--glass-blur-soft) !important;
+  -webkit-backdrop-filter: var(--glass-blur-soft) !important;
 }
 
