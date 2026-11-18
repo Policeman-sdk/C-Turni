@@ -2,10 +2,10 @@
 importScripts('https://www.gstatic.com/firebasejs/11.8.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/11.8.1/firebase-messaging-compat.js');
 
-const CACHE_NAME = 'c-turni-v5.0.4'; /* v5.0.4: cache invalidata dopo il fix trasparenza sfondo (style.css + app.js) */
+const CACHE_NAME = 'c-turni-v5.0.6'; /* v5.0.6: glass uniforme (§24.8-24.9) + identità turni rigorosa e nome completo in hero */
 const APP_SHELL = [
-  './', './index.html', './style.css?v=5.0.4', './db.js?v=1.0.0',
-  './state.js?v=1.0.0', './biometric.js?v=1.0.0', './app.js?v=5.0.4',
+  './', './index.html', './style.css?v=5.0.6', './db.js?v=1.0.0',
+  './state.js?v=1.0.0', './biometric.js?v=1.0.0', './app.js?v=5.0.6',
   './manifest.json', './icon-192.png', './icon-512.png',
   './Game/carabiniere-runner.js?v=2.0.0'
 ];

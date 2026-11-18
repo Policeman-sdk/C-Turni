@@ -7281,3 +7281,559 @@ nav#bottom-nav.bottom-bar,nav#bottom-nav.bottom-bar[class],
    `!important` qui li bloccherebbe dietro la guida. */
 #m-turno,#m-mod-turno{z-index:10000}
 
+
+/* ══════════════════════════════════════════════════════════════════════
+   §24 · APPLE LIQUID GLASS — skin trasversale su tutti gli 8 temi
+   ----------------------------------------------------------------------
+   Solo proprietà VISIVE (background · border · radius · shadow · blur):
+   nessuna modifica a layout, id, classi o logica di app.js.
+
+   Confini deliberati (per non riaprire i bug misurati nelle sessioni
+   precedenti):
+   · `#nf-bg` resta `position:fixed; inset:0; z-index:-1; pointer-events:none;
+     transform:translateZ(0)` (§19.2/§20): qui non viene toccato.
+   · I picker secondari restano a z-index 100080 !important (§21).
+   · `--glass-blur` (22px) è applicato solo a superfici STATICHE ed elevate.
+     Le superfici ripetute o trascinabili (`.wdg-wrap`, `.m3-card`, righe di
+     lista) usano `--glass-blur-soft` (14px): è il budget di §20.1, nato dal
+     flickering misurato con 22 superfici a 16–24px durante lo scroll/drag.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── 24.1 · TOKEN LIQUID GLASS — temi scuri (default) ─────────────────── */
+:root{
+  --glass-bg: rgba(18, 22, 30, 0.56);
+  --glass-bg-elevated: rgba(26, 32, 44, 0.72);
+  --glass-bg-subtle: rgba(255, 255, 255, 0.05);
+  --glass-field: rgba(255, 255, 255, 0.06);
+  --glass-blur: blur(22px) saturate(180%);
+  --glass-blur-soft: blur(14px) saturate(150%);
+  --glass-border: rgba(255, 255, 255, 0.14);
+  --glass-border-subtle: rgba(255, 255, 255, 0.08);
+  --glass-highlight: inset 0 1px 0 0 rgba(255, 255, 255, 0.24), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.36), 0 2px 6px rgba(0, 0, 0, 0.22);
+  --glass-radius-card: 20px;
+  --glass-radius-inner: 14px;
+  --glass-radius-pill: 9999px;
+  --glass-tint: transparent;
+}
+
+/* ── 24.2 · TEMI CHIARI: vetro bianco latte, ombre morbide ────────────── */
+html[data-theme="light"],
+html[data-theme="carabinieri-light"],
+html[data-theme="forestale-light"],
+html[data-theme="rosa-light"]{
+  --glass-bg: rgba(255, 255, 255, 0.62);
+  --glass-bg-elevated: rgba(255, 255, 255, 0.82);
+  --glass-bg-subtle: rgba(0, 0, 0, 0.04);
+  --glass-field: rgba(255, 255, 255, 0.72);
+  --glass-blur: blur(24px) saturate(190%);
+  --glass-blur-soft: blur(14px) saturate(160%);
+  --glass-border: rgba(255, 255, 255, 0.75);
+  --glass-border-subtle: rgba(0, 0, 0, 0.08);
+  --glass-highlight: inset 0 1px 0 0 rgba(255, 255, 255, 0.9), inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+  --glass-shadow: 0 8px 28px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04);
+}
+/* "Auto" in modalità chiara: stesso vetro dei temi giorno */
+@media (prefers-color-scheme: light){
+  html[data-theme="auto"]{
+    --glass-bg: rgba(255, 255, 255, 0.62);
+    --glass-bg-elevated: rgba(255, 255, 255, 0.82);
+    --glass-bg-subtle: rgba(0, 0, 0, 0.04);
+    --glass-field: rgba(255, 255, 255, 0.72);
+    --glass-blur: blur(24px) saturate(190%);
+    --glass-blur-soft: blur(14px) saturate(160%);
+    --glass-border: rgba(255, 255, 255, 0.75);
+    --glass-border-subtle: rgba(0, 0, 0, 0.08);
+    --glass-highlight: inset 0 1px 0 0 rgba(255, 255, 255, 0.9), inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+    --glass-shadow: 0 8px 28px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04);
+  }
+}
+
+/* ── 24.3 · TINTE AMBIENTALI per tema (il vetro prende il colore dell'arma) ── */
+html[data-theme="carabinieri"],
+html[data-theme="arma"]{
+  --glass-bg: rgba(14, 18, 28, 0.58);
+  --glass-highlight: inset 0 1px 0 0 rgba(212, 175, 55, 0.25), inset 0 0 0 1px rgba(200, 16, 46, 0.08);
+}
+html[data-theme="forestale"]{
+  --glass-bg: rgba(12, 24, 16, 0.58);
+  --glass-highlight: inset 0 1px 0 0 rgba(106, 191, 105, 0.25), inset 0 0 0 1px rgba(76, 175, 80, 0.08);
+}
+html[data-theme="rosa"]{
+  --glass-bg: rgba(28, 12, 20, 0.58);
+  --glass-highlight: inset 0 1px 0 0 rgba(255, 128, 171, 0.25);
+}
+/* varianti chiare: riflesso tinto sull'accento del tema */
+html[data-theme="carabinieri-light"]{
+  --glass-highlight: inset 0 1px 0 0 rgba(255, 255, 255, 0.9), inset 0 0 0 1px rgba(200, 169, 110, 0.22);
+}
+html[data-theme="forestale-light"]{
+  --glass-highlight: inset 0 1px 0 0 rgba(255, 255, 255, 0.9), inset 0 0 0 1px rgba(46, 125, 50, 0.16);
+}
+html[data-theme="rosa-light"]{
+  --glass-highlight: inset 0 1px 0 0 rgba(255, 255, 255, 0.9), inset 0 0 0 1px rgba(214, 48, 112, 0.16);
+}
+
+
+
+/* ── 24.4 · SUPERFICI ELEVATE — vetro curvo statico (22px) ────────────── */
+/* Header app */
+.hdr{
+  background: var(--glass-bg-elevated) !important;
+  border-bottom: 1px solid var(--glass-border-subtle) !important;
+  backdrop-filter: var(--glass-blur) !important;
+  -webkit-backdrop-filter: var(--glass-blur) !important;
+  box-shadow: var(--glass-highlight) !important;
+}
+.hdr.scrolled{ box-shadow: var(--glass-shadow), var(--glass-highlight) !important; }
+
+/* Barra di navigazione: pillola di vetro */
+#bottom-nav .bn-items{
+  background: var(--glass-bg-elevated) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: var(--glass-radius-pill) !important;
+  box-shadow: var(--glass-shadow), var(--glass-highlight) !important;
+  backdrop-filter: var(--glass-blur) !important;
+  -webkit-backdrop-filter: var(--glass-blur) !important;
+}
+
+/* Pannelli modali e sheet */
+.modal{
+  background: rgba(6, 10, 16, .45);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+}
+html[data-theme="light"] .modal,
+html[data-theme="carabinieri-light"] .modal,
+html[data-theme="forestale-light"] .modal,
+html[data-theme="rosa-light"] .modal{ background: rgba(240, 244, 248, .55); }
+
+.modal .mbox,
+#auth-card,
+.noti,
+#notif-drawer,
+#sheet-giorno > div{
+  background: var(--glass-bg-elevated) !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--glass-shadow), var(--glass-highlight) !important;
+  backdrop-filter: var(--glass-blur) !important;
+  -webkit-backdrop-filter: var(--glass-blur) !important;
+}
+
+/* Isole e card statiche */
+.m3-list-group,
+.sett-card,
+.card,
+.pcard{
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: var(--glass-radius-card) !important;
+  box-shadow: var(--glass-shadow), var(--glass-highlight) !important;
+  backdrop-filter: var(--glass-blur) !important;
+  -webkit-backdrop-filter: var(--glass-blur) !important;
+}
+
+/* Hero card: mantiene il gradiente per tipo-turno (inline da app.js) e prende
+   solo cornice, riflesso e ombra del vetro. */
+.hero-card{
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--glass-shadow), var(--glass-highlight) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ── 24.5 · WIDGET E CARD RIPETUTE — vetro leggero (14px, budget §20.1) ── */
+.m3-card{
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: var(--glass-radius-card) !important;
+  box-shadow: var(--glass-shadow), var(--glass-highlight) !important;
+  backdrop-filter: var(--glass-blur-soft) !important;
+  -webkit-backdrop-filter: var(--glass-blur-soft) !important;
+}
+.wdg-wrap{
+  background: transparent !important;
+  border-radius: var(--glass-radius-card) !important;
+}
+.bento-card,
+.bento-card > div{
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: var(--glass-radius-card) !important;
+  box-shadow: var(--glass-shadow), var(--glass-highlight) !important;
+}
+/* Perf: nessun blur mentre un widget viene trascinato (re-sampling a ogni frame) */
+.wdg-wrap.dragging .m3-card,
+.wdg-wrap.dragging-active .m3-card,
+.wdg-wrap.drag-over .m3-card{
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ── 24.6 · CONTROLLI E RIGHE — dettagli in vetro ─────────────────────── */
+/* Campi: superficie fresata (inset) sopra il vetro della card */
+.fc{
+  background: var(--glass-field) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: var(--glass-radius-inner) !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .18) !important;
+}
+/* I temi chiari hanno una regola legacy `[data-theme=...] .fc{background:var(--card)!important}`
+   (fix leggibilità v4): la superiamo con specificità maggiore mantenendo il
+   vetro chiaro, che resta perfettamente leggibile. */
+html[data-theme="light"] .fc,
+html[data-theme="carabinieri-light"] .fc,
+html[data-theme="forestale-light"] .fc,
+html[data-theme="rosa-light"] .fc{
+  background: var(--glass-field) !important;
+  border-color: var(--glass-border-subtle) !important;
+}
+@media (prefers-color-scheme: light){
+  html[data-theme="auto"] .fc{ background: var(--glass-field) !important; }
+}
+html[data-theme="light"] .fc,
+html[data-theme="carabinieri-light"] .fc,
+html[data-theme="forestale-light"] .fc,
+html[data-theme="rosa-light"] .fc{ box-shadow: inset 0 1px 2px rgba(15, 23, 42, .06) !important; }
+.fc:focus{
+  border-color: var(--blue) !important;
+  box-shadow: 0 0 0 3px rgba(91, 159, 255, .16), inset 0 1px 2px rgba(0, 0, 0, .18) !important;
+}
+
+/* Bottoni: il colore semantico resta, il vetro aggiunge rilievo */
+.btn{ box-shadow: var(--glass-highlight), 0 2px 8px rgba(0, 0, 0, .18); }
+.btn-p{ box-shadow: var(--glass-highlight), 0 4px 16px rgba(91, 159, 255, .28) !important; }
+.btn-d{ box-shadow: var(--glass-highlight), 0 4px 16px rgba(211, 47, 47, .24) !important; }
+.btn-w{ box-shadow: var(--glass-highlight) !important; }
+.btn-g{
+  background: var(--glass-bg-subtle) !important;
+  border: 1px solid var(--glass-border-subtle) !important;
+  box-shadow: var(--glass-highlight) !important;
+}
+
+/* Icon-button dell'header, azioni riga, preset e chip: vetro leggero */
+.bico,
+.mcl,
+.straord-act-btn,
+.cal-add,
+.tp-preset,
+.tp-arrow,
+.day-chip,
+.btn-turno-r,
+.rep-tab,
+.m3-switch-track{
+  background: var(--glass-bg-subtle);
+  border: 1px solid var(--glass-border-subtle);
+  box-shadow: var(--glass-highlight);
+}
+.bico{ border-radius: var(--glass-radius-inner); }
+/* Gli stati selezionati devono continuare a vincere sul vetro */
+.day-chip.sel,
+.btn-turno-r.sel,
+.rep-tab.active,
+.m3-switch input:checked + .m3-switch-track{ background: var(--blue); color: #fff; border-color: transparent; }
+
+/* Righe delle isole: trasparenti, solo hairline di separazione */
+.m3-row{
+  background: transparent;
+  border-bottom: 1px solid var(--glass-border-subtle);
+}
+.m3-row.tap:active{ background: var(--glass-bg-subtle); }
+
+/* Card interne ripetute (agenda, todo, tabella turni, statistiche, straordinari) */
+.ag-item,
+.todo-item,
+.twrap,
+.sc,
+.salv-card,
+.straord-row,
+.rep-count-card{
+  background: var(--glass-bg-subtle);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--glass-radius-inner);
+  box-shadow: var(--glass-highlight);
+}
+
+/* Calendario: celle in vetro leggero (solo background, niente blur: sono 30+) */
+.cal-cell{
+  background: var(--glass-bg-subtle);
+  border-radius: var(--glass-radius-inner);
+}
+.cal-cell.today{ box-shadow: inset 0 0 0 1px var(--blue); }
+
+
+/* ── 24.7 · ACCESSIBILITÀ E STAMPA ────────────────────────────────────── */
+/* Apple: con "riduci trasparenza" attivo le superfici diventano quasi opache */
+@media (prefers-reduced-transparency: reduce){
+  :root{
+    --glass-bg: rgba(18, 22, 30, .96);
+    --glass-bg-elevated: rgba(26, 32, 44, .98);
+    --glass-blur: none;
+    --glass-blur-soft: none;
+  }
+  html[data-theme="light"],
+  html[data-theme="carabinieri-light"],
+  html[data-theme="forestale-light"],
+  html[data-theme="rosa-light"]{
+    --glass-bg: rgba(255, 255, 255, .96);
+    --glass-bg-elevated: rgba(255, 255, 255, .98);
+  }
+}
+/* Il PDF/stampa non deve portarsi dietro i layer di blur */
+@media print{
+  .hdr, .modal .mbox, .m3-list-group, .sett-card, .m3-card, .card, .pcard,
+  .bento-card, .bento-card > div, .noti, #notif-drawer, #auth-card{
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: #fff !important;
+    box-shadow: none !important;
+  }
+}
+
+/* Header/footer dei modali: hairline coerente col vetro */
+.mhd{ border-bottom: 1px solid var(--glass-border-subtle) !important; }
+.mfoo{ border-top: 1px solid var(--glass-border-subtle) !important; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   §24.8 · UNIFORMITÀ (v2) — applicazione estesa dei token --glass-*
+   Completa §24.4–24.6 sui componenti indicati dalla specifica.
+   Regola anti-FPS: **nessun blur annidato** (un solo livello per ramo) e
+   nessun backdrop-filter su righe/celle ripetute.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Header superiore ─────────────────────────────────────────────────── */
+.hdr{
+  background: var(--glass-bg) !important;
+  backdrop-filter: var(--glass-blur) !important;
+  -webkit-backdrop-filter: var(--glass-blur) !important;
+  border-bottom: 1px solid var(--glass-border-subtle) !important;
+}
+
+/* ── Card, widget e gruppi lista ─────────────────────────────────────── */
+.m3-card,
+.m3-list-group,
+.wdg-wrap,
+.bento-card,
+.pcard,
+#widget-oggi,
+.hero-card{
+  background: var(--glass-bg) !important;
+  backdrop-filter: var(--glass-blur) !important;
+  -webkit-backdrop-filter: var(--glass-blur) !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--glass-shadow), var(--glass-highlight) !important;
+  border-radius: var(--glass-radius-card) !important;
+}
+/* Il wrapper trascinabile e il corpo del bento NON devono filtrare: il vetro
+   sta sulla superficie interna, così non si sommano due blur (costo FPS). */
+.wdg-wrap,
+.bento-card > div{
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+/* Durante il drag si spegne anche il blur della card interna */
+.wdg-wrap.dragging .m3-card,
+.wdg-wrap.dragging-active .m3-card,
+.wdg-wrap.drag-over .m3-card{
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ── Elementi interni, righe Agenda/To-Do, celle calendario ───────────── */
+/* Vetro leggero, SENZA backdrop-filter (30+ elementi in scroll) */
+.ag-item,
+.ag-todo-card,
+.todo-item,
+.cal-cell{
+  background: var(--glass-bg-subtle);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--glass-radius-inner);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transition: transform .16s var(--motion-standard), background-color .16s var(--motion-standard);
+}
+.ag-item:hover,
+.ag-todo-card:hover,
+.todo-item:hover,
+.cal-cell:hover{ background: var(--glass-bg); }
+.ag-item:active,
+.ag-todo-card:active,
+.todo-item:active,
+.cal-cell:active{ transform: scale(.985); }
+
+/* Righe delle isole: fondo vetro leggero, hairline singola (niente doppie
+   cornici fra righe adiacenti) e angoli arrotondati solo su prima/ultima. */
+.m3-row{
+  background: var(--glass-bg-subtle);
+  border: 0;
+  border-bottom: 1px solid var(--glass-border-subtle);
+  border-radius: 0;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transition: transform .16s var(--motion-standard), background-color .16s var(--motion-standard);
+}
+.m3-list-group > .m3-row:first-child{
+  border-top-left-radius: var(--glass-radius-card);
+  border-top-right-radius: var(--glass-radius-card);
+}
+.m3-list-group > .m3-row:last-child{
+  border-bottom: 0;
+  border-bottom-left-radius: var(--glass-radius-card);
+  border-bottom-right-radius: var(--glass-radius-card);
+}
+.m3-row.tap:hover{ background: var(--glass-bg); }
+.m3-row.tap:active{ background: var(--glass-bg); transform: scale(.995); }
+
+
+/* ── Input, select e pulsanti secondari: vetro inciso ─────────────────── */
+.btn-g,
+.tipo-rep-btn,
+.btn-turno-r{
+  background: var(--glass-bg-subtle) !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08) !important;
+  border-radius: 12px !important;
+}
+.fc{
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08) !important;
+  border-radius: 12px !important;
+}
+
+/* ── Stati attivi/selezionati: gradiente lucido + bordo luminoso + bagliore ── */
+.btn-p,
+.day-chip.sel,
+.btn-turno-r.sel,
+.tipo-rep-btn.sel,
+.tipo-rep-btn.active,
+.rep-tab.active,
+.m3-switch input:checked + .m3-switch-track{
+  background: linear-gradient(180deg, var(--blue2, var(--blue)) 0%, var(--blue) 58%, var(--blue) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.35) !important;
+  color: #fff !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45),
+              inset 0 -1px 0 rgba(0, 0, 0, 0.18),
+              0 6px 18px rgba(91, 159, 255, 0.32) !important;
+}
+/* Bagliore derivato dall'accento del tema attivo (solo dove color-mix è supportato) */
+@supports (color: color-mix(in srgb, red 50%, transparent)){
+  .btn-p,
+  .day-chip.sel,
+  .btn-turno-r.sel,
+  .tipo-rep-btn.sel,
+  .tipo-rep-btn.active,
+  .rep-tab.active,
+  .m3-switch input:checked + .m3-switch-track,
+  #bottom-nav .bn-item.on{
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.18),
+                0 6px 18px color-mix(in srgb, var(--accent) 38%, transparent) !important;
+  }
+  #bottom-nav .bn-item.on{
+    background: var(--glass-bg-subtle) !important;
+    border: 1px solid var(--glass-border) !important;
+    color: var(--accent) !important;
+    box-shadow: var(--glass-highlight),
+                0 4px 14px color-mix(in srgb, var(--accent) 30%, transparent) !important;
+  }
+}
+
+/* ── Bottom navigation: capsula in vetro ad alta rifrazione ───────────── */
+#bottom-nav .bn-items{
+  background: var(--glass-bg-elevated) !important;
+  backdrop-filter: blur(26px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(26px) saturate(200%) !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--glass-shadow), var(--glass-highlight) !important;
+  border-radius: var(--glass-radius-pill) !important;
+}
+/* Tab attivo: pillola interna in vetro traslucido */
+#bottom-nav .bn-item.on,
+#bottom-nav .bn-item.active{
+  background: var(--glass-bg-subtle) !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--glass-highlight) !important;
+  border-radius: var(--glass-radius-pill) !important;
+}
+#bottom-nav .bn-item{ border-radius: var(--glass-radius-pill); }
+
+/* FAB (pulsante centrale): vetro + gradiente d'accento */
+#fab-main,
+.nav-fab,
+#btn-nav-add{
+  background: var(--fab-grad, var(--accent));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), var(--glass-highlight), var(--fab-shadow, none);
+  color: var(--fab-color, #fff);
+}
+
+/* ── Modali, bottom sheet, picker e drawer ────────────────────────────── */
+.modal .mbox,
+.modal-dialog,
+.m-content,
+#sheet-giorno > div,
+#notif-drawer{
+  background: var(--glass-bg-elevated) !important;
+  backdrop-filter: blur(28px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(190%) !important;
+  border-top: 1px solid var(--glass-border) !important;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.35), var(--glass-highlight) !important;
+}
+
+
+/* ── 24.9 · ANTI-BLUR-ANNIDATO (FPS) + contrasto testo sui vetri ──────── */
+/* L'overlay del modale NON filtra: il vetro lo fa il pannello (.mbox 28px).
+   Due backdrop-filter in catena si pagano a ogni frame durante lo scroll. */
+.modal{
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: rgba(6, 10, 16, .55);
+}
+html[data-theme="light"] .modal,
+html[data-theme="carabinieri-light"] .modal,
+html[data-theme="forestale-light"] .modal,
+html[data-theme="rosa-light"] .modal{ background: rgba(240, 244, 248, .62); }
+/* La card di login sta sopra un overlay già sfocato: niente doppio filtro */
+#auth-card{
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: var(--glass-bg-elevated) !important;
+}
+
+/* Capsula nav: la specificità deve superare la firma §20.2 (blur 150%),
+   che usa anche `nav#bottom-nav.bottom-bar .bn-items` (1,2,1). */
+nav#bottom-nav.bottom-bar .bn-items,
+#bottom-nav.bottom-bar .bn-items,
+#bottom-nav .bn-items[class],
+#bottom-nav .bn-items{
+  background: var(--glass-bg-elevated) !important;
+  backdrop-filter: blur(26px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(26px) saturate(200%) !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--glass-shadow), var(--glass-highlight) !important;
+  border-radius: var(--glass-radius-pill) !important;
+}
+
+/* Testo secondario leggibile sui vetri chiari: suono leggermente il tono
+   (i temi chiari usano --txt2 abbastanza chiaro per le superfici opache). */
+html[data-theme="light"],
+html[data-theme="carabinieri-light"],
+html[data-theme="forestale-light"],
+html[data-theme="rosa-light"]{
+  --glass-bg: rgba(255, 255, 255, 0.72);
+}
+html[data-theme="light"] .m3-list-group-title,
+html[data-theme="carabinieri-light"] .m3-list-group-title,
+html[data-theme="forestale-light"] .m3-list-group-title,
+html[data-theme="rosa-light"] .m3-list-group-title,
+html[data-theme="light"] .m3-row-sub,
+html[data-theme="carabinieri-light"] .m3-row-sub,
+html[data-theme="forestale-light"] .m3-row-sub,
+html[data-theme="rosa-light"] .m3-row-sub,
+html[data-theme="light"] .sett-title,
+html[data-theme="carabinieri-light"] .sett-title,
+html[data-theme="forestale-light"] .sett-title,
+html[data-theme="rosa-light"] .sett-title{
+  color: color-mix(in srgb, var(--txt2) 78%, #000 22%);
+}
+

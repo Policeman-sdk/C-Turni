@@ -2537,7 +2537,7 @@ function initNotifiche(){
 function _turniMieiUnici(T, me){
   var out = [], visti = {};
   (T || []).forEach(function(t){
-    if(!_isMyTurno(t, me)) return;
+    if(!_isMioTurnoStrict(t, me)) return;
     var k = [String(t.pid || t.uid || t.ownerUid || ''), t.data || '', t.tipo || '', t.orario || ''].join('|');
     if(visti[k]) return;
     visti[k] = 1;
@@ -3295,30 +3295,39 @@ function _nfMioPid(me){
 function _nfSanificaIdentita(){
   try{
     var me = lsG('ct_me', null); if(!me) return;
-    var ls = localStorage.getItem('ct_my_pid');
-    if(ls && _nfPidValido(ls, me)) return;
-    if(ls){ localStorage.removeItem('ct_my_pid'); }
-    if(me.myPid && !_nfPidValido(me.myPid, me)){ delete me.myPid; lsS('ct_me', me); }
+    // 1) FONTE DI VERITÀ: se in rubrica esiste la persona collegata al MIO uid,
+    //    il pid DEVE essere quello. Sovrascrive sempre eventuali id ereditati da
+    //    build precedenti (era la causa dei turni di un omonimo su dashboard e
+    //    notifiche). Con più record sullo stesso uid decide il nome completo.
     if(me.uid){
       var P = lsG('ct_p', []);
       var cands = P.filter(function(x){ return x && String(x.uid) === String(me.uid); });
       var p = null;
       if(cands.length === 1) p = cands[0];
       else if(cands.length > 1){
-        // Più record rivendicano lo stesso uid: scelgo quello il cui nome
-        // contiene nome E cognome dell'utente; se resta ambiguo NON indovino.
         var combaci = cands.filter(function(x){ return _nfNomeCombacia(x, me); });
         if(combaci.length === 1) p = combaci[0];
-        else if(!combaci.length){
+        else if(combaci.length > 1){
+          var byIdc = combaci.filter(function(x){ return me.id !== undefined && String(x.id) === String(me.id); });
+          p = byIdc.length === 1 ? byIdc[0] : combaci[0];
+        } else {
           var byId = cands.filter(function(x){ return me.id !== undefined && String(x.id) === String(me.id); });
           p = byId.length === 1 ? byId[0] : null;
         }
       }
       if(p && p.id !== undefined && p.id !== null && p.id !== ''){
-        localStorage.setItem('ct_my_pid', String(p.id));
-        me.myPid = p.id; lsS('ct_me', me);
+        var pidStr = String(p.id);
+        if(String(me.myPid || '') !== pidStr){ me.myPid = p.id; lsS('ct_me', me); }
+        if(localStorage.getItem('ct_my_pid') !== pidStr){ localStorage.setItem('ct_my_pid', pidStr); }
+        _nfPidCache = { key: null, val: '' };   // invalida la memoizzazione
+        return;
       }
     }
+    // 2) Nessun legame con un uid: ripulisco un pid non dimostrabile
+    var ls = localStorage.getItem('ct_my_pid');
+    if(ls && !_nfPidValido(ls, me)){ localStorage.removeItem('ct_my_pid'); }
+    if(me.myPid && !_nfPidValido(me.myPid, me)){ delete me.myPid; lsS('ct_me', me); }
+    _nfPidCache = { key: null, val: '' };
   } catch(e){}
 }
 
@@ -3326,44 +3335,12 @@ function _nfSanificaIdentita(){
 // Controlla pid numerico, uid Firebase, ct_my_pid, e — solo in casi non
 // ambigui — il nome completo (mai con omonimi in reparto).
 function _isMyTurno(t, me) {
-  if(!t || !me) return false;
-  // pid SOLO se validato: un `ct_my_pid` ereditato da build precedenti (match per
-  // nome) poteva appartenere a un collega omonimo e faceva "propri" i suoi turni.
-  var myPid = _nfMioPid(me);
-  var owner=String(t.ownerUid||t.uid||t.userId||'');
-  if(me.uid&&owner&&owner===String(me.uid))return true;
-  // Confronto pid SOLO se realmente valorizzato (evita il falso positivo "undefined"==="undefined")
-  var tPid = (t.pid===undefined||t.pid===null||t.pid==='') ? '' : String(t.pid);
-  var meId = (me.id===undefined||me.id===null||me.id==='') ? '' : String(me.id);
-  if(tPid){
-    if(meId && tPid===meId) return true;
-    if(me.uid && tPid===String(me.uid)) return true;
-    if(myPid && tPid===String(myPid)) return true;
-    // Fallback: risolvi la persona reale dell'utente da ct_p (via uid o id)
-    var _P = lsG('ct_p', []);
-    if(_P && _P.length){
-      var _pMe = null;
-      if(me.uid) _pMe = _P.find(function(p){ return p.uid===me.uid; });
-      if(!_pMe && meId) _pMe = _P.find(function(p){ return String(p.id)===meId; });
-      if(_pMe && String(_pMe.id)===tPid) return true;
-    }
-  }
-  // Fallback per vecchie importazioni: SOLO con nome E cognome completi e SOLO
-  // se il turno non dichiara alcuna identità (pid/uid). Se il turno ha un pid,
-  // quello è l'autorità: il nome non deve mai sovrascriverlo.
-  // ANTI-OMONIMIA: nessun omonimo (nemmeno di solo nome) → il nome è ambiguo.
-  if(tPid || owner) return false;
-  if(_nomeAmbigui(me)) return false;
-  if(t.pnome && me.nome) {
-    var norm=function(v){return (v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();};
-    var pn=norm(t.pnome),n=norm(me.nome),c=norm(me.cognome);
-    if(pn&&[norm(c+' '+n),norm(n+' '+c)].indexOf(pn)!==-1) {
-      // NIENTE `localStorage.setItem('ct_my_pid', ...)`: scrivere un pid dedotto
-      // dal nome è ciò che rendeva "mia" l'identità di un collega omonimo.
-      return true;
-    }
-  }
-  return false;
+  // REGOLA UNICA (§25): identità SOLO per uid/pid, esattamente come il
+  // Calendario. Il vecchio fallback sul nome (t.pnome vs me.nome/me.cognome) è
+  // stato RIMOSSO: con un collega omonimo (stesso nome, cognome diverso)
+  // agganciava i SUOI turni e sovrascriveva `ct_my_pid`/`me.myPid`.
+  // Qui non si scrive mai identità: la funzione è pura.
+  return _isMioTurnoStrict(t, me);
 }
 
 // -- Match STRETTO di proprietà del turno (identico al Calendario):
@@ -3503,15 +3480,13 @@ function aggiornaWidget(){
     }
   }
 
-  // Colleghi in servizio oggi (escludi me stesso — confronto robusto stringa+numero+uid)
-  var _myPidStr = String(localStorage.getItem('ct_my_pid')||me.id||'');
+  // Colleghi in servizio oggi (escludi me stesso)
+  // §25: esclusione SOLO con il match rigoroso (uid/pid), lo stesso del
+  // Calendario: niente confronti per nome che confondevano gli omonimi.
+  var _pidMio = _nfMioPid(me);
   var turniOggi=T.filter(function(t){
     if(t.data!==oggi) return false;
-    var pidStr = String(t.pid);
-    if(pidStr === String(me.id)) return false;
-    if(me.uid && pidStr === String(me.uid)) return false;
-    if(_myPidStr && pidStr === _myPidStr) return false;
-    if(_isMyTurno(t, me)) return false;
+    if(_isMioTurnoStrict(t, me)) return false;
     return true;
   });
   var wColWrap=document.getElementById("w-colleghi-wrap");
@@ -3596,11 +3571,11 @@ function aggiornaHeroCard(){
   // Saluto contestuale
   var h = now.getHours();
   var saluto = h < 12 ? 'Buongiorno' : h < 18 ? 'Buon pomeriggio' : 'Buonasera';
-  var nomeBreve = me.nickname || me.nome || (me.cognome||'').split(' ')[0] || '—';
+  var nomeCompleto = me.nickname || (((me.nome || '') + ' ' + (me.cognome || '')).trim()) || '—';
   var greetSub = document.getElementById('hero-greeting-sub');
   var greetName = document.getElementById('hero-greeting-name');
   if(greetSub) greetSub.textContent = saluto;
-  if(greetName) greetName.textContent = nomeBreve;
+  if(greetName) greetName.textContent = nomeCompleto;
   // Grado nella home
   if(typeof _syncGradoHome === 'function') _syncGradoHome(me.grado || null);
 
@@ -3615,7 +3590,7 @@ function aggiornaHeroCard(){
       heroAva.style.backgroundImage = '';
       heroAva.innerHTML = '';
       heroAva.classList.remove('ava-loading');
-      heroAva.textContent = (nomeBreve.charAt(0)||'\uD83D\uDC64').toUpperCase();
+      heroAva.textContent = (nomeCompleto.charAt(0)||'\uD83D\uDC64').toUpperCase();
     }
   }
 
@@ -3982,7 +3957,7 @@ function scheduleNotifMattutina(){
     var _matKey='ct_mat_scheduled_'+oggi;
     if(!localStorage.getItem(_matKey)){
       var T=lsG("ct_t",[]);
-      var t=null;for(var i=0;i<T.length;i++){if(_isMyTurno(T[i],me)&&T[i].data===oggi){t=T[i];break;}}
+      var t=null;for(var i=0;i<T.length;i++){if(_isMioTurnoStrict(T[i],me)&&T[i].data===oggi){t=T[i];break;}}
       if(t){
         var titoliN={mattina:"\u2600\uFE0F Mattina",pomeriggio:"\u2600\uFE0F Pomeriggio",notte:"\uD83C\uDF19 Notte"};
         var titoloMat="C-Turni \u2014 Buongiorno "+me.nome;
@@ -4006,7 +3981,7 @@ function scheduleNotifMattutina(){
     var me2=lsG("ct_me",null);if(!me2)return;
     var oggiStr=new Date().toISOString().slice(0,10);
     var T2=lsG("ct_t",[]);
-    var t2=null;for(var j=0;j<T2.length;j++){if(_isMyTurno(T2[j],me2)&&T2[j].data===oggiStr){t2=T2[j];break;}}
+    var t2=null;for(var j=0;j<T2.length;j++){if(_isMioTurnoStrict(T2[j],me2)&&T2[j].data===oggiStr){t2=T2[j];break;}}
     if(t2){
       var titoliN2={mattina:"\u2600\uFE0F Mattina",pomeriggio:"\u2600\uFE0F Pomeriggio",notte:"\uD83C\uDF19 Notte"};
       var titoloMat2="C-Turni \u2014 Buongiorno "+me2.nome;

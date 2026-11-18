@@ -419,3 +419,125 @@ Screenshot comparativi a 0/50/100 (`%TEMP%\nf5\shot-bgtr-*.png`) e controllo UI
 (`shot-bg-slider-ui2.png`). `npm test` verde, `node --check app.js` OK, graffe
 CSS 1708/1708. Cache-bust `5.0.4`, service worker `c-turni-v5.0.4`.
 
+
+## §24 · Skin "Apple Liquid Glass" su tutti gli 8 temi (v5.0.5)
+
+**Richiesta.** Trasformare l'intera UI in stile Apple Liquid Glass, adattivo a
+tutti i temi, senza regressioni funzionali.
+
+**Confini rispettati (zero regressioni).** Nessun `id` rinominato, nessuna
+modifica a `app.js`, alla sezione *Profilo* (`#imp-profilo-card`/`#imp-profilo-body`),
+ai picker, al minigioco, alle sigle turno né ai calcoli ferie/straordinari.
+Restano intatti i fix precedenti, verificati a runtime:
+- `#nf-bg` → `position:fixed`, `z-index:-1`, `pointer-events:none`,
+  `transform:translateZ(0)` (matrice `matrix(1,0,0,1,…)`);
+- picker secondari a `z-index:100080` e ancora sopra il form (hit-test sul
+  pulsante «Conferma» del time picker: `button.btn` del picker in cima).
+
+**Token (§24.1–24.3 in `style.css`).** In `:root` i valori richiesti
+(`--glass-bg` 56%, `--glass-bg-elevated` 72%, `--glass-bg-subtle`,
+`--glass-blur: blur(22px) saturate(180%)`, bordi, riflesso speculare
+`--glass-highlight`, ombre, raggi 20/14/pill), sovrascritti dai quattro temi
+chiari (vetro bianco latte 62/82%, ombre morbide) e da `auto` in modalità
+chiara. Tinte ambientali per *Carabinieri* (oro/rosso), *Forestale* (verde),
+*Rosa* (rosa) e riflessi tinti sulle rispettive varianti chiare.
+
+**Applicazione (§24.4–24.6).**
+- superfici statiche/elevate con blur **22px**: `.hdr`, pillola `#bottom-nav
+  .bn-items`, `.modal .mbox`, `#auth-card`, `.noti`, `#notif-drawer`,
+  `#sheet-giorno > div`, `.m3-list-group`, `.sett-card`, `.card`, `.pcard`;
+- widget e card ripetute con blur **14px** (`--glass-blur-soft`): `.m3-card`,
+  `.bento-card`; `.wdg-wrap` trasparente con raggio vetro;
+- dettagli: campi `.fc` (token dedicato `--glass-field`: 6% bianco su scuro,
+  72% bianco su chiaro, per restare leggibili e superare la regola legacy dei
+  temi chiari), bottoni (`--glass-highlight` + ombra, colore semantico
+  preservato), `.bico`, `.mcl`, chip/preset, righe `.m3-row` con hairline,
+  card interne (`.ag-item`, `.todo-item`, `.twrap`, `.sc`, `.salv-card`,
+  `.straord-row`, `.rep-count-card`), celle calendario, header/footer modali;
+- `.modal` diventa un velo sfumato (`rgba(6,10,16,.45)` + blur 10px; versione
+  chiara per i temi giorno) così l'artwork resta percepibile dietro i pannelli;
+- `.hero-card` conserva il gradiente per tipo-turno impostato da `app.js`
+  (inline) e riceve solo cornice, riflesso e ombra.
+
+**Perf e stabilità (deliberato).** Il budget di §20.1 nasce dal flickering
+misurato con 22 superfici a 16–24px: per questo il blur "pieno" resta solo su
+superfici statiche, i widget usano 14px e durante il drag il blur viene spento
+(`.wdg-wrap.dragging .m3-card{backdrop-filter:none}`). Inoltre
+`@media (prefers-reduced-transparency: reduce)` rende le superfici quasi opache
+(comportamento Apple) e `@media print` azzera blur e ombre.
+
+**Verifica.** Matrice automatica su 8 temi (Chrome headless): per ognuno
+`T_<tema>` = vetro con alpha < 1 su card/isole/header/nav + blur attivo su
+group/header/pill + bordo token + raggio 20 + campo in vetro; `C_<tema>` =
+contrasto testo/superficie sempre ≥ 4.5 (misurati 16.6 → 19.7 sugli scuri,
+6.3 → 6.9 sui chiari); `W_<tema>` = widget a 14px; `G_nfbg` e `G_pickerZ`
+invariati; `G_hitNav` = la pillola resta cliccabile. Sonda picker: 5/5 PASS.
+Regressione §22 (22 asserzioni) e §23 (10 asserzioni) ancora verdi, `npm test`
+verde, graffe CSS 1753/1753. Screenshot: dashboard nei 6 temi principali e
+modale turno in notte/chiaro/carabinieri (`%TEMP%\nf5\shot-glass-*.png`).
+
+## §25 · Glass uniforme su tutti i componenti + identità turni rigorosa (v5.0.6)
+
+**A · Applicazione uniforme dei token `--glass-*` (§24.8–24.9 in `style.css`)**
+- `.hdr`: `--glass-bg` + `--glass-blur` + hairline inferiore.
+- Card/widget/gruppi (`.m3-card`, `.m3-list-group`, `.wdg-wrap`, `.bento-card`,
+  `.pcard`, `#widget-oggi`, `.hero-card`): `--glass-bg`, `--glass-blur`, bordo,
+  `--glass-shadow` + `--glass-highlight`, raggio 20. **Nessun blur annidato**:
+  `.wdg-wrap` e `.bento-card > div` restano senza filtro (il vetro è sulla
+  superficie interna) e durante il drag il blur della card si spegne.
+- Interni/righe (`.ag-item`, `.ag-todo-card`, `.todo-item`, `.m3-row`,
+  `.cal-cell`): `--glass-bg-subtle` + bordo sottile + raggio 14, **senza
+  backdrop-filter** (30+ elementi in scroll). Hover/tap solo `transform` e
+  `background-color`. Le righe dentro `.m3-list-group` prendono hairline singola
+  e angoli arrotondati solo su prima/ultima (evita doppie cornici).
+- Input e pulsanti secondari (`.fc`, `.btn-g`, `.tipo-rep-btn`, `.btn-turno-r`):
+  vetro inciso (inset shadow), bordo `--glass-border`, raggio 12.
+- Stati attivi (`.btn-p`, `.sel`, `.rep-tab.active`, switch): gradiente lucido,
+  bordo luminoso e bagliore d'accento; dove `color-mix` è disponibile il
+  bagliore deriva da `--accent` del tema.
+- `#bottom-nav`: capsula `--glass-bg-elevated` con `blur(26px) saturate(200%)`,
+  bordo, ombra, raggio pill; tab attivo = pillola interna in vetro + alone
+  d'accento. FAB (`#fab-main`, `.nav-fab`, `#btn-nav-add`) con gradiente,
+  bordo vetro e ombre combinate.
+- Modali/sheet/picker/drawer (`.modal .mbox`, `#sheet-giorno > div`,
+  `#notif-drawer`, più `.modal-dialog`/`.m-content` per compatibilità):
+  `--glass-bg-elevated`, `blur(28px) saturate(190%)`, bordo superiore e ombra
+  `0 -10px 40px`.
+
+**B · Anti-burnt FPS (misurato)**
+La sonda conta le superfici con `backdrop-filter` **effettivamente renderizzate**
+e rileva i blur in catena: risultato **12 superfici, 0 annidati**. Per arrivarci
+sono stati rimossi i due casi critici: `backdrop-filter` sull'overlay `.modal`
+(era in catena con ogni `.mbox`: 30+ blur annidati finché un modale restava
+aperto) e su `#auth-card` (stava sopra un overlay già sfocato). La capsula nav
+usa selettori di specificità ≥ `nav#bottom-nav.bottom-bar .bn-items` per
+superare la firma §20.1 (che fissava 14px/150%).
+
+**C · Identità turni: una sola regola (bug omonimia)**
+`_isMyTurno(t, me)` non contiene più alcun fallback sul nome né scritture di
+identità: **delega a `_isMioTurnoStrict`**, quindi Dashboard, widget,
+notifiche, condivisione e Report usano la stessa identità del Calendario
+(`uid`/`pid`/`ownerUid` + risoluzione della persona da `ct_p` per uid/id).
+Allineati esplicitamente anche: `_turniMieiUnici`, `controllaNotifiche` e
+`schedulaPreTurniFirebase` (via `_turniMieiUnici`), `scheduleNotifMattutina`,
+l'elenco "Colleghi in servizio oggi" in `aggiornaWidget` e il match del Report.
+`_nfSanificaIdentita()` ora **forza** `ct_my_pid`/`me.myPid` sul `p.id` della
+persona con `p.uid === me.uid` (con tie-break sul nome se più record
+rivendicano lo stesso uid), invalidando la cache del pid: gli impianti già
+contaminati si riparano al primo avvio/login.
+
+**D · Nome completo nella hero card**
+`aggiornaHeroCard()` compone `nomeCompleto = nickname || ("nome cognome").trim()`
+e lo scrive in `#hero-greeting-name` (e nell'iniziale dell'avatar). `#w-nome-utente`
+in `aggiornaWidget` usava già la stessa composizione.
+
+**Verifica.** Matrice temi estesa: 8 temi × (vetro/bordi/raggio/campo, contrasto
+`--txt` ≥ 4.5, contrasto `--txt2` ≥ 3, widget a 14px) = 32 PASS; guardrail
+`#nf-bg`, z-index picker 100080, blur annidati 0, righe senza blur, capsula nav
+26px/pill, campi raggio 12, gradiente stati attivi, hit-test nav = 7 PASS.
+Sonde JS: hero `#hero-greeting-name` = "Mario Rossi"; `_isMyTurno` → turno del
+collega `false`, proprio `true`, turno legacy senza identità `false`.
+`npm test` verde, `node --check app.js` OK, graffe CSS 1786/1786.
+Cache-bust `5.0.6`, service worker `c-turni-v5.0.6`.
+
+
