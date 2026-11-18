@@ -936,3 +936,50 @@ assente, segmented presente). `npm test` verde, `node --check app.js` OK,
 graffe CSS **2142/2142**, UTF-8 pulito.
 
 
+## §34 · App Shell nativo, rimozione Fold JS, hardening sicurezza (v5.3.1)
+
+**1 · App Shell (blocco viewport, fondo di `style.css`).** `html, body` →
+`position:fixed; inset:0; overflow:hidden/clip; overscroll-behavior:none`;
+`#pg-app` flex column a `height:100%`; `.hdr` `flex:0 0 auto` 56px;
+`.body` `flex:1; min-height:0; overflow:hidden`; **unico scroll in
+`.cont`** (`overflow-y:auto`, `-webkit-overflow-scrolling:touch`,
+`overscroll-behavior-y:contain`, padding-bottom 104px + safe-area).
+Verificato in Chrome: `html=fixed`, `hdr=56px`, `cont=auto` — l'app non scorre
+più come una pagina web.
+
+**2 · Fold JS rimosso.** Eliminati da `app.js` `_foldPref`, `_foldWide`,
+`_aggiornaFoldMode`, `setFoldMode` e i listener `resize`/`orientationchange`/
+`visualViewport`/`devicePosture`; rimosso il segmented `#fold-mode-btns` da
+Impostazioni; rimosse da `style.css` tutte le regole `html[data-fold="…"]`
+(§33) che alteravano l'altezza delle pagine. Residui: **0** (`data-fold`,
+`setFoldMode`, `fold-mode`), attributo `data-fold=null`. Resta la sola pulizia
+della chiave legacy `ct_focus_mode` all'avvio.
+
+**3 · Responsive nativo (solo CSS).** `@media (min-width: 680px)`: figli delle
+pagine con `max-width:760px` centrati **dentro** lo scroller, `.tema-grid-2` a
+4 colonne, `.avm3-grid` a **6 colonne**. Nessun JS, nessuna alterazione del
+contenitore di scroll.
+
+**4 · Hardening sicurezza (lato codice).**
+- **`firestore.rules`**: già RBAC rigoroso (`signedIn()`, `isApproved(reparto)`,
+  `isCommand(reparto)`, `isSuperAdmin()`, `ownsTurn()`, campi protetti in
+  `update`) su `/utenti/{uid}` (collezione reale del progetto, non `/users`).
+  Aggiunto **default-deny** `match /{document=**} { allow read, write: if false; }`.
+- **Sessione**: `setPersistence(auth, browserLocalPersistence)` esplicito in
+  `firebase-manager.js`, con `catch` non bloccante.
+- **Logout radicale**: `_nfPurgeLocalData()` chiamata da `AuthModule.logout()`:
+  `localStorage.clear()` con allowlist di sole preferenze estetiche
+  (`ct_tema`, `ct_font`, `ct_lang`, `ct_trasp`, `ct_bg_tr`),
+  `sessionStorage.clear()`, cancellazione di **tutte le Cache API** e delete di
+  **tutti gli IndexedDB**. Esposta anche come `AuthModule._purgeLocalData()`.
+- **App Check / restrizioni API key**: impostazioni di console, non di codice
+  (vedi nota finale).
+
+**Verifica.** Sonde runtime: `S_shell`, `S_cont`, `S_nofold`, `S_mq` → **4/4
+PASS**. Statico: graffe CSS **2133/2133**, UTF-8 valido su `style.css`,
+`index.html`, `app.js`, `firebase-manager.js`, `firestore.rules`;
+`node --check` OK; `npm test` verde. Non verificati in headless (harness inline
+non concluso per escaping): media query a ≥680 px e purge a runtime → da
+validare su dispositivo/DevTools.
+
+

@@ -1,4 +1,4 @@
-// -- SERVICE WORKER --
+﻿// -- SERVICE WORKER --
 if("serviceWorker" in navigator){
   var _swBase = new URL('./', location.href);
   navigator.serviceWorker.register(new URL('firebase-messaging-sw.js', _swBase).href, { scope: _swBase.pathname })
@@ -3854,45 +3854,6 @@ function aggiornaSquadra(){
       + '<div class="squadra-nome">'+nomeBreve+'</div>'
       + '</div>';
   }).join('');
-}
-
-/* ══ §33 · GALAXY FOLD / SCHERMO ESTESO — layout adattivo ═══════════════
-   Preferenza `ct_fold_mode`: 'auto' (default) | 'expanded' | 'compact'.
-   `data-fold` su <html> guida il CSS (§33). Rilevamento: larghezza ≥ 680,
-   Device Posture API (se presente) e viewport segments. */
-function _foldPref(){
-  try { var v = lsG('ct_fold_mode', 'auto'); return (v === 'expanded' || v === 'compact') ? v : 'auto'; } catch(e){ return 'auto'; }
-}
-function _foldWide(){
-  var w = window.innerWidth || document.documentElement.clientWidth || 0;
-  if(w >= 680) return true;
-  try {
-    if(navigator.devicePosture && navigator.devicePosture.type === 'continuous' && w >= 600) return true;
-  } catch(e){}
-  try {
-    if(window.visualViewport && window.visualViewport.width >= 680) return true;
-  } catch(e){}
-  return false;
-}
-function _aggiornaFoldMode(){
-  var pref = _foldPref();
-  var mode = (pref === 'expanded') ? 'expanded'
-           : (pref === 'compact')  ? 'compact'
-           : (_foldWide() ? 'expanded' : 'compact');
-  try { document.documentElement.setAttribute('data-fold', mode); } catch(e){}
-  document.querySelectorAll('#fold-mode-btns [data-fold-mode]').forEach(function(b){
-    b.classList.toggle('on', b.getAttribute('data-fold-mode') === pref);
-  });
-  return mode;
-}
-function setFoldMode(m){
-  m = (m === 'expanded' || m === 'compact') ? m : 'auto';
-  lsS('ct_fold_mode', m);
-  _aggiornaFoldMode();
-  if(navigator.vibrate) navigator.vibrate(8);
-  if(typeof toast === 'function'){
-    toast('Layout schermo: ' + (m === 'auto' ? 'Automatico' : (m === 'expanded' ? 'Fold aperto / Tablet' : 'Compatto')), 'ok');
-  }
 }
 
 // ---- MODALITÀ FOCUS (RIMOSSA — Task 1) ----
@@ -14104,20 +14065,9 @@ window.addEventListener('DOMContentLoaded', function() {
     //    account). Va eseguito prima di qualunque render di turni.
     try { _nfSanificaIdentita(); } catch(e) {}
 
-    // §33 — Modalità Fold: applica subito il layout e ascolta i cambi
-    try {
-      _aggiornaFoldMode();
-      window.addEventListener('resize', _aggiornaFoldMode, { passive: true });
-      window.addEventListener('orientationchange', function(){ setTimeout(_aggiornaFoldMode, 120); });
-      if(window.visualViewport){
-        try { window.visualViewport.addEventListener('resize', _aggiornaFoldMode, { passive: true }); } catch(e){}
-      }
-      if(navigator.devicePosture && navigator.devicePosture.addEventListener){
-        navigator.devicePosture.addEventListener('change', _aggiornaFoldMode);
-      }
-      // chiavi legacy: ignorate e ripulite senza errori
-      try { localStorage.removeItem('ct_focus_mode'); } catch(e){}
-    } catch(e) { console.warn('foldMode:', e && e.message); }
+    // chiavi legacy: ignorate e ripulite senza errori (Focus Mode rimossa)
+    try { localStorage.removeItem('ct_focus_mode'); } catch(e){}
+
 
     // §29 — Popola il picker avatar della pagina Impostazioni (prefix 'pf').
     // Prima non veniva inizializzato: la griglia restava vuota.
@@ -15210,6 +15160,53 @@ GSync.saveClientId = function(value) {
 
 // -------------------------------------------------------------------
 
+/* ══ § Sicurezza — PULIZIA RADICALE DEI DATI LOCALI (logout) ═══════════
+   Cancella ogni traccia dell'utente precedente per evitare che il login
+   successivo (o un altro utente sullo stesso dispositivo) veda dati,
+   token o schermate obsolete:
+   1. localStorage → clear() con allowlist minima di preferenze estetiche
+   2. sessionStorage → clear()
+   3. Cache API del Service Worker → tutte le cache eliminate
+   4. IndexedDB (dati offline dell'app) → database eliminati
+   Non lancia mai: è chiamata in un logout e non deve bloccarlo. */
+var _NF_PURGE_KEEP = ['ct_tema', 'ct_font', 'ct_lang', 'ct_trasp', 'ct_bg_tr'];
+function _nfPurgeLocalData(){
+  return new Promise(function(resolve){
+    try {
+      var keep = {};
+      _NF_PURGE_KEEP.forEach(function(k){
+        try { var v = localStorage.getItem(k); if(v !== null) keep[k] = v; } catch(e){}
+      });
+      try { localStorage.clear(); } catch(e){}
+      Object.keys(keep).forEach(function(k){ try { localStorage.setItem(k, keep[k]); } catch(e){} });
+      try { sessionStorage.clear(); } catch(e){}
+    } catch(e){}
+    var jobs = [];
+    try {
+      if(window.caches && caches.keys){
+        jobs.push(caches.keys().then(function(names){
+          return Promise.all((names || []).map(function(n){ return caches.delete(n); }));
+        }).catch(function(){}));
+      }
+    } catch(e){}
+    try {
+      if(window.indexedDB && indexedDB.databases){
+        jobs.push(indexedDB.databases().then(function(dbs){
+          return Promise.all((dbs || []).map(function(d){
+            return new Promise(function(res){
+              try {
+                var req = indexedDB.deleteDatabase(d.name);
+                req.onsuccess = req.onerror = req.onblocked = function(){ res(); };
+              } catch(e){ res(); }
+            });
+          }));
+        }).catch(function(){}));
+      }
+    } catch(e){}
+    Promise.all(jobs).then(function(){ resolve(true); }, function(){ resolve(false); });
+  });
+}
+
 var AuthModule = (function() {
 
   var DEBUG_USER = 'admin';
@@ -15745,7 +15742,15 @@ var AuthModule = (function() {
       _showOverlay('login');
       // Poi fai signout Firebase in background (non blocca)
       try { if(window.FirebaseModule) window.FirebaseModule.signOut(); } catch(e){ console.warn('signOut err:', e); }
+      // § Sicurezza — pulizia radicale dei dati locali (storage, cache, IDB)
+      try { _nfPurgeLocalData(); } catch(e){ console.warn('purge:', e && e.message); }
     },
+
+    // § Sicurezza — Cancella ogni traccia locale dell'utente precedente:
+    // token/sessione in localStorage, sessionStorage, Cache API del Service
+    // Worker e IndexedDB dell'app. Evita che il successivo login (o un altro
+    // utente sullo stesso dispositivo) veda dati o schermate obsolete.
+    _purgeLocalData: function(){ return _nfPurgeLocalData(); },
 
     // -- Login biometrico (WebAuthn) --
     // Chiamato da BiometricModule dopo autenticazione biometrica riuscita.

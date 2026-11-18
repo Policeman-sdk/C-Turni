@@ -116,5 +116,14 @@ service cloud.firestore {
         allow write: if isSuperAdmin() || isCommand(reparto) || (isApproved(reparto) && request.auth.uid == uid);
       }
     }
+
+    /* ── DEFAULT DENY (§ Sicurezza) ─────────────────────────────────────
+       Qualsiasi collezione NON elencata esplicitamente sopra è chiusa.
+       Le regole Firestore sono additive: questo blocco non revoca i permessi
+       già concessi dai match specifici, ma impedisce che collezioni nuove
+       (o create per errore) restino accessibili di default. */
+    match /{document=**} {
+      allow read, write: if false;
+    }
   }
 }

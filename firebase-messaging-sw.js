@@ -2,10 +2,11 @@
 importScripts('https://www.gstatic.com/firebasejs/11.8.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/11.8.1/firebase-messaging-compat.js');
 
-const CACHE_NAME = 'c-turni-v5.3.0'; /* v5.3.0: modalità Galaxy Fold / schermo esteso + rifinitura iOS 27 */
+const CACHE_NAME = 'c-turni-v5.3.1'; /* v5.3.1: app shell viewport fisso, fold JS rimosso, hardening sicurezza */
 const APP_SHELL = [
-  './', './index.html', './style.css?v=5.3.0', './db.js?v=1.0.0',
-  './state.js?v=1.0.0', './biometric.js?v=1.0.0', './app.js?v=5.3.0',
+  './', './index.html', './style.css?v=5.3.1', './db.js?v=1.0.0',
+  './state.js?v=1.0.0', './biometric.js?v=1.0.0', './app.js?v=5.3.1',
+  './firebase-manager.js?v=5.3.1',
   './manifest.json', './icon-192.png', './icon-512.png',
   './firebase-manager.js?v=5.0.7',
   './Game/carabiniere-runner.js?v=2.0.0'

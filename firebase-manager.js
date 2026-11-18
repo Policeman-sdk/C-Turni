@@ -1,6 +1,7 @@
 ﻿import { initializeApp }          from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
-         signOut, onAuthStateChanged, deleteUser }
+         signOut, onAuthStateChanged, deleteUser,
+         setPersistence, browserLocalPersistence }
                                   from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
 import { getFirestore, doc, collection, setDoc, getDoc, getDocs, deleteDoc,
          onSnapshot, query, where, orderBy, limit, serverTimestamp, arrayUnion, updateDoc, writeBatch }
@@ -24,6 +25,14 @@ const firebaseConfig = {
 
 const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+// § Sicurezza — persistenza ESPLICITA della sessione (localStorage gestito da
+// Firebase: token + refresh). Consapevole: su questo dispositivo l'utente resta
+// loggato finché non esegue il logout, che ne cancella ogni traccia.
+try {
+  setPersistence(auth, browserLocalPersistence).catch(function(e){
+    console.warn('[auth] setPersistence:', e && e.message);
+  });
+} catch(e) { console.warn('[auth] setPersistence sync:', e && e.message); }
 const db   = getFirestore(app);
 const storage = getStorage(app);
 
