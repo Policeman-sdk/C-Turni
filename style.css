@@ -8236,3 +8236,1479 @@ html[data-theme="carabinieri-light"] #pag-dash .m3-card{
   -webkit-backdrop-filter: var(--glass-blur-soft) !important;
 }
 
+
+/* ══════════════════════════════════════════════════════════════════════
+   §27 · iOS 27 NATIVO — navigazione in Liquid Glass, contenuti solidi
+   Top bar 56px · Tab bar flottante 62px · Calendario iOS (3 viste +
+   pannello giorno) · Agenda Reminders · Centro Notifiche · Settings.
+   ══════════════════════════════════════════════════════════════════════ */
+:root{
+  --lg-bar-bg: rgba(18, 22, 30, 0.68);
+  --ios-accent: #007AFF;
+  --ios-red: #FF3B30;
+  --ios-green: #34C759;
+  --ios-orange: #FF9500;
+  --ios-indigo: #5856D6;
+  --ios-card-r: 16px;
+}
+html[data-theme="light"],
+html[data-theme="rosa-light"]{ --lg-bar-bg: rgba(255, 255, 255, 0.74); }
+html[data-theme="carabinieri-light"]{ --lg-bar-bg: rgba(245, 243, 238, 0.78); --ios-accent: #8b0000; }
+html[data-theme="forestale-light"]{ --lg-bar-bg: rgba(239, 245, 240, 0.78); --ios-accent: #2e7d32; }
+html[data-theme="carabinieri"],
+html[data-theme="arma"]{ --ios-accent: #c8a96e; }
+html[data-theme="forestale"]{ --ios-accent: #6abf69; }
+html[data-theme="rosa"]{ --ios-accent: #ff4d80; }
+html[data-theme="rosa-light"]{ --ios-accent: #d63070; }
+
+/* ── 27.1 · TOP BAR iOS 27 ───────────────────────────────────────────── */
+.hdr{
+  height: 56px !important;
+  background: var(--lg-bar-bg) !important;
+  backdrop-filter: blur(24px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(190%) !important;
+  border-bottom: 0.5px solid var(--ios-sep) !important;
+  box-shadow: none !important;
+  padding: 0 12px !important;
+}
+.logo{
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif !important;
+  font-weight: 800 !important;
+  font-size: 19px !important;
+  letter-spacing: -0.5px !important;
+  text-transform: none !important;
+}
+/* Micro-capsula di vetro attorno al lampeggiante LED */
+#hf-box, .hf-wrap, #hf{ box-shadow: inset 0 0 0 1px var(--ios-sep) !important; border-radius: 999px !important; }
+/* Control Pill unificata a destra (tema + notifiche + avatar) */
+.hdr-r{
+  display: flex !important;
+  align-items: center !important;
+  gap: 2px !important;
+  padding: 3px !important;
+  border-radius: 999px !important;
+  background: var(--glass-bg-subtle) !important;
+  border: 1px solid var(--glass-border-subtle) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+}
+.hdr-r .bico{
+  width: 34px !important; height: 34px !important; min-width: 34px !important;
+  border-radius: 50% !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.hdr-r .bico:active{ background: var(--glass-bg-subtle) !important; }
+.hdr-r .ava{ width: 30px !important; height: 30px !important; margin-right: 2px; }
+#notif-badge{
+  background: var(--ios-red) !important;
+  color: #fff !important;
+  border-radius: 999px !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  min-width: 15px; height: 15px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ── 27.2 · BOTTOM TAB BAR FLOTTANTE iOS 27 ──────────────────────────── */
+#bottom-nav{
+  padding: 0 12px calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+}
+nav#bottom-nav.bottom-bar .bn-items[class],
+#bottom-nav.bottom-bar .bn-items[class],
+#bottom-nav .bn-items[class],
+#bottom-nav .bn-items{
+  height: 62px !important;
+  padding: 5px 8px !important;
+  border-radius: 9999px !important;
+  background: var(--glass-bg-elevated) !important;
+  backdrop-filter: blur(28px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(200%) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.32),
+              inset 0 0 0 1px rgba(255, 255, 255, 0.14),
+              0 12px 34px rgba(0, 0, 0, 0.42) !important;
+}
+/* Lente attiva iOS */
+#bottom-nav .bn-item{ border-radius: 999px !important; }
+#bottom-nav .bn-item.on,
+#bottom-nav .bn-item.active{
+  background: rgba(255, 255, 255, 0.14) !important;
+  color: var(--ios-accent) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32),
+              inset 0 0 0 1px rgba(255, 255, 255, 0.12) !important;
+}
+html[data-theme="light"] #bottom-nav .bn-item.on,
+html[data-theme="rosa-light"] #bottom-nav .bn-item.on,
+html[data-theme="forestale-light"] #bottom-nav .bn-item.on,
+html[data-theme="carabinieri-light"] #bottom-nav .bn-item.on,
+html[data-theme="light"] #bottom-nav .bn-item.active,
+html[data-theme="rosa-light"] #bottom-nav .bn-item.active,
+html[data-theme="forestale-light"] #bottom-nav .bn-item.active,
+html[data-theme="carabinieri-light"] #bottom-nav .bn-item.active{
+  background: rgba(0, 122, 255, 0.12) !important;
+  color: var(--ios-accent) !important;
+}
+
+/* ── 27.3 · CALENDARIO iOS 27 ────────────────────────────────────────── */
+.cal-ios-head{ display: flex; align-items: center; gap: 10px; padding: 6px 4px 10px; }
+.cal-ios-month{
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+  font-size: 26px; font-weight: 800; letter-spacing: -0.6px;
+  color: var(--txt); line-height: 1.05;
+}
+.cal-ios-year{ font-size: 15px; font-weight: 700; color: var(--ios-red); letter-spacing: -0.2px; }
+.cal-nav-btn{
+  width: 32px; height: 32px; min-width: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--glass-bg-subtle); border: 1px solid var(--glass-border-subtle);
+  color: var(--txt); font-size: 16px; font-weight: 700; cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.22);
+  appearance: none; -webkit-appearance: none;
+  transition: transform .14s var(--motion-standard), background-color .14s var(--motion-standard);
+}
+.cal-nav-btn:active{ transform: scale(.92); background: var(--glass-bg); }
+.cal-today-btn{
+  margin-left: auto; height: 32px; padding: 0 14px; border-radius: 999px;
+  background: var(--glass-bg-subtle); border: 1px solid var(--glass-border-subtle);
+  color: var(--ios-accent); font-size: 13px; font-weight: 700; cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.22);
+  appearance: none; -webkit-appearance: none;
+}
+.cal-today-btn:active{ transform: scale(.96); }
+/* Segmented control Liquid Glass */
+.cal-seg{
+  display: flex; gap: 2px; padding: 3px; margin: 0 0 12px;
+  border-radius: 999px; background: var(--glass-bg-subtle);
+  border: 1px solid var(--glass-border-subtle);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.20);
+}
+.cal-seg button{
+  flex: 1; height: 32px; border: 0; border-radius: 999px; background: transparent;
+  color: var(--txt2); font-size: 13px; font-weight: 600; cursor: pointer;
+  appearance: none; -webkit-appearance: none;
+  transition: background-color .16s var(--motion-standard), color .16s var(--motion-standard);
+}
+.cal-seg button.on{
+  background: var(--ios-card-bg); color: var(--txt); font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.30);
+}
+.cal-filters{ display: flex; gap: 8px; margin: 0 0 12px; }
+.cal-pill{
+  height: 30px; padding: 0 12px; border-radius: 999px;
+  background: var(--glass-bg-subtle); border: 1px solid var(--glass-border-subtle);
+  color: var(--txt2); font-size: 12px; font-weight: 600; cursor: pointer;
+  appearance: none; -webkit-appearance: none;
+}
+.cal-pill.on{ background: var(--ios-accent); border-color: transparent; color: #fff; }
+/* Griglia mensile: linee sottili, celle nude */
+.cal-grid .cal-cell{
+  background: transparent !important;
+  border: 0 !important;
+  border-bottom: 0.5px solid var(--ios-sep) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  min-height: 46px;
+  padding: 4px 3px 5px !important;
+}
+.cal-grid .cal-cell.empty{ background: transparent !important; }
+.cal-day-n{
+  font-size: 15px; font-weight: 600; letter-spacing: -0.2px;
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto;
+}
+.cal-cell.today .cal-day-n{
+  background: var(--ios-red) !important; color: #fff !important; font-weight: 800;
+  box-shadow: 0 2px 6px rgba(255, 59, 48, 0.35);
+}
+html[data-theme="light"] .cal-cell.sel .cal-day-n,
+html[data-theme="rosa-light"] .cal-cell.sel .cal-day-n,
+html[data-theme="forestale-light"] .cal-cell.sel .cal-day-n,
+html[data-theme="carabinieri-light"] .cal-cell.sel .cal-day-n{
+  background: var(--ios-accent) !important; color: #fff !important; font-weight: 800;
+}
+html:not([data-theme]) .cal-cell.sel .cal-day-n,
+html[data-theme=""] .cal-cell.sel .cal-day-n,
+html[data-theme="carabinieri"] .cal-cell.sel .cal-day-n,
+html[data-theme="forestale"] .cal-cell.sel .cal-day-n,
+html[data-theme="rosa"] .cal-cell.sel .cal-day-n{
+  background: #fff !important; color: #000 !important; font-weight: 800;
+}
+.cal-cell.today.sel .cal-day-n{ background: var(--ios-red) !important; color: #fff !important; }
+.cal-badge{
+  font-size: 8.5px !important; padding: 1px 5px !important;
+  border-radius: 999px !important; border-width: 0 !important;
+  line-height: 1.45 !important; gap: 3px !important;
+}
+.cal-dots{ display: flex; gap: 2px; justify-content: center; margin-top: 2px; }
+.cal-dot{ width: 5px; height: 5px; border-radius: 50%; display: inline-block; }
+
+/* Pannello dettaglio giorno (split-view iOS) */
+.cal-detail{ margin: 14px 0 6px; padding: 0; background: var(--ios-grouped-bg); }
+.cal-detail-head{ display: flex; align-items: flex-start; gap: 10px; padding: 2px 2px 10px; }
+.cal-detail-date{ font-size: 19px; font-weight: 800; letter-spacing: -0.4px; color: var(--txt); line-height: 1.2; }
+.cal-detail-fest{ font-size: 11px; font-weight: 700; color: var(--ios-orange); margin-top: 2px; }
+.cal-detail-actions{ margin-left: auto; display: flex; gap: 6px; }
+.cal-detail-actions .cal-pill{ height: 28px; font-size: 11.5px; }
+.cal-card{
+  background: var(--ios-card-bg); border: 0.5px solid var(--ios-sep);
+  border-radius: var(--ios-card-r); margin-bottom: 10px; overflow: hidden;
+}
+.cal-ev{ display: flex; gap: 10px; padding: 12px 14px; border-bottom: 0.5px solid var(--ios-sep); }
+.cal-ev:last-child{ border-bottom: 0; }
+.cal-ev-bar{ width: 4px; border-radius: 3px; background: var(--ios-accent); flex-shrink: 0; }
+.cal-ev-title{ font-size: 14px; font-weight: 700; color: var(--txt); letter-spacing: -0.2px; }
+.cal-ev-sub{ font-size: 12.5px; color: var(--txt2); margin-top: 2px; font-variant-numeric: tabular-nums; }
+.cal-ev-acts{ margin-left: auto; display: flex; gap: 6px; align-items: center; }
+.cal-ev-btn{
+  width: 30px; height: 30px; border-radius: 50%; border: 0;
+  background: var(--glass-bg-subtle); color: var(--txt2); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; font-size: 14px;
+  appearance: none; -webkit-appearance: none;
+}
+.cal-grp-head{
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+  color: var(--txt2); padding: 8px 14px 4px;
+}
+.cal-list-row{ display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-bottom: 0.5px solid var(--ios-sep); }
+.cal-list-row:last-child{ border-bottom: 0; }
+.cal-ava{
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  background: var(--glass-bg-subtle); color: var(--txt2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800;
+}
+.cal-detail-empty{ padding: 16px 14px; font-size: 12.5px; color: var(--txt2); text-align: center; }
+/* Vista settimana / elenco */
+.cal-week{ display: flex; gap: 4px; padding: 0 0 12px; }
+.cal-week-day{
+  flex: 1; text-align: center; padding: 8px 2px; border-radius: 14px;
+  background: var(--ios-card-bg); border: 0.5px solid var(--ios-sep); cursor: pointer;
+}
+.cal-week-day.sel{ border-color: var(--ios-accent); }
+.cal-week-day .wd{ font-size: 10px; font-weight: 700; color: var(--txt2); text-transform: uppercase; }
+.cal-week-day .wn{ font-size: 16px; font-weight: 800; color: var(--txt); margin-top: 2px; }
+.cal-week-day.today .wn{ color: var(--ios-red); }
+.cal-elenco-day{
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+  color: var(--txt2); padding: 10px 14px 4px;
+}
+
+/* ── 27.4 · AGENDA (Apple Reminders) ─────────────────────────────────── */
+.ios-tile-grid{ display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.ios-tile{
+  background: var(--ios-card-bg); border: 0.5px solid var(--ios-sep);
+  border-radius: var(--ios-card-r); padding: 12px 14px;
+  display: flex; align-items: flex-start; gap: 10px;
+}
+.ios-tile-ico{
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.30);
+}
+.ios-tile-body{ flex: 1; min-width: 0; }
+.ios-tile-num{ font-size: 24px; font-weight: 800; letter-spacing: -0.6px; color: var(--txt); line-height: 1.05; }
+.ios-tile-lbl{ font-size: 11px; font-weight: 600; color: var(--txt2); margin-top: 2px; }
+/* Righe evento in stile Promemoria */
+.ag-item, .ag-todo-card, .todo-item{
+  background: var(--ios-card-bg) !important;
+  border: 0 !important;
+  border-bottom: 0.5px solid var(--ios-sep) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 13px 16px !important;
+}
+.ag-item:first-child, .ag-todo-card:first-child, .todo-item:first-child{ border-top-left-radius: var(--ios-card-r) !important; border-top-right-radius: var(--ios-card-r) !important; }
+.ag-item:last-child, .ag-todo-card:last-child, .todo-item:last-child{ border-bottom: 0 !important; border-bottom-left-radius: var(--ios-card-r) !important; border-bottom-right-radius: var(--ios-card-r) !important; }
+.ag-check, .todo-check, .ag-todo-check{
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 1.8px solid var(--ios-accent); background: transparent;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: transparent; font-size: 12px; font-weight: 900; flex-shrink: 0;
+  transition: background-color .18s var(--motion-standard), color .18s var(--motion-standard), border-color .18s var(--motion-standard);
+}
+.ag-check.on, .todo-check.on, .ag-todo-check.on{
+  background: var(--ios-accent); border-color: var(--ios-accent); color: #fff;
+}
+
+/* ── 27.5 · CENTRO NOTIFICHE iOS 27 ──────────────────────────────────── */
+#notif-drawer{
+  background: rgba(10, 14, 22, 0.78) !important;
+  backdrop-filter: blur(32px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(190%) !important;
+  border-bottom-left-radius: 28px !important;
+  border-bottom-right-radius: 28px !important;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45), var(--glass-highlight) !important;
+}
+html[data-theme="light"] #notif-drawer,
+html[data-theme="rosa-light"] #notif-drawer,
+html[data-theme="forestale-light"] #notif-drawer,
+html[data-theme="carabinieri-light"] #notif-drawer{
+  background: rgba(242, 242, 247, 0.82) !important;
+}
+/* Platter: ogni notifica è una tile indipendente in Liquid Glass */
+.noti{
+  background: var(--glass-bg-elevated) !important;
+  border: 0 !important;
+  border-left: 0 !important;
+  border-radius: 22px !important;
+  padding: 14px 16px !important;
+  margin-bottom: 10px !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22),
+              0 4px 16px rgba(0, 0, 0, 0.18) !important;
+}
+.noti .noti-ico, .noti .ni-ico{
+  width: 20px !important; height: 20px !important;
+  border-radius: 5px !important;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px !important;
+  background: var(--glass-bg-subtle) !important;
+}
+.noti .noti-cat{
+  font-size: 10px; font-weight: 700; letter-spacing: .5px;
+  text-transform: uppercase; color: var(--txt2);
+}
+.noti .noti-time, .noti .ni-time{
+  margin-left: auto; font-size: 11px; color: var(--txt2); font-variant-numeric: tabular-nums;
+}
+.noti .noti-title, .noti .ni-tit{ font-size: 14px !important; font-weight: 700 !important; color: var(--txt); }
+.noti .noti-sub, .noti .ni-sub{ font-size: 13px !important; color: var(--txt2); margin-top: 2px; }
+
+/* ── 27.6 · IMPOSTAZIONI iOS 27 (UISwitch, icone, separatori) ─────────── */
+/* Icone quadrate stondate 30x30 / raggio 7 con colori iOS */
+.m3-row-ico{
+  width: 30px !important; height: 30px !important; min-width: 30px !important;
+  border-radius: 7px !important;
+  font-size: 15px !important;
+}
+/* Interruttore identico a UISwitch (51x31, verde iOS quando attivo) */
+.m3-switch{ width: 51px !important; height: 31px !important; flex-shrink: 0; }
+.m3-switch-track{
+  width: 51px !important; height: 31px !important;
+  border-radius: 999px !important;
+  background: rgba(120, 120, 128, 0.32) !important;
+  border: 0 !important;
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.06) !important;
+  transition: background-color .22s var(--motion-standard) !important;
+}
+.m3-switch-track::after{
+  width: 27px !important; height: 27px !important;
+  top: 2px !important; left: 2px !important;
+  border-radius: 50% !important;
+  background: #fff !important;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18), 0 1px 1px rgba(0, 0, 0, 0.10) !important;
+  transition: transform .22s var(--motion-standard) !important;
+}
+.m3-switch input:checked + .m3-switch-track{
+  background: var(--ios-green) !important;
+}
+.m3-switch input:checked + .m3-switch-track::after{
+  transform: translateX(20px) !important;
+}
+/* Separatori già indentati a 56px in §26.4 */
+
+/* ── 27.7 · Correzioni di specificità ────────────────────────────────── */
+/* Oggi+selezionato: il cerchio deve restare ROSSO iOS (vince la regola
+   "selezionato" solo con pari specificità + ordine) */
+html .cal-cell.today.sel .cal-day-n{
+  background: var(--ios-red) !important;
+  color: #fff !important;
+  font-weight: 800 !important;
+}
+/* Top bar 56px: la sezione §19 fissa min/max-height 60 → li allineo */
+html body .hdr[class],
+html .hdr{
+  height: 56px !important;
+  min-height: 56px !important;
+  max-height: 56px !important;
+}
+
+/* ── 27.8 · Agenda: le tile iOS sostituiscono il vecchio riepilogo ──────
+   Nascondo solo i due contatori legacy (restano le tile #ag-ios-tiles e la
+   card "Prossimo evento" che ha ancora valore operativo). */
+#ag-bento > .ag-bento-card:not(.ag-bento-full),
+#ag-bento > .ag-bento-card.ag-bento-full + .ag-bento-card:not(.ag-bento-full){
+  display: none !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   §28 · iOS 27 — Sheet giorno, modali form, profilo/avatar, temi,
+   ferie/recuperi/studio/salvadanaio, comando.
+   Solo proprietà visive: nessun id/JS/logica toccati.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── 28.1 · POPUP GIORNO (sheet iOS 27) ──────────────────────────────── */
+#sheet-giorno > div{
+  border-radius: 32px 32px 0 0 !important;
+  background: var(--ios-grouped-bg) !important;
+  padding-bottom: calc(115px + env(safe-area-inset-bottom, 0px)) !important;
+  max-height: calc(100vh - 56px) !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+/* grabber 38x5 */
+#sheet-giorno > div::before{
+  content: "";
+  display: block;
+  width: 38px; height: 5px;
+  border-radius: 3px;
+  background: rgba(120, 120, 128, 0.42);
+  margin: 8px auto 6px;
+}
+/* header iOS della sheet: giorno in maiuscoletto + data grande */
+.ios-sheet-head{
+  position: sticky; top: 0; z-index: 3;
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 16px 12px;
+  background: var(--glass-bg-elevated);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border-bottom: 0.5px solid var(--ios-sep);
+}
+.ios-sheet-wd{
+  font-size: 11px; font-weight: 800; letter-spacing: .8px;
+  text-transform: uppercase; color: var(--ios-red);
+}
+.ios-sheet-date{
+  font-size: 22px; font-weight: 700; letter-spacing: -0.5px;
+  color: var(--txt); line-height: 1.15; margin-top: 2px;
+}
+.ios-sheet-fest{
+  display: inline-block; margin-top: 4px;
+  padding: 2px 8px; border-radius: 999px;
+  background: rgba(255, 149, 0, 0.16); color: var(--ios-orange);
+  font-size: 10.5px; font-weight: 700;
+}
+.ios-sheet-acts{ margin-left: auto; display: flex; gap: 6px; align-items: center; }
+.ios-sheet-btn{
+  width: 36px; height: 36px; min-width: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--glass-bg-subtle); border: 1px solid var(--glass-border-subtle);
+  color: var(--txt); font-size: 15px; font-weight: 700; cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.24);
+  appearance: none; -webkit-appearance: none;
+}
+.ios-sheet-btn:active{ transform: scale(.92); }
+.ios-sheet-btn.close{ background: rgba(120, 120, 128, 0.2); color: var(--txt2); }
+/* Blocco "Il tuo turno" (platter) */
+#mg-turno, .ios-platter{
+  background: var(--ios-card-bg) !important;
+  border: 0.5px solid var(--ios-sep) !important;
+  border-radius: 18px !important;
+  padding: 14px 16px !important;
+  margin: 12px 16px 16px !important;
+}
+#mg-turno{ position: relative; overflow: hidden; }
+#mg-turno::before{
+  content: ""; position: absolute; left: 0; top: 10px; bottom: 10px;
+  width: 4px; border-radius: 3px; background: var(--ios-accent);
+}
+/* righe colleghi nella sheet: 50px, avatar 34 */
+#sheet-giorno .collega-row, #sheet-giorno .mg-pers-row{
+  display: flex; align-items: center; gap: 10px;
+  min-height: 50px; padding: 8px 16px;
+  border-bottom: 0.5px solid var(--ios-sep);
+}
+#sheet-giorno .collega-ava, #sheet-giorno .mg-pers-ava{
+  width: 34px; height: 34px; border-radius: 50%;
+  background: var(--glass-bg-subtle); display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 800; color: var(--txt2); flex-shrink: 0;
+}
+
+/* ── 28.2 · MODALI "iOS 27 SHEET" (#m-turno, #m-todo, #m-agenda) ─────── */
+.modal .mbox{ border-radius: 32px 32px 0 0 !important; }
+/* Navigation bar del foglio: Titolo 17px centrato + ✕ circolare iOS */
+.modal .mhd{
+  position: sticky; top: 0; z-index: 2;
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 16px !important;
+  background: var(--glass-bg-elevated) !important;
+  backdrop-filter: blur(24px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(190%) !important;
+  border-bottom: 0.5px solid var(--ios-sep) !important;
+}
+.modal .mhd .mtit{
+  flex: 1; text-align: center;
+  font-size: 17px !important; font-weight: 700 !important; letter-spacing: -0.3px;
+}
+.modal .mhd .mcl{
+  width: 32px; height: 32px; border-radius: 50%;
+  background: rgba(120, 120, 128, 0.20) !important;
+  color: var(--txt2) !important; font-size: 15px !important;
+}
+/* Tile sigle turno iOS 27 */
+#m-turno .btn-turno-r, #m-mod-turno .btn-turno-r{
+  border-radius: 14px !important;
+  padding: 10px 8px !important;
+  background: var(--ios-card-elevated) !important;
+  border: 1px solid var(--ios-sep) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.18) !important;
+  font-weight: 800 !important;
+  transition: transform .14s var(--motion-standard), border-color .14s var(--motion-standard), background-color .14s var(--motion-standard) !important;
+}
+#m-turno .btn-turno-r.sel, #m-mod-turno .btn-turno-r.sel{
+  border: 2px solid var(--ios-accent) !important;
+  background: color-mix(in srgb, var(--ios-accent) 16%, var(--ios-card-elevated)) !important;
+  transform: scale(1.02);
+}
+/* Gruppi form in stile iOS Form Table */
+.modal .fg{
+  background: var(--ios-card-bg);
+  border-radius: 16px;
+  padding: 10px 14px;
+  margin-bottom: 10px !important;
+}
+.modal .fg > label{
+  font-size: 11px !important; font-weight: 700 !important;
+  letter-spacing: .3px !important; text-transform: none !important;
+  color: var(--txt2) !important; margin-bottom: 6px !important;
+}
+/* Compact Date/Time pill buttons iOS */
+.modal button.fc, .modal .picker-btn{
+  background: rgba(120, 120, 128, 0.16) !important;
+  border: 0 !important;
+  border-radius: 9px !important;
+  padding: 6px 11px !important;
+  font-weight: 600 !important;
+  font-variant-numeric: tabular-nums;
+  color: var(--txt) !important;
+}
+/* Segmented iOS per priorità / preavviso / tipo straordinario */
+.tipo-rep-btn, .straord-tipo-pill{
+  border-radius: 999px !important;
+  background: rgba(120, 120, 128, 0.16) !important;
+  border: 0 !important;
+  font-weight: 600 !important;
+}
+.tipo-rep-btn.sel, .straord-tipo-pill.active{
+  background: var(--ios-accent) !important;
+  color: #fff !important;
+}
+/* Pulsanti di conferma in fondo: pill iOS pieni */
+.modal .mfoo .btn-p{
+  background: var(--ios-accent) !important;
+  border-radius: 14px !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.35) !important;
+}
+.modal .mfoo .btn-g{
+  background: rgba(120, 120, 128, 0.16) !important;
+  border-radius: 14px !important;
+}
+
+/* ── 28.3 · PROFILO + APPLE AVATAR STUDIO ────────────────────────────── */
+#imp-profilo-card .imp-profilo-ava{ width: 64px !important; height: 64px !important; font-size: 28px !important; }
+#imp-nome{ font-size: 20px !important; }
+/* Medaglione centrale nella card espansa */
+#pf-ava-prev{
+  width: 88px !important; height: 88px !important;
+  font-size: 40px !important;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.32), 0 0 0 4px rgba(0,0,0,.10), 0 10px 26px rgba(0,0,0,.30) !important;
+}
+/* Segmented categorie avatar (Truppa / Ufficiali / Forestali) */
+.avm3-cats, .avm3-tabs, .avm3-cat-bar{
+  display: flex; gap: 2px; padding: 3px;
+  border-radius: 999px; background: rgba(120,120,128,.16);
+  border: 0.5px solid var(--ios-sep);
+}
+.avm3-cats > *, .avm3-tabs > *, .avm3-cat-bar > *{
+  flex: 1; height: 32px; border: 0; border-radius: 999px;
+  background: transparent; color: var(--txt2);
+  font-size: 12.5px; font-weight: 600; cursor: pointer;
+}
+.avm3-cats > .on, .avm3-cats > .active, .avm3-cats > .sel,
+.avm3-tabs > .on, .avm3-tabs > .active, .avm3-tabs > .sel,
+.avm3-cat-bar > .on, .avm3-cat-bar > .active, .avm3-cat-bar > .sel{
+  background: var(--ios-card-bg); color: var(--txt); font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0,0,0,.22);
+}
+/* Griglia medaglioni */
+.avm3-grid{
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)) !important;
+  gap: 10px !important;
+  padding: 6px 0 2px;
+}
+.avm3-item{
+  aspect-ratio: 1 / 1;
+  border-radius: 50% !important;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 35%, rgba(91,159,255,.28), rgba(18,22,30,.10) 70%) !important;
+  border: 2.5px solid transparent;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.18);
+  position: relative;
+  cursor: pointer;
+}
+html[data-theme="forestale-light"] .avm3-item,
+html[data-theme="forestale"] .avm3-item{
+  background: radial-gradient(circle at 50% 35%, rgba(106,191,105,.28), rgba(12,24,16,.10) 70%) !important;
+}
+.avm3-item.selected{
+  border-color: var(--ios-accent) !important;
+  box-shadow: 0 0 0 2px var(--ios-grouped-bg), 0 0 0 4px var(--ios-accent);
+}
+.avm3-item.selected::after{
+  content: "✓";
+  position: absolute; right: -2px; bottom: -2px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--ios-accent); color: #fff;
+  font-size: 11px; font-weight: 900;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 0 2px var(--ios-card-bg);
+}
+/* Campi anagrafica come righe iOS (label 110px a sinistra) */
+#imp-profilo-body .fg > label{
+  display: flex; align-items: center; gap: 6px;
+  min-width: 110px;
+}
+@media (min-width: 380px){
+  #imp-profilo-body .fg{
+    display: grid !important;
+    grid-template-columns: 110px 1fr;
+    align-items: center;
+    column-gap: 10px;
+  }
+  #imp-profilo-body .fg > label{ margin-bottom: 0 !important; }
+}
+
+/* ── 28.4 · SELETTORE TEMI: mini-device previews iOS 27 ──────────────── */
+.tema-card-big{
+  border-radius: 18px !important;
+  padding: 12px 10px !important;
+  min-height: 96px !important;
+  position: relative !important;
+  overflow: hidden !important;
+  display: flex !important; flex-direction: column !important;
+  align-items: flex-start !important; justify-content: flex-end !important;
+  gap: 6px !important;
+}
+/* mini-card vetrata interna (anteprima reale del tema) */
+.tema-card-big::before{
+  content: "";
+  position: absolute; left: 10px; right: 10px; top: 12px;
+  height: 44px; border-radius: 10px;
+  background: rgba(255,255,255,.18);
+  border: 1px solid rgba(255,255,255,.30);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.40);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.tema-card-big .tcb-emoji{
+  position: absolute !important; top: 20px !important; left: 18px !important;
+  width: auto !important; height: auto !important;
+  background: transparent !important; box-shadow: none !important;
+  font-size: 15px !important;
+}
+.tema-card-big .tcb-nome{ font-size: 12.5px !important; margin-top: 2px; }
+.tema-card-big.sel{
+  border: 2px solid var(--ios-accent) !important;
+  box-shadow: 0 0 0 1px var(--ios-accent), 0 6px 18px rgba(0,0,0,.25) !important;
+}
+.tema-card-big .tcb-check{
+  right: 8px !important; top: 8px !important;
+  transform: none !important;
+}
+/* Segmented comportamento tema (Manuale / Sistema / Orario) */
+#tema-comp-btns{
+  display: flex !important; gap: 2px !important; padding: 3px !important;
+  border-radius: 999px !important;
+  background: rgba(120,120,128,.16) !important;
+  border: 0.5px solid var(--ios-sep) !important;
+}
+#tema-comp-btns .tema-comp-btn{
+  flex: 1 !important;
+  border: 0 !important; border-radius: 999px !important;
+  background: transparent !important;
+  padding: 8px 6px !important;
+  min-height: 0 !important;
+}
+#tema-comp-btns .tema-comp-btn.on{
+  background: var(--ios-card-bg) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,.22) !important;
+}
+#tema-comp-btns .tema-comp-btn div > div:last-child{ display: none !important; }
+
+/* ── 28.5 · FERIE / RECUPERI / STUDIO / SALVADANAIO (iOS Health+Wallet) ─ */
+/* Contatore gigante e barre */
+#ferie-totale{
+  font-size: 34px !important;
+  font-weight: 800 !important;
+  letter-spacing: -1px;
+  font-variant-numeric: tabular-nums;
+}
+#ferie-pool-list > div{
+  background: var(--ios-card-bg) !important;
+  border: 0.5px solid var(--ios-sep) !important;
+  border-radius: var(--ios-card-r) !important;
+  box-shadow: none !important;
+}
+/* barra di avanzamento sottile 6px arrotondata */
+#ferie-pool-list div[style*="height:5px"],
+#ferie-pool-list div[style*="height: 5px"]{
+  height: 6px !important;
+  border-radius: 999px !important;
+  overflow: hidden;
+}
+/* pulsante cestino minimale rosso iOS */
+#ferie-pool-list button{
+  background: rgba(255, 59, 48, 0.12) !important;
+  border: 1px solid rgba(255, 59, 48, 0.22) !important;
+  color: var(--ios-red) !important;
+  border-radius: 10px !important;
+}
+/* Pulsanti rapidi ferie */
+#sec-ferie button[onclick*="apriAggiungiAnno"],
+#sec-ferie button[onclick*="apriScalaManuale"]{
+  background: var(--ios-accent) !important;
+  color: #fff !important;
+  border: 0 !important;
+  border-radius: 14px !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.32) !important;
+}
+#sec-ferie button[onclick*="apriScalaManuale"]{
+  background: rgba(0, 122, 255, 0.12) !important;
+  color: var(--ios-accent) !important;
+}
+/* Studio / salvadanaio: widget con progress */
+#studio-card, .salv-card, .salv-dash{
+  background: var(--ios-card-bg) !important;
+  border: 0.5px solid var(--ios-sep) !important;
+  border-radius: var(--ios-card-r) !important;
+  box-shadow: none !important;
+}
+#studio-rimanenti{ font-size: 28px !important; font-weight: 800 !important; letter-spacing: -0.6px; font-variant-numeric: tabular-nums; }
+.salv-badge.ok{ background: rgba(52, 199, 89, .16) !important; color: var(--ios-green) !important; }
+.salv-badge.warn{ background: rgba(255, 149, 0, .16) !important; color: var(--ios-orange) !important; }
+
+/* ── 28.6 · COMANDO (iOS Settings/Home) ──────────────────────────────── */
+#pag-comando .m3-list-group{ background: var(--ios-card-bg) !important; }
+#pag-comando .m3-row{ background: var(--ios-card-bg) !important; }
+#pag-comando .btn-d{ background: var(--ios-red) !important; border-radius: 14px !important; }
+#pag-comando .btn-p{ background: var(--ios-accent) !important; border-radius: 14px !important; }
+/* KPI header (se presenti tile/badge) */
+#pag-comando .m3-row-sub{ color: var(--ios-label2) !important; }
+
+/* ── 28.7 · Rifiniture globali iOS 27 ───────────────────────────────── */
+/* Chevron/liste: colore iOS e peso coerente */
+.m3-row-right{ font-weight: 600 !important; }
+/* Barra di avanzamento generica (turni/studio/salvadanaio) arrotondata */
+.wstr-bar-wrap{ border-radius: 999px !important; overflow: hidden; }
+.wstr-bar-fill{ border-radius: 999px !important; }
+/* Scrollbar discreta */
+#sheet-giorno > div::-webkit-scrollbar{ width: 0; }
+
+/* ── 28.8 · Override di specificità (sheet/modali) ───────────────────── */
+body #sheet-giorno #mg-turno,
+body #mg-turno,
+body .ios-platter{
+  border-radius: 18px !important;
+}
+body #m-turno .fg, body #m-mod-turno .fg, body #m-todo .fg,
+body #m-agenda .fg, body #m-straord .fg, body #m-chiusura-straord .fg,
+body .modal .mbox .fg{
+  border-radius: 16px !important;
+  background: var(--ios-card-bg) !important;
+  padding: 10px 14px !important;
+}
+
+/* ── 28.9 · Sheet giorno: rimozione della data duplicata ───────────────
+   Il vecchio render scrive la data in #mg-tit; ora la fornisce l'header iOS
+   (§28.1). L'elemento resta nel DOM (app.js lo aggiorna) ma non si vede. */
+#sheet-giorno #mg-tit{ display: none !important; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   §29 · Fix chirurgici iOS 27 — vista giorno integrata, modal sheets,
+   avatar picker, bottom nav con FAB integrato.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── 29.1 · Modal Sheets nativi (86vh, 36px, nav bar interna) ─────────── */
+#m-turno .mbox,
+#m-mod-turno .mbox,
+#m-todo .mbox,
+#m-agenda .mbox,
+#m-straord .mbox{
+  height: 86vh !important;
+  max-height: 86vh !important;
+  border-radius: 36px 36px 0 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+#m-turno .mbox > .mbod,
+#m-mod-turno .mbox > .mbod,
+#m-todo .mbox > .mbod,
+#m-agenda .mbox > .mbod,
+#m-straord .mbox > .mbod{
+  flex: 1 1 auto !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+/* Navigation bar: Annulla (accento) · Titolo · Salva (pillola) */
+.modal .mhd .ios-nav-cancel{
+  border: 0; background: none; padding: 4px 2px;
+  color: var(--ios-accent); font-size: 16px; font-weight: 600;
+  cursor: pointer; appearance: none; -webkit-appearance: none;
+}
+.modal .mhd .ios-nav-save{
+  border: 0; border-radius: 999px; padding: 7px 15px;
+  background: var(--ios-accent); color: #fff;
+  font-size: 14px; font-weight: 700; cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.32);
+  appearance: none; -webkit-appearance: none;
+}
+.modal .mhd .ios-nav-save:active{ transform: scale(.96); }
+/* Nei fogli con Annulla la ✕ è ridondante */
+#m-turno .mhd .mcl,
+#m-mod-turno .mhd .mcl,
+#m-todo .mhd .mcl,
+#m-agenda .mhd .mcl,
+#m-straord .mhd .mcl{ display: none !important; }
+
+/* ── 29.2 · Avatar picker (Apple Memoji) — griglia pulita ─────────────── */
+#ava-picker-m3-pf, .avm3-picker, .avm3-picker *{ float: none !important; }
+.avm3-grid-wrap{ float: none !important; }
+/* 4 medaglioni per riga, 64px, centrati */
+.avm3-grid{
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  justify-items: center !important;
+  align-items: center !important;
+  gap: 12px !important;
+  float: none !important;
+  clear: both;
+}
+.avm3-item{
+  width: 64px !important;
+  height: 64px !important;
+  max-width: 100%;
+  margin: 0 auto !important;
+  float: none !important;
+  border: 0 !important;                 /* l'anello lo fa il box-shadow */
+  border-radius: 50% !important;
+  overflow: hidden !important;
+  background: var(--ios-card-elevated) !important;
+  box-shadow: inset 0 0 0 1px var(--ios-sep) !important;
+  display: block !important;
+}
+.avm3-item .avm3-img-wrap,
+.avm3-item img{ border-radius: 50% !important; width: 100%; height: 100%; object-fit: cover; display: block; }
+/* Selezionato: anello blu iOS 2.5px con stacco 2px */
+.avm3-item.selected{
+  box-shadow: 0 0 0 2px var(--ios-grouped-bg),
+              0 0 0 4.5px var(--ios-accent) !important;
+  border: 0 !important;
+  transform: none !important;
+}
+/* Spunta in basso a destra */
+.avm3-item .avm3-check,
+.avm3-check{
+  position: absolute !important;
+  right: -2px !important; bottom: -2px !important;
+  width: 20px !important; height: 20px !important;
+  border-radius: 50% !important;
+  background: var(--ios-accent) !important;
+  color: #fff !important;
+  font-size: 11px !important; font-weight: 900 !important;
+  display: flex !important; align-items: center !important; justify-content: center !important;
+  box-shadow: 0 0 0 2px var(--ios-card-bg) !important;
+  z-index: 2;
+}
+/* Segmented categorie (Truppa / Ufficiali / Forestali) senza sbavature */
+.avm3-chips, .avm3-gender-chips{
+  display: flex !important;
+  gap: 2px !important;
+  padding: 3px !important;
+  border-radius: 999px !important;
+  background: rgba(120,120,128,.16) !important;
+  border: 0.5px solid var(--ios-sep) !important;
+  overflow: hidden !important;
+  scrollbar-width: none;
+}
+.avm3-chip, .avm3-gender-chip{
+  flex: 1 1 auto !important;
+  min-height: 32px;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: transparent !important;
+  color: var(--txt2) !important;
+  font-size: 12px !important; font-weight: 600 !important;
+  white-space: nowrap;
+  box-shadow: none !important;
+  padding: 0 10px !important;
+}
+.avm3-chip.active, .avm3-gender-chip.active{
+  background: var(--ios-card-bg) !important;
+  color: var(--txt) !important;
+  font-weight: 700 !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,.22) !important;
+}
+.avm3-chip-count, .avm3-gender-count{ opacity: .6; font-size: 10px; }
+
+/* ── 29.3 · Bottom nav: capsula unica + FAB integrato ─────────────────── */
+.nav-fab-slot{
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  align-self: center !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+#btn-nav-add.nav-fab{
+  width: 46px !important;
+  height: 46px !important;
+  min-width: 46px !important;
+  border-radius: 9999px !important;
+  border: 0 !important;
+  margin: 0 !important;
+  transform: none !important;
+  background: var(--ios-accent) !important;
+  color: #fff !important;
+  font-size: 20px !important;
+  line-height: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.38),
+              0 6px 16px rgba(0,0,0,.30) !important;
+}
+#btn-nav-add.nav-fab:active{ transform: scale(.94) !important; }
+
+/* ── 29.4 · FAB: override di specificità (regole legacy più forti) ────── */
+#bottom-nav .bn-items .nav-fab-slot,
+#bottom-nav.bottom-bar .bn-items .nav-fab-slot{
+  width: auto !important;
+  min-width: 46px !important;
+  margin-top: 0 !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+#bottom-nav.bottom-bar #btn-nav-add.nav-fab,
+nav#bottom-nav.bottom-bar #btn-nav-add.nav-fab,
+#bottom-nav .bn-items #btn-nav-add.nav-fab,
+#bottom-nav #btn-nav-add.nav-fab,
+#btn-nav-add.nav-fab{
+  width: 46px !important;
+  height: 46px !important;
+  min-width: 46px !important;
+  max-width: 46px !important;
+  border-radius: 9999px !important;
+  border: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+  background: var(--ios-accent) !important;
+  color: #fff !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.38), 0 6px 16px rgba(0,0,0,.30) !important;
+}
+
+/* ── 29.5 · Avatar: dimensione medaglione 64px (override specificità) ─── */
+#ava-picker-m3-pf .avm3-grid .avm3-item,
+#m-profilo .avm3-grid .avm3-item,
+.avm3-picker .avm3-grid .avm3-item{
+  width: 64px !important;
+  height: 64px !important;
+  min-width: 64px !important;
+  max-width: 64px !important;
+  margin: 0 auto !important;
+  border-radius: 50% !important;
+  border: 0 !important;
+}
+#ava-picker-m3-pf .avm3-grid,
+#m-profilo .avm3-grid{
+  grid-template-columns: repeat(4, 64px) !important;
+  justify-content: space-around !important;
+}
+#ava-picker-m3-pf .avm3-grid .avm3-item.selected,
+#m-profilo .avm3-grid .avm3-item.selected{
+  box-shadow: 0 0 0 2px var(--ios-grouped-bg), 0 0 0 4.5px var(--ios-accent) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   §30 · Fix UI: griglia avatar, widget iOS 27, top bar nativa.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── 30.1 · Avatar grid (Apple Memoji Studio) — valori di specifica ───── */
+.avm3-grid{
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 12px !important;
+  padding: 12px 0 !important;
+  justify-items: center !important;
+  align-items: center !important;
+  float: none !important;
+}
+.avm3-item{
+  width: 64px !important;
+  height: 64px !important;
+  border-radius: 50% !important;
+  overflow: hidden !important;
+  margin: 0 auto !important;
+  background: var(--ios-card-elevated) !important;
+  border: 1.5px solid var(--ios-sep) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: all .2s ease !important;
+  padding: 0 !important;
+  float: none !important;
+}
+.avm3-item .avm3-img-wrap,
+.avm3-img-wrap{
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 50% !important;
+  overflow: hidden !important;
+  display: block !important;
+}
+.avm3-img-wrap img,
+.avm3-item img{
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+.avm3-item.selected{
+  border-color: transparent !important;
+  box-shadow: 0 0 0 2px var(--ios-card-bg), 0 0 0 4.5px #007AFF !important;
+}
+/* high-DPI / schermi stretti: 3 colonne se il contenitore è piccolo */
+@media (max-width: 360px){
+  .avm3-grid{ grid-template-columns: repeat(3, 1fr) !important; }
+}
+
+/* ── 30.2 · Widget Dashboard (Apple Widgets iOS 27) ──────────────────── */
+#wdg-container .wdg-wrap,
+#wdg-container .m3-card,
+#widget-oggi{
+  border-radius: 22px !important;
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(24px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(190%) !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.20), var(--glass-shadow) !important;
+  overflow: hidden !important;
+}
+/* Tipografia widget: etichetta compatta maiuscola + dati tabulari */
+.wdg-lbl, .wdg-hdr > span:first-child{
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  color: var(--txt2) !important;
+}
+.wdg-body, .wdg-val, .wdg-num{
+  font-variant-numeric: tabular-nums;
+}
+.wdg-body{ padding: 12px 14px 14px !important; }
+.wdg-hdr{ margin-bottom: 8px; }
+.wdg-mv-btn{
+  border-radius: 8px !important;
+  background: rgba(120, 120, 128, 0.16) !important;
+  border: 0 !important;
+  color: var(--txt2) !important;
+}
+
+/* ── 30.3 · Top bar C-TURNI nativa iOS 27 ────────────────────────────── */
+html body .hdr[class],
+html .hdr{
+  height: 56px !important;
+  min-height: 56px !important;
+  max-height: 56px !important;
+  background: var(--glass-bg-elevated) !important;
+  backdrop-filter: blur(26px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(26px) saturate(190%) !important;
+  border-bottom: 0.5px solid var(--ios-sep) !important;
+  box-shadow: none !important;
+}
+.hdr .logo, .hdr .logo span{
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif !important;
+  font-weight: 800 !important;
+  font-size: 19px !important;
+  letter-spacing: -0.5px !important;
+}
+/* Gruppo pulsanti destra = unica Control Pill */
+.hdr .hdr-r{
+  border-radius: 999px !important;
+  background: var(--glass-bg-subtle) !important;
+  border: 1px solid var(--glass-border-subtle) !important;
+  padding: 3px !important;
+  gap: 2px !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+}
+.hdr .hdr-r .bico{
+  border-radius: 50% !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* ── 30.4 · Override di specificità (avatar grid + blur widget) ───────── */
+html body #ava-picker-m3-pf .avm3-grid,
+html body .avm3-picker .avm3-grid,
+html body #m-profilo .avm3-grid,
+#imp-profilo-body .avm3-grid{
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 12px !important;
+  justify-items: center !important;
+}
+@media (max-width: 360px){
+  html body #ava-picker-m3-pf .avm3-grid,
+  html body #m-profilo .avm3-grid{
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+html body #pg-app .wdg-wrap,
+html body #pg-app .wdg-wrap .m3-card,
+html body #wdg-container .wdg-wrap{
+  backdrop-filter: blur(24px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(190%) !important;
+}
+/* durante il drag resta spento (FPS) */
+html body #pg-app .wdg-wrap.dragging,
+html body #pg-app .wdg-wrap.dragging-active,
+html body #pg-app .wdg-wrap.drag-over{
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ── 30.5 · Widget: selettore per data-wid (match garantito) ─────────── */
+html body [data-wid]{
+  border-radius: 22px !important;
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(24px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(190%) !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.20), var(--glass-shadow) !important;
+  overflow: hidden !important;
+}
+html body [data-wid].dragging,
+html body [data-wid].dragging-active,
+html body [data-wid].drag-over{
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ── 30.6 · Widget blur: selettore massima specificità ───────────────── */
+html body #pg-app [data-wid][class],
+html body #pg-app .wdg-wrap[class]{
+  backdrop-filter: blur(24px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(190%) !important;
+}
+
+/* ── 30.7 · Avatar picker a tutta larghezza (era schiacciato a 110px) ── */
+/* La form del profilo usa una griglia label(110px)/valore: il picker deve
+   occupare TUTTE le colonne, altrimenti i medaglioni da 64px traboccano. */
+#imp-profilo-body .fg:has(.avm3-picker),
+#m-profilo .fg:has(.avm3-picker){
+  display: block !important;
+}
+#imp-profilo-body .avm3-picker,
+#m-profilo .avm3-picker,
+.avm3-picker{
+  grid-column: 1 / -1 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+#imp-profilo-body .avm3-grid,
+.avm3-picker .avm3-grid{
+  width: 100% !important;
+  max-width: 100% !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+  padding: 12px 0 !important;
+  justify-items: center !important;
+}
+
+/* ── 30.7 · Avatar picker a tutta larghezza (era schiacciato a 110px) ── */
+/* La form del profilo usa una griglia label(110px)/valore: il picker deve
+   occupare TUTTE le colonne, altrimenti i medaglioni da 64px traboccano. */
+#imp-profilo-body .fg:has(.avm3-picker),
+#m-profilo .fg:has(.avm3-picker){
+  display: block !important;
+}
+#imp-profilo-body .avm3-picker,
+#m-profilo .avm3-picker,
+.avm3-picker{
+  grid-column: 1 / -1 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+#imp-profilo-body .avm3-grid,
+.avm3-picker .avm3-grid{
+  width: 100% !important;
+  max-width: 100% !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+  padding: 12px 0 !important;
+  justify-items: center !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   §31 · iOS 27 — Dashboard (Apple Widgets), Contatti, Report (Health),
+   Comando (Action Banners). Restyling visivo sui componenti esistenti:
+   nessun id, listener o calcolo toccato.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── 31.1 · Dashboard: header saluto + identità ──────────────────────── */
+#hero-greeting-sub{
+  font-size: 13px !important; font-weight: 500 !important;
+  color: var(--txt2) !important; letter-spacing: 0 !important; text-transform: none !important;
+}
+#hero-greeting-name{
+  font-size: 24px !important; font-weight: 800 !important;
+  letter-spacing: -0.6px !important; line-height: 1.15 !important; color: var(--txt) !important;
+}
+#hero-user-ava{
+  width: 46px !important; height: 46px !important; border-radius: 50% !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.28) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+  overflow: hidden !important;
+}
+#hero-grade-badge{
+  border-radius: 999px !important;
+  background: var(--glass-bg-subtle) !important;
+  border: 1px solid var(--glass-border-subtle) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+  padding: 2px 8px !important;
+}
+#hero-grade-img{ max-height: 18px !important; width: auto !important; }
+
+/* ── 31.2 · Hero widget "Turno di oggi" ─────────────────────────────── */
+#hero-card, .hero-card{
+  border-radius: 26px !important;
+  backdrop-filter: blur(26px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(26px) saturate(190%) !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32), var(--glass-shadow) !important;
+  overflow: hidden !important;
+}
+.hero-sigla{
+  font-size: 34px !important; font-weight: 900 !important;
+  letter-spacing: -0.8px !important; font-variant-numeric: tabular-nums;
+}
+.hero-orario{
+  font-variant-numeric: tabular-nums;
+  font-weight: 700 !important; letter-spacing: -0.2px !important;
+}
+.hero-tonal-circle{ filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.25)); }
+.hero-tonal-ico{ font-size: 26px !important; }
+
+/* ── 31.3 · Widget affiancati e squadra ──────────────────────────────── */
+#wdg-container [data-wid]{ border-radius: 24px !important; }
+.wdg-body [class*="avatar"], .wdg-body [class*="ava-"], .wdg-body img{ border-radius: 50% !important; }
+.wstr-bar-wrap{ height: 8px !important; }
+
+/* ── 31.4 · Rubrica (Apple Contatti) su #pag-pers / #pag-membri ──────── */
+#pag-pers table, #pag-membri table{
+  border-collapse: separate !important; border-spacing: 0 !important;
+  width: 100% !important; background: var(--ios-card-bg) !important;
+  border: 0.5px solid var(--ios-sep) !important; border-radius: 18px !important;
+  overflow: hidden !important;
+}
+#pag-pers thead th, #pag-membri thead th{
+  background: var(--ios-card-elevated) !important;
+  border-bottom: 0.5px solid var(--ios-sep) !important;
+  font-size: 11px !important; font-weight: 700 !important; letter-spacing: .5px !important;
+  color: var(--txt2) !important; text-transform: uppercase !important; padding: 10px 12px !important;
+}
+#pag-pers tbody td, #pag-membri tbody td{
+  border-bottom: 0.5px solid var(--ios-sep) !important;
+  padding: 11px 12px !important; font-size: 13px !important; color: var(--txt) !important;
+  background: transparent !important;
+}
+#pag-pers tbody tr:last-child td, #pag-membri tbody tr:last-child td{ border-bottom: 0 !important; }
+#pag-pers tbody tr:active td, #pag-membri tbody tr:active td{
+  background: color-mix(in srgb, var(--ios-card-bg) 90%, var(--txt) 10%) !important;
+}
+#pag-pers tbody td img, #pag-membri tbody td img{
+  width: 40px !important; height: 40px !important; border-radius: 50% !important;
+  object-fit: cover !important; box-shadow: inset 0 0 0 1px var(--ios-sep) !important;
+}
+#pag-pers tbody button, #pag-membri tbody button{
+  border-radius: 999px !important; background: var(--glass-bg-subtle) !important;
+  border: 0.5px solid var(--glass-border-subtle) !important;
+  color: var(--ios-accent) !important; font-size: 11.5px !important;
+  font-weight: 600 !important; padding: 5px 10px !important;
+}
+
+/* ── 31.5 · Report (Apple Health/Fitness) ────────────────────────────── */
+.rep-tabs, #rep-tabs{
+  display: flex !important; gap: 2px !important; padding: 3px !important;
+  border-radius: 999px !important;
+  background: rgba(120, 120, 128, 0.16) !important;
+  border: 0.5px solid var(--ios-sep) !important;
+  margin-bottom: 14px !important;
+}
+.rep-tab{
+  flex: 1 !important; border: 0 !important; border-radius: 999px !important;
+  background: transparent !important; color: var(--txt2) !important;
+  font-size: 13px !important; font-weight: 600 !important; min-height: 32px;
+}
+.rep-tab.active{
+  background: var(--ios-card-bg) !important; color: var(--txt) !important;
+  font-weight: 700 !important; box-shadow: 0 1px 3px rgba(0,0,0,.22) !important;
+}
+.rep-count-card{
+  border-radius: 18px !important; padding: 14px !important;
+  background: var(--ios-card-bg) !important;
+  border: 0.5px solid var(--ios-sep) !important; box-shadow: none !important;
+}
+.rep-count-card div[style*="font-size:22px"],
+.rep-count-card div[style*="font-size: 22px"]{
+  font-size: 26px !important; font-weight: 800 !important;
+  letter-spacing: -0.5px !important; font-variant-numeric: tabular-nums;
+}
+#pag-rep .m3-list-group{ border-radius: 18px !important; }
+#pag-rep button{ border-radius: 14px !important; }
+
+/* ── 31.6 · Comando (Interactive Action Banners) ─────────────────────── */
+#pag-comando .m3-list-group{ border-radius: 18px !important; overflow: hidden; }
+#pag-comando .m3-row{ background: var(--ios-card-bg) !important; }
+#pag-comando .ct-req, #pag-comando .richiesta-card, #ct-wrap > div{
+  border-radius: 22px !important;
+  background: var(--ios-card-bg) !important;
+  border: 0.5px solid var(--ios-sep) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+  padding: 14px 16px !important; margin-bottom: 10px !important;
+}
+#pag-comando button[onclick*="Accetta"], #pag-comando button[onclick*="approva"],
+#pag-comando .btn-p{
+  background: var(--ios-green) !important; color: #fff !important; border: 0 !important;
+  border-radius: 999px !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.30) !important; font-weight: 700 !important;
+}
+#pag-comando button[onclick*="Rifiuta"], #pag-comando button[onclick*="rifiuta"],
+#pag-comando .btn-d{
+  background: rgba(255, 59, 48, 0.14) !important; color: var(--ios-red) !important;
+  border: 0.5px solid rgba(255, 59, 48, 0.28) !important;
+  border-radius: 999px !important; font-weight: 700 !important;
+}
+#pag-comando button:active{ transform: scale(0.96) !important; }
+#pag-comando .urgente, #pag-comando [class*="urgent"]{
+  background: rgba(255, 59, 48, 0.16) !important; color: var(--ios-red) !important;
+  border-radius: 999px !important; font-weight: 800 !important;
+  font-size: 10px !important; letter-spacing: .5px; padding: 2px 8px !important;
+}
+
+/* ── 31.7 · Bacheca banner in Dashboard (Live Activity) ──────────────── */
+#pag-dash .ag-hero-avvisi, #pag-dash [id*="avvisi"]{
+  border-radius: 22px !important;
+  background: linear-gradient(180deg, rgba(255, 149, 0, 0.16), rgba(255, 59, 48, 0.10)) !important;
+  border: 0.5px solid rgba(255, 149, 0, 0.32) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+}
+
+/* ── 31.8 · Comando & Report: override di specificità (inline/legacy) ─── */
+#pg-comando-wrap > div{
+  border-radius: 22px !important;
+  border: 0.5px solid var(--ios-sep) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+  margin-bottom: 10px !important;
+  padding: 14px 16px !important;
+}
+#pg-comando-wrap button{
+  border-radius: 999px !important;
+  font-weight: 700 !important;
+}
+#pg-comando-wrap button:active{ transform: scale(0.96) !important; }
+
+#rep-tabs .rep-tab{
+  border-radius: 999px !important;
+  min-height: 32px;
+}
+#rep-tabs .rep-tab.active{
+  border-radius: 999px !important;
+  background: var(--ios-card-bg) !important;
+  color: var(--txt) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,.22) !important;
+}
+#rep-tab-turni .rep-count-card,
+#rep-tab-straord .rep-count-card{
+  border-radius: 18px !important;
+  background: var(--ios-card-bg) !important;
+  border: 0.5px solid var(--ios-sep) !important;
+  padding: 14px !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   §32 · Sezione Aspetto iOS 27 (nav bar Annulla/Salva), card tema
+   verticali, calendario senza "+" sul giorno.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── 32.1 · Navigation bar della sezione Aspetto ─────────────────────── */
+.ios-sec-head{
+  position: sticky; top: 0; z-index: 4;
+  display: flex; align-items: center; gap: 8px;
+  margin: -16px -16px 12px !important;          /* annulla il padding di .imp-sub */
+  padding: 10px 16px !important;
+  background: var(--glass-bg-elevated);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border-bottom: 0.5px solid var(--ios-sep);
+}
+.ios-sec-cancel{
+  border: 0; background: none; padding: 4px 2px;
+  color: var(--ios-accent); font-size: 16px; font-weight: 500;
+  cursor: pointer; appearance: none; -webkit-appearance: none;
+}
+.ios-sec-title{
+  flex: 1; text-align: center;
+  font-size: 17px; font-weight: 700; letter-spacing: -0.3px; color: var(--txt);
+}
+.ios-sec-save{
+  border: 0; background: none; padding: 4px 2px;
+  color: var(--ios-accent); font-size: 16px; font-weight: 700;
+  cursor: pointer; appearance: none; -webkit-appearance: none;
+}
+.ios-sec-save:active{ transform: scale(.94); }
+
+/* ── 32.2 · Card tema: anteprima verticale iOS Wallpaper ─────────────── */
+.tema-card-big{
+  border-radius: 20px !important;
+  padding: 14px !important;
+  min-height: 112px !important;
+  justify-content: flex-end !important;
+}
+.tema-card-big::before{
+  top: 14px !important; left: 14px !important; right: 14px !important;
+  height: 54px !important; border-radius: 12px !important;
+}
+.tema-card-big.sel{
+  border: 2px solid var(--ios-accent) !important;
+  box-shadow: 0 0 0 1px var(--ios-accent), 0 8px 20px rgba(0, 0, 0, 0.28) !important;
+}
+.tema-card-big .tcb-check{
+  display: none !important;
+  right: 10px !important; top: 10px !important;
+}
+.tema-card-big.sel .tcb-check{ display: flex !important; }
+
+/* ── 32.3 · Comportamento tema: segmented pulito senza box grigio ────── */
+#tema-comp-btns{
+  background: rgba(120, 120, 128, 0.16) !important;
+  border: 0.5px solid var(--ios-sep) !important;
+  border-radius: 999px !important;
+  padding: 3px !important;
+  gap: 2px !important;
+}
+#tema-comp-btns .tema-comp-btn{
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+#tema-comp-btns .tema-comp-btn.on{
+  background: var(--ios-card-bg) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22) !important;
+}

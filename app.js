@@ -3079,13 +3079,13 @@ function salvaFerie(){
 
 // ---- WIDGET TURNO OGGI ----
 var _tipoIco={
-  mattina:"🌅",pomeriggio:"☀️",ml:"🌄",pl:"🌞",
+  mattina:"🌅",pomeriggio:"☀️",ml:"🌄",pl:"🌤️",
   notte:"🌙",sera:"🌆",
-  riposo:"🛋️",recupero:"♻️",
-  ferie:"🏖️",licenza:"📚",studio:"🎓","937":"🏝️",
-  "104":"♿",ls:"🩸",
-  permesso:"📋",studio:"🎓",fest:"🎉",
-  corso:"🎓",esame:"📝"
+  riposo:"🛋️",recupero:"♻️",recuperoOre:"⏱️",
+  ferie:"🏖️",licenza:"📚",studio:"🎓","937":"🗓️",
+  "104":"🛡️",ls:"⚕️",
+  permesso:"📋",fest:"🎉",
+  corso:"🏛️",esame:"📝"
 };
 var _tipoBg={
   mattina:"linear-gradient(135deg,#e65100 0%,#bf360c 100%)",
@@ -3140,11 +3140,11 @@ var _TIPO_COLOR = {
 };
 // Emoji condivise per ogni tipologia di turno
 var _TIPO_ICO_EXT = {
-  mattina:'\uD83C\uDF05', ml:'\uD83C\uDF04', pomeriggio:'\u2600\uFE0F', pl:'\uD83C\uDF1E',
+  mattina:'\uD83C\uDF05', ml:'\uD83C\uDF04', pomeriggio:'\u2600\uFE0F', pl:'\uD83C\uDF24\uFE0F',
   notte:'\uD83C\uDF19', sera:'\uD83C\uDF06', riposo:'\uD83D\uDECB\uFE0F', recupero:'\u267B\uFE0F',
-  ferie:'\uD83C\uDFD6\uFE0F', licenza:'\uD83D\uDCDA', studio:'\uD83C\uDF93', '937':'\uD83C\uDFDD\uFE0F',
-  '104':'\u267F', ls:'\uD83E\uDE78', permesso:'\uD83D\uDCCB', fest:'\uD83C\uDF89',
-  corso:'\uD83C\uDF93', esame:'\uD83D\uDCDD', recuperoOre:'\uD83D\uDD04', custom:'\u2699\uFE0F'
+  ferie:'\uD83C\uDFD6\uFE0F', licenza:'\uD83D\uDCDA', studio:'\uD83C\uDF93', '937':'\uD83D\uDDD3\uFE0F',
+  '104':'\uD83D\uDEE1\uFE0F', ls:'\u2695\uFE0F', permesso:'\uD83D\uDCCB', fest:'\uD83C\uDF89',
+  corso:'\uD83C\uDFDB\uFE0F', esame:'\uD83D\uDCDD', recuperoOre:'\u23F1\uFE0F', custom:'\u2699\uFE0F'
 };
 // Determina il tipo canonico di un turno (recupero-ore, codice esatto, altrimenti campo tipo)
 function _tipoEffettivoTurno(t){
@@ -3629,10 +3629,10 @@ var _TURNO_ATMOSFERA = {
   obbm:'alba', obbp:'tramonto'
 };
 var _TURNO_ICO_HERO = {
-  mattina:'🌅', ml:'🌄', pomeriggio:'☀️', pl:'🌞',
+  mattina:'🌅', ml:'🌄', pomeriggio:'☀️', pl:'🌤️',
   notte:'🌙', sera:'🌆', riposo:'🛋️', recupero:'♻️',
-  ferie:'🏖️', '937':'🏝️', '104':'♿', ls:'🩸',
-    licenza:'📚', studio:'🎓', permesso:'📋', fest:'🎉', corso:'🎓', esame:'📝',
+  ferie:'🏖️', '937':'🗓️', '104':'🛡️', ls:'⚕️',
+    licenza:'📚', studio:'🎓', permesso:'📋', fest:'🎉', corso:'🏛️', esame:'📝', recuperoOre:'⏱️',
   obbm:'🔶', obbp:'🔷'
 };
 var _TURNO_SIGLA = {
@@ -3700,7 +3700,7 @@ function aggiornaHeroCard(){
   }
 
   // Icona e sigla
-  var ico = _TURNO_ICO_HERO[tipo] || '🗑️';
+  var ico = _TURNO_ICO_HERO[tipo] || '🛋️';
   var sigla = (mioTurno && mioTurno.codice) ? mioTurno.codice : (_TURNO_SIGLA[tipo] || tipo.toUpperCase());
   var orario = (mioTurno && mioTurno.orario) ? mioTurno.orario : 'Nessun turno';
 
@@ -5563,7 +5563,31 @@ function _aggiornaBentoAg() {
 }
 
 // Render agenda nella pagina dedicata (pag-ag)
+/* §27 — Bento tiles iOS 27 (stile Apple Reminders) */
+function _agIOSTiles(){
+  var box = document.getElementById('ag-ios-tiles');
+  if(!box) return;
+  var oggi = new Date().toISOString().slice(0,10);
+  var AG = lsG('ct_ag', []).filter(function(a){ return a && a.data >= oggi; });
+  var TD = lsG('ct_td', []).filter(function(t){ return t && !t.done && !t.completato; });
+  var AV = (typeof _bachecaCarica === 'function' ? _bachecaCarica() : lsG('ct_bacheca', [])) || [];
+  var alta = TD.filter(function(t){ return t && t.prio === 'alta'; }).length;
+  var tiles = [
+    { ico: '📅', col: 'var(--ios-accent)', n: AG.length, lbl: 'Appuntamenti' },
+    { ico: '✅', col: 'var(--ios-orange)', n: TD.length, lbl: 'Compiti' },
+    { ico: '🚨', col: 'var(--ios-red)',    n: alta,      lbl: 'Alta priorità' },
+    { ico: '📢', col: 'var(--ios-indigo)', n: AV.length, lbl: 'Avvisi' }
+  ];
+  box.innerHTML = tiles.map(function(t){
+    return '<div class="ios-tile">'
+      + '<div class="ios-tile-ico" style="background:' + t.col + '">' + t.ico + '</div>'
+      + '<div class="ios-tile-body"><div class="ios-tile-num">' + t.n + '</div>'
+      + '<div class="ios-tile-lbl">' + t.lbl + '</div></div></div>';
+  }).join('');
+}
+
 function renderAgendaPg(filtro) {
+  if(typeof _agIOSTiles === 'function'){ try { _agIOSTiles(); } catch(e){} }
   var el  = document.getElementById('agenda-list-pg');
   var el2 = document.getElementById('agenda-condivisa-list-pg');
   var w2  = document.getElementById('agenda-condivisa-wrap-pg');
@@ -8696,6 +8720,213 @@ function renderCal(){
   try { _renderCalInterno(); }
   catch(e){ console.warn('renderCal:', e && e.message); }
 }
+/* ══ §27 · CALENDARIO iOS 27 — segmented views + pannello giorno ════════ */
+var _calView = 'mese';   // 'mese' | 'settimana' | 'elenco'
+
+/* §29 — Selezione giorno INTEGRATA: aggiorna griglia + pannello sotto,
+   senza aprire il bottom sheet flottante (comportamento Calendario iOS). */
+function calSelGiorno(ds){
+  if(!ds) return;
+  var p = String(ds).split('-');
+  var y = parseInt(p[0], 10), m = parseInt(p[1], 10);
+  if(!isNaN(y)) cYR = y;
+  if(!isNaN(m)) cMO = m - 1;
+  _calSel = ds;
+  renderCal();
+  setTimeout(function(){
+    var det = document.querySelector('.cal-detail');
+    if(det && det.scrollIntoView){ try { det.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch(e){} }
+  }, 60);
+  if(navigator.vibrate) navigator.vibrate(6);
+}
+
+function _calSetView(v){
+  _calView = (v === 'settimana' || v === 'elenco') ? v : 'mese';
+  renderCal();
+  if(navigator.vibrate) navigator.vibrate(6);
+}
+function calOggi(){
+  var n = new Date();
+  cYR = n.getFullYear(); cMO = n.getMonth();
+  _calSel = n.getFullYear() + '-' + pad(n.getMonth()+1) + '-' + pad(n.getDate());
+  renderCal();
+  if(navigator.vibrate) navigator.vibrate(6);
+}
+function _calIOSHeader(mN){
+  var h = '<div class="cal-ios-head">'
+    + '<button class="cal-nav-btn" onclick="prevMese()" aria-label="Mese precedente">‹</button>'
+    + '<button class="cal-nav-btn" onclick="nextMese()" aria-label="Mese successivo">›</button>'
+    + '<div style="flex:1;min-width:0"><div class="cal-ios-month">' + mN[cMO] + '</div>'
+    + '<div class="cal-ios-year">' + cYR + '</div></div>'
+    + '<button class="cal-today-btn" onclick="calOggi()">Oggi</button>'
+    + '</div>';
+  h += '<div class="cal-seg">'
+    + '<button class="' + (_calView === 'mese' ? 'on' : '') + '" onclick="_calSetView(\'mese\')">Mese</button>'
+    + '<button class="' + (_calView === 'settimana' ? 'on' : '') + '" onclick="_calSetView(\'settimana\')">Settimana</button>'
+    + '<button class="' + (_calView === 'elenco' ? 'on' : '') + '" onclick="_calSetView(\'elenco\')">Elenco</button>'
+    + '</div>';
+  return h;
+}
+function _calTipoInfo(t){
+  var tipo = _tipoEffettivoTurno(t);
+  var label = (_TIPO_LABEL && _TIPO_LABEL[tipo]) || tipo;
+  var col = (_TIPO_COLOR && _TIPO_COLOR[tipo]) || 'var(--ios-accent)';
+  return { tipo: tipo, label: label, col: col };
+}
+function _calFascia(t){
+  var tipo = _tipoEffettivoTurno(t);
+  if(['riposo','ferie','licenza','permesso','studio','937','104','ls','fest'].indexOf(tipo) !== -1) return 'rip';
+  var o = String(t.orario || '').split('-')[0].trim();
+  var hh = parseInt(o.split(':')[0], 10);
+  if(isNaN(hh)) return (tipo === 'notte' || tipo === 'sera') ? 'notte' : 'matt';
+  if(hh >= 4 && hh < 14) return 'matt';
+  if(hh >= 14 && hh < 22) return 'pome';
+  return 'notte';
+}
+
+/* Pannello dettaglio del giorno selezionato (split-view iOS) */
+function _calIOSDetail(){
+  var ds = _calSel; if(!ds) return '';
+  var d = _parseDate(ds);
+  var gN = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+  var mN = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+  var me = lsG('ct_me', null);
+  var T = lsG('ct_t', []);
+  var P = lsG('ct_p', []);
+  var fest = (typeof getNomeFestivo === 'function') ? getNomeFestivo(ds) : null;
+
+  var h = '<div class="cal-detail">';
+  h += '<div class="cal-detail-head"><div>'
+    + '<div class="cal-detail-date">' + gN[d.getDay()] + ' ' + d.getDate() + ' ' + mN[d.getMonth()] + ' ' + d.getFullYear() + '</div>'
+    + (fest ? '<div class="cal-detail-fest">🎉 ' + fest + '</div>' : '')
+    + '</div><div class="cal-detail-actions">'
+    + '<button class="cal-pill" onclick="apriNuovoTurno(\'' + ds + '\')">+ Turno</button>'
+    + '<button class="cal-pill" onclick="mostraGiorno(\'' + ds + '\')">Dettaglio</button>'
+    + '<button class="cal-pill" onclick="condividiTurniWA()">Condividi</button>'
+    + '</div></div>';
+
+  // 1. Il mio turno
+  var mio = null;
+  for(var i = 0; i < T.length; i++){
+    if(T[i] && T[i].data === ds && _isMioTurnoStrict(T[i], me)){ mio = T[i]; break; }
+  }
+  h += '<div class="cal-card">';
+  if(mio){
+    var ti = _calTipoInfo(mio);
+    h += '<div class="cal-ev">'
+      + '<div class="cal-ev-bar" style="background:' + ti.col + '"></div>'
+      + '<div style="flex:1;min-width:0">'
+      + '<div class="cal-ev-title">' + ti.label + '</div>'
+      + '<div class="cal-ev-sub">' + (mio.orario || '') + (mio.codice ? ' · ' + mio.codice : '') + '</div>'
+      + '</div>'
+      + '<div class="cal-ev-acts">'
+      + '<button class="cal-ev-btn" onclick="apriModificaTurnoGiorno(' + mio.id + ')" title="Modifica">✎</button>'
+      + '<button class="cal-ev-btn" onclick="delT(' + mio.id + ')" title="Elimina">🗑</button>'
+      + '</div></div>';
+  } else {
+    h += '<div class="cal-detail-empty">Nessun tuo turno in questa data</div>';
+  }
+  h += '</div>';
+
+  // 2. Agenda del giorno
+  var AG = lsG('ct_ag', []).filter(function(a){ return a && a.data === ds; });
+  if(AG.length){
+    h += '<div class="cal-card">';
+    AG.forEach(function(a){
+      h += '<div class="cal-ev">'
+        + '<div class="cal-ev-bar" style="background:var(--ios-orange)"></div>'
+        + '<div style="flex:1;min-width:0"><div class="cal-ev-title">' + ctEsc(a.tit || '') + '</div>'
+        + '<div class="cal-ev-sub">' + (a.ora || '') + (a.luogo ? ' · ' + ctEsc(a.luogo) : '') + '</div></div></div>';
+    });
+    h += '</div>';
+  }
+
+  // 3. Colleghi in servizio raggruppati per fascia
+  var altri = T.filter(function(t){ return t && t.data === ds && !_isMioTurnoStrict(t, me); });
+  if(altri.length){
+    var gruppi = { matt: [], pome: [], notte: [], rip: [] };
+    altri.forEach(function(t){ gruppi[_calFascia(t)].push(t); });
+    var heads = { matt: '🌅 Mattina', pome: '☀️ Pomeriggio', notte: '🌙 Notte / Sera', rip: '🛋️ Riposo / Assenti' };
+    h += '<div class="cal-card">';
+    ['matt','pome','notte','rip'].forEach(function(k){
+      if(!gruppi[k].length) return;
+      h += '<div class="cal-grp-head">' + heads[k] + '</div>';
+      gruppi[k].forEach(function(t){
+        var p = null;
+        for(var j = 0; j < P.length; j++){ if(P[j] && String(P[j].id) === String(t.pid)){ p = P[j]; break; } }
+        var nome = p ? (p.nome || '') : (t.pnome || '');
+        var ti = _calTipoInfo(t);
+        var ini = (nome || '?').trim().charAt(0).toUpperCase();
+        h += '<div class="cal-list-row">'
+          + '<div class="cal-ava">' + ini + '</div>'
+          + '<div style="flex:1;min-width:0"><div class="cal-ev-title" style="font-size:13px">' + nome + '</div>'
+          + '<div class="cal-ev-sub">' + ti.label + (t.orario ? ' · ' + t.orario : '') + '</div></div>'
+          + '</div>';
+      });
+    });
+    h += '</div>';
+  }
+  h += '</div>';
+  return h;
+}
+
+/* Viste alternative: Settimana (striscia 7 giorni + elenco) ed Elenco mensile */
+function _calIOSAlt(mN){
+  var gN = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
+  var me = lsG('ct_me', null);
+  var T = lsG('ct_t', []);
+  var h = '';
+  if(_calView === 'settimana'){
+    var base = _parseDate(_calSel || (cYR + '-' + pad(cMO+1) + '-01'));
+    var lun = new Date(base); lun.setDate(base.getDate() - ((base.getDay() + 6) % 7));
+    var giorni = [];
+    var oggi = new Date();
+    var dsOggi = oggi.getFullYear() + '-' + pad(oggi.getMonth()+1) + '-' + pad(oggi.getDate());
+    h += '<div class="cal-week">';
+    for(var i = 0; i < 7; i++){
+      var dd = new Date(lun); dd.setDate(lun.getDate() + i);
+      var ds = dd.getFullYear() + '-' + pad(dd.getMonth()+1) + '-' + pad(dd.getDate());
+      giorni.push(ds);
+      h += '<div class="cal-week-day' + (ds === _calSel ? ' sel' : '') + (ds === dsOggi ? ' today' : '') + '" onclick="calSelGiorno(\'' + ds + '\')">'
+        + '<div class="wd">' + gN[i] + '</div><div class="wn">' + dd.getDate() + '</div></div>';
+    }
+    h += '</div><div class="cal-card">';
+    giorni.forEach(function(ds){
+      var t = null;
+      for(var k = 0; k < T.length; k++){ if(T[k] && T[k].data === ds && _isMioTurnoStrict(T[k], me)){ t = T[k]; break; } }
+      var d2 = _parseDate(ds);
+      h += '<div class="cal-list-row" onclick="calSelGiorno(\'' + ds + '\')" style="cursor:pointer">'
+        + '<div class="cal-ava">' + gN[(d2.getDay()+6)%7] + '</div>'
+        + '<div style="flex:1"><div class="cal-ev-title" style="font-size:13px">' + d2.getDate() + '/' + pad(d2.getMonth()+1) + '</div>'
+        + '<div class="cal-ev-sub">' + (t ? (_calTipoInfo(t).label + (t.orario ? ' · ' + t.orario : '')) : 'Nessun turno') + '</div></div>'
+        + '</div>';
+    });
+    h += '</div>';
+    return h;
+  }
+  var pref = cYR + '-' + pad(cMO+1);
+  var mese = T.filter(function(t){ return t && t.data && String(t.data).indexOf(pref) === 0; });
+  mese.sort(function(a,b){ return String(a.data).localeCompare(String(b.data)); });
+  var cur = '';
+  h += '<div class="cal-card">';
+  if(!mese.length) h += '<div class="cal-detail-empty">Nessun turno in questo mese</div>';
+  mese.forEach(function(t){
+    if(t.data !== cur){
+      cur = t.data;
+      var d3 = _parseDate(cur);
+      h += '<div class="cal-elenco-day">' + gN[(d3.getDay()+6)%7] + ' ' + d3.getDate() + ' ' + mN[d3.getMonth()] + '</div>';
+    }
+    var ti = _calTipoInfo(t);
+    var mio = _isMioTurnoStrict(t, me);
+    h += '<div class="cal-list-row" onclick="calSelGiorno(\'' + t.data + '\')" style="cursor:pointer">'
+      + '<div class="cal-ev-bar" style="background:' + ti.col + ';height:26px"></div>'
+      + '<div style="flex:1;min-width:0"><div class="cal-ev-title" style="font-size:13px">' + (mio ? 'Tu' : (t.pnome || '')) + ' · ' + ti.label + '</div>'
+      + '<div class="cal-ev-sub">' + (t.orario || '') + '</div></div></div>';
+  });
+  h += '</div>';
+  return h;
+}
+
 function _renderCalInterno(){
   var mN=["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno",
           "Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
@@ -8725,12 +8956,16 @@ function _renderCalInterno(){
   var ord=['mattina','ml','pomeriggio','pl','notte','riposo','ferie','licenza','studio','recupero','recuperoOre','permesso','corso'];
 
   var h="";
-  h+="<div style=\"background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:12px\">";
-  h+="<div style=\"padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between\">";
-  h+="<button class=\"btn btn-g btn-sm\" onclick=\"prevMese()\">‹</button>";
-  h+="<strong style=\"font-size:14px\">"+mN[cMO]+" "+cYR+"</strong>";
-  h+="<button class=\"btn btn-g btn-sm\" onclick=\"nextMese()\">›</button>";
-  h+="</div>";
+  /* §27 — header iOS 27 (mese/anno, frecce, Oggi) + segmented viste */
+  h += _calIOSHeader(mN);
+  if(_calView !== 'mese'){
+    h += _calIOSAlt(mN);
+    var _cw = document.getElementById("cal-wrap");
+    if(_cw) _cw.innerHTML = h;
+    if(typeof _renderMieRichieste === 'function') _renderMieRichieste();
+    return;
+  }
+  h+="<div style=\"background:transparent;overflow:hidden;margin-bottom:12px\">";
   h+="<div class=\"cal-grid\" style=\"background:var(--bg2);padding:6px 6px 0\">";
   gN.forEach(function(g){h+="<div style=\"text-align:center;font-size:9px;font-weight:700;color:var(--txt2);padding:2px\">"+g+"</div>";});
   h+="</div>";
@@ -8751,7 +8986,7 @@ function _renderCalInterno(){
       })||null;
     }
 
-    h+="<div class=\"cal-cell"+(isO?" today":"")+((ds===_calSel)?" sel":"")+"\" onclick=\"mostraGiorno('"+ds+"')\">";
+    h+="<div class=\"cal-cell"+(isO?" today":"")+((ds===_calSel)?" sel":"")+"\" onclick=\"calSelGiorno('"+ds+"')\">";
     h+="<div style=\"display:flex;align-items:center;justify-content:space-between\">";
     h+="<div class=\"cal-day-n\" style=\""+(isO?"color:var(--blue);font-weight:800":"")+"\">"+g+"</div>";
 
@@ -8774,7 +9009,6 @@ function _renderCalInterno(){
       h += '<span></span>'; // placeholder per mantenere il flex layout
     }
 
-    h+="<button type=\"button\" class=\"cal-add\" aria-label=\"Nuovo turno\" title=\"Nuovo turno\" onclick=\"event.stopPropagation();apriNuovoTurno('"+ds+"')\">+</button>";
     h+="</div>";
 
     if(tg.length>0){
@@ -8829,6 +9063,8 @@ function _renderCalInterno(){
     h+="</div>";
   }
   h+="</div></div>";
+  /* §27 — pannello dettaglio giorno sotto la griglia (split-view iOS) */
+  try { h += _calIOSDetail(); } catch(e){ console.warn('calDetail:', e && e.message); }
   document.getElementById("cal-wrap").innerHTML=h;
   // Richieste cambio turno (Blocco 2)
   if(typeof _renderMieRichieste === 'function') _renderMieRichieste();
@@ -9006,11 +9242,44 @@ function mostraGiorno(ds){
   if(lblMtData) lblMtData.textContent=ds.split('-').reverse().join('/');
 
   // -- Apri lo sheet (non il vecchio modal) --
+  try { _iosSheetHeader(ds); } catch(e){ console.warn('iosSheetHeader:', e && e.message); }
   if(typeof apriSheetGiorno==='function') {
     apriSheetGiorno();
   } else {
     openM("m-giorno");
   }
+}
+
+/* §28.1 — Header iOS 27 della sheet giorno: giorno in maiuscoletto, data
+   grande, pillola festività e Action Pill con + Turno / + Impegno /
+   WhatsApp / chiudi. Inserito come primo figlio del pannello. */
+function _iosSheetHeader(ds){
+  var sheet = document.getElementById('sheet-giorno');
+  if(!sheet) return;
+  var box = sheet.firstElementChild;
+  if(!box) return;
+  var old = box.querySelector('.ios-sheet-head');
+  if(old) old.remove();
+  var d = _parseDate(ds);
+  var gN = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+  var mN = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+  var fest = (typeof getNomeFestivo === 'function') ? getNomeFestivo(ds) : null;
+  var waIco = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">'
+    + '<path d="M12 3a9 9 0 0 0-7.7 13.6L3 21l4.5-1.3A9 9 0 1 0 12 3z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
+    + '<path d="M8.5 9c0 3 2.5 5.5 5.5 5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+  var html = '<div class="ios-sheet-head">'
+    + '<div style="min-width:0">'
+    + '<div class="ios-sheet-wd">' + gN[d.getDay()] + '</div>'
+    + '<div class="ios-sheet-date">' + d.getDate() + ' ' + mN[d.getMonth()] + ' ' + d.getFullYear() + '</div>'
+    + (fest ? '<div class="ios-sheet-fest">🎉 ' + fest + '</div>' : '')
+    + '</div>'
+    + '<div class="ios-sheet-acts">'
+    + '<button class="ios-sheet-btn" onclick="chiudiSheetGiorno();apriNuovoTurno(\'' + ds + '\')" title="Nuovo turno" aria-label="Nuovo turno">+</button>'
+    + '<button class="ios-sheet-btn" onclick="chiudiSheetGiorno();apriAgenda()" title="Nuovo impegno" aria-label="Nuovo impegno">🗓</button>'
+    + '<button class="ios-sheet-btn" onclick="condividiTurniWA()" title="Condividi" aria-label="Condividi">' + waIco + '</button>'
+    + '<button class="ios-sheet-btn close" onclick="chiudiSheetGiorno()" title="Chiudi" aria-label="Chiudi">✕</button>'
+    + '</div></div>';
+  box.insertAdjacentHTML('afterbegin', html);
 }
 
 // ---- REPORT ----
@@ -13586,10 +13855,46 @@ function _nfPinPicker(el, z) {
     el.style.pointerEvents = 'auto';
 }
 
+/* §29 — Navigation bar nativa dei Modal Sheet: Annulla (sinistra) +
+   azione principale a pillola (destra). Riusa le funzioni di salvataggio
+   esistenti: nessuna logica duplicata. */
+var _NF_SHEET_SAVE = {
+  'm-turno': 'salvaTurno',
+  'm-mod-turno': 'salvaModTurno',
+  'm-todo': 'salvaTodo',
+  'm-agenda': 'salvaAgenda',
+  'm-straord': 'salvaStraord'
+};
+function _nfSheetNav(m, id){
+  var fn = _NF_SHEET_SAVE[id];
+  if(!fn || !m) return;
+  var hd = m.querySelector('.mhd');
+  if(!hd || hd.querySelector('.ios-nav-cancel')) return;
+  var tit = hd.querySelector('.mtit');
+  var cancel = document.createElement('button');
+  cancel.type = 'button';
+  cancel.className = 'ios-nav-cancel';
+  cancel.textContent = 'Annulla';
+  cancel.onclick = function(){ closeM(id); };
+  var save = document.createElement('button');
+  save.type = 'button';
+  save.className = 'ios-nav-save';
+  save.textContent = (id === 'm-turno' || id === 'm-mod-turno') ? 'Salva' : 'Aggiungi';
+  save.onclick = function(){
+    try {
+      if(typeof window[fn] === 'function') window[fn]();
+      else if(typeof eval(fn) === 'function') eval(fn + '()');
+    } catch(e){ console.warn('[sheetNav]', fn, e && e.message); }
+  };
+  if(tit){ hd.insertBefore(cancel, tit); hd.appendChild(save); }
+  else { hd.appendChild(cancel); hd.appendChild(save); }
+}
+
 // Funzione Universale Apertura Modali (L'Ascensore)
 function openM(id) {
     var m = document.getElementById(id);
     if (!m) return;
+    try { _nfSheetNav(m, id); } catch(e){}
     var _pz = NF_PICKER_Z[id];
     if (_pz) {
       // Picker secondario: livello rigido, sopra qualunque modale (§21)
@@ -13759,6 +14064,14 @@ window.addEventListener('DOMContentLoaded', function() {
     //    collega (era la causa dei turni/notifiche di un omonimo sul proprio
     //    account). Va eseguito prima di qualunque render di turni.
     try { _nfSanificaIdentita(); } catch(e) {}
+
+    // §29 — Popola il picker avatar della pagina Impostazioni (prefix 'pf').
+    // Prima non veniva inizializzato: la griglia restava vuota.
+    try {
+      if(document.getElementById('ava-picker-m3-pf') && typeof renderAvatarPickerNew === 'function'){
+        renderAvatarPickerNew('pf', 'pf-ava-prev', 'pf-ava');
+      }
+    } catch(e) { console.warn('avatarPicker pf:', e && e.message); }
 
     // 1. Forza i picker e le notifiche in primo piano
     //    + §21: i modali rimasti figli di #pg-app vengono riportati su <body>

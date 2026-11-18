@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="C-Turni">
 <meta name="theme-color" content="#0d1b2a" id="theme-color-meta">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230d1b2a'/%3E%3Cpolygon points='50,12 56,32 76,32 60,44 66,64 50,52 34,64 40,44 24,32 44,32' fill='%23c8a84b'/%3E%3Ctext x='50' y='88' text-anchor='middle' font-size='28' font-weight='900' font-family='Arial,sans-serif' fill='%23ffffff' letter-spacing='2'%3ECT%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="style.css?v=5.0.7">
+<link rel="stylesheet" href="style.css?v=5.2.1">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
@@ -621,117 +621,6 @@
         </div>
       </div>
 
-      <!-- TESSERINO NUOVO (spostato in Impostazioni > Profilo, qui nascosto) -->
-      <div id="tess-sticky" class="tess-card" style="display:none">
-
-        <!-- HEADER -->
-        <div class="tess-hdr">
-          <div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0">
-            <div class="tess-flag-it"><span></span><span></span><span></span></div>
-            
-          </div>
-          <div class="tess-hdr-center">
-            <div class="tess-hdr-ri">Repubblica Italiana</div>
-            <div class="tess-hdr-md">Ministero della Difesa</div>
-            <div class="tess-hdr-cc">Carabinieri</div>
-          </div>
-          <div class="tess-olo">
-            <div class="tess-olo-code">AAA123456</div>
-            <div class="tess-olo-box">
-              <!-- Stemma Repubblica Italiana semplificato in SVG -->
-              <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
-                <!-- Ruota dentata -->
-                <circle cx="30" cy="30" r="18" fill="none" stroke="#546e7a" stroke-width="3"/>
-                <circle cx="30" cy="30" r="12" fill="none" stroke="#546e7a" stroke-width="1.5"/>
-                <!-- Stella -->
-                <polygon points="30,14 32.4,22 40,22 34,27 36.4,35 30,30 23.6,35 26,27 20,22 27.6,22"
-                  fill="#546e7a" stroke="none"/>
-                <!-- Rami -->
-                <path d="M14,38 Q10,30 14,22" fill="none" stroke="#546e7a" stroke-width="2"/>
-                <path d="M46,38 Q50,30 46,22" fill="none" stroke="#546e7a" stroke-width="2"/>
-                <!-- Nastro -->
-                <path d="M16,42 Q30,46 44,42" fill="none" stroke="#8b0000" stroke-width="2"/>
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        <!-- SEPARATORE TRICOLORE -->
-        <div class="tess-sep"></div>
-
-        <!-- BODY -->
-        <div class="tess-body">
-          <!-- Foto -->
-          <div class="tess-photo">
-            <img id="tess-ava" src="" alt="" style="display:none">
-            <span class="tess-photo-lbl" id="tess-ava-placeholder">FOTO</span>
-          </div>
-          <!-- Campi -->
-          <div class="tess-fields">
-            <div class="tess-row">
-              <span class="tess-label">Nome</span>
-              <span id="tess-nome" class="tess-value"></span>
-            </div>
-            <div class="tess-row">
-              <span class="tess-label">Cognome</span>
-              <span id="tess-cognome" class="tess-value"></span>
-            </div>
-            <div class="tess-row" style="align-items:center">
-              <span class="tess-label">Grado</span>
-              <span id="tess-grado" class="tess-value"></span>
-              <span id="tess-grado-svg" style="margin-left:6px;display:inline-flex;align-items:center;height:18px"></span>
-            </div>
-            <div class="tess-row">
-              <span class="tess-label">Reparto</span>
-              <span id="tess-rep" class="tess-value"></span>
-            </div>
-            <div class="tess-row-inline">
-              <span class="tess-label">Rilasciato il</span>
-              <span id="tess-rilascio" class="tess-value" style="flex:1"></span>
-              <span class="tess-label" style="width:56px;min-width:56px">Scade il</span>
-              <span class="tess-value">MAI</span>
-            </div>
-            <div class="tess-row">
-              <span class="tess-label">Rilasciato da</span>
-              <span class="tess-value">C-TURNI</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- FOOTER FIRME -->
-        <div class="tess-footer">
-          <div class="tess-sign-block">
-            <div class="tess-sign-lbl">Firma Titolare</div>
-            <div id="tess-sign" class="tess-sign"></div>
-          </div>
-          <div class="tess-sign-block" style="text-align:right;align-items:flex-end;position:relative;min-width:90px;min-height:52px">
-            <div class="tess-sign-lbl">Firma Autorit&agrave; Rilasciante</div>
-            <div class="tess-sign">C-Turni</div>
-            <!-- Timbro sovrapposto sulla firma -->
-            <svg width="64" height="64" viewBox="0 0 58 58" xmlns="http://www.w3.org/2000/svg"
-                 style="position:absolute;bottom:-8px;right:-6px;opacity:0.52;transform:rotate(-14deg);pointer-events:none">
-              <circle cx="29" cy="29" r="27" fill="rgba(26,35,126,0.05)"/>
-              <circle cx="29" cy="29" r="26" fill="none" stroke="#1a237e" stroke-width="2.5"/>
-              <circle cx="29" cy="29" r="20" fill="none" stroke="#1a237e" stroke-width="1.2"/>
-              <circle cx="29" cy="29" r="23" fill="none" stroke="#1a237e" stroke-width="0.5" stroke-dasharray="2,3"/>
-              <path id="ts-top" d="M 5,29 A 24,24 0 0,1 53,29" fill="none"/>
-              <text font-size="5.2" font-weight="800" fill="#1a237e" font-family="Arial Narrow,Arial,sans-serif" letter-spacing="2">
-                <textPath href="#ts-top" startOffset="8%">COMANDO C-TURNI</textPath>
-              </text>
-              <path id="ts-bot" d="M 5,29 A 24,24 0 0,0 53,29" fill="none"/>
-              <text font-size="4.8" font-weight="700" fill="#1a237e" font-family="Arial Narrow,Arial,sans-serif" letter-spacing="1.5">
-                <textPath href="#ts-bot" startOffset="18%">COMANDO CARABINIERI • REPVBBLICA ITALIANA</textPath>
-              </text>
-              <polygon points="29,17 31.2,23.5 38,23.5 32.5,27.5 34.7,34 29,30 23.3,34 25.5,27.5 20,23.5 26.8,23.5" fill="#1a237e"/>
-              <text x="29" y="37" text-anchor="middle" font-size="4" font-weight="700" fill="#1a237e" font-family="Arial,sans-serif" letter-spacing="1">2024</text>
-              <line x1="7"  y1="29" x2="11" y2="29" stroke="#1a237e" stroke-width="1.2"/>
-              <line x1="47" y1="29" x2="51" y2="29" stroke="#1a237e" stroke-width="1.2"/>
-            </svg>
-          </div>
-        </div>
-
-      </div>
-      <!-- END TESSERINO NUOVO -->
 
 <h1 class="ptit">Dashboard</h1><p class="psub">Panoramica generale</p>
       <!-- BACHECA — avvisi del Comando (Blocco 4) -->
@@ -996,6 +885,9 @@
       <div id="pag-ag" class="pag">
         <h1 class="ptit">📋 Agenda</h1>
         <p class="psub">Appuntamenti e promemoria</p>
+
+        <!-- §27 · Bento tiles iOS 27 (Reminders) -->
+        <div id="ag-ios-tiles" class="ios-tile-grid"></div>
 
         <!-- HERO CARD — Avvisi del Comandante (in cima all'Agenda, visibili a tutto il reparto) -->
         <section id="ag-section-avvisi" class="ag-hero-avvisi" aria-label="Avvisi del Comandante">
@@ -1277,11 +1169,6 @@
                 <button class="btn btn-g btn-sm" style="width:auto" id="btn-invita-collega" onclick="invitaCollega()">🔗 Invita Collega</button>
               </div>
 
-              <!-- TESSERINO ATE — Task 6: spostato qui da Dashboard -->
-              <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px">
-                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--txt2);margin-bottom:10px">🏗 Tesserino ATE</div>
-                <div id="tess-sticky-imp" class="tess-card" style="margin:0"></div>
-              </div>
             </div>
           </div>
 
@@ -1347,6 +1234,12 @@
           </div>
           <!-- Card temi — nascoste di default, si espandono al click -->
           <div id="sec-temi" class="imp-sub">
+            <!-- §32 · Header iOS 27 della sezione Aspetto (Annulla · titolo · Salva) -->
+            <div class="ios-sec-head">
+              <button class="ios-sec-cancel" type="button" onclick="caricaTema();toggleImpSec('sec-temi','arr-temi')">Annulla</button>
+              <div class="ios-sec-title">Aspetto</div>
+              <button class="ios-sec-save" type="button" onclick="salvaTemaInline()">Salva</button>
+            </div>
             <!-- TEMI NOTTE -->
             <div class="tema-section-lbl"><span style="color:var(--gold)">🌙</span> TEMI NOTTE</div>
             <div class="tema-grid-2">
@@ -1405,10 +1298,8 @@
               </div>
             </div>
 
-            <!-- Tasto Salva -->
-            <div style="padding:12px 0 4px">
-              <button class="btn btn-p" id="btn-salva-tema-inline" onclick="salvaTemaInline()" style="width:100%;border-radius:16px">✓ Applica tema</button>
-            </div>
+            <!-- §32: il tasto "Applica tema" è stato sostituito dal "Salva"
+                 nella navigation bar della sezione (in alto). -->
 
             <!-- Comportamento tema (spostato dentro il menu Tema interfaccia) -->
             <div style="border-top:1px solid var(--border);padding:14px 0 4px;margin-top:12px">
@@ -3129,7 +3020,7 @@ function chiudiSheetGiorno() {
 <script src="state.js?v=1.0.0"></script>
 <script src="biometric.js?v=1.0.0"></script>
 <script src="Game/carabiniere-runner.js?v=2.0.0"></script>
-<script src="app.js?v=5.0.7"></script>
+<script src="app.js?v=5.2.1"></script>
 <script type="module" src="firebase-manager.js?v=5.0.7"></script>
 
 <!-- MODAL CONFIRM CUSTOM -->

@@ -607,3 +607,282 @@ grafici ma vincoli GPU/z-index ancora attivi (blur annidati = 0 misurato).
 Evidenze: `shot-ios-imp-notte.png`, `shot-ios-imp-light.png`.
 
 
+## §27 · iOS 27 nativo: calendario, top bar, tab bar, agenda, notifiche (v5.0.8)
+
+**Architettura** — "Liquid Glass sulla navigazione, solido sui contenuti":
+`.hdr` 56px (`--lg-bar-bg`, `blur(24px) saturate(190%)`, hairline 0.5px),
+tab bar flottante 62px (`blur(28px) saturate(200%)`, doppia luce speculare,
+lente attiva), FAB, notifiche, sheet e segmented in vetro; calendario, agenda,
+impostazioni, report e comando su sfondo **solido iOS** (§26, `:has()`).
+
+**Top bar** — logo C-TURNI 19px/800 `-0.5px` (SF Pro/Apple system stack); a
+destra una **Control Pill** unica (capsula vetro con `#btn-th`/`#btn-notif` a
+34×34 e avatar 30px); badge notifiche `#FF3B30`.
+
+**Tab bar** — capsula staccata (`bottom: 12px + safe-area`), altezza 62,
+`border-radius: 9999px`, lente attiva `rgba(255,255,255,.14)` (scuro) /
+`rgba(0,122,255,.12)` (chiaro) con accento `--ios-accent` per tema
+(Carabinieri oro, Forestale verde, Rosa rosa).
+
+**Calendario iOS 27** (riscritto in `app.js`, dati/logica invariati):
+- header: mese 26px/800 `-0.6px`, anno in `--ios-red`, frecce circolari 32px,
+  pulsante **Oggi** (`calOggi()`) che riporta mese+giorno correnti;
+- **segmented** Mese / Settimana / Elenco (`_calSetView`): Mese = griglia iOS +
+  pannello giorno; Settimana = striscia 7 giorni + elenco con turno; Elenco =
+  lista cronologica del mese (miei turni "Tu" + colleghi);
+- griglia: separatori 0.5px, **oggi in cerchio rosso `#FF3B30` 28px**, giorno
+  selezionato in cerchio bianco (dark) / `--ios-accent` (light), badge turno a
+  pillola e micro-pallini;
+- **pannello dettaglio giorno** sotto la griglia (`_calIOSDetail`): data estesa
+  + festività, `+ Turno` e `Condividi`, card "Il tuo turno" con barra colorata,
+  orario tabulare e Modifica/Elimina, appuntamenti del giorno, **colleghi
+  raggruppati per fascia** (🌅 ☀️ 🌙 🛋️) con avatar, grado e orario.
+  Il dettaglio usa `_isMioTurnoStrict` (fix anti-omonimia preservato).
+
+**Agenda (Reminders)** — 4 **bento tile** 2×2 (`#ag-ios-tiles`) con icona tonda
+colorata e contatore 24px (Appuntamenti/Compiti/Alta priorità/Avvisi); i vecchi
+contatori duplicati sono nascosti (resta la card "Prossimo evento"); righe
+evento in `Inset Grouped` con checkbox circolare 22px e separatori iOS.
+
+**Centro notifiche** — drawer `blur(32px) saturate(190%)`, platter `.noti` a
+22px con `inset 0 1px 0 rgba(255,255,255,.22)` + ombra, micro-icona 20px r5,
+categoria maiuscola, timestamp tabulare.
+
+**Impostazioni** — icone app 30×30 r7, `UISwitch` 51×31 con traccia verde
+`#34C759` e pomello bianco 27px, separatori già indentati a 56px (§26).
+
+**Verifica.** `ios27probe` 11/11: header 26px/800, oggi `rgb(255,59,48)`,
+selezionato a cerchio, data estesa "Mercoledì 18 Novembre 2026", viste
+Settimana (7 giorni) ed Elenco, `calOggi()` riallinea mese, 4 tile Agenda,
+top bar 56px + pill + bico 34px, tab bar 62px/blur 28, drawer blur 32,
+**3 superfici sfocate visibili, 0 annidate**. Regressione: `nftest` (28
+asserzioni identità/omonimia) verde, `iosprobe` §26 aggiornato (icone 30/7) verde,
+`npm test` verde, `node --check app.js` OK, graffe CSS 1939/1939, UTF-8 pulito.
+Evidenze: `shot-i27-cal-notte.png`, `shot-i27-cal-light.png`,
+`shot-i27-ag-notte.png`.
+
+
+## §28 · iOS 27: sheet giorno, modali, profilo/avatar, temi, ferie, comando (v5.0.9)
+
+**Sheet giorno (`#sheet-giorno`)** — pannello 32px in alto con grabber 38×5,
+sfondo solido `--ios-grouped-bg`, `padding-bottom: calc(115px + safe-area)` e
+header sticky in Liquid Glass con **giorno in maiuscoletto accento rosso**,
+data 22px `-0.5px`, pillola festività e **Action Pill** di 4 pulsanti circolari
+36px (+ Turno, + Impegno, WhatsApp con SVG, ✕). Inserito da `_iosSheetHeader(ds)`
+chiamata in `mostraGiorno()`; la vecchia data duplicata (`#mg-tit`, ancora
+aggiornata da app.js) è nascosta via CSS. Blocco "Il tuo turno" come platter
+18px con barra verticale 4px; righe colleghi min 50px con avatar 34px.
+
+**Modali (`#m-turno`, `#m-todo`, `#m-agenda`) — iOS sheet** — `.mhd` come
+navigation bar sticky (blur 24/190, titolo 17px centrato, ✕ circolare 32px
+`rgba(120,120,128,.20)`), `.btn-turno-r` come **tile** 14px (`.sel` → bordo 2px
+accento + `scale(1.02)`), raggruppamenti `.fg` in card 16px, selettori
+data/ora come **Compact Pill** `rgba(120,120,128,.16)` r9, segmented iOS per
+priorità/preavviso/tipo straordinario e CTA in fondo a pillola piena.
+
+**Profilo + Apple Avatar Studio** — avatar card 64px, nome 20px; nel corpo
+**medaglione 88px**, categorie come segmented, sub-switch Uomini/Donne a
+pillola, griglia `.avm3-grid` di **medaglioni circolari** con sfondo radiale
+per categoria e, sul selezionato, anello `2.5px` accento + badge circolare ✓;
+campi anagrafica in righe iOS (label 110px / valore a destra).
+
+**Selettore temi** — `.tema-card-big` diventano **mini-device preview**
+(18px, 96px, mini-card vetrata via `::before`), bordo 2px accento + checkmark
+sul tema attivo; comportamento tema (`#tema-comp-btns`) come segmented iOS.
+
+**Ferie / Recuperi / Studio / Salvadanaio** — contatore `#ferie-totale` 34px
+tabular, celle anno iOS con barra 6px, cestino rosso `rgba(255,59,48,.12)`,
+CTA pill accento; `#studio-card`/`.salv-card` in stile widget Salute con
+`#studio-rimanenti` 28px; badge salvadanaio verde/ambra iOS.
+
+**Comando** — gruppi e righe su `--ios-card-bg`, CTA accento/rosso iOS.
+
+**Revisione emoticon (Parte 7)** — set unificato in `_tipoIco`,
+`_TIPO_ICO_EXT` e `_TURNO_ICO_HERO`: 🌅 🌄 ☀️ 🌤️ 🌆 🌙 🛋️ ♻️ ⏱️ 🏖️ 🗓️ 🎓 📚 📝
+🏛️ 🎉 🛡️ ⚕️; corretto il fallback errato `🗑️` → `🛋️` in `aggiornaHeroCard`.
+Entità HTML: restano solo le 8 `&#39;` **necessarie** negli `onclick` generati
+da JS (equivalenti a `'`, non visibili): nessun'altra entità nel DOM.
+
+**Verifica.** `ios28probe` **10/10 PASS**: set icone ufficiale, header sheet
+(data 22px, 4 pulsanti 36px), 32px/115px, platter 18px, nav modale blur+17px,
+tile 14px, form 16px, avatar 88px + nome 20px, temi 18px/96px, contatore
+ferie 34px. Regressione: `nftest` (identità/omonimia) e `ios27probe` (§27
+calendario/nav) verdi; `npm test` verde; `node --check app.js` OK; graffe CSS
+**2014/2014**; UTF-8 pulito. Evidenze: `shot-i28-sheet-notte.png`,
+`shot-i28-sheet-light.png`.
+
+
+## §29 · Fix chirurgici iOS 27: vista giorno, modal sheet, avatar, FAB (v5.1.0)
+
+**1 · Vista giorno INTEGRATA (niente popup flottante).** Le celle del mese,
+della striscia settimanale e dell'elenco chiamano `calSelGiorno(ds)`: imposta
+`_calSel`/mese, ridisegna la griglia (giorno **illuminato** con l'anello) e
+aggiorna il **pannello dettaglio sotto la griglia** (`#cal-wrap`), con scroll
+morbido; **non** apre più `#sheet-giorno`. La sheet resta raggiungibile dal
+pulsante **Dettaglio** del pannello (e dal `+` per il nuovo turno), come
+nell'app Calendario di iOS.
+
+**2 · Modal Sheet nativi.** `#m-turno`, `#m-mod-turno`, `#m-todo`, `#m-agenda`,
+`#m-straord`: **86vh**, angoli **36px**, `.mbox` in flex column con `.mbod`
+scrollabile; **navigation bar interna** con `Annulla` (accento) a sinistra,
+titolo 17px centrato e **pillola `Salva`/`Aggiungi`** a destra. I pulsanti sono
+iniettati una sola volta da `_nfSheetNav()` dentro `openM()` e **richiamano le
+funzioni di salvataggio esistenti** (`salvaTurno`, `salvaModTurno`, `salvaTodo`,
+`salvaAgenda`, `salvaStraord`): nessuna logica duplicata. La ✕ ridondante è
+nascosta solo in questi 5 fogli.
+
+**3 · Avatar picker (Apple Memoji).** Reset di `float` su picker e figli,
+griglia **4 × 64px** centrata, medaglioni `border-radius: 50%` (l'anello è un
+`box-shadow`, così non altera il layout), selezionato con **anello blu iOS
+2.5px + stacco 2px** e spunta ✓ in basso a destra; categorie come
+`UISegmentedControl` pulito. **Bug corretto:** il picker della pagina
+Impostazioni (`#ava-picker-m3-pf`) non veniva inizializzato — ora
+`renderAvatarPickerNew('pf','pf-ava-prev','pf-ava')` è chiamata al
+`DOMContentLoaded` (la griglia era vuota).
+
+**4 · Bottom nav + FAB.** Il FAB è **dentro la capsula** (slot senza
+`margin-top:-30px`, altezza 100%), 46px, `border-radius: 9999px`, senza bordo,
+gradiente accento e doppia luce speculare. Le regole legacy più forti
+(`#bottom-nav.bottom-bar .nav-fab{width:48px!important;border-radius:16px!important}`,
+`.nav-fab-slot{margin-top:-30px!important}`) sono superate con selettori a
+specificità maggiore.
+
+**Verifica.** `ios29probe` **4/4 PASS**: click cella → `calSelGiorno` con
+`#sheet-giorno` chiusa e pannello aggiornato; modale 86%/36px con Annulla+Salva
+e ✕ nascosta; avatar 64px/50%/4 colonne; FAB 46px/pill/`border:0` **dentro** il
+rettangolo della capsula. Regressione: `nftest` (identità/omonimia) e
+`ios27probe` (§27 calendario/nav) verdi; `npm test` verde; `node --check app.js`
+OK; graffe CSS **2039/2039**; UTF-8 pulito. Evidenze: `shot-i29-calday.png`,
+`shot-i29-sheet.png`, `shot-i29-avatar.png`.
+
+**Nota.** La "scala di profondità" della pagina sotto il modale non è applicata:
+un `transform` su `#pg-app` creerebbe un containing block per gli elementi
+`position:fixed` e romperebbe i fix §19/§20 (bottom bar e picker). Il resto del
+foglio è conforme.
+
+
+## §30 · Fix UI finali: avatar grid, tesserino ATE, widget iOS, top bar (v5.1.1)
+
+**1 · Griglia avatar (Apple Memoji Studio).** `.avm3-grid` → `repeat(4, 1fr)`,
+gap/padding 12, `justify-items:center`; `.avm3-item` → **64×64**, `border-radius:
+50%`, `overflow:hidden`, `margin:0 auto`, `background: var(--ios-card-elevated)`,
+`border: 1.5px solid var(--ios-sep)`, flex centrato, `transition: all .2s`;
+immagine `100% / object-fit: cover`; selezionato con
+`box-shadow: 0 0 0 2px var(--ios-card-bg), 0 0 0 4.5px #007AFF`.
+
+**Causa reale del "selettore spezzato e verticale"** (misurata, non dedotta): la
+form del profilo usa da §28.3 una griglia `110px 1fr` per label/valore; con 4
+figli nel `.fg` il **picker finiva nella colonna da 110px**, quindi i medaglioni
+da 64px traboccavano e andavano a capo. Rimedio: `.fg:has(.avm3-picker)` torna
+`display:block` e `.avm3-picker` occupa `grid-column: 1/-1` con
+`width:100%`. Screenshot: `shot-i30-avatar.png` (4 medaglioni per riga).
+
+**2 · Tesserino ATE rimosso.** Eliminati da `index.html` il blocco
+`<!-- TESSERINO ATE -->` con `#tess-sticky-imp` e il contenitore nascosto
+`#tess-sticky` (111+5 righe). Le guardie già presenti in `app.js`
+(`if(tessSt)`, `if(tessImp && tessOrig)`) rendono il codice un no-op: **nessuna
+modifica JS necessaria**. Verificato sul DOM reale: `#pg-app` figlio di `body`,
+`#pag-dash` dentro `#pg-app`, `#pf-nome` dentro `#imp-profilo-body`, navbar
+presente → struttura integra.
+
+**3 · Widget Dashboard (Apple Widgets).** `[data-wid]` (e `.wdg-wrap`/
+`.m3-card`) → `border-radius: 22px`, `background: var(--glass-bg)`,
+`backdrop-filter: blur(24px) saturate(190%)`, bordo `--glass-border`, riflesso
+`inset 0 1px 0 rgba(255,255,255,.2)`; etichette `.wdg-lbl` 13px/600 uppercase
+`letter-spacing .5px` in `--txt2`; dati `font-variant-numeric: tabular-nums`;
+blur spento durante il drag.
+
+**4 · Top bar C-TURNI.** Altezza **56px** (con min/max allineati per vincere la
+regola §19), `background: var(--glass-bg-elevated)`,
+`backdrop-filter: blur(26px) saturate(190%)`, hairline `0.5px`; logo 19px/800
+`-0.5px` in stack SF Pro; gruppo destro (`Tema`, `Notifiche`, avatar) in **unica
+Control Pill** `border-radius:999px` con `--glass-bg-subtle` e bottoni circolari.
+
+**Verifica.** `ios30probe` **5/5 PASS**: struttura DOM integra, tesserino
+assente, widget 22px/blur 24/etichetta 13px uppercase, top bar 56px/blur 26/
+pill 999px, avatar 64px/4 colonne/anello `#007AFF`. `npm test` verde,
+`node --check app.js` OK, graffe CSS **2067/2067**, UTF-8 pulito su style.css,
+index.html e app.js.
+
+
+## §31 · iOS 27: Dashboard, Contatti, Report, Comando (v5.2.0)
+
+Restyling **visivo** sui componenti esistenti (§31 in `style.css`): nessun `id`,
+listener, calcolo o markup stravolto; le §5–6 (avatar grid, tesserino ATE, top
+bar, navbar) restano quelle di §29–§30, riverificate.
+
+**Dashboard** — header identità Apple: saluto 13px `--txt2`, **Nome e Cognome
+24px/800 `-0.6px`**, avatar **46×46** con anello `1.5px rgba(255,255,255,.28)`,
+badge grado a micro-capsula. **Hero card** 26px con `blur(26px) saturate(190%)`,
+riflesso `inset 0 1px 0 rgba(255,255,255,.32)`, sigla **34px/900 tabular**,
+orario tabulare, ring tonale con drop-shadow. Widget affiancati/squadra a
+**24px** con medaglioni circolari e barre 8px. Banner bacheca in Dashboard come
+*Live Activity* ambra/rossa con riflesso.
+
+**Contatti** — la rubrica (`#pag-pers`, `#pag-membri`) diventa **Inset Grouped**
+anche se è una `<table>`: `border-collapse: separate`, card `--ios-card-bg`
+18px, header 11px uppercase, separatori `0.5px`, avatar 40px circolari, azioni a
+pillola (`--glass-bg-subtle`, testo accento).
+
+**Report** — tab come **UISegmentedControl** (`#rep-tabs .rep-tab` 999px, attivo
+bianco/card con ombra), `.rep-count-card` 18px con numeri **26px/800 tabular**,
+CTA a pillola.
+
+**Comando** — `#pg-comando-wrap > div` (i banner sono generati con style inline)
+→ **22px**, bordo `--ios-sep`, riflesso interno, padding 14/16; pulsanti a
+pillola con `scale(.96)` al tap; Approva verde `#34C759`, Rifiuta rosso tonale
+`rgba(255,59,48,.14)`, tag `URGENTE` rosso.
+
+**Verifica.** `ios31probe` **7/7 PASS**: header dash (24px/46px), hero
+(26px/34px/blur 26), widget 24px, rubrica 18px su card iOS, tab report 999px,
+banner comando 22px, e **regressione §30** (top bar 56px/blur 26, navbar 62px,
+tesserino assente). `npm test` verde, `node --check app.js` OK, graffe CSS
+**2111/2111**, UTF-8 pulito.
+
+**Nota di trasparenza.** Le parti che richiedevano *nuovo markup* (anelli SVG
+concentrici nel Report, nuova griglia 2×2 con widget aggiuntivi, badge "In
+servizio · mancano 2h 15m", raggruppamento per lettera della rubrica) sono state
+mappate sui componenti già presenti (hero card + widget esistenti, `.rep-*`,
+righe tabella): il restyling è completo sul piano visivo, mentre la
+riorganizzazione strutturale del DOM resta un passo separato per non toccare
+`renderDash`/`renderRep`/`renderComando` in questa tornata.
+
+
+## §32 · Calendario senza "+", sezione Aspetto iOS 27 (v5.2.1)
+
+**1 · Rimosso il "+" sul giorno.** In `_renderCalInterno` non viene più generato
+il `<button class="cal-add">` dentro la cella: la griglia resta pulita come
+nell'app Calendario iOS. L'aggiunta passa **solo** dal pannello dettaglio
+(`+ Turno`, `Dettaglio`, `Condividi`) e dai pulsanti globali. Le regole CSS
+`.cal-add` restano innocue (nessun elemento da stilizzare).
+Verificato: `#cal-wrap .cal-add` = **0**, pannello con `+ Turno` presente.
+
+**2 · Sezione Aspetto con navigation bar.** Nuovo header `.ios-sec-head` sticky
+all'inizio di `#sec-temi` (margini negativi per annullare il padding di
+`.imp-sub`): **Annulla** a sinistra (`caricaTema()` + chiusura sezione, scarta
+la preview), titolo **"Aspetto"** 17px/700 centrato, **Salva** a destra in
+grassetto `var(--ios-accent)` (`salvaTemaInline()`). Rimosso il vecchio bottone
+`#btn-salva-tema-inline` («✓ Applica tema»). Card tema a **20px**, padding 14,
+altezza 112, anteprima verticale vetrata (`::before` 54px), anello
+`2px var(--ios-accent)` + check sul tema attivo. Blocco comportamento
+(`#tema-comp-btns`) come segmented pulito senza box grigio squadrato.
+Verificato: header presente, `#btn-salva-tema-inline` **assente**, Salva
+`700`/`rgb(0,122,255)`, card `20px/112px`, segmented `999px`.
+
+**3 · Dashboard/Colleghi/Report/Comando** — restano quelli di §31 (header
+identità 24px, hero 26px con ring, widget 24px, rubrica Inset Grouped, tab
+report segmented, banner comando 22px con Approva/Rifiuta): la verifica §32 li
+ricontrolla in regressione.
+
+**4 · Servizio** — griglia avatar 64px/4 colonne con anello `#007AFF`, tesserino
+ATE assente, top bar 56px/blur 26 con Control Pill, navbar 62px a capsula:
+tutti riverificati.
+
+**Verifica.** `ios32probe` **5/5 PASS**: nessun `.cal-add` e dettaglio con
+`+ Turno`; header Aspetto (Salva 700 accento, vecchio bottone assente); card
+tema 20px/112px; segmented 999px; regressione (banner comando 22px, top bar
+56px/blur 26, navbar 62px, tesserino assente, avatar 64px). `npm test` verde,
+`node --check app.js` OK, graffe CSS **2124/2124**, UTF-8 pulito.
+Evidenze: `shot-i32-cal.png`, `shot-i32-temi.png`.
+
+
