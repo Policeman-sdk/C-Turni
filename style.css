@@ -9712,3 +9712,107 @@ html body #pg-app .wdg-wrap[class]{
   background: var(--ios-card-bg) !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22) !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   §33 · GALAXY FOLD / SCHERMO ESTESO (iPadOS split-view iOS 27)
+   Attivato da `html[data-fold="expanded"]` (motore in app.js).
+   ══════════════════════════════════════════════════════════════════════ */
+html[data-fold="expanded"] .cont{
+  padding: 20px 24px calc(120px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+/* ── 33.1 · Dashboard: 2 colonne asimmetriche ────────────────────────── */
+html[data-fold="expanded"] #pag-dash{
+  display: grid !important;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 18px;
+  align-items: start;
+}
+html[data-fold="expanded"] #pag-dash > *{ grid-column: 1; }
+html[data-fold="expanded"] #pag-dash > #wdg-container{
+  grid-column: 2;
+  grid-row: 1 / span 40;
+  align-self: start;
+  position: sticky;
+  top: 72px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+/* La hero card resta in alto nella colonna sinistra */
+html[data-fold="expanded"] #pag-dash > #hero-card{
+  position: sticky;
+  top: 72px;
+  z-index: 2;
+}
+
+/* ── 33.2 · Calendario: split-view nativo (griglia | dettaglio) ──────── */
+html[data-fold="expanded"] #pag-cal{
+  display: grid !important;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 20px;
+  align-items: start;
+}
+html[data-fold="expanded"] #pag-cal > *{ grid-column: 1 / -1; }
+html[data-fold="expanded"] #pag-cal > #cal-wrap{ display: contents; }
+html[data-fold="expanded"] #cal-wrap > *:not(.cal-detail){ grid-column: 1; }
+html[data-fold="expanded"] #cal-wrap > .cal-detail{
+  grid-column: 2;
+  grid-row: 1 / span 30;
+  position: sticky;
+  top: 72px;
+  margin: 0 !important;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  align-self: start;
+}
+
+/* ── 33.3 · Rubrica (Apple Contatti iPad) ────────────────────────────── */
+html[data-fold="expanded"] #pag-pers,
+html[data-fold="expanded"] #pag-membri{
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+/* ── 33.4 · Impostazioni e Report centrati ──────────────────────────── */
+html[data-fold="expanded"] #pag-imp,
+html[data-fold="expanded"] #pag-rep{
+  max-width: 820px;
+  margin: 0 auto;
+}
+html[data-fold="expanded"] .tema-grid-2{
+  grid-template-columns: repeat(4, 1fr) !important;
+}
+html[data-fold="expanded"] #rep-tab-turni .rep-count-card,
+html[data-fold="expanded"] #rep-tab-turni > div[style*="grid"]{
+  grid-template-columns: repeat(4, 1fr) !important;
+}
+
+/* ── 33.5 · Modali: iPadOS form sheet centrato ──────────────────────── */
+html[data-fold="expanded"] .modal{ align-items: center !important; justify-content: center !important; }
+html[data-fold="expanded"] #m-turno .mbox,
+html[data-fold="expanded"] #m-mod-turno .mbox,
+html[data-fold="expanded"] #m-todo .mbox,
+html[data-fold="expanded"] #m-agenda .mbox,
+html[data-fold="expanded"] #m-straord .mbox,
+html[data-fold="expanded"] #m-profilo .mbox{
+  border-radius: 28px !important;
+  max-width: 540px !important;
+  width: 540px !important;
+  max-height: 84vh !important;
+  height: auto !important;
+  margin: 0 auto !important;
+  animation: none !important;
+}
+
+/* ── 33.6 · Avatar studio: 6 colonne su Fold aperto ─────────────────── */
+html[data-fold="expanded"] #ava-picker-m3-pf .avm3-grid,
+html[data-fold="expanded"] #m-profilo .avm3-grid,
+html[data-fold="expanded"] .avm3-picker .avm3-grid{
+  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+}
+
+/* ── 33.7 · Compact: comportamento smartphone invariato ─────────────── */
+html[data-fold="compact"] #pag-dash,
+html[data-fold="compact"] #pag-cal{
+  display: block;
+}

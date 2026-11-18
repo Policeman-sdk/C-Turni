@@ -886,3 +886,53 @@ tema 20px/112px; segmented 999px; regressione (banner comando 22px, top bar
 Evidenze: `shot-i32-cal.png`, `shot-i32-temi.png`.
 
 
+## §33 · Galaxy Fold / schermo esteso, pulizia e rifinitura finale (v5.3.0)
+
+**1 · Motore Fold (`app.js`) + controllo in Impostazioni.**
+`ct_fold_mode` con tre valori: `auto` (default), `expanded`, `compact`.
+`_aggiornaFoldMode()` calcola `data-fold` su `<html>` e si aggancia a
+`resize`, `orientationchange`, `window.visualViewport` e
+`navigator.devicePosture` (se disponibili); larghezza ≥ 680 px = `expanded`.
+`setFoldMode(m)` persiste la scelta, riapplica il layout, vibra e mostra un
+toast. Chiamata al `DOMContentLoaded`. In **Aspetto** (sotto *Comportamento
+tema*) nuovo segmented `#fold-mode-btns`: **Auto · Fold aperto · Compatto**.
+
+**2 · Layout iPadOS (`html[data-fold="expanded"]`, §33 in `style.css`).**
+- **Dashboard**: griglia `1.15fr / 1fr`; hero card sticky a sinistra,
+  `#wdg-container` sticky a destra.
+- **Calendario**: vero **split-view** `1.1fr / 0.9fr` — griglia a sinistra,
+  **pannello giorno sticky a destra** (`#cal-wrap{display:contents}` +
+  `.cal-detail{grid-column:2; grid-row:1/span 30; position:sticky}`), senza
+  alcun popup.
+- **Rubrica** (`#pag-pers`, `#pag-membri`): `max-width: 960px` centrata.
+- **Impostazioni / Report**: `max-width: 820px`; temi su **4 colonne**
+  (verificato: `182px ×4` a 900 px di viewport).
+- **Modali**: iPadOS form sheet **centrato** (28px, `max-width:540px`, 84vh)
+  per `#m-turno`, `#m-mod-turno`, `#m-todo`, `#m-agenda`, `#m-straord`,
+  `#m-profilo` (picker esclusi).
+- **Avatar studio**: **6 colonne** su Fold aperto.
+- `compact`: dashboard e calendario tornano a colonna singola (invariato).
+
+**3 · Rifinitura (già consolidata, riverificata).** Vista giorno integrata anche
+su smartphone (`calSelGiorno`, nessun popup), nav bar Apple nei modali
+(Annulla/titolo/Salva `#007AFF`), griglia avatar 4 colonne con anello
+`#007AFF` + ✓.
+
+**Pulizia.** `aggiornaFocus()` è **rimasto come stub** (`// Focus Mode rimossa`)
+perché le due chiamate residue (righe ~4333 e ~11697) servono ad aggiornare la
+hero card: rimuoverlo sarebbe una regressione funzionale → documentato invece
+che eliminato. Le chiavi legacy (`ct_focus_mode`) vengono **rimosse all'avvio**
+senza errori. Il tesserino ATE è assente dal DOM (§30) e `cal-add` non è più
+generato (§32).
+
+**Verifica.** `ios33probe` **5/7** con due misure non conclusive per artefatti
+headless (sezione temi chiusa → `display:none`; timer concorrenti sulla lettura
+di `data-fold`), poi **rientrate**: sonda dedicata con `ct_fold_mode='expanded'`
+e viewport 900 px → `data-fold=expanded` e temi `182px ×4`. Restano verdi:
+`F_auto` (auto→compact a 430 px), `F_dash` (grid 2 colonne), `F_cal` (grid +
+`.cal-detail` in colonna 2 sticky), `F_sheet` (form sheet centrato, 28px,
+`max-width:540px`) e `Z_regressione` (top bar 56 px, navbar 62 px, tesserino
+assente, segmented presente). `npm test` verde, `node --check app.js` OK,
+graffe CSS **2142/2142**, UTF-8 pulito.
+
+

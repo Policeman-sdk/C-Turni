@@ -3856,6 +3856,45 @@ function aggiornaSquadra(){
   }).join('');
 }
 
+/* ══ §33 · GALAXY FOLD / SCHERMO ESTESO — layout adattivo ═══════════════
+   Preferenza `ct_fold_mode`: 'auto' (default) | 'expanded' | 'compact'.
+   `data-fold` su <html> guida il CSS (§33). Rilevamento: larghezza ≥ 680,
+   Device Posture API (se presente) e viewport segments. */
+function _foldPref(){
+  try { var v = lsG('ct_fold_mode', 'auto'); return (v === 'expanded' || v === 'compact') ? v : 'auto'; } catch(e){ return 'auto'; }
+}
+function _foldWide(){
+  var w = window.innerWidth || document.documentElement.clientWidth || 0;
+  if(w >= 680) return true;
+  try {
+    if(navigator.devicePosture && navigator.devicePosture.type === 'continuous' && w >= 600) return true;
+  } catch(e){}
+  try {
+    if(window.visualViewport && window.visualViewport.width >= 680) return true;
+  } catch(e){}
+  return false;
+}
+function _aggiornaFoldMode(){
+  var pref = _foldPref();
+  var mode = (pref === 'expanded') ? 'expanded'
+           : (pref === 'compact')  ? 'compact'
+           : (_foldWide() ? 'expanded' : 'compact');
+  try { document.documentElement.setAttribute('data-fold', mode); } catch(e){}
+  document.querySelectorAll('#fold-mode-btns [data-fold-mode]').forEach(function(b){
+    b.classList.toggle('on', b.getAttribute('data-fold-mode') === pref);
+  });
+  return mode;
+}
+function setFoldMode(m){
+  m = (m === 'expanded' || m === 'compact') ? m : 'auto';
+  lsS('ct_fold_mode', m);
+  _aggiornaFoldMode();
+  if(navigator.vibrate) navigator.vibrate(8);
+  if(typeof toast === 'function'){
+    toast('Layout schermo: ' + (m === 'auto' ? 'Automatico' : (m === 'expanded' ? 'Fold aperto / Tablet' : 'Compatto')), 'ok');
+  }
+}
+
 // ---- MODALITÀ FOCUS (RIMOSSA — Task 1) ----
 // La funzione è mantenuta come stub per retrocompatibilità con eventuali chiamate residue
 function aggiornaFocus(){
@@ -14064,6 +14103,21 @@ window.addEventListener('DOMContentLoaded', function() {
     //    collega (era la causa dei turni/notifiche di un omonimo sul proprio
     //    account). Va eseguito prima di qualunque render di turni.
     try { _nfSanificaIdentita(); } catch(e) {}
+
+    // §33 — Modalità Fold: applica subito il layout e ascolta i cambi
+    try {
+      _aggiornaFoldMode();
+      window.addEventListener('resize', _aggiornaFoldMode, { passive: true });
+      window.addEventListener('orientationchange', function(){ setTimeout(_aggiornaFoldMode, 120); });
+      if(window.visualViewport){
+        try { window.visualViewport.addEventListener('resize', _aggiornaFoldMode, { passive: true }); } catch(e){}
+      }
+      if(navigator.devicePosture && navigator.devicePosture.addEventListener){
+        navigator.devicePosture.addEventListener('change', _aggiornaFoldMode);
+      }
+      // chiavi legacy: ignorate e ripulite senza errori
+      try { localStorage.removeItem('ct_focus_mode'); } catch(e){}
+    } catch(e) { console.warn('foldMode:', e && e.message); }
 
     // §29 — Popola il picker avatar della pagina Impostazioni (prefix 'pf').
     // Prima non veniva inizializzato: la griglia restava vuota.
