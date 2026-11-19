@@ -2,10 +2,10 @@
 importScripts('https://www.gstatic.com/firebasejs/11.8.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/11.8.1/firebase-messaging-compat.js');
 
-const CACHE_NAME = 'c-turni-v5.3.2'; /* v5.3.2: fix conteggio ore (cache di ripristino, date non-ISO, refresh widget) */
+const CACHE_NAME = 'c-turni-v5.3.3'; /* v5.3.3: fix conteggio permessi studio (PSTUDIO, identità completa, refresh salvataggi) */
 const APP_SHELL = [
   './', './index.html', './style.css?v=5.3.1', './db.js?v=1.0.0',
-  './state.js?v=1.0.0', './biometric.js?v=1.0.0', './app.js?v=5.3.2',
+  './state.js?v=1.0.0', './biometric.js?v=1.0.0', './app.js?v=5.3.3',
   './firebase-manager.js?v=5.3.1',
   './manifest.json', './icon-192.png', './icon-512.png',
   './firebase-manager.js?v=5.0.7',

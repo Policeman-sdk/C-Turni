@@ -1073,6 +1073,46 @@ Cache-bust `app.js?v=5.3.2`, SW `c-turni-v5.3.2`.
 
 
 **Nota sul falso negativo**: il test automatico `O_widget` segnala FAIL pur
+
+## §37 · Fix conteggio Permessi Studio (v5.3.3)
+
+`#studio-rimanenti` restava a **150 h** anche usando ore: il filtro contava i
+turni solo con `t.tipo === 'studio'` **e** solo via `t.pid`.
+
+**Correzioni in `app.js`**
+- `_isTurnoStudio(t)`: turno studio se `tipo === 'studio'` **oppure**
+  `codice === 'PSTUDIO'` (import e turni rapidi usano entrambe le forme).
+- `_studioTurnoMio(t, me)`: confronto su **tutti** gli identificativi validi —
+  `t.pid`, `t.uid`, `t.ownerUid`, `t.userId` contro `me.id`, `me.uid`,
+  `me.myPid`, `ct_my_pid` — con risoluzione della persona in `ct_p` per uid/id e
+  **guardia anti-omonimo** `_nfTurnoDiAltroNome()`.
+- Anno estratto con `_nfNormDataISO()` (supporta `YYYY-MM-DD` e `DD/MM/YYYY`):
+  `parseInt(dataIso.slice(0,4),10) === anno`.
+- `usati = turniStudioUtente.length * (Number(window._STUDIO_ORE_TURNO) || 6)`,
+  `rimanenti = max(0, monte - usati)`, più `eccedenza`, `turni`, `oreTurno`.
+- `renderPermessiStudio()` aggiorna `#studio-rimanenti` (`138 h`),
+  `#studio-dettaglio` (`12 h utilizzate su 150 h`, con eventuale eccedenza) e
+  `#studio-progress` (`min(100, usati/monte*100)%`), leggendo sempre `ct_t`
+  freschi.
+- Refresh garantito: `renderPermessiStudio()` chiamato in **`salvaTurno`,
+  `salvaModTurno`, `eliminaTurnoMod`, `delTurno`** (4 punti), nel listener
+  `change:ct_t`, in `sync:complete` e dentro `_nfRenderOreUI()`; l'apertura
+  della sezione *Ferie & Licenze* lo invoca già dal markup.
+
+**Verifica (`studio37probe`, 5/5 PASS)** con seed realistico (monte 150,
+2 turni miei — uno `tipo:'studio'`, uno `codice:'PSTUDIO'` con data
+`DD/MM/YYYY` e solo `uid` — 1 turno del collega, 1 dell'anno scorso):
+- `S_calc`: monte **150**, usati **12**, rimanenti **138**, turni **2**
+  (collega e anno precedente esclusi);
+- `S_ui`: `#studio-rimanenti` = **138 h**, `#studio-dettaglio` =
+  **12 h utilizzate su 150 h**;
+- `S_prog`: barra all'**8%**;
+- `S_live`: aggiungendo un turno studio → **132 h** subito;
+- `S_antiomonimo`: aggiungendo un turno studio del **collega** → resta **132 h**.
+
+`node --check app.js` OK · `npm test` verde · UTF-8 valido · 4 chiamate di
+refresh inserite. Cache-bust `app.js?v=5.3.3`, SW `c-turni-v5.3.3`.
+
 mostrando i tre valori corretti; il confronto era su stringa esatta
 (`'2h 15m'`) e il markup contiene una spaziatura non-breaking. Non è un bug
 applicativo.

@@ -1,4 +1,4 @@
-﻿// -- SERVICE WORKER --
+// -- SERVICE WORKER --
 if("serviceWorker" in navigator){
   var _swBase = new URL('./', location.href);
   navigator.serviceWorker.register(new URL('firebase-messaging-sw.js', _swBase).href, { scope: _swBase.pathname })
@@ -203,6 +203,42 @@ function ctEsc(value){
     return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];
   });
 }
+/* §37 — Riconoscimento e proprietario dei turni "Permesso Studio".
+   Il turno è studio se il tipo è 'studio' OPPURE la sigla è PSTUDIO (import e
+   turni rapidi usano entrambe le forme). Il proprietario è verificato su TUTTI
+   gli identificativi validi (pid/uid/ownerUid vs id/uid/myPid/ct_my_pid), con
+   guardia anti-omonimo: era questo il motivo per cui le ore non venivano
+   scalate (il filtro guardava solo `t.tipo==='studio'` e solo `t.pid`). */
+function _isTurnoStudio(t){
+  if(!t) return false;
+  if(String(t.tipo || '').toLowerCase() === 'studio') return true;
+  return String(t.codice || '').trim().toUpperCase() === 'PSTUDIO';
+}
+function _studioTurnoMio(t, me){
+  if(!t) return false;
+  if(typeof _nfTurnoDiAltroNome === 'function' && _nfTurnoDiAltroNome(t, me)) return false;
+  var ids = [];
+  function pushId(v){ if(v !== undefined && v !== null && String(v) !== '' && ids.indexOf(String(v)) === -1) ids.push(String(v)); }
+  if(me){ pushId(me.id); pushId(me.uid); pushId(me.myPid); }
+  try { pushId(localStorage.getItem('ct_my_pid')); } catch(e){}
+  if(!ids.length) return false;
+  var cand = [];
+  [t.pid, t.uid, t.ownerUid, t.userId].forEach(function(v){
+    if(v !== undefined && v !== null && String(v) !== '' && cand.indexOf(String(v)) === -1) cand.push(String(v));
+  });
+  for(var i = 0; i < cand.length; i++){ if(ids.indexOf(cand[i]) !== -1) return true; }
+  // Risoluzione della mia persona in rubrica (per uid oppure id) — mai per nome
+  try {
+    var P = lsG('ct_p', []);
+    for(var j = 0; j < P.length; j++){
+      var p = P[j]; if(!p) continue;
+      var isMine = (me && me.uid && p.uid && String(p.uid) === String(me.uid)) ||
+                   (me && me.id != null && String(p.id) === String(me.id));
+      if(isMine && cand.indexOf(String(p.id)) !== -1) return true;
+    }
+  } catch(e){}
+  return false;
+}
 function getPermessoStudioSummary(anno, turniOverride) {
   anno = parseInt(anno,10) || new Date().getFullYear();
   var me = lsG('ct_me', null);
@@ -224,20 +260,39 @@ function getPermessoStudioSummary(anno, turniOverride) {
   }
   if(!monteMap) monteMap = {};
   var monte = Math.max(0, Number(monteMap[String(anno)]) || 0);
-  var T = turniOverride || lsG('ct_t', []);
-  var usati = T.filter(function(t){
-    return t && t.tipo === 'studio' && t.data && parseInt(t.data.slice(0,4),10) === anno && _studioIsMyPid(t.pid, me);
-  }).length * _STUDIO_ORE_TURNO;
-  return {anno:anno, monte:monte, usati:usati, rimanenti:Math.max(0, monte-usati), eccedenza:Math.max(0, usati-monte)};
+  var T = turniOverride || lsG('ct_t', []) || [];
+  var turniStudioUtente = T.filter(function(t){
+    if(!t || !_isTurnoStudio(t) || !t.data) return false;
+    var dIso = (typeof _nfNormDataISO === 'function') ? _nfNormDataISO(t.data) : String(t.data);
+    if(parseInt(String(dIso).slice(0,4), 10) !== anno) return false;
+    return _studioTurnoMio(t, me);
+  });
+  var oreTurno = Number(window._STUDIO_ORE_TURNO) || _STUDIO_ORE_TURNO || 6;
+  var usati = turniStudioUtente.length * oreTurno;
+  return {
+    anno: anno,
+    monte: monte,
+    usati: usati,
+    rimanenti: Math.max(0, monte - usati),
+    eccedenza: Math.max(0, usati - monte),
+    turni: turniStudioUtente.length,
+    oreTurno: oreTurno
+  };
 }
 function renderPermessiStudio() {
   var anno = new Date().getFullYear();
-  var s = getPermessoStudioSummary(anno);
+  var s = getPermessoStudioSummary(anno);   /* §37 — legge sempre ct_t freschi */
   var a = document.getElementById('studio-anno'); if(a) a.textContent = anno;
-  var r = document.getElementById('studio-rimanenti'); if(r){ r.textContent = s.rimanenti+' h'; r.style.color = s.rimanenti <= 12 ? 'var(--red)' : 'var(--blue)'; }
+  var r = document.getElementById('studio-rimanenti');
+  if(r){ r.textContent = s.rimanenti + ' h'; r.style.color = s.rimanenti <= 12 ? 'var(--red)' : 'var(--blue)'; }
   var d = document.getElementById('studio-dettaglio');
-  if(d) d.textContent = s.monte ? (s.usati+' h utilizzate su '+s.monte+' h · '+(s.usati/_STUDIO_ORE_TURNO)+' turni') : 'Monte ore non attivato.';
-  var p = document.getElementById('studio-progress'); if(p) p.style.width = (s.monte ? Math.min(100,(s.usati/s.monte)*100) : 0)+'%';
+  if(d){
+    d.textContent = s.monte
+      ? (s.usati + ' h utilizzate su ' + s.monte + ' h' + (s.eccedenza ? ' · eccedenza ' + s.eccedenza + ' h' : ''))
+      : 'Monte ore non attivato.';
+  }
+  var p = document.getElementById('studio-progress');
+  if(p) p.style.width = (s.monte > 0 ? Math.min(100, (s.usati / s.monte) * 100) : 0) + '%';
   var b = document.getElementById('studio-attiva-btn'); if(b) b.style.display = s.monte ? 'none' : 'block';
 }
 function attivaPermessiStudio() {
@@ -2496,7 +2551,7 @@ window.addEventListener("DOMContentLoaded",function(){
 
     // Sync Firebase completata → refresh completo
     AppState.on('sync:complete', function() {
-      /* §36 — prima di ogni altro render: ore e salvadanaio allineati al cloud */
+      /* §36/§37 — prima di ogni altro render: ore, salvadanaio e studio dal cloud */
       if(typeof _nfRenderOreUI === 'function') _nfRenderOreUI();
       var _me = lsG('ct_me', null);
       if(!_me) return;
@@ -6687,6 +6742,8 @@ function delTurnoCustom(id) {
     _aggiungiOpzioniCustomAlSelect();
     toast('Eliminato','ok');
   });
+  /* Â§37 â€” ore permessi studio sempre allineate dopo il salvataggio */
+  try { if(typeof renderPermessiStudio==="function") renderPermessiStudio(); } catch(e){}
 }
 
 // Aggiunge le opzioni custom al select #mt-tipo nel modal turno
@@ -8601,6 +8658,8 @@ function salvaTurno(){
   if(_dupl) _msgOut += " \u00b7 " + _dupl + " gi\u00e0 presenti";
   if(_bloccati) _msgOut += " \u00b7 " + _bloccati + " non salvati";
   toast(_msgOut,"ok");
+  /* Â§37 â€” ore permessi studio sempre allineate dopo il salvataggio */
+  try { if(typeof renderPermessiStudio==="function") renderPermessiStudio(); } catch(e){}
 }
 function delP(id){
   ctConfirm('Eliminare questa persona e tutti i suoi turni?', {title:'Elimina Persona', ico:'⚠️', ok:'Elimina', danger:true}).then(function(ok){
@@ -10353,6 +10412,8 @@ function _straordSyncFirebase() {
 function _nfRenderOreUI(){
   try { if (typeof renderStraord === 'function') renderStraord(); } catch(e){}
   try { if (typeof renderSalvadanaio === 'function') renderSalvadanaio(); } catch(e){}
+  /* §37 — anche i permessi studio (ore residue) sono una superficie "ore" */
+  try { if (typeof renderPermessiStudio === 'function') renderPermessiStudio(); } catch(e){}
   try {
     var me = lsG('ct_me', null);
     // Il conteggio ore non dipende da `me`: il widget va aggiornato anche se il
@@ -13425,6 +13486,8 @@ function salvaModTurno() {
   _playUiSound('save');
   haptic('success');
   toast('Turno aggiornato', 'ok');
+  /* Â§37 â€” ore permessi studio sempre allineate dopo il salvataggio */
+  try { if(typeof renderPermessiStudio==="function") renderPermessiStudio(); } catch(e){}
 }
 
 // Aggiorna hint orario nel modal modifica turno
@@ -13453,6 +13516,8 @@ function eliminaTurnoMod() {
     renderTurni(); aggiornaWidget(); renderDash(); renderOggi(); stats(); renderPermessiStudio();
     toast('Turno eliminato', 'ok');
   });
+  /* Â§37 â€” ore permessi studio sempre allineate dopo il salvataggio */
+  try { if(typeof renderPermessiStudio==="function") renderPermessiStudio(); } catch(e){}
 }
 
 /* ---------- FESTIVIT SOPPRESSE ---------- */
