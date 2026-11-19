@@ -3794,6 +3794,36 @@ function aggiornaHeroCard(){
   } else if(ring){
     ring.style.strokeDashoffset = 326.7;
   }
+
+  /* §38 — Pillola di stato in tempo reale + badge reparto */
+  try {
+    var live = document.getElementById('hero-live-pill');
+    if(live){
+      var txtLive = 'Giornata libera', colLive = 'var(--txt2)';
+      if(mioTurno && mioTurno.orario && String(mioTurno.orario).indexOf('-') > 0){
+        var p2 = String(mioTurno.orario).split('-');
+        var s2 = p2[0].trim().split(':'); var e2 = p2[1].trim().split(':');
+        var sM = parseInt(s2[0],10)*60 + parseInt(s2[1]||0,10);
+        var eM = parseInt(e2[0],10)*60 + parseInt(e2[1]||0,10);
+        if(eM <= sM) eM += 1440;
+        var nM = now.getHours()*60 + now.getMinutes();
+        if(nM >= sM && nM < eM){
+          var diff = eM - nM;
+          txtLive = 'In servizio · mancano ' + Math.floor(diff/60) + 'h ' + ('0'+(diff%60)).slice(-2) + 'm';
+          colLive = 'var(--green)';
+        } else if(nM < sM){
+          txtLive = 'Inizia alle ' + p2[0].trim();
+          colLive = 'var(--blue)';
+        } else {
+          txtLive = 'Turno concluso';
+        }
+      }
+      live.textContent = txtLive;
+      live.style.color = colLive;
+    }
+    var rep = document.getElementById('hero-reparto-badge');
+    if(rep){ var rp = String((me && me.reparto) || '').replace(/_/g,' '); rep.textContent = rp ? rp.toUpperCase() : ''; }
+  } catch(e){}
 }
 
 // ---- SQUADRA IBRIDA (Task 4) ----
@@ -8270,6 +8300,7 @@ function renderOggi(){
   var oggi=_oggi();
   var T=lsG("ct_t",[]).filter(function(t){return t.data===oggi;});
   var tb=document.getElementById("tb-oggi");
+  if(!tb) return;   /* §38 — la tabella è stata rimossa dalla Dashboard iOS 27 */
   if(!T.length){tb.innerHTML="<tr><td colspan=\"4\" class=\"empty\">Nessun turno oggi</td></tr>";return;}
   var P=lsG("ct_p",[]);
   tb.innerHTML=T.map(function(t){
@@ -10409,11 +10440,55 @@ function _straordSyncFirebase() {
 
 /* §36 — Rinfresca TUTTE le superfici che mostrano ore (Dashboard widget,
    salvadanaio, tab Straordinari). Usata dopo load/sync e dai render chiave. */
+/* ══ §38 · DASHBOARD iOS 27 — foglio "Modifica Dashboard" e widget Saldi ══ */
+function _dashEditOpen(){
+  var p = document.getElementById('dash-organizza-panel');
+  if(!p) return;
+  if(typeof renderDopList === 'function'){ try { renderDopList(); } catch(e){} }
+  p.classList.add('open');
+  if(navigator.vibrate) navigator.vibrate(8);
+}
+function _dashEditClose(){
+  var p = document.getElementById('dash-organizza-panel');
+  if(p) p.classList.remove('open');
+}
+
+/* Widget "Saldi": giorni ferie/licenze residui + ore permessi studio (150h).
+   Usa le fonti ufficiali (getFeriePool / getPermessoStudioSummary) e non
+   dipende da `me` per mostrare i valori: se il profilo manca, mostra "—". */
+function renderWidgetSaldi(){
+  var elF = document.getElementById('wsaldi-ferie');
+  var elS = document.getElementById('wsaldi-studio');
+  if(!elF && !elS) return;
+  try {
+    var me = lsG('ct_me', null);
+    var pid = me ? (me.id != null && me.id !== '' ? me.id : (me.uid || '')) : '';
+    if(!pid){ try { pid = localStorage.getItem('ct_my_pid') || ''; } catch(e){} }
+    var tot = 0, ok = false;
+    try {
+      if(pid && typeof getFeriePool === 'function'){
+        tot = (getFeriePool(pid) || []).reduce(function(a, x){ return a + (Number(x.giorni) || 0); }, 0);
+        ok = true;
+      }
+    } catch(e){}
+    if(elF) elF.textContent = ok ? (tot + ' gg') : '—';
+    var s = { monte: 0, usati: 0, rimanenti: 0 };
+    try {
+      if(typeof getPermessoStudioSummary === 'function') s = getPermessoStudioSummary(new Date().getFullYear());
+    } catch(e){}
+    if(elS) elS.textContent = s.monte ? (s.rimanenti + ' h') : '—';
+    var bar = document.getElementById('wsaldi-studio-bar');
+    if(bar) bar.style.width = (s.monte ? Math.min(100, (s.usati / s.monte) * 100) : 0) + '%';
+  } catch(e){ console.warn('renderWidgetSaldi:', e && e.message); }
+}
+
 function _nfRenderOreUI(){
   try { if (typeof renderStraord === 'function') renderStraord(); } catch(e){}
   try { if (typeof renderSalvadanaio === 'function') renderSalvadanaio(); } catch(e){}
   /* §37 — anche i permessi studio (ore residue) sono una superficie "ore" */
   try { if (typeof renderPermessiStudio === 'function') renderPermessiStudio(); } catch(e){}
+  /* §38 — widget Saldi Ferie & 150h Studio in Dashboard */
+  try { if (typeof renderWidgetSaldi === 'function') renderWidgetSaldi(); } catch(e){}
   try {
     var me = lsG('ct_me', null);
     // Il conteggio ore non dipende da `me`: il widget va aggiornato anche se il
@@ -12457,6 +12532,7 @@ function initWidgetResize() {
   var container = document.getElementById('wdg-container');
   if (!container) return;
   var tooltip = document.getElementById('wdg-resize-tooltip');
+  if (!tooltip) return;   /* §38 — maniglie di resize rimosse dalla Dashboard */
 
   // Inietta handle in ogni widget che non ce l'ha gia
   container.querySelectorAll('.wdg-wrap[data-wid]').forEach(function(wrap) {

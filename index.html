@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="C-Turni">
 <meta name="theme-color" content="#0d1b2a" id="theme-color-meta">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230d1b2a'/%3E%3Cpolygon points='50,12 56,32 76,32 60,44 66,64 50,52 34,64 40,44 24,32 44,32' fill='%23c8a84b'/%3E%3Ctext x='50' y='88' text-anchor='middle' font-size='28' font-weight='900' font-family='Arial,sans-serif' fill='%23ffffff' letter-spacing='2'%3ECT%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="style.css?v=5.3.1">
+<link rel="stylesheet" href="style.css?v=5.4.0">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
@@ -559,12 +559,12 @@
 
     <!-- DASHBOARD -->
       <div id="pag-dash" class="pag on">
-        
+
       <!-- AMBIENT GLOW — Solid radial, no blur -->
       <div id="ambient-glow"></div>
 
-      <!-- SALUTO — fuori dalla Hero Card, sopra -->
-      <div class="dash-greeting">
+      <!-- 1 · HEADER IDENTITÀ (Apple Lock/Home) -->
+      <div class="dash-greeting" id="dash-hero-head">
         <div class="hero-user-ava" id="hero-user-ava" onclick="apriProfilo()" style="cursor:pointer" title="Il mio profilo">👤</div>
         <div class="dash-greeting-text">
           <div class="hero-greeting-sub" id="hero-greeting-sub">Buongiorno</div>
@@ -572,16 +572,23 @@
             <div class="hero-greeting-name" id="hero-greeting-name" onclick="apriProfilo()" style="cursor:pointer">—</div>
             <div class="hero-grade-badge" id="hero-grade-badge" style="display:none">
               <img id="hero-grade-img" class="hero-grade-img" src="" alt="">
+              <span id="hero-reparto-badge"></span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- HERO CARD -->
-      <div id="hero-card" class="hero-card">
-        <div class="hero-center">
+      <!-- 2 · LIVE ACTIVITY (bacheca Comando / alert) -->
+      <div id="bacheca-dash" style="display:none"></div>
 
-          <!-- Cerchio turno -->
+      <!-- 3 · HERO CARD 4x2 — Turno di oggi -->
+      <div id="hero-card" class="hero-card">
+        <div class="hero-meteo-pill" id="hero-meteo">
+          <span class="hero-meteo-ico" id="hero-meteo-ico">🌤️</span>
+          <span class="hero-meteo-temp" id="hero-meteo-temp">—°</span>
+          <span class="hero-meteo-citta" id="hero-meteo-citta">—</span>
+        </div>
+        <div class="hero-center">
           <div class="hero-tonal-wrap">
             <div class="hero-tonal-circle" id="hero-tonal-circle">
               <svg class="hero-ring-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
@@ -591,189 +598,125 @@
               <div class="hero-tonal-ico" id="hero-tonal-ico">🛋️</div>
             </div>
           </div>
-
-          <!-- Colonna destra: turno sopra, meteo sotto -->
           <div class="hero-info">
-            <!-- Turno -->
             <div class="hero-turno-block">
               <div class="hero-sigla" id="hero-sigla">—</div>
               <div class="hero-orario" id="hero-orario">Nessun turno</div>
             </div>
-            <!-- Separatore -->
             <div class="hero-divider"></div>
-            <!-- Meteo prominente -->
-            <div class="hero-meteo-block" id="hero-meteo">
-              <div class="hero-meteo-main">
-                <span class="hero-meteo-ico" id="hero-meteo-ico">🌤️</span>
-                <span class="hero-meteo-temp" id="hero-meteo-temp">—°</span>
-                <span class="hero-meteo-citta" id="hero-meteo-citta">—</span>
-              </div>
-              <div class="hero-meteo-detail-row">
-                <span id="hero-meteo-desc">—</span>
-                <span class="hero-meteo-sep">·</span>
-                <span>💧<span id="hero-meteo-umi">—</span>%</span>
-                <span class="hero-meteo-sep">·</span>
-                <span>💨<span id="hero-meteo-vento">—</span>km/h</span>
-              </div>
+            <div class="hero-live-pill" id="hero-live-pill">Giornata libera</div>
+            <div class="hero-meteo-detail-row" aria-hidden="true" style="display:none">
+              <span id="hero-meteo-desc">—</span>
+              <span>💧<span id="hero-meteo-umi">—</span>%</span>
+              <span>💨<span id="hero-meteo-vento">—</span>km/h</span>
             </div>
           </div>
-
         </div>
       </div>
 
+      <input type="file" id="xi" accept=".xlsx,.xls" onchange="importXL(this.files[0])" style="display:none">
 
-<h1 class="ptit">Dashboard</h1><p class="psub">Panoramica generale</p>
-      <!-- BACHECA — avvisi del Comando (Blocco 4) -->
-      <div id="bacheca-dash" style="display:none"></div>
+      <!-- WIDGET CONTAINER -->
+      <div id="wdg-container" class="wdg-container">
 
-      <!-- ═══ MODALITÀ FOCUS — RIMOSSA (Task 1) ═══ -->
-
-        <input type="file" id="xi" accept=".xlsx,.xls" onchange="importXL(this.files[0])" style="display:none">
-        <!-- BARRA LAYOUT DASHBOARD — Blocco/Sblocco (sostituisce il vecchio "Organizza") -->
-        <div style="display:flex;align-items:center;justify-content:flex-end;margin-top:14px;margin-bottom:4px">
-          <button id="btn-dash-lock" onclick="toggleWidgetLock()" aria-pressed="true" title="Blocca o sblocca la disposizione dei widget">🔒 Layout bloccato</button>
-        </div>
-        <!-- PANNELLO PERSONALIZZAZIONE WIDGET (visibile solo a layout sbloccato) -->
-        <div id="dash-organizza-panel">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-            <div style="font-size:12px;font-weight:700;color:var(--txt)">☰ Ordine widget</div>
-            <div style="font-size:10px;color:var(--txt2)">Trascina o usa ↕ per riordinare</div>
-          </div>
-          <div id="dop-list"></div>
-        </div>
-
-        <!-- WIDGET CONTAINER (drag & drop) -->
-        <div id="wdg-container" class="wdg-container">
-
-        <!-- WIDGET SQUADRA + TURNI OGGI (fusi) -->
-        <div id="widget-squadra-turni" class="wdg-wrap m3-card" data-wid="squadra-turni" onclick="if(navigator.vibrate)navigator.vibrate(15)">
-          <div class="wdg-drag-handle"></div>
+        <!-- 4a · Straordinari & Salvadanaio -->
+        <div id="widget-prossimo" class="wdg-wrap m3-card" data-wid="prossimo">
           <div class="wdg-body">
             <div class="wdg-hdr">
-              <span class="wdg-lbl">👥 Squadra &amp; Turni di Oggi</span>
-              <div class="wdg-mv-btns">
-                <button onclick="moveWidget('squadra-turni',-1)" class="wdg-mv-btn">↑</button>
-                <button onclick="moveWidget('squadra-turni',+1)" class="wdg-mv-btn">↓</button>
-              </div>
+              <span class="wdg-lbl">⏱️ Straordinari</span>
+              <button class="wstr-add-btn" onclick="apriModalStraord()" title="Aggiungi straordinario">
+                <span style="font-size:20px;line-height:1">+</span>
+              </button>
             </div>
-            <!-- Avatar colleghi -->
-            <div id="w-squadra-list" style="display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch;scrollbar-width:none"></div>
-            <!-- Separatore -->
-            <div style="height:1px;background:rgba(255,255,255,0.06);margin:8px 0"></div>
-            <!-- Tabella turni oggi -->
-            <div class="tscr" style="max-height:180px">
-              <table>
-                <thead><tr><th>Nome</th><th>Grado</th><th>Turno</th><th>Orario</th></tr></thead>
-                <tbody id="tb-oggi"><tr><td colspan="4" class="empty">Nessun turno oggi</td></tr></tbody>
-              </table>
+            <div id="wstr-ore-oggi">0h 00m</div>
+            <div id="wstr-mese-tot">Questo mese: <strong id="wstr-mese-val">0h</strong></div>
+            <div class="wstr-bar-wrap"><div class="wstr-bar-fill" id="wstr-bar-fill"></div></div>
+            <div style="display:flex;justify-content:space-between;margin-top:4px">
+              <span id="wstr-bar-lbl">0 / 20h mensili</span>
+              <span id="wstr-turno-lbl"></span>
+            </div>
+            <div id="wstr-salv-row" onclick="vaiBN('rep',99);switchRepTab('straord')">
+              <span>🐖 Salvadanaio</span>
+              <span id="wstr-salv-val">0h</span>
             </div>
           </div>
         </div>
 
-        <!-- WIDGET TURNI SETTIMANA -->
-        <div id="widget-settimana" class="wdg-wrap m3-card" data-wid="settimana" onclick="if(navigator.vibrate)navigator.vibrate(15)">
-          <div class="wdg-drag-handle"></div>
+        <!-- 4b · Saldi Ferie & 150h Studio (nuovo) -->
+        <div id="widget-saldi" class="wdg-wrap m3-card" data-wid="saldi" onclick="vaiBN('imp',99);toggleImpSec('sec-ferie','arr-ferie');renderPermessiStudio()">
           <div class="wdg-body">
-            <div class="wdg-hdr">
-              <span class="wdg-lbl">📅 Turni della Settimana</span>
-              <div class="wdg-mv-btns">
-                <button onclick="moveWidget('settimana',-1)" class="wdg-mv-btn">↑</button>
-                <button onclick="moveWidget('settimana',+1)" class="wdg-mv-btn">↓</button>
-              </div>
+            <div class="wdg-hdr"><span class="wdg-lbl">🏖️ Saldi</span><span class="wdg-saldi-arrow">›</span></div>
+            <div class="wsaldi-row">
+              <div class="wsaldi-num" id="wsaldi-ferie">—</div>
+              <div class="wsaldi-lbl">giorni ferie</div>
             </div>
+            <div class="wsaldi-row" style="margin-top:8px">
+              <div class="wsaldi-num" id="wsaldi-studio">—</div>
+              <div class="wsaldi-lbl">ore studio (150h)</div>
+            </div>
+            <div class="wsaldi-bar"><div class="wsaldi-bar-fill" id="wsaldi-studio-bar"></div></div>
+          </div>
+        </div>
+        <!-- 5a · La tua settimana -->
+        <div id="widget-settimana" class="wdg-wrap m3-card" data-wid="settimana">
+          <div class="wdg-body">
+            <div class="wdg-hdr"><span class="wdg-lbl">📅 La tua settimana</span></div>
             <div id="w-settimana-list"></div>
           </div>
         </div>
 
-        <!-- WIDGET STRAORDINARI OGGI -->
-        <div id="widget-prossimo" class="wdg-wrap m3-card" data-wid="prossimo">
-          <div class="wdg-drag-handle"></div>
+        <!-- 5b · In servizio oggi (Apple Contatti) -->
+        <div id="widget-squadra-turni" class="wdg-wrap m3-card" data-wid="squadra-turni">
           <div class="wdg-body">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-              <span class="wdg-lbl">⏱️ Straordinari oggi</span>
-              <div class="wdg-mv-btns">
-                <button onclick="moveWidget('prossimo',-1)" class="wdg-mv-btn">↑</button>
-                <button onclick="moveWidget('prossimo',+1)" class="wdg-mv-btn">↓</button>
+            <div class="wdg-hdr"><span class="wdg-lbl">👥 In servizio oggi</span></div>
+            <div id="w-squadra-list"></div>
+          </div>
+        </div>
+
+        <!-- 6 · Agenda & Promemoria unificati -->
+        <div id="dash-ag-td">
+          <div id="widget-agenda" class="wdg-wrap" data-wid="agenda">
+            <div class="wdg-body">
+              <div class="wdg-hdr"><span class="wdg-lbl">🗓 Agenda oggi</span><button class="btn btn-sm" onclick="vaiAgenda()" style="width:auto;font-size:10px;padding:3px 10px">Vedi tutti ›</button></div>
+              <div id="wag-list"><div class="wdg-empty">Nessun appuntamento oggi</div></div>
+            </div>
+          </div>
+          <div id="widget-todo" class="wdg-wrap" data-wid="todo">
+            <div class="wdg-body">
+              <div class="wdg-hdr">
+                <span class="wdg-lbl">✅ Promemoria</span>
+                <div style="display:flex;gap:6px">
+                  <button class="btn btn-sm" onclick="openM('m-todo')" style="width:auto;font-size:10px;padding:3px 10px">+ Nuovo</button>
+                  <button class="btn btn-sm" onclick="vaiTodo()" style="width:auto;font-size:10px;padding:3px 10px">Vedi tutti ›</button>
+                </div>
               </div>
-            </div>
-            <!-- Ore accumulate oggi -->
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
-              <div style="flex:1">
-                <div id="wstr-ore-oggi" style="font-size:28px;font-weight:900;color:var(--blue);line-height:1">0h 00m</div>
-                <div id="wstr-mese-tot" style="font-size:11px;color:var(--txt2);margin-top:2px">Questo mese: <strong id="wstr-mese-val">0h</strong></div>
-              </div>
-              <button class="wstr-add-btn" onclick="apriModalStraord()" title="Aggiungi straordinario">
-                <span style="font-size:22px;line-height:1">+</span>
-              </button>
-            </div>
-            <!-- Barra progresso verso soglia mensile (es. 20h) -->
-            <div class="wstr-bar-wrap">
-              <div class="wstr-bar-fill" id="wstr-bar-fill"></div>
-            </div>
-            <div style="display:flex;justify-content:space-between;margin-top:4px">
-              <span style="font-size:10px;color:var(--txt2)" id="wstr-bar-lbl">0 / 20h mensili</span>
-              <span style="font-size:10px;color:var(--txt2)" id="wstr-turno-lbl"></span>
-            </div>
-            <!-- Salvadanaio ore straordinario -->
-            <div id="wstr-salv-row" onclick="vaiBN('rep',99);switchRepTab('straord')" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer">
-              <span style="font-size:11px;color:var(--txt2)">🐖 Salvadanaio</span>
-              <span id="wstr-salv-val" style="font-size:11px;font-weight:800;color:var(--teal)">0h</span>
+              <div id="wtd-list"><div class="wdg-empty">Nessun to-do aperto</div></div>
             </div>
           </div>
         </div>
 
-        <!-- WIDGET ALERT -->
-        <div id="widget-alert" class="wdg-wrap m3-card" data-wid="alert" onclick="if(navigator.vibrate)navigator.vibrate(15)">
-          <div class="wdg-drag-handle"></div>
+        <!-- Alert attivi -->
+        <div id="widget-alert" class="wdg-wrap m3-card" data-wid="alert">
           <div id="widget-alert-inner" class="wdg-body" style="border-left:3px solid var(--red)">
-            <div class="wdg-hdr"><span class="wdg-lbl" style="color:var(--red)">🚨 Alert attivi</span><div class="wdg-mv-btns"><button onclick="moveWidget('alert',-1)" class="wdg-mv-btn">↑</button><button onclick="moveWidget('alert',+1)" class="wdg-mv-btn">↓</button></div></div>
+            <div class="wdg-hdr"><span class="wdg-lbl" style="color:var(--red)">🚨 Alert attivi</span></div>
             <div id="wale-list"></div>
             <button class="btn btn-sm" onclick="openM('m-alert')" style="width:auto;font-size:11px;margin-top:8px;background:rgba(200,16,46,.12);color:var(--red);border-color:rgba(200,16,46,.3)">Gestisci alert</button>
           </div>
         </div>
 
-        <!-- WIDGET SCADENZE -->
-        <div id="widget-scadenze" class="wdg-wrap m3-card" data-wid="scadenze" onclick="if(navigator.vibrate)navigator.vibrate(15)">
-          <div class="wdg-drag-handle"></div>
+        <!-- Scadenze -->
+        <div id="widget-scadenze" class="wdg-wrap m3-card" data-wid="scadenze">
           <div class="wdg-body">
             <div class="wdg-hdr"><span class="wdg-lbl">📅 Scadenze</span><button class="btn btn-sm" onclick="openM('m-scadenza')" style="width:auto;font-size:10px;padding:3px 10px">+ Aggiungi</button></div>
-            <div id="wsc-list"><div style="font-size:12px;color:var(--txt2)">Nessuna scadenza</div></div>
+            <div id="wsc-list"><div class="wdg-empty">Nessuna scadenza</div></div>
           </div>
         </div>
 
-        <!-- WIDGET AGENDA OGGI -->
-        <div id="widget-agenda" class="wdg-wrap m3-card" data-wid="agenda" onclick="if(navigator.vibrate)navigator.vibrate(15)">
-          <div class="wdg-drag-handle"></div>
-          <div class="wdg-body">
-            <div class="wdg-hdr"><span class="wdg-lbl">🗓 Agenda oggi</span><button class="btn btn-sm" onclick="vaiAgenda()" style="width:auto;font-size:10px;padding:3px 10px">Vedi tutto</button></div>
-            <div id="wag-list"><div style="font-size:12px;color:var(--txt2)">Nessun appuntamento oggi</div></div>
-          </div>
-        </div>
-
-        <!-- WIDGET TODO -->
-        <div id="widget-todo" class="wdg-wrap m3-card" data-wid="todo" onclick="if(navigator.vibrate)navigator.vibrate(15)">
-          <div class="wdg-drag-handle"></div>
-          <div class="wdg-body">
-            <div class="wdg-hdr">
-              <span class="wdg-lbl">✅ To-Do aperti</span>
-              <div style="display:flex;gap:6px">
-                <button class="btn btn-sm" onclick="openM('m-todo')" style="width:auto;font-size:10px;padding:3px 10px">+ Nuovo</button>
-                <button class="btn btn-sm" onclick="vaiTodo()" style="width:auto;font-size:10px;padding:3px 10px">Vedi tutto</button>
-              </div>
-            </div>
-            <div id="wtd-list"><div style="font-size:12px;color:var(--txt2)">Nessun to-do aperto</div></div>
-          </div>
-        </div>
-
-        <!-- WIDGET DINO — integrato nel sistema widget dashboard -->
+        <!-- Carabiniere Runner -->
         <div id="widget-dino-dash" class="wdg-wrap" data-wid="dino" style="display:none">
-          <div style="border-radius:14px;padding:14px;background:rgba(13,21,32,.92);border:1px solid rgba(91,159,255,.2)">
+          <div style="border-radius:18px;padding:14px;background:rgba(13,21,32,.92);border:1px solid rgba(91,159,255,.2)">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:rgba(255,255,255,.6)">👮 Carabiniere Runner</div>
-              <div style="display:flex;gap:4px">
-                <button onclick="moveWidget('dino',-1)" class="wdg-mv-btn" style="background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.2)">↑</button>
-                <button onclick="moveWidget('dino',+1)" class="wdg-mv-btn" style="background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.2)">↓</button>
-              </div>
+              <div class="wdg-lbl">👮 Carabiniere Runner</div>
             </div>
             <canvas id="dino-canvas" width="320" height="260" style="width:100%;height:260px;border-radius:12px;background:#050d1a;display:block;cursor:pointer;touch-action:manipulation" aria-label="Carabiniere Runner"></canvas>
             <div style="font-size:10px;color:rgba(255,255,255,.5);margin-top:8px;text-align:center;letter-spacing:.3px">Tap / Spazio per saltare &nbsp;·&nbsp; Doppio tap = doppio salto &nbsp;·&nbsp; Hi: <span id="dino-record" style="font-weight:800;color:rgba(91,159,255,.9)">0</span></div>
@@ -782,11 +725,20 @@
 
       </div><!-- /wdg-container -->
 
-      <!-- Tooltip resize widget (globale) -->
-      <div id="wdg-resize-tooltip"></div>
-
-
+      <!-- FOGLIO "MODIFICA DASHBOARD" (riuso del pannello ordine widget) -->
+      <div id="dash-organizza-panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:15px;font-weight:800;color:var(--txt)">Modifica Dashboard</div>
+          <button class="mcl" onclick="_dashEditClose()" aria-label="Chiudi">✕</button>
+        </div>
+        <div id="dop-list"></div>
       </div>
+
+      <!-- Pulsante discreto in fondo -->
+      <button id="btn-dash-edit" onclick="_dashEditOpen()">Modifica Dashboard</button>
+
+      </div><!-- /pag-dash -->
+
 
 
 
@@ -3021,7 +2973,7 @@ function chiudiSheetGiorno() {
 <script src="state.js?v=1.0.0"></script>
 <script src="biometric.js?v=1.0.0"></script>
 <script src="Game/carabiniere-runner.js?v=2.0.0"></script>
-<script src="app.js?v=5.3.3"></script>
+<script src="app.js?v=5.4.0"></script>
 <script type="module" src="firebase-manager.js?v=5.3.1"></script>
 
 <!-- MODAL CONFIRM CUSTOM -->

@@ -9798,3 +9798,142 @@ html, body {
   }
 }
 
+
+/* ══════════════════════════════════════════════════════════════════════
+   §38 · DASHBOARD iOS 27 — header, hero 4x2, widget 2x2, settimana,
+   contatti, agenda+promemoria, foglio "Modifica Dashboard".
+   Solo proprietà visive; nessun backdrop-filter annidato nei widget.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── 38.1 · Header identità ──────────────────────────────────────────── */
+#dash-hero-head{
+  display: flex; align-items: center; gap: 12px;
+  padding: 4px 2px 14px;
+}
+#hero-reparto-badge{
+  font-size: 9px; font-weight: 800; letter-spacing: .4px;
+  color: var(--ios-accent); white-space: nowrap;
+}
+
+/* ── 38.2 · Hero card 4x2: pillola meteo + stato live ────────────────── */
+#hero-card{ position: relative; }
+.hero-meteo-pill{
+  position: absolute; top: 12px; right: 12px; z-index: 2;
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 999px;
+  background: var(--glass-bg-subtle);
+  border: 1px solid var(--glass-border-subtle);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.24);
+  font-size: 12px; font-weight: 700; color: var(--txt);
+  font-variant-numeric: tabular-nums;
+  max-width: 150px;
+}
+.hero-meteo-pill .hero-meteo-ico{ font-size: 14px; }
+.hero-meteo-pill .hero-meteo-temp{ font-size: 13px; }
+.hero-meteo-pill .hero-meteo-citta{
+  font-size: 10px; font-weight: 600; color: var(--txt2);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 62px;
+}
+.hero-live-pill{
+  display: inline-block; margin-top: 6px;
+  padding: 4px 10px; border-radius: 999px;
+  background: var(--glass-bg-subtle);
+  border: 1px solid var(--glass-border-subtle);
+  font-size: 11.5px; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 38.3 · Griglia widget 2×2 + widget Saldi ────────────────────────── */
+#wdg-container{
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  align-items: start;
+}
+#wdg-container > #widget-settimana,
+#wdg-container > #widget-squadra-turni,
+#wdg-container > #dash-ag-td,
+#wdg-container > #widget-alert,
+#wdg-container > #widget-scadenze,
+#wdg-container > #widget-dino-dash{ grid-column: 1 / -1; }
+.wdg-empty{ font-size: 12px; color: var(--txt2); padding: 2px 0; }
+.wdg-saldi-arrow{ font-size: 16px; color: var(--txt2); font-weight: 700; }
+.wsaldi-row{ display: flex; align-items: baseline; gap: 6px; }
+.wsaldi-num{
+  font-size: 24px; font-weight: 800; letter-spacing: -0.6px; color: var(--txt);
+  font-variant-numeric: tabular-nums; line-height: 1.05;
+}
+.wsaldi-lbl{ font-size: 10.5px; font-weight: 600; color: var(--txt2); }
+.wsaldi-bar{
+  height: 5px; border-radius: 999px; overflow: hidden;
+  background: var(--glass-bg-subtle); margin-top: 10px;
+}
+.wsaldi-bar-fill{
+  height: 100%; border-radius: 999px;
+  background: var(--ios-accent); width: 0;
+  transition: width .3s var(--motion-standard);
+}
+
+/* ── 38.4 · Settimana: pillola a 7 colonne ───────────────────────────── */
+#w-settimana-list{ display: flex; gap: 4px; }
+#w-settimana-list > *{ flex: 1 1 0; min-width: 0; }
+
+/* ── 38.5 · In servizio oggi: medaglioni orizzontali (Apple Contatti) ── */
+#w-squadra-list{
+  display: flex !important; gap: 12px;
+  overflow-x: auto; padding-bottom: 8px;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none;
+}
+#w-squadra-list::-webkit-scrollbar{ display: none; }
+#w-squadra-list img, #w-squadra-list [class*="ava"]{
+  border-radius: 50% !important;
+}
+#w-squadra-list > div{ flex: 0 0 auto; }
+
+/* ── 38.6 · Agenda + Promemoria in un'unica card ─────────────────────── */
+#dash-ag-td{
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.28), var(--glass-shadow);
+  overflow: hidden;
+}
+#dash-ag-td > #widget-agenda,
+#dash-ag-td > #widget-todo{
+  background: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+}
+#dash-ag-td > #widget-todo{ border-top: 0.5px solid var(--ios-sep) !important; }
+
+/* ── 38.7 · Foglio "Modifica Dashboard" + pulsante ───────────────────── */
+#dash-organizza-panel{
+  display: none;
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 100060;
+  max-width: 520px; margin: 0 auto;
+  padding: 16px 18px calc(18px + env(safe-area-inset-bottom, 0px));
+  background: var(--ios-card-elevated, var(--glass-bg-elevated));
+  border-top: 0.5px solid var(--ios-sep);
+  border-radius: 28px 28px 0 0;
+  box-shadow: 0 -12px 40px rgba(0,0,0,.45), var(--glass-highlight);
+  max-height: 72vh; overflow-y: auto;
+}
+#dash-organizza-panel.open{ display: block; }
+#btn-dash-edit{
+  display: block; margin: 18px auto 8px;
+  padding: 9px 18px; border-radius: 999px;
+  background: var(--glass-bg-subtle);
+  border: 1px solid var(--glass-border-subtle);
+  color: var(--txt2); font-size: 12.5px; font-weight: 600;
+  cursor: pointer; appearance: none; -webkit-appearance: none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.20);
+}
+#btn-dash-edit:active{ transform: scale(.97); }
+
+/* Numeri tabulari in tutta la Dashboard */
+#pag-dash .hero-sigla, #pag-dash .hero-orario, #pag-dash #wstr-ore-oggi,
+#pag-dash #wstr-mese-val, #pag-dash #wstr-salv-val, #pag-dash .wsaldi-num{
+  font-variant-numeric: tabular-nums;
+}

@@ -1110,6 +1110,62 @@ turni solo con `t.tipo === 'studio'` **e** solo via `t.pid`.
 - `S_live`: aggiungendo un turno studio → **132 h** subito;
 - `S_antiomonimo`: aggiungendo un turno studio del **collega** → resta **132 h**.
 
+## §38 · Dashboard iOS 27 ricostruita da zero (v5.4.0)
+
+`#pag-dash` riscritta in 6 blocchi (Today View + Apple Widgets in Liquid Glass),
+mantenendo **tutti gli id** usati da Firebase/calcoli/anti-omonimia (61 → 58:
+rimossi solo quelli richiesti) e l'App Shell bloccata.
+
+**Struttura**
+1. **Header identità** (`#dash-hero-head`): avatar 46px, saluto 13px, Nome e
+   Cognome 24px/800 `-0.6px`, capsula grado + nuovo `#hero-reparto-badge`.
+2. **Live Activity** `#bacheca-dash` (già condizionale, `display:none` senza
+   avvisi) + `#widget-alert`.
+3. **Hero 4x2** `#hero-card`: mini-pillola meteo in alto a destra
+   (`.hero-meteo-pill` con `#hero-meteo-ico/temp/citta`; i dettagli
+   `desc/umi/vento` restano nel DOM per il JS ma nascosti), ring SVG
+   `#hero-ring-fill`, `#hero-sigla`, `#hero-orario` tabulare e **nuova pillola
+   di stato live** `#hero-live-pill` («In servizio · mancano Xh Ym» / «Inizia
+   alle …» / «Turno concluso» / «Giornata libera»), calcolata in
+   `aggiornaHeroCard()`.
+4. **Griglia 2×2** (`#wdg-container` → `display:grid` 1fr/1fr): sinistra
+   `#widget-prossimo` (straordinari + `+` circolare + barra + salvadanaio),
+   destra **nuovo `#widget-saldi`** (`#wsaldi-ferie`, `#wsaldi-studio`,
+   `#wsaldi-studio-bar`) alimentato da `renderWidgetSaldi()` con
+   `getFeriePool` + `getPermessoStudioSummary`; tap → Ferie & Licenze.
+   Settimana, squadra, agenda+promemoria, alert, scadenze e dino a tutta
+   larghezza (`grid-column: 1/-1`).
+5. **Orizzontali**: `#widget-settimana` (7 colonne fluide) e
+   `#widget-squadra-turni` **senza più la tabella** `#tb-oggi`: solo
+   `#w-squadra-list` a scorrimento con medaglioni circolari.
+6. **`#dash-ag-td`**: agenda (`#wag-list`) + promemoria (`#wtd-list`) in
+   un'unica card Liquid Glass 24px; in fondo il pulsante
+   `#btn-dash-edit` che apre il foglio `#dash-organizza-panel` («Modifica
+   Dashboard», riuso di `#dop-list`).
+
+**Rimossi dalla Dashboard**: titolo `Dashboard / Panoramica generale`, barra
+`#btn-dash-lock` («🔒 Layout bloccato»), maniglie `.wdg-drag-handle`,
+`#wdg-resize-tooltip` e la tabella `#tb-oggi`.
+**Guardie aggiunte** (nessun `null` reference): `renderOggi()` esce se manca
+`#tb-oggi`; `initWidgetResize()` esce se manca `#wdg-resize-tooltip` (quindi non
+inietta più handle).
+
+**Verifica (`dash38probe`, 9/9 PASS)** con dati reali seminati (profilo, pool
+ferie 30 gg, monte studio 150h, 1 turno studio):
+- `D_blocchi` – tutti i 9 nodi chiave presenti; `D_grid` – grid a 2 colonne;
+- `D_legacy` – `#tb-oggi`, `#btn-dash-lock`, tooltip, drag-handle e `<h1>`
+  assenti; `D_legacy_safe` – `renderOggi()`/`initWidgetResize()` non lanciano e
+  nessun handle viene iniettato;
+- `D_hero_live` – pillola di stato valorizzata («Turno concluso» con turno
+  06:00-12:00);
+- `D_saldi` – **30 gg** ferie e **144 h** studio (150 − 6) nel widget Saldi;
+- `D_edit` – foglio Modifica Dashboard apre (`block`) e chiude (`none`);
+- `D_blur` – **9 superfici** in vetro, **0 `backdrop-filter` annidati**;
+- `D_err` – nessun errore JS.
+`node --check app.js` OK, `npm test` verde, graffe CSS **2164/2164**, UTF-8
+valido. Evidenza: `shot-dash-ios27.png`.
+
+
 `node --check app.js` OK · `npm test` verde · UTF-8 valido · 4 chiamate di
 refresh inserite. Cache-bust `app.js?v=5.3.3`, SW `c-turni-v5.3.3`.
 
