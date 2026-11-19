@@ -5654,30 +5654,91 @@ function _aggiornaBentoAg() {
 
 // Render agenda nella pagina dedicata (pag-ag)
 /* §27 — Bento tiles iOS 27 (stile Apple Reminders) */
+/* §39 — Smart Lists 2×2 interattive: ogni tile È un filtro. Tap = filtra,
+   secondo tap = torna a "Tutti". */
+window._agFiltro = window._agFiltro || '';
+function _agSetFiltro(f){
+  window._agFiltro = (window._agFiltro === f) ? '' : f;
+  _agIOSTiles();
+  _agApplicaFiltro();
+  if(typeof renderAgendaPg === 'function') renderAgendaPg();
+  if(navigator.vibrate) navigator.vibrate(6);
+}
+function _agApplicaFiltro(){
+  var f = window._agFiltro || '';
+  var av = document.getElementById('ag-section-avvisi');
+  var ag = document.getElementById('ag-section-agenda');
+  var cp = document.getElementById('ag-section-compiti');
+  var showAv = (f === '' || f === 'comando');
+  var showAg = (f === '' || f === 'oggi' || f === 'programmati');
+  var showCp = (f === '' || f === 'compiti' || f === 'oggi');
+  if(ag) ag.style.display = showAg ? '' : 'none';
+  if(cp) cp.style.display = showCp ? '' : 'none';
+  if(av && !showAv) av.style.display = 'none';
+  else if(av && showAv) av.style.display = '';
+}
+function _agConteggi(){
+  var oggi = new Date().toISOString().slice(0,10);
+  var AG = (lsG('ct_ag', []) || []).filter(function(a){ return a && a.data >= oggi; });
+  var AGoggi = AG.filter(function(a){ return a.data === oggi; });
+  var TD = (lsG('ct_td', []) || []).filter(function(t){ return t && !t.done && !t.completato; });
+  var TDoggi = TD.filter(function(t){ return t && String(t.data||'') === oggi; });
+  var AV = (typeof _bachecaAttivi === 'function' ? _bachecaAttivi() : (typeof _bachecaCarica === 'function' ? _bachecaCarica() : [])) || [];
+  var TDdone = (lsG('ct_td', []) || []).filter(function(t){ return t && (t.done || t.completato); });
+  return { oggi: AGoggi.length + TDoggi.length, programmati: AG.length, compiti: TD.length, comando: AV.length, completati: TDdone.length, avvisi: AV };
+}
 function _agIOSTiles(){
   var box = document.getElementById('ag-ios-tiles');
   if(!box) return;
-  var oggi = new Date().toISOString().slice(0,10);
-  var AG = lsG('ct_ag', []).filter(function(a){ return a && a.data >= oggi; });
-  var TD = lsG('ct_td', []).filter(function(t){ return t && !t.done && !t.completato; });
-  var AV = (typeof _bachecaCarica === 'function' ? _bachecaCarica() : lsG('ct_bacheca', [])) || [];
-  var alta = TD.filter(function(t){ return t && t.prio === 'alta'; }).length;
+  var c = _agConteggi();
+  var f = window._agFiltro || '';
   var tiles = [
-    { ico: '📅', col: 'var(--ios-accent)', n: AG.length, lbl: 'Appuntamenti' },
-    { ico: '✅', col: 'var(--ios-orange)', n: TD.length, lbl: 'Compiti' },
-    { ico: '🚨', col: 'var(--ios-red)',    n: alta,      lbl: 'Alta priorità' },
-    { ico: '📢', col: 'var(--ios-indigo)', n: AV.length, lbl: 'Avvisi' }
+    { k: 'oggi',        ico: '📅', col: 'var(--ios-accent)',  n: c.oggi,        lbl: 'Oggi' },
+    { k: 'programmati', ico: '🗓️', col: 'var(--ios-red)',     n: c.programmati, lbl: 'Programmati' },
+    { k: 'compiti',     ico: '✅', col: 'var(--ios-orange)',  n: c.compiti,     lbl: 'Compiti' },
+    { k: 'comando',     ico: '📣', col: 'var(--ios-indigo)',  n: c.comando,     lbl: 'Comando' }
   ];
   box.innerHTML = tiles.map(function(t){
-    return '<div class="ios-tile">'
-      + '<div class="ios-tile-ico" style="background:' + t.col + '">' + t.ico + '</div>'
+    var on = (f === t.k) ? ' on' : '';
+    var dot = (t.k === 'comando' && c.comando > 0) ? '<span class="ios-tile-dot"></span>' : '';
+    return '<div class="ios-tile' + on + '" data-agf="' + t.k + '" onclick="_agSetFiltro(\'' + t.k + '\')">'
+      + '<div class="ios-tile-ico" style="background:' + t.col + '">' + t.ico + dot + '</div>'
       + '<div class="ios-tile-body"><div class="ios-tile-num">' + t.n + '</div>'
       + '<div class="ios-tile-lbl">' + t.lbl + '</div></div></div>';
   }).join('');
+  _agApplicaFiltro();
+}
+
+/* §39 — Compiti completati: riga discreta espandibile in fondo alla sezione */
+function _agRenderCompletati(){
+  var wrap = document.getElementById('ag-list-completati-wrap');
+  var list = document.getElementById('ag-list-completati');
+  var cnt = document.getElementById('ag-completed-count');
+  if(!wrap || !list) return;
+  var done = (lsG('ct_td', []) || []).filter(function(t){ return t && (t.done || t.completato); });
+  done.sort(function(a,b){ return String(b.completatoIl || b.data || '').localeCompare(String(a.completatoIl || a.data || '')); });
+  if(cnt) cnt.textContent = done.length;
+  if(!done.length){ wrap.style.display = 'none'; list.innerHTML = ''; return; }
+  wrap.style.display = '';
+  list.innerHTML = done.slice(0, 20).map(function(t){
+    return '<div class="ag-item ag-item-done">'
+      + '<div class="ag-check on" aria-hidden="true">✓</div>'
+      + '<div class="ag-item-body"><div class="ag-item-title" style="text-decoration:line-through;opacity:.7">' + ctEsc(t.tit || '') + '</div></div>'
+      + '</div>';
+  }).join('');
+}
+function _agToggleCompletati(){
+  var list = document.getElementById('ag-list-completati');
+  var arr = document.getElementById('ag-completed-arrow');
+  if(!list) return;
+  var open = list.style.display !== 'none';
+  list.style.display = open ? 'none' : '';
+  if(arr) arr.style.transform = open ? '' : 'rotate(90deg)';
 }
 
 function renderAgendaPg(filtro) {
   if(typeof _agIOSTiles === 'function'){ try { _agIOSTiles(); } catch(e){} }
+  if(typeof _agRenderCompletati === 'function'){ try { _agRenderCompletati(); } catch(e){} }
   var el  = document.getElementById('agenda-list-pg');
   var el2 = document.getElementById('agenda-condivisa-list-pg');
   var w2  = document.getElementById('agenda-condivisa-wrap-pg');
@@ -8870,13 +8931,13 @@ function _calTipoInfo(t){
 }
 function _calFascia(t){
   var tipo = _tipoEffettivoTurno(t);
-  if(['riposo','ferie','licenza','permesso','studio','937','104','ls','fest'].indexOf(tipo) !== -1) return 'rip';
-  var o = String(t.orario || '').split('-')[0].trim();
-  var hh = parseInt(o.split(':')[0], 10);
-  if(isNaN(hh)) return (tipo === 'notte' || tipo === 'sera') ? 'notte' : 'matt';
-  if(hh >= 4 && hh < 14) return 'matt';
-  if(hh >= 14 && hh < 22) return 'pome';
-  return 'notte';
+  var cod = String(t && t.codice || '').trim().toUpperCase();
+  // Mappatura per CODICE (specifica iOS 27) con fallback sul tipo.
+  if(['M','ML','OBBM'].indexOf(cod) !== -1 || tipo === 'mattina' || tipo === 'ml' || tipo === 'obbm') return 'matt';
+  if(['P','PL','OBBP'].indexOf(cod) !== -1 || tipo === 'pomeriggio' || tipo === 'pl' || tipo === 'obbp') return 'pome';
+  if(['N','S'].indexOf(cod) !== -1 || tipo === 'notte' || tipo === 'sera') return 'notte';
+  // Tutto il resto (R, RR, L, PSTUDIO, LICSTU, 937, 104, LS, FEST, PERM, …)
+  return 'rip';
 }
 
 /* Pannello dettaglio del giorno selezionato (split-view iOS) */
@@ -8905,14 +8966,15 @@ function _calIOSDetail(){
   for(var i = 0; i < T.length; i++){
     if(T[i] && T[i].data === ds && _isMioTurnoStrict(T[i], me)){ mio = T[i]; break; }
   }
-  h += '<div class="cal-card">';
+  h += '<div class="cal-card cal-my-shift">';
   if(mio){
     var ti = _calTipoInfo(mio);
-    h += '<div class="cal-ev">'
+    h += '<div class="cal-ev cal-ev-mio">'
       + '<div class="cal-ev-bar" style="background:' + ti.col + '"></div>'
       + '<div style="flex:1;min-width:0">'
-      + '<div class="cal-ev-title">' + ti.label + '</div>'
-      + '<div class="cal-ev-sub">' + (mio.orario || '') + (mio.codice ? ' · ' + mio.codice : '') + '</div>'
+      + '<div class="cal-ev-title"><span class="cal-tu">TU</span>' + ti.label + '</div>'
+      + '<div class="cal-my-sigla" style="color:' + ti.col + '">' + String(mio.codice || ti.tipo || '').toUpperCase() + '</div>'
+      + '<div class="cal-ev-sub">' + (mio.orario || '') + '</div>'
       + '</div>'
       + '<div class="cal-ev-acts">'
       + '<button class="cal-ev-btn" onclick="apriModificaTurnoGiorno(' + mio.id + ')" title="Modifica">✎</button>'
@@ -8945,7 +9007,7 @@ function _calIOSDetail(){
     h += '<div class="cal-card">';
     ['matt','pome','notte','rip'].forEach(function(k){
       if(!gruppi[k].length) return;
-      h += '<div class="cal-grp-head">' + heads[k] + '</div>';
+      h += '<div class="cal-grp-head">' + heads[k] + '<span class="cal-grp-cnt">' + gruppi[k].length + '</span></div>';
       gruppi[k].forEach(function(t){
         var p = null;
         for(var j = 0; j < P.length; j++){ if(P[j] && String(P[j].id) === String(t.pid)){ p = P[j]; break; } }

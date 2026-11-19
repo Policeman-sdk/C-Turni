@@ -1172,3 +1172,21 @@ refresh inserite. Cache-bust `app.js?v=5.3.3`, SW `c-turni-v5.3.3`.
 mostrando i tre valori corretti; il confronto era su stringa esatta
 (`'2h 15m'`) e il markup contiene una spaziatura non-breaking. Non è un bug
 applicativo.
+
+## §39 — Hero card (meteo/sigla), dettaglio giorno iOS 27, Agenda rifatta (v5.4.1)
+
+**1 · Hero card — fine della sovrapposizione meteo ↔ sigla.**
+La pillola meteo era `position:absolute` in alto a destra e si sovrapponeva alla sigla (e troncava la città). Ora c'è una **riga dedicata** `.hero-top-row` (flex, `space-between`, gap 8, `margin-bottom:10px`) con l'etichetta `IL TUO TURNO OGGI` (11px/800 uppercase) a sinistra e la pillola meteo a destra con `position: static !important` (mai assoluta) e città `nowrap + ellipsis + max-width:140px`.
+La sigla è adattiva: `#hero-sigla{font-size:clamp(20px,6vw,32px)!important;line-height:1.1;word-break:break-word;overflow-wrap:anywhere}` → `PSTUDIO`/`LICSTU` restano dentro la colonna dell'Active Ring (misurato: 30px a 430px di viewport, `word-break: break-word` attivo, **0 overlap** con la pillola).
+
+**2 · Dettaglio giorno — "Il tuo turno" in evidenza + fasce per codice.**
+La card del turno dell'utente (`_isMioTurnoStrict`) ha ora `.cal-my-shift` (`--ios-card-bg`, raggio 16, bordo 0.5px `--ios-sep`), badge **`TU`** blu iOS (`#007AFF`), sigla grande `.cal-my-sigla` (22px/900, tabular, nel colore del turno) e orario tabulare; gli altri turni del giorno sono raggruppati in 4 fasce con **conteggio** a destra (`.cal-grp-cnt`). La classificazione ora è per **codice** (`_calFascia`): `M/ML/OBBM` → Mattina, `P/PL/OBBP` → Pomeriggio, `N/S` → Notte & Sera, **tutto il resto** (`R/RR/L/PSTUDIO/LICSTU/937/104/LS/FEST/PERM`) → Riposi & Assenze — prima si deduceva dall'orario, quindi un `PSTUDIO` senza orario finiva in "Mattina".
+
+**3 · Agenda riscritta (Apple Reminders + Calendar List).**
+Markup `#pag-ag` ricostruito: header 28px/800, **4 Smart List cliccabili** (`Oggi`, `Programmati`, `Compiti`, `Comando`) che sono **filtri** (`_agSetFiltro`): tap → anello `2px` accento + sezione evidenziata, secondo tap → torna a *Tutti*; `_agApplicaFiltro` mostra/nasconde `#ag-section-{avvisi,agenda,compiti}`; la tile *Comando* ha il **puntino rosso** quando ci sono avvisi. Sezioni con header `APPUNTAMENTI`/`COMPITI` + pillola `+ Nuovo`, e **completati collassati** in fondo (`Completati (N) ›` → `_agToggleCompletati`). Rimossi `#ag-bento` (duplicato) e i doppi chip `#chip-ag-*` / `#tf-*-ag`.
+
+**4 · Bug strutturale dell'app shell (trovato durante la verifica).**
+Il DOM conteneva **due `</div>` di troppo** tra `#pag-ag` e `#pag-rep`: chiudevano `.cont` e `.body` a metà file, così **Report, Membri, Comando e Impostazioni** finivano figli diretti di `<body>` — fuori dall'app shell. Con `body{position:fixed;overflow:hidden}` (§34) quelle quattro pagine erano **non scrollabili** (`contScroll=false`, `impOverflow=0`). Rimossi i due tag: tutte le 9 `.pag` sono ora figlie di `.cont` e lo scroll funziona (`contScroll=true`).
+
+**Verifiche** — `fix39probe` **12/12 PASS**: `H_row`, `H_meteo` (pos static, overlap false), `H_sigla`, `C_tu` (TU + PSTUDIO), `C_fasce` (Mattina 1 / Notte-Sera 1 / Riposi 1), `A_tiles` (4, oggi 2, programmati 2), `A_filtro`, `A_toggle`, `A_completati`, `A_legacy`, `A_struct`, `A_err`. `npm test` verde · `node --check app.js` OK · graffe CSS 2189/2189.
+Cache: `style.css?v=5.4.1`, `app.js?v=5.4.1`, SW `c-turni-v5.4.1`.
