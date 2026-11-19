@@ -2473,6 +2473,9 @@ window.addEventListener("DOMContentLoaded",function(){
         var _me = lsG('ct_me', null);
         if(_me) aggiornaWidget();
       }
+      /* §36 — i permessi studio dipendono dai turni: rinfresca anche le ore */
+      if(typeof renderPermessiStudio === 'function') renderPermessiStudio();
+      if(typeof _nfRenderOreUI === 'function') _nfRenderOreUI();
     });
 
     // Persone aggiornate → ri-renderizza stats e widget
@@ -2493,6 +2496,8 @@ window.addEventListener("DOMContentLoaded",function(){
 
     // Sync Firebase completata → refresh completo
     AppState.on('sync:complete', function() {
+      /* §36 — prima di ogni altro render: ore e salvadanaio allineati al cloud */
+      if(typeof _nfRenderOreUI === 'function') _nfRenderOreUI();
       var _me = lsG('ct_me', null);
       if(!_me) return;
       if(typeof aggUI            === 'function') aggUI();
@@ -9554,7 +9559,38 @@ function _salvMeseLabel(mesePfx) {
             'Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
   return (mN[parseInt(p[1], 10) - 1] || p[1]) + ' ' + p[0];
 }
-function _salvVociLavoro(tutti) { return (tutti || []).filter(function(v){ return v && !v.kind && v.data; }); }
+/* §36 — Normalizzazione data in LETTURA: le voci possono arrivare in ISO
+   (input date) oppure DD/MM/YYYY (import/legacy). I confronti su mese
+   (`YYYY-MM`) e i render usano sempre ISO, senza riscrivere lo storage. */
+function _nfNormDataISO(v){
+  var s = String(v == null ? '' : v).trim();
+  if(!s) return '';
+  if(/^\d{4}-\d{1,2}-\d{1,2}/.test(s)){
+    var p = s.slice(0, 10).split('-');
+    return p[0] + '-' + ('0' + parseInt(p[1], 10)).slice(-2) + '-' + ('0' + parseInt(p[2], 10)).slice(-2);
+  }
+  var m = /^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/.exec(s);
+  if(m){
+    var y = m[3].length === 2 ? ('20' + m[3]) : m[3];
+    return y + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2);
+  }
+  var t = Date.parse(s);
+  if(!isNaN(t)){
+    var d = new Date(t);
+    return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+  }
+  return s;
+}
+function _salvVociLavoro(tutti) {
+  return (tutti || []).filter(function(v){ return v && !v.kind && v.data; })
+    .map(function(v){
+      var d = _nfNormDataISO(v.data);
+      if(!d || d === v.data) return v;
+      var c = {}; for(var k in v) c[k] = v[k];
+      c.data = d;
+      return c;
+    });
+}
 function _salvChiusure(tutti)    { return (tutti || []).filter(function(v){ return v && v.kind === 'chiusura' && v.mese; }); }
 function _salvConsumi(tutti)     { return (tutti || []).filter(function(v){ return v && v.kind === 'consumo'; }); }
 
@@ -10312,14 +10348,40 @@ function _straordSyncFirebase() {
   }
 }
 
+/* §36 — Rinfresca TUTTE le superfici che mostrano ore (Dashboard widget,
+   salvadanaio, tab Straordinari). Usata dopo load/sync e dai render chiave. */
+function _nfRenderOreUI(){
+  try { if (typeof renderStraord === 'function') renderStraord(); } catch(e){}
+  try { if (typeof renderSalvadanaio === 'function') renderSalvadanaio(); } catch(e){}
+  try {
+    var me = lsG('ct_me', null);
+    // Il conteggio ore non dipende da `me`: il widget va aggiornato anche se il
+    // profilo non è ancora stato caricato (primo paint / dopo un purge).
+    if (typeof renderWidgetProssimo === 'function') renderWidgetProssimo(me || {});
+  } catch(e){}
+}
+
 // Unisce gli straordinari di Firestore con quelli locali (idempotente, per id)
 function _straordLoadFirebase(prof) {
   if (!prof || !Array.isArray(prof.straordinari)) return;
   var fb = prof.straordinari.filter(function(v){ return v && v.id != null; });
-  var fbKey = fb.map(function(v){ return String(v.id); }).sort().join('|');
-  if (window._straordFbKey === fbKey) return;       // stesso contenuto cloud: niente da fare
-  window._straordFbKey = fbKey;
   var locali = lsG('ct_straord', []);
+  /* §36 — Se il locale è VUOTO (dopo logout+purge, o su un nuovo dispositivo)
+     la cache in memoria non deve bloccare il ripristino: era questa la causa
+     delle "ore a zero" (fbKey identica → return anticipato → nessun dato). */
+  if (!locali.length) {
+    window._straordFbKey = null;
+    window._straordPushKey = null;
+    if (fb.length) lsS('ct_straord', fb);
+    _nfRenderOreUI();
+    return;
+  }
+  var fbKey = fb.map(function(v){ return String(v.id); }).sort().join('|');
+  if (window._straordFbKey === fbKey) {      // stesso contenuto cloud: solo UI
+    _nfRenderOreUI();
+    return;
+  }
+  window._straordFbKey = fbKey;
   var fbIds = {}, locIds = {};
   fb.forEach(function(v){ fbIds[String(v.id)] = true; });
   locali.forEach(function(v){ if (v && v.id != null) locIds[String(v.id)] = true; });
@@ -10333,6 +10395,7 @@ function _straordLoadFirebase(prof) {
     if (window._straordPushKey !== pushKey) { window._straordPushKey = pushKey; _straordSyncFirebase(); }
   }
   if (typeof renderStraord === 'function') renderStraord();
+  _nfRenderOreUI();
 }
 
 function condividiStraordWA() {
@@ -11511,6 +11574,7 @@ function vai(pg, btn) {
   if(pg==="ag")  { renderAgendaPg(); }
   if(pg==="rep") { renderRep(); renderStraord(); }
   if(pg==="straord") { renderStraord(); }
+  if(pg==="dash") { _nfRenderOreUI(); }   /* §36 — widget ore sempre allineati in Dashboard */
   if(pg==="imp"){ aggUI(); caricaSaldoFerie(); aggNotifStatus(); aggTemaUI(lsG("ct_tema","")||""); aggLastBackupDate(); caricaFontSize(); if(typeof GSync!=='undefined'&&GSync.ui) GSync.ui.renderPanel(); }
   if(pg==="todo"){ renderTodoAg(_tdFiltroAg); }
   if(pg==="agenda") { renderAgendaPg(); }
@@ -15180,6 +15244,9 @@ function _nfPurgeLocalData(){
       try { localStorage.clear(); } catch(e){}
       Object.keys(keep).forEach(function(k){ try { localStorage.setItem(k, keep[k]); } catch(e){} });
       try { sessionStorage.clear(); } catch(e){}
+      // §36 — invalida le cache in memoria del merge straordinari: senza questo
+      // un login successivo nella stessa sessione non ricaricherebbe le ore.
+      try { window._straordFbKey = null; window._straordPushKey = null; } catch(e){}
     } catch(e){}
     var jobs = [];
     try {

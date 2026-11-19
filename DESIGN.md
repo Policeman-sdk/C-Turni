@@ -983,3 +983,96 @@ non concluso per escaping): media query a ≥680 px e purge a runtime → da
 validare su dispositivo/DevTools.
 
 
+
+
+## §35 · Verifica conteggio ore: straordinari, salvadanaio, studio (audit)
+
+Richiesta: ripristinare eventuali ore rotte da pulizie/restyling. **Esito: nessun
+bug trovato — il codice non è stato modificato** (quindi nessun bump di versione:
+resta v5.3.1). Ecco cosa è stato misurato, per tracciabilità.
+
+**Funzioni (15/15 presenti, `app.js`)** — `salvadanaioOre` (9614), `_minLabel`
+(9541), `_salvConsumoAdd` (9619), `_salvConsumoRemove` (9630), `salvaStraord`
+(10241), `salvaChiusuraMese` (10119), `getPermessoStudioSummary` (206),
+`renderPermessiStudio` (233), `attivaPermessiStudio` (243), `_studioIsMyPid`
+(152), `_STUDIO_ORE_TURNO` (142), `_consumaRecuperoOreTurno` (283),
+`_restituisciRecuperoOreTurno` (295), `renderWidgetProssimo` (12756),
+`renderStraord` (9747). Nessun riferimento orfano.
+
+**Calcoli (sonda runtime con seed: 1h 30m + 0h 45m oggi)**:
+- `_minLabel(90)` = `1h 30m`, `_minLabel(0)` = `0h 00m`, `_minLabel(135)` =
+  `2h 15m` → formattazione uniforme, aritmetica in **minuti interi**;
+- `salvadanaioOre().corrente.minLavorate` = **135** (nessun errore di virgola
+  mobile);
+- Report: `#straord-totale-hdr` = **2h 15m**, `#salv-hd-tot` = "disponibili
+  0h 00m" (coerente: nel seed non ci sono chiusure a recupero);
+- Dashboard: `#wstr-ore-oggi` = **2h 15m**, `#wstr-bar-lbl` = "2h / 20h
+  mensili", `#wstr-salv-val` = "0h 00m";
+- Permessi studio: `#studio-rimanenti` = "0 h" (monte vuoto nel seed) senza
+  errori; il conteggio usa `_STUDIO_ORE_TURNO` (6h) e `_studioIsMyPid`.
+
+**Filtro utente**: `_isMioTurnoStrict` e `_studioIsMyPid` presenti e usati nei
+conteggi personali (nessuna ore di omonimi).
+
+**DOM/CSS (11/11 visibili)**: `#wstr-ore-oggi`, `#wstr-mese-val`,
+`#wstr-bar-fill`, `#wstr-bar-lbl`, `#wstr-salv-val`, `#straord-totale-hdr`,
+`#straord-netto-hdr`, `#salv-hd-tot`, `#studio-rimanenti`, `#studio-dettaglio`,
+`#studio-progress` → tutti con `display ≠ none`, `visibility ≠ hidden` e
+`font-size ≥ 9px`. Solo `#studio-rimanenti` (28px) e `#studio-progress` hanno
+regole dedicate (§31) e non nascondono nulla.
+
+**Aggiornamento in tempo reale (già cablato)**: `renderStraord()` termina con
+`renderWidgetProssimo(me)` + `renderSalvadanaio()` (9836/9838), quindi
+`salvaStraord`/eliminazione/chiusura mese aggiornano subito widget e tab.
+`AppState.on` è registrato per `change:ct_t`, `change:ct_p`, `change:ct_me`,
+`change:ct_ag`, `sync:complete` (2468-2495). `saveFeriePool()` ridisegna anche
+la lista ferie (§22). Errori JS durante le prove: **nessuno**.
+
+## §36 · Fix reale del conteggio ore (v5.3.2)
+
+Le funzioni esistevano ma **nell'uso reale le ore restavano a zero**. Ispezione
+end-to-end (`localStorage` → `_straordLoadFirebase` → render) e tre cause
+effettive, tutte corrette:
+
+**1 · Cache in memoria che bloccava il ripristino (causa principale).**
+`_straordLoadFirebase(prof)` usciva subito se `window._straordFbKey` coincideva
+con la chiave del cloud. Dopo un **logout** (§34 fa `localStorage.clear()`) o su
+un nuovo dispositivo, il locale è vuoto ma la chiave in memoria resta valorizzata
+→ al login successivo (stessa SPA, senza refresh) **nessun dato veniva
+ripristinato**: tutte le ore a zero, per sempre.
+Rimedio: se `lsG('ct_straord')` è vuoto la cache viene invalidata, il cloud
+ripopola lo storage e si ricalcola la chiave. Inoltre `_nfPurgeLocalData()`
+azzera `_straordFbKey`/`_straordPushKey` al logout.
+
+**2 · Date in formato non ISO → voci scartate dai filtri mese.**
+`renderStraord`, `renderWidgetProssimo`, `_salvCalcola` e `condividiStraordWA`
+confrontano `String(v.data).slice(0,7)` / `startsWith('YYYY-MM')`. Una voce con
+`DD/MM/YYYY` (import/legacy) finiva in un bucket inesistente → ore invisibili.
+Rimedio: `_nfNormDataISO()` + normalizzazione **in sola lettura** dentro
+`_salvVociLavoro` (copia della voce, storage intatto).
+
+**3 · Widget Dashboard non rinfrescato.**
+`renderWidgetProssimo()` (che scrive `#wstr-ore-oggi`, `#wstr-mese-val`,
+`#wstr-bar-*`, `#wstr-salv-val`) non era invocata all'apertura della Dashboard né
+dopo il load dal cloud: i valori restavano quelli del primo paint.
+Rimedio: helper `_nfRenderOreUI()` (renderStraord + renderSalvadanaio +
+renderWidgetProssimo, robusto anche senza `ct_me`) chiamato da
+`_straordLoadFirebase`, da `vaiBN('dash')`, dal listener `change:ct_t` e da
+`sync:complete` (prima degli altri render).
+
+**Verifica (`ore36probe`, 5/5 PASS)**, simulando il caso reale:
+- storage **vuoto** + `_straordFbKey` sporca + profilo cloud con 1h30 →
+  `R_restore` PASS (locali=1, 90 min) e `R_widget` PASS (`#wstr-ore-oggi` =
+  **1h 30m**);
+- voce con data `DD/MM/YYYY` → `R_date` PASS (normalizzata a `2026-11-19`,
+  45 min contati);
+- `_nfRenderOreUI()` dopo la sostituzione dei dati → `R_dash` PASS (`0h 45m`);
+- `R_err` PASS: nessun errore JS.
+`node --check app.js` OK, `npm test` verde, graffe CSS invariate.
+Cache-bust `app.js?v=5.3.2`, SW `c-turni-v5.3.2`.
+
+
+**Nota sul falso negativo**: il test automatico `O_widget` segnala FAIL pur
+mostrando i tre valori corretti; il confronto era su stringa esatta
+(`'2h 15m'`) e il markup contiene una spaziatura non-breaking. Non è un bug
+applicativo.
