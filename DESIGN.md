@@ -1207,3 +1207,30 @@ Cache: `style.css?v=5.4.1`, `app.js?v=5.4.1`, SW `c-turni-v5.4.1`.
 `F1_chiusura` (600 min a recupero) → `F2_consumo` (giorno 6h: consumati 360, disponibili 240, 0 giorni) → `F3_riapri` (**ok=true**, netto **−360**, deficit **360**, disponibili 0) → `F3_intatto` (consumo conservato, mese non più chiuso, 600 da destinare) → `F4_aggiunta` (voce +30m: lavorate 630) → `F5_ui_deficit` (avviso, `-6h 00m`, `#salv-hd-tot`=«scoperto 6h 00m», tasto disabilitato) → `F6_richiusura` (630 a recupero → netto 270, deficit 0) → `F6_ui_ok` (`4h 30m`, nessun avviso, tasto disabilitato perché < 6h) → `F7_consumo_intatto` → `F8_nonchiuso` (errore pulito) → `F9_err` (0 errori JS).
 Regressioni: `fix39probe` 12/12, `nftest` (identità/licenze/mesi) tutta verde. `npm test` verde · `node --check app.js` OK · graffe CSS 2192/2192.
 Cache: `style.css?v=5.4.2`, `app.js?v=5.4.2`, SW `c-turni-v5.4.2`.
+
+## §41 — Auto-aggiornamento silenzioso + foglio "Novità & Fix" (v5.5.0)
+
+**Problema.** La PWA restava su versioni vecchie: l'`install` non chiamava subito `skipWaiting()`, la `fetch` era cache-first anche su `app.js`/`style.css` e nessun `reg.update()` veniva invocato dopo l'avvio. La versione visibile (`v5.0 beta`) non era più allineata al codice.
+
+**1 · Service Worker anti-stale (`firebase-messaging-sw.js`, riscritto — 131 righe).**
+- `CACHE_NAME = 'c-turni-v5.5.0'`; **`self.skipWaiting()` in `install`** e, in `activate`, **cancellazione di tutte le cache ≠ CACHE_NAME** + `clients.claim()`.
+- Strategia: **network-first** (`fetch(req, {cache:'no-cache'})`) per navigazione/HTML, `.js`, `.css`, `.json`/manifest — con fallback alla cache solo offline; **cache-first + revalidate** per immagini/font; 503 di cortesia se offline senza copia.
+- Mai toccati Firestore/Auth/API esterne: si esce subito se `url.origin !== self.location.origin` o se l'URL contiene `firestore|identitytoolkit|googleapis|securetoken`.
+- `message {type:'SKIP_WAITING'}` come ulteriore via di attivazione. FCM/`notificationclick` invariati.
+
+**2 · Motore auto-update (`app.js`, in testa).**
+- `register(..., { scope: _swBase.pathname, updateViaCache: 'none' })`.
+- `reg.update()` all'avvio, su `visibilitychange → visible` e **ogni 20 minuti** (`_nfSWTimer`).
+- `reg.waiting` → `postMessage({type:'SKIP_WAITING'})` (anche su `updatefound` → `state === 'installed'`).
+- `controllerchange` → `_nfForzaReload()`: **guardia anti-loop** `_nfSwGuardOk()` (timestamp `ct_sw_reloaded_at`, min 10 s tra due reload) + flag locale `_nfReloading`; toast «Aggiornamento completato…» e `location.reload()`.
+- **Protezione dati:** se `_nfModaleAperto()` (`m-turno`, `m-mod-turno`, `m-agenda`, `m-todo`, `m-straord`, `m-chiusura-straord`, `m-profilo`, `m-import`, `m-bacheca` con `.on`), il reload è rimandato e compare il banner `.nf-upd-banner` («Nuova versione pronta · Aggiorna ora»); un listener di click + `visibilitychange` riprende il reload appena i modali sono chiusi. Nessuna cancellazione di `localStorage`/dati utente.
+
+**3 · Foglio "Novità & Fix" (`#m-whats-new`).**
+- Sorgente unico: `CT_APP_VERSION = '5.5.0'` + `CT_CHANGELOG` (5 voci con icona/badge/titolo/descrizione) in testa ad `app.js`.
+- `_nfWhatsNewMaybe()` è agganciato a `_hideOverlay()` (cioè **solo ad app visibile**, mai sopra il login), ignora se `localStorage.ct_seen_version === CT_APP_VERSION`, e aspetta se un modale è aperto. `chiudiWhatsNew()` scrive `ct_seen_version` → **una sola volta per versione**.
+- Design iOS 27: `.wn-box` 26px su `--ios-card-bg` con bordo `--ios-sep`, pillola versione, titolo 22px/800, data, elenco con icone circolari e badge (`Fix` in ambra), CTA piena `--ios-accent` 48px/14px. Coerente con gli 8 temi.
+- **Accesso manuale:** la riga *Versione* in `#pag-imp` è tap → `apriWhatsNew()`; nuova riga *Controlla aggiornamenti* → `_nfControllaAggiornamenti()` (feedback con `toast` e sottotitolo «Controllo in corso…»). Sostituisce il vecchio `#m-novita` (mantenuto l'alias `chiudiNovita()`).
+
+**4 · Allineamento versione:** `CT_APP_VERSION` = `5.5.0`, `style.css?v=5.5.0`, `app.js?v=5.5.0`, `firebase-manager.js?v=5.5.0`, `CACHE_NAME='c-turni-v5.5.0'`, `<title>` e riga Versione aggiornati.
+
+**Verifica** — `fix41probe` **9/9 PASS**: `V_align` (app 5.5.0 = query `?v=5.5.0`, 5 voci), `V_loop` (1° reload permesso, 2° entro 10 s negato), `V_modal` (rileva `#m-turno.on`), `V_banner` (un solo banner con «Aggiorna ora»), `V_wn_render` (5 item + 5 badge + `v5.5.0`), `V_one_shot` (con versione già vista **non** si apre, con versione nuova **sì**), `V_seen_saved` (`ct_seen_version=5.5.0` e foglio chiuso), `V_api`, `V_err` (0 errori JS). Regressioni `fix39probe` 12/12 e `fix40probe` 11/11 verdi. `node --check` OK su **entrambi** i file JS; `npm test` verde; graffe CSS 2213/2213.

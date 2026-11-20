@@ -1,10 +1,175 @@
-// -- SERVICE WORKER --
-if("serviceWorker" in navigator){
-  var _swBase = new URL('./', location.href);
-  navigator.serviceWorker.register(new URL('firebase-messaging-sw.js', _swBase).href, { scope: _swBase.pathname })
-    .then(function(reg){ console.log("SW FCM registrato:", reg.scope); })
-    .catch(function(e){ console.warn("SW err:", e); });
+// ══════════════════════════════════════════════════════════════════════
+// §41 · VERSIONE APP + CHANGELOG — unico punto da aggiornare a ogni rilascio.
+// Deve restare allineato a: `?v=` in index.html e CACHE_NAME nel SW.
+// ══════════════════════════════════════════════════════════════════════
+var CT_APP_VERSION = '5.5.0';
+var CT_CHANGELOG = {
+  version: CT_APP_VERSION,
+  date: 'Novembre 2026',
+  title: 'Novità in C-Turni',
+  items: [
+    { icon: '✨', badge: 'Novità', title: 'Aggiornamento automatico',
+      desc: 'L\'app si aggiorna da sola in background: niente più versioni vecchie in cache.' },
+    { icon: '🐷', badge: 'Fix', title: 'Salvadanaio ore & mesi passati',
+      desc: 'I mesi passati si riaprono sempre, anche con giorni "Recupero ore" già creati.' },
+    { icon: '🎓', badge: 'Fix', title: 'Permessi Studio 150h',
+      desc: 'Le ore PSTUDIO scalano correttamente il monte ore annuale.' },
+    { icon: '📊', badge: 'UI iOS 27', title: 'Dashboard & Agenda',
+      desc: 'Hero card senza sovrapposizioni, dettaglio giorno integrato e Agenda stile Promemoria.' },
+    { icon: '🛡️', badge: 'Fix', title: 'Turni dei colleghi omonimi',
+      desc: 'Dashboard, widget e notifiche mostrano solo i tuoi turni.' }
+  ]
+};
+
+// ══════════════════════════════════════════════════════════════════════
+// §41 · AUTO-UPDATE SILENZIOSO DEL SERVICE WORKER
+// Registrazione senza cache HTTP, controllo attivo (boot / focus / 20 min),
+// attivazione immediata e reload protetto da guardia anti-loop.
+// ══════════════════════════════════════════════════════════════════════
+var _nfSWReg = null;
+var _nfReloading = false;
+var _nfPendingReload = false;
+var _nfSWTimer = null;
+
+/* Guardia anti-loop: max 1 reload ogni 10 secondi (timestamp in sessionStorage). */
+function _nfSwGuardOk() {
+  try {
+    var now = Date.now();
+    var last = parseInt(sessionStorage.getItem('ct_sw_reloaded_at') || '0', 10);
+    if (last && (now - last) < 10000) return false;
+    sessionStorage.setItem('ct_sw_reloaded_at', String(now));
+    return true;
+  } catch (e) { return true; }
 }
+
+/* True se c'è un modale di inserimento aperto (evita di perdere dati). */
+function _nfModaleAperto() {
+  var ids = ['m-turno', 'm-mod-turno', 'm-agenda', 'm-todo', 'm-straord',
+             'm-chiusura-straord', 'm-profilo', 'm-import', 'm-bacheca'];
+  for (var i = 0; i < ids.length; i++) {
+    var el = document.getElementById(ids[i]);
+    if (el && el.classList.contains('on')) return true;
+  }
+  return false;
+}
+
+/* Banner discreto "Nuova versione pronta". */
+function _nfBannerUpdate() {
+  if (document.getElementById('nf-upd-banner')) return;
+  var b = document.createElement('div');
+  b.id = 'nf-upd-banner';
+  b.className = 'nf-upd-banner';
+  b.setAttribute('role', 'status');
+  b.innerHTML = '<span class="nf-upd-dot" aria-hidden="true"></span>'
+    + '<span class="nf-upd-txt">Nuova versione pronta</span>'
+    + '<button type="button" class="nf-upd-btn" onclick="_nfForzaReload()">Aggiorna ora</button>';
+  document.body.appendChild(b);
+}
+
+function _nfRimuoviBannerUpdate() {
+  var b = document.getElementById('nf-upd-banner');
+  if (b && b.parentNode) b.parentNode.removeChild(b);
+}
+
+/* Reload con guardia: 1) modale aperto → banner; 2) max 1 reload / 10 s. */
+function _nfForzaReload() {
+  if (_nfReloading) return;
+  if (_nfModaleAperto()) { _nfPendingReload = true; _nfBannerUpdate(); return; }
+  if (!_nfSwGuardOk()) { return; }
+  _nfReloading = true;
+  try { if (typeof toast === 'function') toast('Aggiornamento completato…', 'ok'); } catch (e) {}
+  setTimeout(function () { window.location.reload(); }, 450);
+}
+function _nfPostSkip(reg) {
+  try {
+    if (reg && reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+  } catch (e) {}
+}
+
+function _nfSWAttach(reg) {
+  if (!reg) return;
+  _nfSWReg = reg;
+  if (reg.waiting) _nfPostSkip(reg);
+  try {
+    reg.addEventListener('updatefound', function () {
+      var nw = reg.installing;
+      if (!nw) return;
+      nw.addEventListener('statechange', function () {
+        if (nw.state === 'installed' && navigator.serviceWorker.controller) _nfPostSkip(reg);
+      });
+    });
+  } catch (e) {}
+}
+
+/* Controllo attivo: `update()` bypassa la cache HTTP (updateViaCache: 'none'). */
+function _nfSWCheck(silent) {
+  try {
+    if (!_nfSWReg) return;
+    var p = _nfSWReg.update();
+    if (p && p.then) {
+      p.then(function () {
+        if (_nfSWReg && _nfSWReg.waiting) _nfPostSkip(_nfSWReg);
+        if (!silent) {
+          try { if (typeof toast === 'function') toast('Sei all\'ultima versione disponibile', 'ok'); } catch (e) {}
+        }
+      }).catch(function () {
+        if (!silent) {
+          try { if (typeof toast === 'function') toast('Controllo aggiornamenti non riuscito (offline?)', 'err'); } catch (e) {}
+        }
+      });
+    }
+  } catch (e) {}
+}
+
+/* Link "Controlla aggiornamenti" in Impostazioni. */
+function _nfControllaAggiornamenti() {
+  var sub = document.getElementById('imp-agg-sub');
+  if (sub) sub.textContent = 'Controllo in corso…';
+  try { if (navigator.vibrate) navigator.vibrate(10); } catch (e) {}
+  try { if (typeof toast === 'function') toast('Controllo aggiornamenti avviato…', 'ok'); } catch (e) {}
+  _nfSWCheck(false);
+  setTimeout(function () {
+    var s2 = document.getElementById('imp-agg-sub');
+    if (s2 && /Controllo in corso/.test(s2.textContent)) s2.textContent = 'Verifica e scarica l\'ultima versione';
+  }, 5000);
+}
+
+if ('serviceWorker' in navigator) {
+  var _swBase = new URL('./', location.href);
+  navigator.serviceWorker.register(new URL('firebase-messaging-sw.js', _swBase).href,
+    { scope: _swBase.pathname, updateViaCache: 'none' })
+    .then(function (reg) {
+      console.log('SW FCM registrato:', reg.scope);
+      _nfSWAttach(reg);
+      _nfSWCheck(true);                       // controllo all'avvio
+      clearInterval(_nfSWTimer);
+      _nfSWTimer = setInterval(function () { _nfSWCheck(true); }, 20 * 60 * 1000); // ogni 20 min
+    })
+    .catch(function (e) { console.warn('SW err:', e); });
+
+  // Ritorno in primo piano → controllo aggiornamenti
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') {
+      _nfSWCheck(true);
+      if (_nfPendingReload && !_nfModaleAperto()) _nfForzaReload();
+    }
+  });
+
+  // Nuovo SW al comando → reload pulito (protezione dati + anti-loop)
+  navigator.serviceWorker.addEventListener('controllerchange', function () {
+    _nfRimuoviBannerUpdate();
+    _nfForzaReload();
+  });
+}
+
+// Sorveglianza: se un reload era rimandato per un modale, si procede alla chiusura.
+document.addEventListener('click', function () {
+  if (!_nfPendingReload) return;
+  setTimeout(function () {
+    if (_nfPendingReload && !_nfModaleAperto()) _nfForzaReload();
+  }, 700);
+}, true);
+
 
 
 
@@ -8289,14 +8454,57 @@ function aggUI(){
   if (typeof _salvadanaioPromptAutomatico === 'function') _salvadanaioPromptAutomatico();
 }
 
-// ---- NOVITÀ VERSIONE ----
-var _APP_VERSION = '4.3.0';
-function _checkNovita(){
-  localStorage.setItem('ct_novita_v4', _APP_VERSION);
+// ---- §41 · NOVITÀ & FIX (foglio "What's New" iOS 27) ----
+var _wnShown = false;
+function renderWhatsNew(){
+  var ch = CT_CHANGELOG || {};
+  var ver = document.getElementById('wn-ver');
+  if (ver) ver.textContent = 'v' + (ch.version || CT_APP_VERSION);
+  var tit = document.getElementById('wn-title');
+  if (tit) tit.textContent = ch.title || 'Novità in C-Turni';
+  var dat = document.getElementById('wn-date');
+  if (dat) dat.textContent = ch.date || '';
+  var list = document.getElementById('wn-list');
+  if (!list) return;
+  list.innerHTML = (ch.items || []).map(function(it){
+    var isFix = /fix/i.test(String(it.badge || ''));
+    var badge = it.badge ? '<span class="wn-badge' + (isFix ? ' fix' : '') + '">' + ctEsc(it.badge) + '</span>' : '';
+    return '<div class="wn-item">'
+      + '<div class="wn-ico">' + (it.icon || '•') + '</div>'
+      + '<div class="wn-txt">'
+      +   '<div class="wn-item-title">' + ctEsc(it.title || '') + badge + '</div>'
+      +   '<div class="wn-item-desc">' + ctEsc(it.desc || '') + '</div>'
+      + '</div></div>';
+  }).join('');
 }
-function chiudiNovita(){
-  localStorage.setItem('ct_novita_v4', _APP_VERSION);
-  closeM('m-novita');
+function apriWhatsNew(){
+  renderWhatsNew();
+  openM('m-whats-new');
+}
+function chiudiWhatsNew(){
+  try { localStorage.setItem('ct_seen_version', CT_APP_VERSION); } catch(e){}
+  closeM('m-whats-new');
+}
+function chiudiNovita(){ chiudiWhatsNew(); }   // compatibilità con il vecchio id
+
+/* Mostra il foglio UNA SOLA VOLTA per versione, solo ad app già visibile. */
+function _nfWhatsNewMaybe(){
+  try {
+    if (_wnShown) return;
+    var ov = document.getElementById('auth-overlay');
+    if (ov && ov.style.display !== 'none') return;              // login ancora aperto
+    if (!lsG('ct_session', null) && !lsG('ct_me', null)) return; // utente non loggato
+    var seen = null;
+    try { seen = localStorage.getItem('ct_seen_version'); } catch(e){}
+    if (seen === CT_APP_VERSION) return;
+    if (typeof _nfModaleAperto === 'function' && _nfModaleAperto()) {
+      setTimeout(_nfWhatsNewMaybe, 3000);
+      return;
+    }
+    _wnShown = true;
+    renderWhatsNew();
+    openM('m-whats-new');
+  } catch(e){ console.warn('whatsnew:', e && e.message); }
 }
 
 // ---- SALVA PROFILO (vecchia versione rimossa — usa quella sotto) ----
@@ -14223,7 +14431,7 @@ function openM(id) {
     }
     m.classList.add('on');
     // Suono e vibrazione apertura modal
-    if(id !== 'm-egg' && id !== 'm-novita') {
+    if(id !== 'm-egg' && id !== 'm-novita' && id !== 'm-whats-new') {
       _playUiSound('open');
       haptic('light');
     }
@@ -14343,6 +14551,11 @@ function openM(id) {
 function closeM(id) {
     var m = document.getElementById(id);
     if (m) m.classList.remove('on');
+    // §41 — il foglio Novità è "one-shot": qualunque chiusura marca la versione vista
+    if (id === 'm-whats-new') {
+      try { localStorage.setItem('ct_seen_version', CT_APP_VERSION); } catch(e){}
+    }
+
     // Suono chiusura (solo per modali principali, non per picker)
     var _noSound = ['m-datepicker','m-time-picker','m-pers-picker','m-grado-picker','m-egg'];
     if(_noSound.indexOf(id) === -1) _playUiSound('close');
@@ -15670,6 +15883,8 @@ var AuthModule = (function() {
     // Forza reflow per garantire che pg-app sia visibile prima di qualsiasi animazione
     if(pgApp) void pgApp.offsetHeight;
 
+    // §41 — foglio "Novità & Fix" una sola volta per versione (mai sopra il login)
+    try { setTimeout(function(){ try { _nfWhatsNewMaybe(); } catch(e){} }, 1500); } catch(e){}
   }
 
 

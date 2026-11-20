@@ -4,14 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover,interactive-widget=resizes-content">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>C-TURNI v5.0 beta</title>
+<title>C-TURNI v5.5.0</title>
 <link rel="manifest" href="manifest.json">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="C-Turni">
 <meta name="theme-color" content="#0d1b2a" id="theme-color-meta">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230d1b2a'/%3E%3Cpolygon points='50,12 56,32 76,32 60,44 66,64 50,52 34,64 40,44 24,32 44,32' fill='%23c8a84b'/%3E%3Ctext x='50' y='88' text-anchor='middle' font-size='28' font-weight='900' font-family='Arial,sans-serif' fill='%23ffffff' letter-spacing='2'%3ECT%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="style.css?v=5.4.2">
+<link rel="stylesheet" href="style.css?v=5.5.0">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
@@ -1608,9 +1608,15 @@
             <div onclick="guidaApri('reparti')"     class="m3-row tap" style="border-top:1px solid var(--border)"><div class="m3-row-ico" style="background:rgba(0,200,83,.12)">🏛</div><div class="m3-row-body"><div class="m3-row-title">Gestione Reparti</div><div class="m3-row-sub">Strutture e trasferimenti militari</div></div><div class="m3-row-right">›</div></div>
             <div onclick="guidaApri('saldi')"       class="m3-row tap" style="border-top:1px solid var(--border)"><div class="m3-row-ico" style="background:rgba(0,188,212,.12)">💰</div><div class="m3-row-body"><div class="m3-row-title">Saldi &amp; Salvadanaio ore</div><div class="m3-row-sub">Straordinari, ferie e residui</div></div><div class="m3-row-right">›</div></div>
           </div>
-          <div class="m3-row">
+          <div class="m3-row tap" onclick="apriWhatsNew()">
             <div class="m3-row-ico" style="background:rgba(41,121,255,.12)">🛠</div>
-            <div class="m3-row-body"><div class="m3-row-title">Versione</div><div class="m3-row-sub">C-TURNI v5.0 beta — Emanuele Di Leo</div></div>
+            <div class="m3-row-body"><div class="m3-row-title">Versione</div><div class="m3-row-sub" id="imp-ver-sub">C-TURNI v5.5.0 — Emanuele Di Leo</div></div>
+            <div class="m3-row-right">›</div>
+          </div>
+          <div class="m3-row tap" onclick="_nfControllaAggiornamenti()" style="border-top:1px solid var(--border)">
+            <div class="m3-row-ico" style="background:rgba(52,199,89,.14)">🔄</div>
+            <div class="m3-row-body"><div class="m3-row-title">Controlla aggiornamenti</div><div class="m3-row-sub" id="imp-agg-sub">Verifica e scarica l'ultima versione</div></div>
+            <div class="m3-row-right">›</div>
           </div>
 
           <!-- Sezione legale -->
@@ -2661,26 +2667,18 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
   </div>
 </div>
 
-<!-- MODAL NOVITÀ VERSIONE -->
-<div id="m-novita" class="modal" style="z-index:19999">
-  <div class="mbox" style="max-width:420px">
+<!-- §41 · MODAL "NOVITÀ & FIX" — stile Apple "What's New" iOS 27 -->
+<div id="m-whats-new" class="modal">
+  <div class="mbox wn-box">
     <div class="mhan"></div>
-    <div class="mhd">
-      <div class="mtit">🌟 Novità in C-TURNI v5.0 beta</div>
+    <div class="wn-head">
+      <div class="wn-ver-pill" id="wn-ver">v5.5.0</div>
+      <div class="wn-title" id="wn-title">Novità in C-Turni</div>
+      <div class="wn-date" id="wn-date">Novembre 2026</div>
     </div>
-    <div class="mbod" style="padding:16px;max-height:65vh;overflow-y:auto">
-      <div style="font-size:13px;color:var(--txt2);margin-bottom:16px;line-height:1.6">Benvenuto in <strong style="color:var(--gold)">C-TURNI v5.0 beta</strong> — nuovo design Fluid Bento Tech, sfondi istituzionali dinamici e agenda rigenerata. Ecco le novità:</div>
-      <div style="display:flex;flex-direction:column;gap:12px;font-size:13px;color:var(--txt)">
-        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">💎</span><div><strong>Design System Fluid Bento Tech</strong><br><span style="font-size:12px;color:var(--txt2)">Bordi ultra-sottili da 1px, raggi tecnici compatti e superfici scure satinate su tutta l'app.</span></div></div>
-        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">🎨</span><div><strong>Nuovi Sfondi Istituzionali</strong><br><span style="font-size:12px;color:var(--txt2)">8 artwork dedicati con texture volumetriche, reticoli tattici e filigrane ufficiali per tutti i temi scuri e chiari.</span></div></div>
-        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">🗓️</span><div><strong>Pop-up Giorno &amp; Colleghi</strong><br><span style="font-size:12px;color:var(--txt2)">Colleghi in servizio divisi per fascia oraria (Mattina, Pomeriggio, Notte, Riposo), con spaziatura ottimizzata sopra la navbar.</span></div></div>
-        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">📋</span><div><strong>Agenda &amp; Appuntamenti</strong><br><span style="font-size:12px;color:var(--txt2)">Card eventi più spaziose e confortevoli, con cifre numeriche tabulari.</span></div></div>
-        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">🛡️</span><div><strong>Tesserino Militare Integrato</strong><br><span style="font-size:12px;color:var(--txt2)">Tessera di riconoscimento in stile Bento Glass direttamente nella sezione profilo.</span></div></div>
-        <div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:20px;flex-shrink:0">⚡</span><div><strong>Zero Reflow &amp; GPU Motion</strong><br><span style="font-size:12px;color:var(--txt2)">Animazioni e transizioni ottimizzate per 60 FPS senza impatto sulla batteria.</span></div></div>
-      </div>
-    </div>
-    <div class="mfoo">
-      <button class="btn btn-p" style="width:100%" onclick="chiudiNovita()">✔ Scopri v5.0 beta</button>
+    <div class="wn-body" id="wn-list"></div>
+    <div class="wn-foot">
+      <button type="button" class="wn-cta" onclick="chiudiWhatsNew()">Continua</button>
     </div>
   </div>
 </div>
@@ -2702,7 +2700,7 @@ Seleziona i fogli Excel che vuoi importare. I fogli non selezionati verranno ign
     <!-- Motto -->
     <div id="egg-motto" style="text-align:center;font-size:11px;color:rgba(255,255,255,.6);font-style:italic;padding:0 20px 10px">«Nei Secoli Fedele»</div>
     <!-- Versione -->
-    <div style="text-align:center;font-size:10px;color:rgba(212,175,55,.7);padding-bottom:14px;letter-spacing:2px">C-TURNI v5.0 beta</div>
+    <div style="text-align:center;font-size:10px;color:rgba(212,175,55,.7);padding-bottom:14px;letter-spacing:2px">C-TURNI v5.5.0</div>
     <div class="mfoo" style="background:rgba(0,0,0,.3);border-top:1px solid rgba(212,175,55,.2)">
       <button class="btn btn-g btn-sm" onclick="closeM('m-egg');document.body.style.overflow=''" style="width:100%">✕ Chiudi</button>
     </div>
@@ -2912,8 +2910,8 @@ function chiudiSheetGiorno() {
 <script src="state.js?v=1.0.0"></script>
 <script src="biometric.js?v=1.0.0"></script>
 <script src="Game/carabiniere-runner.js?v=2.0.0"></script>
-<script src="app.js?v=5.4.2"></script>
-<script type="module" src="firebase-manager.js?v=5.3.1"></script>
+<script src="app.js?v=5.5.0"></script>
+<script type="module" src="firebase-manager.js?v=5.5.0"></script>
 
 <!-- MODAL CONFIRM CUSTOM -->
 <div id="m-confirm" class="modal" style="z-index:99999">
