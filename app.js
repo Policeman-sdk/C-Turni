@@ -9783,8 +9783,14 @@ function _salvCalcola(tutti, meseCorrente) {
     minRecuperoTot += b.minRecupero;
     minPagateTot   += b.minPagate;
   });
-  var minConsumati = _salvConsumi(tutti).reduce(function(a, c){ return a + (Number(c.min) || 0); }, 0);
-  var minDisponibili = Math.max(0, minRecuperoTot - minConsumati);
+  // §40 — Saldo GLOBALE del salvadanaio su tutta la storia:
+  //   recuperate (tutti i mesi chiusi) − consumate (tutti i giorni "Recupero ore")
+  // Riaprendo un mese le cui ore erano già state spese il saldo può diventare
+  // negativo: `minDeficit` lo espone (invece di nasconderlo con un blocco).
+  var minConsumatiTot = _salvConsumi(tutti).reduce(function(a, c){ return a + (Number(c.min) || 0); }, 0);
+  var minSaldoNetto = minRecuperoTot - minConsumatiTot;
+  var minDisponibili = Math.max(0, minSaldoNetto);
+  var minDeficit = minSaldoNetto < 0 ? Math.abs(minSaldoNetto) : 0;
   var oreG = oreGiornoLicenza();
   return {
     meseCorrente: meseCorrente,
@@ -9792,8 +9798,11 @@ function _salvCalcola(tutti, meseCorrente) {
     corrente: perMese[meseCorrente] || null,
     precedenti: mesi.filter(function(b){ return b.mese < meseCorrente; }),
     minRecuperoTot: minRecuperoTot,
-    minConsumati: minConsumati,
+    minConsumati: minConsumatiTot,
+    minConsumatiTot: minConsumatiTot,
+    minSaldoNetto: minSaldoNetto,
     minDisponibili: minDisponibili,
+    minDeficit: minDeficit,
     minPagateTot: minPagateTot,
     oreGiorno: oreG,
     giorniDisponibili: Math.floor(minDisponibili / (oreG * 60))
@@ -9853,25 +9862,40 @@ function salvadanaioChiudi(mesePfx, minPagate, minRecupero) {
   return { ok: true, minPagate: pag, minRecupero: rec, minResiduo: Math.max(0, (b ? b.minLavorate : 0) - (pag + rec)) };
 }
 
-// Riapre un mese chiuso: le ore tornano "da destinare"
+// Riapre un mese chiuso: le ore tornano "da destinare".
+// §40 — La riapertura non è MAI bloccata: i giorni "Recupero ore" già creati
+// restano a calendario (con il loro consumo registrato), quindi il saldo può
+// andare temporaneamente in scoperto (`minDeficit`). Vietarla costringeva
+// l'utente a cancellare manualmente i giorni dal calendario per poter
+// correggere le ore di un mese passato.
 function salvadanaioRiapriMese(mesePfx) {
   var tutti = lsG('ct_straord', []);
   var s = _salvCalcola(tutti, _salvMeseCorrente());
   var b = null;
   s.mesi.forEach(function(x){ if (x.mese === mesePfx) b = x; });
-  // Il blocco vale solo per i giorni "Recupero ore" generati DA QUEL mese:
-  // prima si guardavano i consumi di TUTTI i mesi e la riapertura falliva
-  // anche quando le ore recuperate erano di un altro periodo.
-  if (b && b.minRecupero > 0) {
-    var consumiMese = _salvConsumi(tutti).filter(function(c){
-      return String(c.mese || String(c.data || '').slice(0, 7)) === String(mesePfx);
-    }).reduce(function(a, c){ return a + (Number(c.min) || 0); }, 0);
-    if (consumiMese > 0) {
-      return { ok: false, err: 'Ci sono giorni "Recupero ore" già generati con le ore di questo mese: elimina prima quei giorni dal calendario.' };
-    }
-  }
+  if (!b || !b.chiuso) return { ok: false, err: 'Questo mese non risulta chiuso.' };
+  var chiusura = null;
+  tutti.forEach(function(v){ if (v && v.kind === 'chiusura' && v.mese === mesePfx) chiusura = v; });
   _salvSalva(tutti.filter(function(v){ return !(v && v.kind === 'chiusura' && v.mese === mesePfx); }));
-  return { ok: true };
+  var dopo = _salvCalcola(lsG('ct_straord', []), _salvMeseCorrente());
+  return {
+    ok: true,
+    mese: mesePfx,
+    minRipristinate: chiusura ? ((Number(chiusura.minPagate) || 0) + (Number(chiusura.minRecupero) || 0)) : 0,
+    minSaldoNetto: dopo.minSaldoNetto,
+    minDeficit: dopo.minDeficit
+  };
+}
+
+/* §40 — Dopo QUALSIASI modifica alle ore: ricalcola UI + sincronizza il cloud.
+   Copre salvadanaio (disponibili/scoperto), lista e totali straordinari,
+   widget Dashboard e profilo cloud. */
+function _salvDopoModifica() {
+  try { _straordSyncFirebase(); } catch(e){ console.warn('salv sync:', e && e.message); }
+  try {
+    if (typeof _nfRenderOreUI === 'function') _nfRenderOreUI();
+    else if (typeof renderStraord === 'function') renderStraord();
+  } catch(e){ console.warn('salv render:', e && e.message); }
 }
 
 function _salvMioPid() {
@@ -10053,10 +10077,24 @@ function _salvMeseHtml(b, isCorrente) {
 // Anteprima e righe del salvadanaio: chiamata da renderStraord()
 function renderSalvadanaio() {
   var s = salvadanaioOre();
+  var deficit = s.minDeficit || 0;
   var hd = document.getElementById('salv-hd-tot');
-  if (hd) hd.textContent = 'disponibili ' + _minLabel(s.minDisponibili);
+  if (hd) {
+    if (deficit > 0) {
+      hd.textContent = 'scoperto ' + _minLabel(deficit);
+      hd.style.color = 'var(--red)';
+      hd.style.fontWeight = '800';
+    } else {
+      hd.textContent = 'disponibili ' + _minLabel(s.minDisponibili);
+      hd.style.color = '';
+      hd.style.fontWeight = '';
+    }
+  }
   var w = document.getElementById('wstr-salv-val');
-  if (w) w.textContent = _minLabel(s.minDisponibili);
+  if (w) {
+    if (deficit > 0) { w.textContent = '-' + _minLabel(deficit); w.style.color = 'var(--red)'; }
+    else { w.textContent = _minLabel(s.minDisponibili); w.style.color = ''; }
+  }
 
   // 1. Ore disponibili + creazione giorno "Recupero ore"
   var el1 = document.getElementById('salv-disponibili');
@@ -10082,12 +10120,24 @@ function renderSalvadanaio() {
       +   '<span class="salv-chip" style="--c:var(--teal)">🌴 Giorni RO <b>' + s.giorniDisponibili + '</b></span>'
       + '</div>'
       + '</div>';
+    // §40 — Avviso discreto (non bloccante) quando il saldo è in scoperto
+    var warn = deficit > 0
+      ? '<div class="salv-deficit" role="status">'
+        + '<span style="font-size:15px;line-height:1.1;flex-shrink:0">⚠️</span>'
+        + '<span>Saldo in scoperto di <strong>' + _minLabel(deficit) + '</strong>'
+        + ' (riaperti/modificati mesi con ore già spese in giorni <em>Recupero ore</em>):'
+        + ' richiudi il mese o accumula nuove ore per compensare.</span></div>'
+      : '';
+    var puoCreare = s.minDisponibili >= s.oreGiorno * 60;
+    var btnAttr = puoCreare ? 'style="width:100%"' : 'style="width:100%;opacity:.45" disabled';
     el1.innerHTML = dash
       + '<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--txt2);margin-top:4px">Disponibili per recupero</div>'
-    + '<div style="font-size:26px;font-weight:900;color:var(--teal);line-height:1.15">' + _minLabel(s.minDisponibili) + '</div>'
+    + '<div style="font-size:26px;font-weight:900;line-height:1.15;color:' + (deficit > 0 ? 'var(--red)' : 'var(--teal)') + '">' + _minLabel(s.minDisponibili) + '</div>'
     + '<div style="font-size:11px;color:var(--txt2);margin-bottom:10px">= ' + s.giorniDisponibili + ' '
     +   (s.giorniDisponibili === 1 ? 'giorno' : 'giorni') + ' di licenza &middot; 1 giorno = ' + s.oreGiorno + 'h</div>'
-    + '<button class="btn btn-p btn-sm" style="width:100%" onclick="apriCreaGiornoRecupero()">🔄 Crea giorno "Recupero ore"</button>'
+    + '<button class="btn btn-p btn-sm" ' + btnAttr + ' onclick="apriCreaGiornoRecupero()">🔄 Crea giorno "Recupero ore"</button>'
+    + (puoCreare ? '' : '<div style="font-size:10.5px;color:var(--txt2);margin-top:6px">Servono ' + _minLabel(s.oreGiorno * 60) + ' per un nuovo giorno &ldquo;Recupero ore&rdquo;.</div>')
+    + warn
     + '<div style="display:flex;align-items:center;gap:8px;margin-top:10px">'
     +   '<span style="font-size:11px;color:var(--txt2)">Ore per 1 giorno</span>'
     +   '<input type="number" class="fc" id="salv-ore-giorno" min="1" max="12" step="1" value="' + s.oreGiorno + '" onchange="salvaOreGiorno()" style="width:72px;text-align:center">'
@@ -10184,8 +10234,9 @@ function riapriMeseSalvadanaio(mesePfx) {
     if (!ok) return;
     var r = salvadanaioRiapriMese(mesePfx);
     if (!r.ok) { toast(r.err, 'err'); return; }
-    renderStraord();
-    toast('Mese riaperto', 'ok');
+    _salvDopoModifica();
+    if (r.minDeficit > 0) toast('Mese riaperto · saldo in scoperto di ' + _minLabel(r.minDeficit), 'ok');
+    else toast('Mese riaperto', 'ok');
   });
 }
 
@@ -10314,7 +10365,7 @@ function salvaChiusuraMese() {
     return;
   }
   closeM('m-chiusura-straord');
-  renderStraord();
+  _salvDopoModifica();
   haptic('success');
   toast(_minLabel(r.minPagate) + ' a pagamento &middot; ' + _minLabel(r.minRecupero) + ' a recupero', 'ok');
 }
@@ -10465,9 +10516,8 @@ function salvaStraord() {
   }
 
   lsS('ct_straord', tutti);
-  _straordSyncFirebase();
   closeM('m-straord');
-  renderStraord();
+  _salvDopoModifica();   // §40 — sync cloud + salvadanaio, straordinari, widget
   haptic('success');
 }
 
@@ -10481,8 +10531,7 @@ function eliminaStraord(id) {
       return;
     }
     lsS('ct_straord', tutti.filter(function(v){ return v.id !== id; }));
-    _straordSyncFirebase();
-    renderStraord();
+    _salvDopoModifica();   // §40
     toast('Voce eliminata', 'ok');
   });
 }

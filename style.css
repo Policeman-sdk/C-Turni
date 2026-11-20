@@ -10057,3 +10057,23 @@ html, body {
   appearance: none; -webkit-appearance: none;
 }
 .ag-item-done{ opacity: .85; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   §40 · Salvadanaio ore — avviso discreto di saldo in scoperto
+   (riapertura di mesi con ore già spese in giorni "Recupero ore").
+   ══════════════════════════════════════════════════════════════════════ */
+.salv-deficit{
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 59, 48, .10);
+  border: 0.5px solid rgba(255, 59, 48, .30);
+  color: var(--txt);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+.salv-deficit strong{ color: var(--red); }
+.salv-deficit em{ font-style: normal; font-weight: 700; }

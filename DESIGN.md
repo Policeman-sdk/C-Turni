@@ -1190,3 +1190,20 @@ Il DOM conteneva **due `</div>` di troppo** tra `#pag-ag` e `#pag-rep`: chiudeva
 
 **Verifiche** — `fix39probe` **12/12 PASS**: `H_row`, `H_meteo` (pos static, overlap false), `H_sigla`, `C_tu` (TU + PSTUDIO), `C_fasce` (Mattina 1 / Notte-Sera 1 / Riposi 1), `A_tiles` (4, oggi 2, programmati 2), `A_filtro`, `A_toggle`, `A_completati`, `A_legacy`, `A_struct`, `A_err`. `npm test` verde · `node --check app.js` OK · graffe CSS 2189/2189.
 Cache: `style.css?v=5.4.1`, `app.js?v=5.4.1`, SW `c-turni-v5.4.1`.
+
+## §40 — Riapertura libera dei mesi passati + saldo globale del salvadanaio (v5.4.2)
+
+**Problema.** `salvadanaioRiapriMese()` rifiutava la riapertura se nel mese esistevano consumi (`kind:'consumo'`, giorni "Recupero ore") già generati con quelle ore: *«Ci sono giorni "Recupero ore" già generati con le ore di questo mese: elimina prima quei giorni dal calendario.»* L'utente era costretto a cancellare giorni dal calendario per correggere le ore di un mese passato, e le ore restavano "da destinare" senza poter essere smistate.
+
+**1 · Riapertura sempre permessa.** Rimosso il blocco: si elimina il record `kind:'chiusura'` del mese e le ore tornano "da destinare". I consumi **non** vengono toccati (i giorni restano a calendario). `salvadanaioRiapriMese()` ora restituisce `{ ok, mese, minRipristinate, minSaldoNetto, minDeficit }` e rifiuta solo un mese che non risulta chiuso (messaggio, nessun crash).
+
+**2 · Saldo globale in `_salvCalcola()`.** `minRecuperoTot` = somma di `minRecupero` di **tutti** i mesi chiusi; `minConsumatiTot` = somma di **tutti** i consumi; `minSaldoNetto = minRecuperoTot − minConsumatiTot` (può essere negativo); `minDisponibili = max(0, minSaldoNetto)`; `minDeficit = |minSaldoNetto|` se negativo; `giorniDisponibili = floor(minDisponibili / (oreG × 60))`. Esposti anche `minConsumatiTot` e `minSaldoNetto` in `salvadanaioOre()`.
+
+**3 · UI (`renderSalvadanaio`).** Con `minDeficit > 0`: avviso discreto non bloccante `.salv-deficit` (⚠️ *«Saldo in scoperto di 6h 00m (riaperti/modificati mesi con ore già spese in giorni Recupero ore): richiudi il mese o accumula nuove ore per compensare.»*), `#salv-hd-tot` = «scoperto 6h 00m» in rosso, `#wstr-salv-val` = `-6h 00m` in rosso, valore grande in rosso. Il tasto «Crea giorno "Recupero ore"» resta **disabilitato** quando `minDisponibili < oreGiorno × 60` (con la nota «Servono 6h per un nuovo giorno»). Il blocco alla creazione era già in `apriCreaGiornoRecupero()`/`_consumaRecuperoOreTurno()`: ora è coerente con l'avviso.
+
+**4 · Refresh unico.** Nuova `_salvDopoModifica()` = `_straordSyncFirebase()` + `_nfRenderOreUI()` (salvadanaio, straordinari, permessi studio, widget Saldi, widget prossimo turno). Chiamata da `riapriMeseSalvadanaio()`, `salvaChiusuraMese()`, `salvaStraord()` ed `eliminaStraord()`.
+
+**Verifica (`fix40probe`, 11/11 PASS)** — flusso completo su un mese passato (10h):
+`F1_chiusura` (600 min a recupero) → `F2_consumo` (giorno 6h: consumati 360, disponibili 240, 0 giorni) → `F3_riapri` (**ok=true**, netto **−360**, deficit **360**, disponibili 0) → `F3_intatto` (consumo conservato, mese non più chiuso, 600 da destinare) → `F4_aggiunta` (voce +30m: lavorate 630) → `F5_ui_deficit` (avviso, `-6h 00m`, `#salv-hd-tot`=«scoperto 6h 00m», tasto disabilitato) → `F6_richiusura` (630 a recupero → netto 270, deficit 0) → `F6_ui_ok` (`4h 30m`, nessun avviso, tasto disabilitato perché < 6h) → `F7_consumo_intatto` → `F8_nonchiuso` (errore pulito) → `F9_err` (0 errori JS).
+Regressioni: `fix39probe` 12/12, `nftest` (identità/licenze/mesi) tutta verde. `npm test` verde · `node --check app.js` OK · graffe CSS 2192/2192.
+Cache: `style.css?v=5.4.2`, `app.js?v=5.4.2`, SW `c-turni-v5.4.2`.

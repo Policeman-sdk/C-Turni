@@ -2,10 +2,10 @@
 importScripts('https://www.gstatic.com/firebasejs/11.8.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/11.8.1/firebase-messaging-compat.js');
 
-const CACHE_NAME = 'c-turni-v5.4.1'; /* v5.4.1: hero meteo/sigla, dettaglio giorno, Agenda iOS 27, fix struttura .cont */
+const CACHE_NAME = 'c-turni-v5.4.2'; /* v5.4.2: riapertura libera mesi passati + saldo globale salvadanaio (minDeficit) */
 const APP_SHELL = [
-  './', './index.html', './style.css?v=5.4.1', './db.js?v=1.0.0',
-  './state.js?v=1.0.0', './biometric.js?v=1.0.0', './app.js?v=5.4.1',
+  './', './index.html', './style.css?v=5.4.2', './db.js?v=1.0.0',
+  './state.js?v=1.0.0', './biometric.js?v=1.0.0', './app.js?v=5.4.2',
   './firebase-manager.js?v=5.3.1',
   './manifest.json', './icon-192.png', './icon-512.png',
   './firebase-manager.js?v=5.0.7',
